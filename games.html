@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>CARBON - Games</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
+  <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+  <style>
+    @keyframes float {
+      0%, 100% { transform: translateY(0px) rotate(0deg); }
+      33% { transform: translateY(-20px) rotate(120deg); }
+      66% { transform: translateY(10px) rotate(240deg); }
+    }
+    @keyframes slideDown {
+      from { transform: translateY(-100%); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+    @keyframes fadeInUp {
+      from { transform: translateY(30px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+  </style>
+</head>
+<body class="bg-gradient-to-br from-[#0f0f23] via-[#1a1a2e] to-[#16213e] min-h-screen text-white overflow-x-hidden relative font-[Inter]">
+
+  <!-- Animated Blobs -->
+  <div class="pointer-events-none absolute rounded-full opacity-10 blur-3xl w-[300px] h-[300px] top-[10%] left-[10%] bg-gradient-to-br from-cyan-400 to-indigo-500 animate-[float_20s_infinite_ease-in-out]"></div>
+  <div class="pointer-events-none absolute rounded-full opacity-10 blur-3xl w-[250px] h-[250px] top-[60%] right-[10%] bg-gradient-to-br from-indigo-500 to-purple-500 animate-[float_20s_infinite_ease-in-out] delay-7000"></div>
+  <div class="pointer-events-none absolute rounded-full opacity-10 blur-3xl w-[200px] h-[200px] bottom-[20%] left-[20%] bg-gradient-to-br from-cyan-400 to-purple-500 animate-[float_20s_infinite_ease-in-out] delay-14000"></div>
+
+  <!-- Navbar -->
+  <nav class="fixed top-0 left-0 right-0 z-[1000] flex justify-between items-center px-8 py-4 bg-[#0f0f23cc] border-b border-white/10 backdrop-blur-md animate-[slideDown_0.5s_ease-out]">
+    <div class="navbar-brand text-2xl md:text-3xl font-extrabold bg-gradient-to-r from-cyan-400 to-indigo-500 bg-clip-text text-transparent tracking-tighter select-none">CARBON</div>
+    <div class="flex items-center gap-4">
+      <div id="pinnedGame" class="hidden lg:flex items-center gap-3 bg-gradient-to-r from-cyan-400/10 to-indigo-500/10 border border-cyan-400/30 rounded-lg px-4 py-2 backdrop-blur-sm">
+        <i class='bx bx-pin text-cyan-400 text-lg'></i>
+        <span class="text-sm font-semibold text-white/90" id="pinnedGameTitle">No game pinned</span>
+        <button onclick="unpinGame()" class="text-white/60 hover:text-red-400 transition-colors ml-2">
+          <i class='bx bx-x text-sm'></i>
+        </button>
+      </div>
+      <div class="hamburger flex flex-col gap-1.5 cursor-pointer p-2 transition-transform duration-300" onclick="toggleMenu()">
+        <span class="block w-6 h-0.5 rounded bg-gradient-to-r from-cyan-400 to-indigo-500 transition-all duration-300"></span>
+        <span class="block w-6 h-0.5 rounded bg-gradient-to-r from-cyan-400 to-indigo-500 transition-all duration-300"></span>
+        <span class="block w-6 h-0.5 rounded bg-gradient-to-r from-cyan-400 to-indigo-500 transition-all duration-300"></span>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main Content -->
+  <main class="pt-28 pb-8 px-4 relative z-10">
+    <div class="max-w-7xl mx-auto">
+      <!-- Header -->
+      <div class="text-center mb-12 animate-[fadeInUp_1s_ease-out]">
+        <h1 class="text-5xl md:text-6xl font-black bg-gradient-to-r from-cyan-400 via-indigo-500 to-purple-400 bg-clip-text text-transparent mb-4 tracking-tighter">
+          Games Collection
+        </h1>
+        <p class="text-white/70 text-lg max-w-2xl mx-auto">
+          Discover amazing games across all genres. Play instantly in your browser!
+        </p>
+      </div>
+
+      <!-- Search Bar -->
+      <div class="mb-8 animate-[fadeInUp_1s_ease-out_0.2s_both]">
+        <div class="relative max-w-2xl mx-auto">
+          <input 
+            type="text" 
+            id="searchInput"
+            placeholder="Search games..." 
+            class="w-full px-6 py-4 pl-14 bg-white/5 border border-white/10 rounded-2xl text-white placeholder-white/50 focus:outline-none focus:border-cyan-400/50 focus:bg-white/10 transition-all duration-300"
+            oninput="searchGames()"
+          >
+          <i class='bx bx-search absolute left-5 top-1/2 -translate-y-1/2 text-white/50 text-xl'></i>
+        </div>
+      </div>
+
+      <!-- Categories -->
+      <div class="mb-12 animate-[fadeInUp_1s_ease-out_0.4s_both]">
+        <div class="flex flex-wrap justify-center gap-3" id="categoryButtons">
+          <button class="category-btn active px-6 py-3 rounded-full border border-white/20 text-white font-semibold transition-all duration-300 hover:border-cyan-400/50" onclick="filterGames('all', event)">
+            All Games
+          </button>
+          <button class="category-btn px-6 py-3 rounded-full border border-white/20 text-white font-semibold transition-all duration-300 hover:border-cyan-400/50" onclick="filterGames('action', event)">
+            Action
+          </button>
+          <button class="category-btn px-6 py-3 rounded-full border border-white/20 text-white font-semibold transition-all duration-300 hover:border-cyan-400/50" onclick="filterGames('puzzle', event)">
+            Puzzle
+          </button>
+          <button class="category-btn px-6 py-3 rounded-full border border-white/20 text-white font-semibold transition-all duration-300 hover:border-cyan-400/50" onclick="filterGames('strategy', event)">
+            Strategy
+          </button>
+          <button class="category-btn px-6 py-3 rounded-full border border-white/20 text-white font-semibold transition-all duration-300 hover:border-cyan-400/50" onclick="filterGames('arcade', event)">
+            Arcade
+          </button>
+          <button class="category-btn px-6 py-3 rounded-full border border-white/20 text-white font-semibold transition-all duration-300 hover:border-cyan-400/50" onclick="filterGames('racing', event)">
+            Racing
+          </button>
+        </div>
+      </div>
+
+      <!-- Featured Games Carousel -->
+      <div class="mb-16 animate-[fadeInUp_1s_ease-out_0.6s_both]">
+        <h2 class="text-3xl font-bold mb-8 bg-gradient-to-r from-cyan-400 to-indigo-500 bg-clip-text text-transparent">
+          Featured Games
+        </h2>
+        <div class="relative">
+          <div class="overflow-hidden rounded-2xl">
+            <div id="featuredCarousel" class="flex transition-transform duration-500 ease-in-out">
+              <!-- Carousel items will be populated by JavaScript -->
+            </div>
+          </div>
+          <button onclick="previousSlide()" class="absolute left-4 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-3 rounded-full transition-all duration-300 backdrop-blur-sm">
+            <i class='bx bx-chevron-left text-2xl'></i>
+          </button>
+          <button onclick="nextSlide()" class="absolute right-4 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-3 rounded-full transition-all duration-300 backdrop-blur-sm">
+            <i class='bx bx-chevron-right text-2xl'></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Games Grid -->
+      <div class="animate-[fadeInUp_1s_ease-out_0.8s_both]">
+        <div class="flex justify-between items-center mb-8">
+          <h2 class="text-3xl font-bold bg-gradient-to-r from-cyan-400 to-indigo-500 bg-clip-text text-transparent">
+            All Games
+          </h2>
+          <div class="text-white/60" id="gameCount">
+            Loading games...
+          </div>
+        </div>
+        <div id="gamesGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          <div class="game-card bg-white/5 border border-white/10 rounded-2xl overflow-hidden aspect-[4/3]">
+            <div class="w-full h-full bg-gradient-to-br from-gray-700 to-gray-800 animate-pulse"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    let gamesData = [];
+    let currentSlide = 0;
+    let filteredGames = [];
+    let currentFilter = 'all';
+    let pinnedGameData = null;
+
+    async function fetchGames() {
+      const response = await fetch('games.json');
+      gamesData = await response.json();
+      filteredGames = [...gamesData];
+      renderFeaturedCarousel();
+      renderGamesGrid();
+      updateGameCount();
+    }
+    document.addEventListener('DOMContentLoaded', fetchGames);
+
+    // --- Featured Carousel ---
+    function renderFeaturedCarousel() {
+      const carousel = document.getElementById('featuredCarousel');
+      const featuredGames = gamesData.filter(game => game.featured);
+      carousel.innerHTML = featuredGames.map(game => `
+        <div class="flex-shrink-0 w-full relative">
+          <div class="bg-gradient-to-br from-white/10 to-white/5 rounded-2xl overflow-hidden border border-white/10">
+            <div class="aspect-video relative overflow-hidden">
+              <img src="${game.image}" alt="${game.title}" class="w-full h-full object-cover">
+              <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+              <div class="absolute bottom-6 left-6 right-6">
+                <h3 class="text-2xl font-bold mb-2">${game.title}</h3>
+                <p class="text-white/80 mb-4">${game.description}</p>
+                <div class="flex gap-3">
+                  <a href="play.html?id=${game.id}" class="bg-gradient-to-r from-cyan-400 to-indigo-500 text-black font-semibold px-6 py-2 rounded-lg hover:scale-105 transition-transform duration-300">
+                    Play Now
+                  </a>
+                  <button onclick="pinGame(${game.id})" class="bg-white/20 backdrop-blur-sm text-white font-semibold px-6 py-2 rounded-lg hover:bg-white/30 transition-all duration-300">
+                    <i class='bx bx-pin mr-2'></i>Pin
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      `).join('');
+      updateCarousel();
+    }
+
+    function nextSlide() {
+      const featuredGames = gamesData.filter(game => game.featured);
+      if (featuredGames.length === 0) return;
+      currentSlide = (currentSlide + 1) % featuredGames.length;
+      updateCarousel();
+    }
+    function previousSlide() {
+      const featuredGames = gamesData.filter(game => game.featured);
+      if (featuredGames.length === 0) return;
+      currentSlide = (currentSlide - 1 + featuredGames.length) % featuredGames.length;
+      updateCarousel();
+    }
+    function updateCarousel() {
+      const featuredGames = gamesData.filter(game => game.featured);
+      const carousel = document.getElementById('featuredCarousel');
+      carousel.style.transform = `translateX(-${currentSlide * 100}%)`;
+    }
+    setInterval(nextSlide, 5000);
+
+    // --- Games Grid ---
+    function renderGamesGrid() {
+      const grid = document.getElementById('gamesGrid');
+      if (filteredGames.length === 0) {
+        grid.innerHTML = '<div class="col-span-full text-center text-white/60 py-10">No games found.</div>';
+        return;
+      }
+      grid.innerHTML = filteredGames.map(game => `
+        <div class="game-card bg-white/5 border border-white/10 rounded-2xl hover:border-cyan-400/30 transition-all duration-300 aspect-[4/3] relative group" data-category="${game.category}" data-title="${game.title.toLowerCase()}">
+          <div class="relative w-full h-full overflow-hidden rounded-2xl">
+            <img src="${game.image}" alt="${game.title}" class="w-full h-full object-cover">
+            <img src="${game.gif}" alt="${game.title} gameplay" class="absolute top-0 left-0 w-full h-full object-cover opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+            <div class="absolute top-3 right-3 z-10">
+              <button onclick="pinGame(${game.id})" class="bg-black/50 hover:bg-black/70 text-white p-2 rounded-full transition-all duration-300 backdrop-blur-sm">
+                <i class='bx bx-pin text-sm'></i>
+              </button>
+            </div>
+            <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/60 to-transparent p-4 translate-y-full group-hover:translate-y-0 transition-transform duration-300">
+              <h3 class="font-semibold text-white mb-1">${game.title}</h3>
+              <p class="text-white/60 text-sm mb-3">${game.description}</p>
+              <div class="flex items-center justify-between">
+                <span class="inline-block px-2 py-1 bg-gradient-to-r from-cyan-400/20 to-indigo-500/20 text-cyan-400 text-xs rounded-full border border-cyan-400/30">
+                  ${game.category}
+                </span>
+                <a href="play.html?id=${game.id}" class="bg-gradient-to-r from-cyan-400 to-indigo-500 text-black font-semibold px-4 py-2 rounded-lg hover:scale-105 transition-transform duration-300 text-sm">
+                  Play Now
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // --- Search ---
+    function searchGames() {
+      const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+      filteredGames = gamesData.filter(game => {
+        const matchesSearch = game.title.toLowerCase().includes(searchTerm) ||
+                              game.description.toLowerCase().includes(searchTerm);
+        const matchesCategory = currentFilter === 'all' || game.category === currentFilter;
+        return matchesSearch && matchesCategory;
+      });
+      renderGamesGrid();
+      updateGameCount();
+    }
+
+    // --- Filter ---
+    function filterGames(category, event) {
+      currentFilter = category;
+      const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+      document.querySelectorAll('.category-btn').forEach(btn => {
+        btn.classList.remove('active');
+      });
+      if (event) event.target.classList.add('active');
+      filteredGames = gamesData.filter(game => {
+        const matchesSearch = game.title.toLowerCase().includes(searchTerm) ||
+                              game.description.toLowerCase().includes(searchTerm);
+        const matchesCategory = category === 'all' || game.category === category;
+        return matchesSearch && matchesCategory;
+      });
+      renderGamesGrid();
+      updateGameCount();
+    }
+
+    // --- Game Count ---
+    function updateGameCount() {
+      document.getElementById('gameCount').textContent = `${filteredGames.length} games found`;
+    }
+
+    // --- Pin/Unpin ---
+    function pinGame(gameId) {
+      const game = gamesData.find(g => g.id === gameId);
+      if (game) {
+        pinnedGameData = game;
+        document.getElementById('pinnedGame').classList.remove('hidden');
+        document.getElementById('pinnedGameTitle').textContent = game.title;
+      }
+    }
+    function unpinGame() {
+      pinnedGameData = null;
+      document.getElementById('pinnedGame').classList.add('hidden');
+    }
+
+    // --- Mobile menu stub ---
+    function toggleMenu() {
+      console.log('Mobile menu toggled');
+    }
+
+    document.addEventListener('scroll', function() {
+      const navbar = document.querySelector('nav');
+      if (window.scrollY > 100) {
+        navbar.style.backgroundColor = 'rgba(15, 15, 35, 0.95)';
+      } else {
+        navbar.style.backgroundColor = 'rgba(15, 15, 35, 0.8)';
+      }
+    });
+  </script>
+</body>
+</html>
