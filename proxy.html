@@ -3,11 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>CARBON</title>
+  <title>CARBON Proxy</title>
   <script defer async src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
-  <link rel="stylesheet" href="styles.css"></link>
-  <script defer async src="/js/hamburger.js"></script>
+  <link rel="stylesheet" href="styles.css">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
+  <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
   <style>
     .draggable-tab {
       user-select: none;
@@ -17,247 +17,672 @@
     .draggable-tab.dragging {
       opacity: 0.5;
     }
+    .tab-actions button {
+      min-width: 2.5rem;
+      min-height: 2.5rem;
+    }
+    .dropdown-menu {
+      display: none;
+      position: absolute;
+      right: 0;
+      top: 110%;
+      background: #23234d;
+      border-radius: 0.5rem;
+      min-width: 170px;
+      z-index: 100;
+      box-shadow: 0 6px 16px 3px rgba(0,0,0,.4);
+    }
+    .dropdown-menu.active {
+      display: block;
+    }
+    .dropdown-menu button {
+      width: 100%;
+      text-align: left;
+      padding: 0.75rem 1.1rem;
+      background: transparent;
+      border: none;
+      color: #fff;
+      cursor: pointer;
+      font-size: 1rem;
+    }
+    .dropdown-menu button:hover {
+      background: #2c2c5c;
+    }
+    .history-scroll {
+      scrollbar-width: thin;
+      scrollbar-color: #5865f2 #181829;
+    }
+    .history-scroll::-webkit-scrollbar {
+      width: 6px;
+    }
+    .history-scroll::-webkit-scrollbar-thumb {
+      background: #5865f2;
+      border-radius: 8px;
+    }
+    .history-scroll::-webkit-scrollbar-track {
+      background: #181829;
+    }
+    .history-modal-bg {
+      background: rgba(0,0,0,0.5);
+      z-index: 2000;
+      transition: opacity 0.2s;
+    }
+    .history-modal {
+      z-index: 2010;
+      transition: transform 0.2s, opacity 0.2s;
+    }
+    .custom-select {
+      background: #23234d;
+      border-radius: 0.375rem;
+      padding: 0.5rem 2.5rem 0.5rem 0.75rem;
+      color: #fff;
+      border: 2px solid #0ff;
+      outline: none;
+      appearance: none;
+      width: 200px;
+      font-size: 1rem;
+      margin-left: 0.75rem;
+      transition: border-color 0.2s;
+    }
+    .custom-select:focus {
+      border-color: #6366f1;
+    }
+    .custom-select option {
+      background: #23234d;
+      color: #fff;
+    }
+    .toggle-switch {
+      position: relative;
+      display: inline-block;
+      width: 60px;
+      height: 30px;
+      vertical-align: middle;
+      margin-left: 1rem;
+      margin-right: 0.5rem;
+    }
+    .toggle-switch input {
+      display: none;
+    }
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: #23234d;
+      border-radius: 30px;
+      transition: background 0.2s;
+      border: 2px solid #0ff;
+    }
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 24px;
+      width: 24px;
+      left: 3px;
+      bottom: 2px;
+      background: #fff;
+      border-radius: 50%;
+      transition: 0.2s;
+    }
+    .toggle-switch input:checked + .slider {
+      background: #5865f2;
+      border-color: #5865f2;
+    }
+    .toggle-switch input:checked + .slider:before {
+      transform: translateX(30px);
+      background: #fff;
+    }
+    .toggle-label {
+      margin-right: 0.5rem;
+      font-weight: 600;
+      color: #0ff;
+      font-size: 0.97rem;
+      vertical-align: middle;
+    }
+    @media (max-width: 480px) {
+      .custom-select {
+        width: 100%;
+        margin-left: 0;
+        margin-top: 0.5rem;
+      }
+      .toggle-label {
+        margin-left: 0;
+      }
+      .toggle-switch {
+        margin-left: 0.25rem;
+        margin-right: 0.25rem;
+      }
+    }
   </style>
 </head>
 <body class="bg-gradient-to-br from-[#0f0f23] via-[#1a1a2e] to-[#16213e] min-h-screen text-white overflow-x-hidden relative">
-  <!-- Navbar -->
-  <nav class="fixed top-0 left-0 right-0 z-[1000] flex justify-between items-center px-8 py-4 bg-[#0f0f23cc] border-b border-white/10 backdrop-blur-md animate-[slideDown_0.5s_ease-out]">
-    <div class="navbar-brand text-2xl md:text-3xl font-extrabold bg-gradient-to-r from-cyan-400 to-indigo-500 bg-clip-text text-transparent tracking-tighter select-none">CARBON</div>
-    <div class="hamburger flex flex-col gap-1.5 cursor-pointer p-2 transition-transform duration-300" id="hamburger" onclick="toggleMenu()">
-      <span class="block w-6 h-0.5 rounded bg-gradient-to-r from-cyan-400 to-indigo-500 transition-all duration-300"></span>
-      <span class="block w-6 h-0.5 rounded bg-gradient-to-r from-cyan-400 to-indigo-500 transition-all duration-300"></span>
-      <span class="block w-6 h-0.5 rounded bg-gradient-to-r from-cyan-400 to-indigo-500 transition-all duration-300"></span>
-    </div>
-  </nav>
 
-  <!-- Mobile Menu -->
-  <div class="fixed top-0 right-[-100%] w-72 h-full bg-[#0f0f23f2] backdrop-blur-md border-l border-white/10 pt-24 px-8 z-[999] transition-all duration-300" id="mobileMenu">
-    <a href="/" class="mobile-menu-item block py-4 mb-2 text-white font-semibold text-lg border-b border-white/10 relative overflow-hidden transition-all duration-300 hover:text-cyan-400 hover:pl-4">Home</a>
-    <a href="#games" class="mobile-menu-item block py-4 mb-2 text-white font-semibold text-lg border-b border-white/10 relative overflow-hidden transition-all duration-300 hover:text-cyan-400 hover:pl-4">Games</a>
-    <a href="/proxy" class="mobile-menu-item block py-4 mb-2 text-white font-semibold text-lg border-b border-white/10 relative overflow-hidden transition-all duration-300 hover:text-cyan-400 hover:pl-4">Proxy</a>
-  </div>
-  <div class="overlay fixed inset-0 bg-black bg-opacity-50 opacity-0 invisible transition-all duration-300 z-[998]" id="overlay"></div>
-
-  <main class="flex flex-col items-center justify-center min-h-screen pt-28 pb-8 px-4 relative z-10">
-    <div class="w-full max-w-4xl mx-auto shadow-lg rounded-lg bg-[#1a1a2e]/80 p-4">
-      <!-- Chrome-like Tabs Bar -->
-      <div id="tabs-bar" class="flex items-center space-x-2 overflow-x-auto pb-2">
-        <!-- Tabs will be rendered here -->
-      </div>
-      <!-- New Tab Button -->
+<main class="flex flex-col items-center justify-center min-h-screen px-2 py-8 relative z-10">
+  <div class="w-full max-w-4xl mx-auto shadow-lg rounded-lg bg-[#1a1a2e]/80 p-3 pt-4">
+    <!-- Tabs Bar -->
+    <div class="flex items-center space-x-2 relative">
+      <div id="tabs-bar" class="flex items-center space-x-2 overflow-x-auto pb-2"></div>
       <button id="new-tab-btn" class="ml-2 px-3 py-1 rounded bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-lg" title="New Tab (Ctrl+T)">+</button>
-
-      <!-- Tab Content Area -->
-      <div id="tab-content-area" class="mt-4"></div>
     </div>
-
-    <link rel="modulepreload" href="https://cdn.jsdelivr.net/gh/Coding4Hours/cdn/uv/uv.bundle.js">
-    <link rel="modulepreload" href="/scram/scramjet.worker.js">
-    <script defer type="module" src="lethal.mjs"></script>
-    <script>
-      // --- Tabs State ---
-      let tabs = [];
-      let activeTab = null;
-      let tabIdCounter = 1;
-
-      // --- Helper Functions ---
-      function createTab(url='') {
-        const id = 'tab-' + tabIdCounter++;
-        return {
-          id,
-          title: url ? url : 'New Tab',
-          url,
-          iframeId: 'iframe-' + id
-        };
-      }
-
-      function renderTabs() {
-        const tabsBar = document.getElementById('tabs-bar');
-        tabsBar.innerHTML = '';
-        tabs.forEach((tab, idx) => {
-          const btn = document.createElement('div');
-          btn.className = 'draggable-tab flex items-center px-4 py-2 rounded-t-lg bg-[#23234d] hover:bg-[#2c2c5c] text-white relative group select-none mr-1 ' +
-            (tab.id === activeTab ? 'border-t-2 border-cyan-400 font-bold bg-[#292955]' : '');
-          btn.setAttribute('draggable', 'true');
-          btn.setAttribute('data-tab-id', tab.id);
-          btn.textContent = tab.title.length > 18 ? tab.title.slice(0,15) + '...' : tab.title;
-
-          // Close icon
-          const closeBtn = document.createElement('span');
-          closeBtn.className = 'ml-2 cursor-pointer opacity-60 hover:opacity-100 transition-opacity';
-          closeBtn.innerHTML = '&times;';
-          closeBtn.title = 'Close Tab (Ctrl+W)';
-          closeBtn.onclick = (e) => {
-            e.stopPropagation();
-            removeTab(tab.id);
-          };
-          btn.appendChild(closeBtn);
-
-          // Activate tab on click
-          btn.onclick = () => setActiveTab(tab.id);
-
-          // --- Drag and Drop Handlers ---
-          btn.addEventListener('dragstart', (e) => {
-            e.dataTransfer.setData('text/plain', tab.id);
-            btn.classList.add('dragging');
-          });
-          btn.addEventListener('dragend', (e) => {
-            btn.classList.remove('dragging');
-          });
-          btn.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            btn.classList.add('bg-[#23234d]/80');
-          });
-          btn.addEventListener('dragleave', (e) => {
-            btn.classList.remove('bg-[#23234d]/80');
-          });
-          btn.addEventListener('drop', (e) => {
-            e.preventDefault();
-            btn.classList.remove('bg-[#23234d]/80');
-            const draggedTabId = e.dataTransfer.getData('text/plain');
-            reorderTab(draggedTabId, tab.id);
-          });
-
-          tabsBar.appendChild(btn);
-        });
-      }
-
-      function renderTabContent() {
-        const area = document.getElementById('tab-content-area');
-        const tab = tabs.find(t => t.id === activeTab);
-        if (!tab) {
-          area.innerHTML = '<div class="text-center text-lg text-white/70 py-8">No tab selected</div>';
-          return;
-        }
-        area.innerHTML = `
-          <form id="form-${tab.id}" class="w-full md:w-2/3 lg:w-1/2 mx-auto mb-3">
-            <input
-              spellcheck="false"
-              autocomplete="off"
-              id="address-${tab.id}"
-              type="text"
-              value="${tab.url || ''}"
-              placeholder="Search the web freely"
-              class="bg-transparent w-full focus:outline-none border-b-2 border-cyan-400 text-center py-2 text-xl transition-all duration-300 placeholder-white/50 focus:border-indigo-500"
-            />
-          </form>
-          <div id="proxy-container-${tab.id}">
-            <iframe title="Proxy Frame" id="${tab.iframeId}" class="w-full h-[70vh] border-0 bg-black"></iframe>
+    <!-- Toolbar -->
+    <div class="flex flex-col md:flex-row md:items-center gap-2 mt-2 mb-2 tab-actions relative">
+      <div class="flex items-center gap-2">
+        <button id="back-btn" class="rounded bg-[#23234d] hover:bg-[#2c2c5c] p-2 flex items-center justify-center" title="Back">
+          <svg width="20" height="20" stroke="white" fill="none" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <button id="forward-btn" class="rounded bg-[#23234d] hover:bg-[#2c2c5c] p-2 flex items-center justify-center" title="Forward">
+          <svg width="20" height="20" stroke="white" fill="none" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <button id="refresh-btn" class="rounded bg-[#23234d] hover:bg-[#2c2c5c] p-2 flex items-center justify-center" title="Refresh">
+          <svg width="20" height="20" stroke="white" fill="none" viewBox="0 0 24 24"><path d="M4 4v6h6M20 20v-6h-6M5.07 19A9 9 0 1 1 21 12.94" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <button id="home-btn" class="rounded bg-[#23234d] hover:bg-[#2c2c5c] p-2 flex items-center justify-center" title="Home">
+          <svg width="20" height="20" stroke="white" fill="none" viewBox="0 0 24 24"><path d="M3 12l9-9 9 9M4 10v10h16V10" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <button id="history-btn" class="rounded bg-[#23234d] hover:bg-[#2c2c5c] p-2 flex items-center justify-center" title="Show History">
+          <i class='bx bx-history text-2xl'></i>
+        </button>
+        <!-- Proxy Toggle -->
+        <label class="toggle-label" for="proxy-toggle">UV</label>
+        <div class="toggle-switch">
+          <input type="checkbox" id="proxy-toggle">
+          <span class="slider"></span>
+        </div>
+        <label class="toggle-label" for="proxy-toggle" id="proxy-toggle-label" style="color:#f8d94e">Scramjet</label>
+        <div class="relative">
+          <button id="menu-btn" class="rounded bg-[#23234d] hover:bg-[#2c2c5c] p-2 flex items-center justify-center" title="Menu">
+            <svg width="20" height="20" fill="white" viewBox="0 0 24 24"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
+          </button>
+          <div id="dropdown-menu" class="dropdown-menu">
+            <button id="clear-history-btn">Clear History</button>
+            <button id="close-all-tabs-btn">Close All Tabs</button>
+            <button id="restore-tabs-btn">Restore Tabs</button>
           </div>
-        `;
+        </div>
+      </div>
+      <!-- Search Engine Select -->
+      <div class="flex items-center md:ml-auto">
+        <label for="search-engine" class="mr-2 text-cyan-400 font-semibold hidden md:inline">Search:</label>
+        <select id="search-engine" class="custom-select" aria-label="Select search engine">
+          <option value="https://search.brave.com/search?q=%s">Brave</option>
+          <option value="https://duckduckgo.com/?q=%s">DuckDuckGo</option>
+          <option value="https://www.google.com/search?q=%s">Google</option>
+          <option value="https://www.bing.com/search?q=%s">Bing</option>
+          <option value="https://search.yahoo.com/search?p=%s">Yahoo</option>
+          <option value="https://www.ecosia.org/search?q=%s">Ecosia</option>
+        </select>
+      </div>
+    </div>
+    <!-- Search/Address Bar -->
+    <form id="address-bar-form" class="w-full flex items-center mb-2">
+      <input
+        id="address-bar-input"
+        type="text"
+        spellcheck="false"
+        autocomplete="off"
+        placeholder="Search the web freely"
+        class="bg-[#23234d] w-full focus:outline-none border-b-2 border-cyan-400 text-center py-2 text-lg transition-all duration-300 placeholder-white/50 focus:border-indigo-500 rounded"
+      />
+    </form>
+    <!-- Tab Content Area (iframe) -->
+    <div class="rounded-lg overflow-hidden bg-black border border-[#23234d]">
+      <iframe id="proxy-iframe" title="Proxy Frame" class="w-full h-[60vh] border-0" src=""></iframe>
+    </div>
+  </div>
+  <!-- History Modal (hidden by default) -->
+  <div id="history-modal-bg" class="fixed inset-0 history-modal-bg flex items-center justify-center opacity-0 pointer-events-none">
+    <div id="history-modal" class="history-modal bg-[#23234d] rounded-xl shadow-xl max-w-lg w-[95vw] p-6 relative transform scale-95 opacity-0">
+      <button id="close-history-modal" class="absolute top-3 right-3 text-white/80 hover:text-red-400 text-2xl"><i class='bx bx-x'></i></button>
+      <h2 class="text-xl font-bold mb-4 text-white/90 flex items-center"><i class='bx bx-history mr-2'></i>Tab History</h2>
+      <div id="modal-history-list" class="history-scroll max-h-72 overflow-y-auto text-white/80 space-y-1 text-sm"></div>
+    </div>
+  </div>
+</main>
+<script type="module">
+import {
+  makeURL,
+  getProxied,
+  setProxy,
+  setTransport,
+  setWisp,
+} from "./lethal.mjs";
 
-        // Attach form listener
-        document.getElementById(`form-${tab.id}`).addEventListener('submit', async (event) => {
-          event.preventDefault();
-          const addressInput = document.getElementById(`address-${tab.id}`);
-          let url = addressInput.value;
-          tab.url = url;
-          tab.title = url ? url : 'New Tab';
-          renderTabs();
-          // Use lethal.mjs logic
-          try {
-            let search =
-              localStorage.getItem("search-engine") ||
-              "https://search.brave.com/search?q=%s";
-            let frame = document.getElementById(tab.iframeId);
-            // If lethal.mjs is loaded as a module, use window.makeURL/getProxied
-            let urlToLoad = window.makeURL ? window.makeURL(url, search) : url;
-            let getProxied = window.getProxied || (async (u) => u);
-            frame.src = await getProxied(urlToLoad);
-          } catch (e) {}
-        });
+// ---- Search Engine Management ----
+const searchEngineSelect = document.getElementById("search-engine");
+function getCurrentSearchEngine() {
+  return localStorage.getItem("search-engine") ||
+    "https://search.brave.com/search?q=%s";
+}
+function setCurrentSearchEngine(url) {
+  localStorage.setItem("search-engine", url);
+}
+function updateSearchEngineSelect() {
+  const current = getCurrentSearchEngine();
+  for (const opt of searchEngineSelect.options) {
+    if (opt.value === current) {
+      opt.selected = true;
+      break;
+    }
+  }
+}
+searchEngineSelect.addEventListener("change", (e) => {
+  setCurrentSearchEngine(e.target.value);
+  const tab = getActiveTab();
+  if (tab && tab.history[tab.pointer]) {
+    let v = tab.history[tab.pointer];
+    if (!/^(https?:)?\/\//.test(v) && v.length > 0) {
+      renderTabContent(tab);
+    }
+  }
+});
+updateSearchEngineSelect();
 
-        // Auto-fill iframe if url exists
-        if (tab.url) {
-          document.getElementById(`form-${tab.id}`).dispatchEvent(new Event('submit'));
-        }
-      }
+// ---- Proxy Backend Toggle ----
+const proxyToggle = document.getElementById("proxy-toggle");
+const proxyToggleLabel = document.getElementById("proxy-toggle-label");
+function updateProxyToggleUI(backend) {
+  if (backend === "scram") {
+    proxyToggle.checked = true;
+    proxyToggleLabel.style.color = "#0ff";
+  } else {
+    proxyToggle.checked = false;
+    proxyToggleLabel.style.color = "#f8d94e";
+  }
+}
+proxyToggle.addEventListener("change", async function() {
+  if (proxyToggle.checked) {
+    await setProxy("scram");
+    localStorage.setItem("proxy-backend", "scram");
+    updateProxyToggleUI("scram");
+  } else {
+    await setProxy("uv");
+    localStorage.setItem("proxy-backend", "uv");
+    updateProxyToggleUI("uv");
+  }
+  // Refresh current tab
+  const tab = getActiveTab();
+  if (tab) renderTabContent(tab);
+});
+// Set toggle state on load
+let initialBackend = localStorage.getItem("proxy-backend") || "uv";
+updateProxyToggleUI(initialBackend);
 
-      function setActiveTab(tabId) {
-        activeTab = tabId;
+// ---- Proxy Setup ----
+let backend = localStorage.getItem("proxy-backend") || "uv";
+let wisp = localStorage.getItem("wisp-server") || "wss://anura.pro/";
+let transport = localStorage.getItem("proxy-transport");
+setWisp(wisp);
+setProxy(backend);
+if (transport) setTransport(transport);
+else if (navigator.userAgent.indexOf("Firefox") > 0) setTransport("libcurl");
+else setTransport("epoxy");
+
+// Tabs State
+let tabs = [];
+let activeTab = null;
+let tabIdCounter = 1;
+let closedTabsSnapshot = [];
+
+function createTab(url = "") {
+  const id = "tab-" + tabIdCounter++;
+  return {
+    id,
+    title: url ? url : "New Tab",
+    url,
+    history: url ? [url] : [],
+    pointer: url ? 0 : -1
+  };
+}
+
+function renderTabs() {
+  const tabsBar = document.getElementById("tabs-bar");
+  tabsBar.innerHTML = "";
+  tabs.forEach((tab, idx) => {
+    const btn = document.createElement("div");
+    btn.className =
+      "draggable-tab flex items-center px-4 py-2 rounded-t-lg bg-[#23234d] hover:bg-[#2c2c5c] text-white relative group select-none mr-1 " +
+      (tab.id === activeTab
+        ? "border-t-2 border-cyan-400 font-bold bg-[#292955]"
+        : "");
+    btn.setAttribute("draggable", "true");
+    btn.setAttribute("data-tab-id", tab.id);
+    btn.textContent =
+      tab.title.length > 18
+        ? tab.title.slice(0, 15) + "..."
+        : tab.title;
+
+    // Close icon
+    const closeBtn = document.createElement("span");
+    closeBtn.className =
+      "ml-2 cursor-pointer opacity-60 hover:opacity-100 transition-opacity";
+    closeBtn.innerHTML = "&times;";
+    closeBtn.title = "Close Tab (Ctrl+W)";
+    closeBtn.onclick = (e) => {
+      e.stopPropagation();
+      removeTab(tab.id);
+    };
+    btn.appendChild(closeBtn);
+
+    // Activate tab on click
+    btn.onclick = () => setActiveTab(tab.id);
+
+    // Drag and drop handlers
+    btn.addEventListener("dragstart", (e) => {
+      e.dataTransfer.setData("text/plain", tab.id);
+      btn.classList.add("dragging");
+    });
+    btn.addEventListener("dragend", (e) => {
+      btn.classList.remove("dragging");
+    });
+    btn.addEventListener("dragover", (e) => {
+      e.preventDefault();
+      btn.classList.add("bg-[#23234d]/80");
+    });
+    btn.addEventListener("dragleave", (e) => {
+      btn.classList.remove("bg-[#23234d]/80");
+    });
+    btn.addEventListener("drop", (e) => {
+      e.preventDefault();
+      btn.classList.remove("bg-[#23234d]/80");
+      const draggedTabId = e.dataTransfer.getData("text/plain");
+      reorderTab(draggedTabId, tab.id);
+    });
+
+    tabsBar.appendChild(btn);
+  });
+}
+
+function updateAddressBar(tab) {
+  const addressInput = document.getElementById("address-bar-input");
+  addressInput.value = tab.history[tab.pointer] || "";
+}
+
+function renderTabContent(tab) {
+  const iframe = document.getElementById("proxy-iframe");
+  if (!tab || typeof tab.pointer !== "number" || tab.pointer < 0 || !tab.history[tab.pointer]) {
+    iframe.src = "";
+    return;
+  }
+  let url = tab.history[tab.pointer];
+  let search = getCurrentSearchEngine();
+  makeURLAndProxied(url, search).then(src => {
+    iframe.src = src;
+  });
+}
+
+async function makeURLAndProxied(url, search) {
+  try {
+    let urlToLoad = makeURL(url, search);
+    return await getProxied(urlToLoad);
+  } catch (e) {
+    return "";
+  }
+}
+
+function setActiveTab(tabId) {
+  activeTab = tabId;
+  renderTabs();
+  const tab = tabs.find(t => t.id === tabId);
+  updateAddressBar(tab);
+  renderTabContent(tab);
+}
+
+function addTab(url = "") {
+  const tab = createTab(url);
+  tabs.push(tab);
+  setActiveTab(tab.id);
+}
+
+function removeTab(tabId) {
+  const idx = tabs.findIndex(t => t.id === tabId);
+  if (idx !== -1) {
+    takeTabsSnapshot();
+    tabs.splice(idx, 1);
+    if (activeTab === tabId) {
+      if (tabs[idx - 1]) setActiveTab(tabs[idx - 1].id);
+      else if (tabs[idx]) setActiveTab(tabs[idx].id);
+      else {
+        activeTab = null;
         renderTabs();
-        renderTabContent();
+        document.getElementById("proxy-iframe").src = "";
+        document.getElementById("address-bar-input").value = "";
       }
+    } else {
+      renderTabs();
+    }
+  }
+}
 
-      function addTab(url='') {
-        const tab = createTab(url);
-        tabs.push(tab);
-        setActiveTab(tab.id);
-      }
+function reorderTab(draggedTabId, targetTabId) {
+  const fromIdx = tabs.findIndex(t => t.id === draggedTabId);
+  const toIdx = tabs.findIndex(t => t.id === targetTabId);
+  if (fromIdx === -1 || toIdx === -1 || fromIdx === toIdx) return;
+  const [removed] = tabs.splice(fromIdx, 1);
+  tabs.splice(toIdx, 0, removed);
+  renderTabs();
+}
 
-      function removeTab(tabId) {
-        const idx = tabs.findIndex(t => t.id === tabId);
-        if (idx !== -1) {
-          tabs.splice(idx, 1);
-          // If closing the active tab, activate previous, or next, or none
-          if (activeTab === tabId) {
-            if (tabs[idx - 1]) setActiveTab(tabs[idx - 1].id);
-            else if (tabs[idx]) setActiveTab(tabs[idx].id);
-            else {
-              activeTab = null;
-              renderTabs();
-              renderTabContent();
-            }
-          } else {
-            renderTabs();
-          }
-        }
-      }
+function updateTabHistory(tab, url) {
+  if (tab.pointer < tab.history.length - 1) {
+    tab.history = tab.history.slice(0, tab.pointer + 1);
+  }
+  tab.history.push(url);
+  tab.pointer = tab.history.length - 1;
+  tab.url = url;
+  tab.title = url ? url : "New Tab";
+}
 
-      function reorderTab(draggedTabId, targetTabId) {
-        const fromIdx = tabs.findIndex(t => t.id === draggedTabId);
-        const toIdx = tabs.findIndex(t => t.id === targetTabId);
-        if (fromIdx === -1 || toIdx === -1 || fromIdx === toIdx) return;
-        const [removed] = tabs.splice(fromIdx, 1);
-        tabs.splice(toIdx, 0, removed);
-        renderTabs();
-      }
+function getActiveTab() {
+  return tabs.find(t => t.id === activeTab);
+}
 
-      // --- Keyboard Shortcuts ---
-      document.addEventListener('keydown', (e) => {
-        // Cmd/Ctrl+T: New tab
-        if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === 't') {
-          e.preventDefault();
-          addTab();
-        }
-        // Cmd/Ctrl+W: Close tab
-        if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === 'w') {
-          e.preventDefault();
-          if (activeTab) removeTab(activeTab);
-        }
-        // Cmd/Ctrl+Tab: Next tab
-        if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key === 'Tab') {
-          e.preventDefault();
-          const idx = tabs.findIndex(t => t.id === activeTab);
-          if (tabs.length > 1 && idx !== -1) {
-            const nextIdx = (idx + 1) % tabs.length;
-            setActiveTab(tabs[nextIdx].id);
-          }
-        }
-        // Cmd/Ctrl+Shift+Tab: Previous tab
-        if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'Tab') {
-          e.preventDefault();
-          const idx = tabs.findIndex(t => t.id === activeTab);
-          if (tabs.length > 1 && idx !== -1) {
-            const prevIdx = (idx - 1 + tabs.length) % tabs.length;
-            setActiveTab(tabs[prevIdx].id);
-          }
-        }
-      });
+// Address Bar Form Submission
+document.getElementById("address-bar-form").addEventListener("submit", async function(event) {
+  event.preventDefault();
+  const tab = getActiveTab();
+  if (!tab) return;
+  const addressInput = document.getElementById("address-bar-input");
+  let url = addressInput.value.trim();
+  if (!url) return;
+  updateTabHistory(tab, url);
+  renderTabs();
+  renderTabContent(tab);
+});
 
-      // --- New Tab Button ---
-      document.getElementById('new-tab-btn').addEventListener('click', () => addTab());
+document.getElementById("back-btn").onclick = function() {
+  const tab = getActiveTab();
+  if (!tab || tab.pointer <= 0) return;
+  tab.pointer--;
+  updateAddressBar(tab);
+  renderTabContent(tab);
+};
+document.getElementById("forward-btn").onclick = function() {
+  const tab = getActiveTab();
+  if (!tab || tab.pointer >= tab.history.length - 1) return;
+  tab.pointer++;
+  updateAddressBar(tab);
+  renderTabContent(tab);
+};
+document.getElementById("refresh-btn").onclick = function() {
+  const tab = getActiveTab();
+  if (!tab || typeof tab.pointer !== "number" || tab.pointer < 0) return;
+  renderTabContent(tab);
+};
+document.getElementById("home-btn").onclick = function() {
+  const tab = getActiveTab();
+  if (!tab) return;
+  const homepage = "";
+  updateTabHistory(tab, homepage);
+  updateAddressBar(tab);
+  renderTabContent(tab);
+};
 
-      // --- Init: Add one tab on load ---
-      window.addEventListener('DOMContentLoaded', () => {
-        // Expose window.makeURL/getProxied for inline script access
-        import('./lethal.mjs').then(m => {
-          window.makeURL = m.makeURL;
-          window.getProxied = m.getProxied;
-        });
-        if (tabs.length === 0) addTab();
-      });
-    </script>
-  </main>
+function takeTabsSnapshot() {
+  closedTabsSnapshot = JSON.parse(JSON.stringify(tabs));
+  localStorage.setItem("carbon-proxy-last-tabs", JSON.stringify(closedTabsSnapshot));
+}
+function restoreTabsFromSnapshot() {
+  let fromLS = localStorage.getItem("carbon-proxy-last-tabs");
+  let snapshot = closedTabsSnapshot.length
+    ? closedTabsSnapshot
+    : (fromLS ? JSON.parse(fromLS) : []);
+  if (!snapshot.length) return;
+  tabs = snapshot.map(tab => ({
+    ...tab,
+    id: "tab-" + (tabIdCounter++),
+  }));
+  activeTab = tabs.length ? tabs[0].id : null;
+  renderTabs();
+  setActiveTab(activeTab);
+  closedTabsSnapshot = [];
+  localStorage.removeItem("carbon-proxy-last-tabs");
+}
+
+const menuBtn = document.getElementById("menu-btn");
+const dropdown = document.getElementById("dropdown-menu");
+menuBtn.onclick = (e) => {
+  dropdown.classList.toggle("active");
+  e.stopPropagation();
+};
+window.onclick = (e) => {
+  if (!dropdown.contains(e.target) && e.target !== menuBtn) {
+    dropdown.classList.remove("active");
+    closeHistoryModal();
+  }
+};
+document.getElementById("clear-history-btn").onclick = function() {
+  const tab = getActiveTab();
+  if (!tab) return;
+  tab.history = [];
+  tab.pointer = -1;
+  tab.url = "New Tab";
+  tab.title = "New Tab";
+  updateAddressBar(tab);
+  renderTabContent(tab);
+  dropdown.classList.remove("active");
+};
+document.getElementById("close-all-tabs-btn").onclick = function() {
+  if (tabs.length > 0) takeTabsSnapshot();
+  tabs = [];
+  activeTab = null;
+  renderTabs();
+  document.getElementById("proxy-iframe").src = "";
+  document.getElementById("address-bar-input").value = "";
+  dropdown.classList.remove("active");
+};
+document.getElementById("restore-tabs-btn").onclick = function() {
+  restoreTabsFromSnapshot();
+  dropdown.classList.remove("active");
+};
+
+// Keyboard Shortcuts
+document.addEventListener("keydown", (e) => {
+  if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === "t") {
+    e.preventDefault();
+    addTab();
+  }
+  if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === "w") {
+    e.preventDefault();
+    if (activeTab) removeTab(activeTab);
+  }
+  if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key === "Tab") {
+    e.preventDefault();
+    const idx = tabs.findIndex(t => t.id === activeTab);
+    if (tabs.length > 1 && idx !== -1) {
+      const nextIdx = (idx + 1) % tabs.length;
+      setActiveTab(tabs[nextIdx].id);
+    }
+  }
+  if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === "Tab") {
+    e.preventDefault();
+    const idx = tabs.findIndex(t => t.id === activeTab);
+    if (tabs.length > 1 && idx !== -1) {
+      const prevIdx = (idx - 1 + tabs.length) % tabs.length;
+      setActiveTab(tabs[prevIdx].id);
+    }
+  }
+  if (e.altKey && !e.shiftKey && e.key === "ArrowLeft") {
+    document.getElementById("back-btn").click();
+  }
+  if (e.altKey && !e.shiftKey && e.key === "ArrowRight") {
+    document.getElementById("forward-btn").click();
+  }
+});
+
+document.getElementById("new-tab-btn").addEventListener("click", () => addTab());
+
+const historyBtn = document.getElementById("history-btn");
+const historyModalBg = document.getElementById("history-modal-bg");
+const historyModal = document.getElementById("history-modal");
+const modalHistoryList = document.getElementById("modal-history-list");
+const closeHistoryModalBtn = document.getElementById("close-history-modal");
+
+historyBtn.onclick = (e) => {
+  renderModalHistoryList();
+  openHistoryModal();
+  e.stopPropagation();
+};
+closeHistoryModalBtn.onclick = closeHistoryModal;
+historyModalBg.onclick = function(e) {
+  if (e.target === historyModalBg) closeHistoryModal();
+};
+
+function openHistoryModal() {
+  historyModalBg.classList.remove("pointer-events-none");
+  historyModalBg.classList.add("pointer-events-auto");
+  historyModalBg.style.opacity = "1";
+  historyModal.classList.remove("scale-95", "opacity-0");
+  historyModal.classList.add("scale-100", "opacity-100");
+  setTimeout(() => {
+    historyModalBg.style.opacity = "1";
+    historyModal.classList.add("opacity-100");
+  }, 10);
+}
+function closeHistoryModal() {
+  historyModalBg.classList.add("pointer-events-none");
+  historyModalBg.classList.remove("pointer-events-auto");
+  historyModalBg.style.opacity = "0";
+  historyModal.classList.add("scale-95", "opacity-0");
+  historyModal.classList.remove("scale-100", "opacity-100");
+}
+
+function renderModalHistoryList() {
+  const tab = getActiveTab();
+  modalHistoryList.innerHTML = "";
+  if (!tab || !tab.history.length) {
+    modalHistoryList.innerHTML = "<em class='block text-white/40'>No history for this tab.</em>";
+    return;
+  }
+  tab.history.forEach((url, idx) => {
+    const row = document.createElement("div");
+    row.className = "flex items-center gap-2 group";
+    row.innerHTML = `<span class="${idx === tab.pointer ? 'text-cyan-400 font-bold' : ''}">${url}</span>`;
+    row.onclick = () => {
+      tab.pointer = idx;
+      updateAddressBar(tab);
+      renderTabContent(tab);
+      closeHistoryModal();
+    };
+    if (tab.history.length > 1) {
+      const rmBtn = document.createElement("button");
+      rmBtn.className = "ml-2 text-white/40 hover:text-red-500";
+      rmBtn.title = "Remove from history";
+      rmBtn.textContent = "✕";
+      rmBtn.onclick = (e) => {
+        e.stopPropagation();
+        tab.history.splice(idx, 1);
+        if (tab.pointer >= tab.history.length) tab.pointer = tab.history.length - 1;
+        renderModalHistoryList();
+      };
+      row.appendChild(rmBtn);
+    }
+    modalHistoryList.appendChild(row);
+  });
+}
+
+// Init: Add one tab on load
+window.addEventListener("DOMContentLoaded", () => {
+  if (tabs.length === 0) addTab();
+});
+</script>
 </body>
 </html>
