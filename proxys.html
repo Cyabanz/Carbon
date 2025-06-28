@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
   <title>CARBON Proxy</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -11,9 +11,7 @@
     tailwind.config = {
       theme: {
         extend: {
-          fontFamily: {
-            'inter': ['Inter', 'sans-serif'],
-          },
+          fontFamily: { 'inter': ['Inter', 'sans-serif'] },
           colors: {
             'dark': {
               900: '#0f0f23',
@@ -32,10 +30,7 @@
     body { min-height: 100vh; min-width: 100vw; }
     .suggestion-box {
       position: absolute;
-      left: 0;
-      right: 0;
-      top: 100%;
-      z-index: 1200;
+      left: 0; right: 0; top: 100%; z-index: 1200;
       background: #1a1a2e;
       border-radius: 0 0 0.75rem 0.75rem;
       border: 1px solid #23234d;
@@ -53,22 +48,15 @@
       transition: background 0.16s;
       border-bottom: 1px solid #23234d;
     }
-    .suggestion-item:last-child {
-      border-bottom: none;
-    }
-    .suggestion-item:hover,
-    .suggestion-item.active {
+    .suggestion-item:last-child { border-bottom: none; }
+    .suggestion-item:hover, .suggestion-item.active {
       background: #23234d;
       color: #0ff;
     }
     .scrollbar-hide::-webkit-scrollbar { display: none; }
     .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
-    .dropdown-list {
-      min-width: 160px;
-    }
-    .dropdown-list button {
-      font-size: 1rem;
-    }
+    .dropdown-list { min-width: 160px; }
+    .dropdown-list button { font-size: 1rem; }
   </style>
 </head>
 <body class="font-inter bg-gradient-to-br from-dark-900 via-dark-800 to-dark-500 min-h-screen min-w-full h-full w-full text-white overflow-x-hidden" style="height:100vh;width:100vw;">
@@ -77,7 +65,6 @@
   <div class="w-full h-full max-w-full mx-auto flex flex-col flex-1">
     <!-- Main Container -->
     <div class="flex flex-col w-full h-full bg-dark-800/90 backdrop-blur-sm rounded-none shadow-none border-0 flex-1 overflow-hidden">
-      
       <!-- Tab Bar -->
       <div class="bg-dark-700/80 border-b border-dark-600/50 flex items-end" style="min-height:40px;">
         <div id="tabs-bar" class="flex items-end flex-1 overflow-x-auto scrollbar-hide min-h-[40px] px-2 pt-2"></div>
@@ -87,11 +74,9 @@
           +
         </button>
       </div>
-      
       <!-- Header with Controls -->
       <div class="bg-dark-700/50 p-4 border-b border-dark-600/30">
         <div class="flex flex-col lg:flex-row gap-4 items-center justify-between">
-          <!-- Proxy Toggle Icon Button Left -->
           <div class="flex items-center gap-6">
             <div class="relative">
               <button id="proxy-toggle-btn"
@@ -105,7 +90,6 @@
                 <button data-proxy="scram" class="w-full flex items-center gap-2 px-4 py-3 text-white hover:bg-dark-600 transition-colors text-lg"><i class='bx bx-network-chart'></i>Scramjet</button>
               </div>
             </div>
-            <!-- Navigation Buttons -->
             <div class="flex items-center gap-2">
               <button id="back-btn" class="w-10 h-10 rounded-xl bg-dark-600 hover:bg-dark-500 transition-colors duration-200 flex items-center justify-center group" title="Back">
                 <i class='bx bx-arrow-back text-2xl text-gray-300 group-hover:text-white transition-colors'></i>
@@ -127,10 +111,7 @@
               </button>
             </div>
           </div>
-          
-          <!-- Search Engine Icon Button Right -->
           <div class="flex items-center gap-6">
-            <!-- 3-Dots Menu -->
             <div class="relative">
               <button id="menu-btn"
                 class="w-12 h-12 rounded-xl bg-dark-600 hover:bg-dark-500 transition-colors duration-200 flex items-center justify-center group"
@@ -172,7 +153,6 @@
           </div>
         </div>
       </div>
-      
       <!-- Address Bar -->
       <div class="p-4 bg-dark-700/30 relative">
         <form id="address-bar-form" class="w-full">
@@ -185,7 +165,6 @@
         </form>
         <div id="suggestion-box" class="suggestion-box hidden"></div>
       </div>
-      
       <!-- Content Area -->
       <div class="bg-black border-t border-dark-600/30 flex-1 min-h-0 w-full h-full">
         <iframe id="proxy-iframe"
@@ -194,8 +173,6 @@
       </div>
     </div>
   </div>
-  
-  <!-- History Modal -->
   <div id="history-modal-bg"
        class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center opacity-0 pointer-events-none transition-opacity duration-300 z-50">
     <div id="history-modal"
@@ -216,717 +193,111 @@
 </main>
 </div>
 <script type="module">
-// --- LETHAL IMPORTS (replace with your actual lethal.mjs import logic) ---
-import {
-  makeURL,
-  getProxied,
-  setProxy,
-  setTransport,
-  setWisp,
-} from "/lethal.mjs";
-// --- END LETHAL IMPORTS ---
-
-const engines = {
-  "https://search.brave.com/search?q=%s": ["Brave", "bxl-brave"],
-  "https://duckduckgo.com/?q=%s": ["DuckDuckGo", "bxl-duckduckgo"],
-  "https://www.google.com/search?q=%s": ["Google", "bxl-google"],
-  "https://www.bing.com/search?q=%s": ["Bing", "bxl-microsoft"],
-  "https://search.yahoo.com/search?p=%s": ["Yahoo", "bxl-yahoo"],
-  "https://www.ecosia.org/search?q=%s": ["Ecosia", "bxl-leaf"]
-};
-
+// --- LETHAL/BARE/UV/SCRAM INTEGRATION ---
 const CARBON_NEWTAB = "carbon://newtab";
 const CARBON_HISTORY = "carbon://history";
+let scramjet = null, BareMux = null, connection = null;
+let wispURL = null, transportURL = null, proxyOption = null;
+const transportOptions = {
+  epoxy: "https://cdn.jsdelivr.net/npm/@mercuryworkshop/epoxy-transport/dist/index.mjs",
+  libcurl: "https://cdn.jsdelivr.net/npm/@mercuryworkshop/libcurl-transport/dist/index.mjs"
+};
 
-// --- Search Engine Dropdown as Boxicon Button ---
-const searchEngineBtn = document.getElementById("search-engine-btn");
-const searchEngineIcon = document.getElementById("search-engine-icon");
-const searchEngineDropdown = document.getElementById("search-engine-dropdown");
-function getCurrentSearchEngine() {
-  return localStorage.getItem("search-engine") || "https://search.brave.com/search?q=%s";
+//////////////////////////////
+///  Scramjet + BareMux Init
+//////////////////////////////
+async function ensureBareScramReady() {
+  if (!scramjet) {
+    await import("/scram/scramjet.shared.js");
+    await import("/scram/scramjet.controller.js");
+    const { ScramjetController } = await import("/scram/scramjet.controller.js");
+    scramjet = new ScramjetController({
+      files: {
+        wasm: "/scram/scramjet.wasm.wasm",
+        worker: "/scram/scramjet.worker.js",
+        client: "/scram/scramjet.client.js",
+        shared: "/scram/scramjet.shared.js",
+        sync: "/scram/scramjet.sync.js",
+      },
+      flags: {
+        serviceworkers: false,
+        syncxhr: false,
+        naiiveRewriter: false,
+        strictRewrites: true,
+        rewriterLogs: false,
+        captureErrors: true,
+        cleanErrors: true,
+        scramitize: false,
+        sourcemaps: true,
+      },
+    });
+    await scramjet.init();
+  }
+  if (!BareMux) {
+    BareMux = await import("https://cdn.jsdelivr.net/gh/Coding4Hours/cdn/bare-mux/index.mjs");
+    connection = new BareMux.BareMuxConnection("/bareworker.js");
+  }
+  return { scramjet, BareMux, connection };
 }
-function setCurrentSearchEngine(url) {
-  localStorage.setItem("search-engine", url);
-  updateSearchEngineDisplay();
-}
-function updateSearchEngineDisplay() {
-  const current = getCurrentSearchEngine();
-  const [name, icon] = engines[current] || ["Brave", "bxl-brave"];
-  searchEngineIcon.className = `bx ${icon} text-2xl`;
-  searchEngineBtn.title = name;
-}
-searchEngineBtn.addEventListener("click", (e) => {
-  e.stopPropagation();
-  searchEngineDropdown.classList.toggle("hidden");
-});
-document.querySelectorAll("#search-engine-dropdown [data-engine]").forEach(btn => {
-  btn.addEventListener("click", (e) => {
-    const engine = e.currentTarget.dataset.engine;
-    setCurrentSearchEngine(engine);
-    searchEngineDropdown.classList.add("hidden");
-    const tab = getActiveTab();
-    if (tab && tab.history[tab.pointer]) {
-      let v = tab.history[tab.pointer];
-      if (!/^(https?:)?\/\//.test(v) && v.length > 0) renderTabContent(tab);
-    }
-  });
-});
-updateSearchEngineDisplay();
 
-// --- Proxy Toggle as Boxicon Button ---
-const proxyToggleBtn = document.getElementById("proxy-toggle-btn");
-const proxyToggleIcon = document.getElementById("proxy-toggle-icon");
-const proxyDropdown = document.getElementById("proxy-dropdown");
-function getCurrentProxy() {
-  return localStorage.getItem("proxy-backend") || "uv";
+// Service Worker registration
+const swAllowedHostnames = ["localhost", "127.0.0.1"];
+async function registerSW() {
+  if (!navigator.serviceWorker) {
+    if (
+      location.protocol !== "https:" &&
+      !swAllowedHostnames.includes(location.hostname)
+    )
+      throw new Error("Service workers cannot be registered without https.");
+    throw new Error("Your browser doesn't support service workers.");
+  }
+  await navigator.serviceWorker.register("./ultraworker.js");
 }
-function setCurrentProxy(proxy) {
-  localStorage.setItem("proxy-backend", proxy);
-  updateProxyToggleUI(proxy);
+await registerSW();
+console.log("lethal.js: Service Worker registered");
+
+// --- Proxy/Transport/Wisp Control ---
+async function updateBareMux() {
+  if (connection && transportURL && wispURL) {
+    await connection.setTransport(transportURL, [{ wisp: wispURL }]);
+  }
 }
-function updateProxyToggleUI(proxy) {
-  if (proxy === "scram") {
-    proxyToggleBtn.classList.remove('border-cyan-400');
-    proxyToggleBtn.classList.add('border-yellow-400', 'bg-yellow-500/20');
-    proxyToggleIcon.className = "bx bx-network-chart text-2xl";
-    proxyToggleBtn.title = "Scramjet";
+export async function setTransport(transport) {
+  transportURL = transportOptions[transport] || transport;
+  await updateBareMux();
+}
+export function getTransport() { return transportURL; }
+export async function setWisp(wisp) { wispURL = wisp; await updateBareMux(); }
+export function getWisp() { return wispURL; }
+export async function setProxy(proxy) {
+  proxyOption = proxy;
+  if (proxy === "uv") {
+    await import("https://cdn.jsdelivr.net/gh/Coding4Hours/cdn/uv/uv.bundle.js");
+    await import("./uv.config.js");
   } else {
-    proxyToggleBtn.classList.remove('border-yellow-400', 'bg-yellow-500/20');
-    proxyToggleBtn.classList.add('border-cyan-400');
-    proxyToggleIcon.className = "bx bx-cloud text-2xl";
-    proxyToggleBtn.title = "UV";
+    await ensureBareScramReady();
+    await import("/scram/scramjet.worker.js");
   }
 }
-proxyToggleBtn.addEventListener("click", (e) => {
-  e.stopPropagation();
-  proxyDropdown.classList.toggle("hidden");
-});
-document.querySelectorAll("#proxy-dropdown [data-proxy]").forEach(btn => {
-  btn.addEventListener("click", async (e) => {
-    const proxy = e.currentTarget.dataset.proxy;
-    await setProxy(proxy);
-    setCurrentProxy(proxy);
-    proxyDropdown.classList.add("hidden");
-    const tab = getActiveTab();
-    if (tab) renderTabContent(tab);
-  });
-});
-updateProxyToggleUI(getCurrentProxy());
-
-// --- Proxy Setup ---
-let backend = getCurrentProxy();
-let wisp = localStorage.getItem("wisp-server") || "wss://anura.pro/";
-let transport = localStorage.getItem("proxy-transport");
-setWisp(wisp);
-setProxy(backend);
-if (transport) setTransport(transport);
-else if (navigator.userAgent.indexOf("Firefox") > 0) setTransport("libcurl");
-else setTransport("epoxy");
-
-// --- Tabs Logic ---
-let tabs = [];
-let activeTab = null;
-let tabIdCounter = 1;
-let closedTabsSnapshot = [];
-function createTab(url = "") {
-  const id = "tab-" + tabIdCounter++;
-  // If url is carbon://newtab, don't add to history
-  if (url === CARBON_NEWTAB || url === "") {
-    return {
-      id,
-      title: "New Tab",
-      url: CARBON_NEWTAB,
-      history: [CARBON_NEWTAB],
-      pointer: 0
-    };
-  }
-  if (url === CARBON_HISTORY) {
-    return {
-      id,
-      title: "Tab History",
-      url: CARBON_HISTORY,
-      history: [CARBON_HISTORY],
-      pointer: 0
-    };
-  }
-  return {
-    id,
-    title: url ? url : "New Tab",
-    url,
-    history: url ? [url] : [],
-    pointer: url ? 0 : -1
-  };
+export function getProxy() { return proxyOption; }
+export function makeURL(input, template = "https://search.brave.com/search?q=%s") {
+  try { return new URL(input).toString(); } catch (err) {}
+  const url = new URL(`http://${input}`);
+  if (url.hostname.includes(".")) return url.toString();
+  return template.replace("%s", encodeURIComponent(input));
 }
-function renderTabs() {
-  const tabsBar = document.getElementById("tabs-bar");
-  tabsBar.innerHTML = "";
-  tabs.forEach((tab, idx) => {
-    const tabElement = document.createElement("div");
-    tabElement.className = `
-      relative flex items-center cursor-pointer select-none transition-all duration-200 group
-      ${tab.id === activeTab 
-        ? 'bg-dark-600 text-white border-t-2 border-cyan-400' 
-        : 'bg-dark-700/50 text-gray-300 hover:bg-dark-600/70 hover:text-white border-t-2 border-transparent'
-      }
-    `;
-    tabElement.style.cssText = `
-      height: 36px;
-      min-width: 180px;
-      max-width: 240px;
-      margin-right: -8px;
-      clip-path: polygon(8px 0%, calc(100% - 8px) 0%, 100% 100%, 0% 100%);
-      padding: 0 20px 0 16px;
-      z-index: ${tab.id === activeTab ? '10' : '1'};
-    `;
-    tabElement.setAttribute("draggable", "true");
-    tabElement.setAttribute("data-tab-id", tab.id);
-    const content = document.createElement("div");
-    content.className = "flex items-center w-full h-full";
-    const title = document.createElement("span");
-    // Custom title for carbon:// tabs
-    let dispTitle = tab.title;
-    if (tab.history[tab.pointer] === CARBON_NEWTAB) dispTitle = "New Tab";
-    if (tab.history[tab.pointer] === CARBON_HISTORY) dispTitle = "Tab History";
-    title.textContent = dispTitle.length > 18 ? dispTitle.slice(0, 15) + "..." : dispTitle;
-    title.className = "flex-1 truncate text-sm font-medium";
-    content.appendChild(title);
-    const closeBtn = document.createElement("button");
-    closeBtn.className = "ml-2 w-5 h-5 rounded-full flex items-center justify-center hover:bg-white/20 transition-all duration-200 opacity-0 group-hover:opacity-100";
-    closeBtn.innerHTML = "&times;";
-    closeBtn.title = "Close Tab (Ctrl+W)";
-    closeBtn.style.fontSize = "16px";
-    closeBtn.onclick = (e) => {
-      e.stopPropagation();
-      removeTab(tab.id);
-    };
-    content.appendChild(closeBtn);
-    tabElement.appendChild(content);
-    tabElement.onclick = () => setActiveTab(tab.id);
-    tabElement.addEventListener("dragstart", (e) => {
-      e.dataTransfer.setData("text/plain", tab.id);
-      tabElement.classList.add("opacity-50");
-    });
-    tabElement.addEventListener("dragend", (e) => {
-      tabElement.classList.remove("opacity-50");
-    });
-    tabElement.addEventListener("dragover", (e) => {
-      e.preventDefault();
-      tabElement.classList.add("ring-2", "ring-cyan-400");
-    });
-    tabElement.addEventListener("dragleave", (e) => {
-      tabElement.classList.remove("ring-2", "ring-cyan-400");
-    });
-    tabElement.addEventListener("drop", (e) => {
-      e.preventDefault();
-      tabElement.classList.remove("ring-2", "ring-cyan-400");
-      const draggedTabId = e.dataTransfer.getData("text/plain");
-      reorderTab(draggedTabId, tab.id);
-    });
-    tabsBar.appendChild(tabElement);
-  });
-}
-function updateAddressBar(tab) {
-  if (tab.history[tab.pointer] === CARBON_NEWTAB) {
-    document.getElementById("address-bar-input").value = "";
-    document.getElementById("address-bar-input").placeholder = "Search the web freely";
-  } else if (tab.history[tab.pointer] === CARBON_HISTORY) {
-    document.getElementById("address-bar-input").value = CARBON_HISTORY;
-    document.getElementById("address-bar-input").placeholder = "Tab History";
-  } else {
-    document.getElementById("address-bar-input").value = tab.history[tab.pointer] || "";
-    document.getElementById("address-bar-input").placeholder = "Search the web freely";
+export async function getProxied(input) {
+  const url = makeURL(input);
+  if (proxyOption === "scram") {
+    await ensureBareScramReady();
+    return scramjet.encodeUrl(url);
   }
-}
-function renderTabContent(tab) {
-  const iframe = document.getElementById("proxy-iframe");
-  if (!tab || typeof tab.pointer !== "number" || tab.pointer < 0 || !tab.history[tab.pointer]) {
-    iframe.src = "";
-    return;
-  }
-  let url = tab.history[tab.pointer];
-  if (url === CARBON_NEWTAB) {
-    // Show new tab page
-    iframe.srcdoc = `
-      <!DOCTYPE html>
-      <html style="background: #1a1a2e; color: #fff; height:100%;margin:0;padding:0;">
-      <head>
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@700&display=swap" rel="stylesheet">
-        <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
-      </head>
-      <body style="height:100%;margin:0;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:'Inter',sans-serif;background:linear-gradient(135deg,#0f0f23 0%,#1a1a2e 60%,#16213e 100%)">
-        <div style="text-align:center;">
-          <i class='bx bxs-cube text-7xl' style="color:#0ff;font-size:64px;"></i>
-          <h1 style="font-size:2.2rem;font-weight:700;margin-top:12px;">CARBON Proxy</h1>
-          <p style="font-size:1.1rem;color:#aaa;margin-top:8px;">A secure, private, tabbed web proxy browser.</p>
-        </div>
-        <div style="margin-top:48px;display:flex;gap:24px;justify-content:center;">
-          <button onclick="parent.dispatchEvent(new CustomEvent('carbon-newtab'))" style="padding:20px 36px;border:none;border-radius:14px;background:#23234d;color:#fff;font-size:1.07rem;font-weight:500;cursor:pointer;box-shadow:0 4px 32px 0 #0008;transition:background 0.2s;">New Tab</button>
-          <button onclick="parent.dispatchEvent(new CustomEvent('carbon-history'))" style="padding:20px 36px;border:none;border-radius:14px;background:#16213e;color:#0ff;font-size:1.07rem;font-weight:500;cursor:pointer;box-shadow:0 4px 32px 0 #0008;transition:background 0.2s;">Tab History</button>
-        </div>
-      </body>
-      </html>
-    `;
-    return;
-  }
-  if (url === CARBON_HISTORY) {
-    // Render a simple custom history page inside the iframe
-    const tab = getActiveTab();
-    let allHistory = [];
-    tabs.forEach(tab => {
-      if(Array.isArray(tab.history)) {
-        tab.history.forEach((url, idx) => {
-          if(url && url !== CARBON_NEWTAB && url !== CARBON_HISTORY)
-            allHistory.push({url, tabId: tab.id, tabTitle: tab.title, idx});
-        });
-      }
-    });
-    iframe.srcdoc = `
-      <!DOCTYPE html>
-      <html style="background: #23234d; color: #fff; height:100%;margin:0;">
-      <head>
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@700&display=swap" rel="stylesheet">
-        <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
-      </head>
-      <body style="height:100%;margin:0;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;font-family:'Inter',sans-serif;">
-        <div style="width:100%;max-width:600px;margin:auto;">
-          <h2 style="font-size:2rem;font-weight:700;margin:36px 0 18px;text-align:center;"><i class='bx bx-history' style="vertical-align:middle;color:#0ff;"></i> History</h2>
-          <div style="max-height:360px;overflow-y:auto;background:#1a1a2e;border-radius:14px;padding:20px;">
-            ${allHistory.length === 0 ? "<div style='color:#aaa;text-align:center;'>No history available.</div>" : allHistory.map(h => `<div style="margin:7px 0;padding:10px 0;border-bottom:1px solid #333;display:flex;align-items:center;">
-              <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:1.03rem;color:#0ff;cursor:pointer;" onclick="parent.postMessage({type:'carbon-history-nav',tabId:'${h.tabId}',idx:${h.idx}},'*')">${h.url}</span>
-            </div>`).join("")}
-          </div>
-        </div>
-      </body>
-      </html>
-    `;
-    return;
-  }
-  let search = getCurrentSearchEngine();
-  makeURLAndProxied(url, search).then(src => { iframe.src = src; });
-}
-async function makeURLAndProxied(url, search) {
-  try {
-    let urlToLoad = makeURL(url, search);
-    return await getProxied(urlToLoad);
-  } catch (e) { return ""; }
-}
-function setActiveTab(tabId) {
-  activeTab = tabId;
-  renderTabs();
-  const tab = tabs.find(t => t.id === tabId);
-  updateAddressBar(tab);
-  renderTabContent(tab);
-}
-function addTab(url = "") {
-  const tab = createTab(url);
-  tabs.push(tab);
-  setActiveTab(tab.id);
-}
-function removeTab(tabId) {
-  const idx = tabs.findIndex(t => t.id === tabId);
-  if (idx !== -1) {
-    takeTabsSnapshot();
-    tabs.splice(idx, 1);
-    if (activeTab === tabId) {
-      if (tabs[idx - 1]) setActiveTab(tabs[idx - 1].id);
-      else if (tabs[idx]) setActiveTab(tabs[idx].id);
-      else {
-        activeTab = null;
-        renderTabs();
-        document.getElementById("proxy-iframe").src = "";
-        document.getElementById("address-bar-input").value = "";
-      }
-    } else {
-      renderTabs();
-    }
-  }
-}
-function reorderTab(draggedTabId, targetTabId) {
-  const fromIdx = tabs.findIndex(t => t.id === draggedTabId);
-  const toIdx = tabs.findIndex(t => t.id === targetTabId);
-  if (fromIdx === -1 || toIdx === -1 || fromIdx === toIdx) return;
-  const [removed] = tabs.splice(fromIdx, 1);
-  tabs.splice(toIdx, 0, removed);
-  renderTabs();
-}
-function updateTabHistory(tab, url) {
-  // carbon://specials are single-entry
-  if (url === CARBON_NEWTAB || url === CARBON_HISTORY) {
-    tab.history = [url];
-    tab.pointer = 0;
-    tab.url = url;
-    tab.title = url === CARBON_NEWTAB ? "New Tab" : "Tab History";
-    return;
-  }
-  if (tab.pointer < tab.history.length - 1) {
-    tab.history = tab.history.slice(0, tab.pointer + 1);
-  }
-  tab.history.push(url);
-  tab.pointer = tab.history.length - 1;
-  tab.url = url;
-  tab.title = url ? url : "New Tab";
-}
-function getActiveTab() { return tabs.find(t => t.id === activeTab); }
-
-// -- DuckDuckGo Search Suggestions (with CORS proxy for Vercel) --
-const addressInput = document.getElementById("address-bar-input");
-const suggestionBox = document.getElementById("suggestion-box");
-let suggestionActive = -1;
-let currentSuggestions = [];
-let suggestionFetchController = null;
-addressInput.addEventListener("input", async function(e) {
-  const val = addressInput.value.trim();
-  if (!val || val.startsWith("http") || val.startsWith(CARBON_NEWTAB) || val.startsWith(CARBON_HISTORY)) {
-    suggestionBox.classList.add("hidden");
-    suggestionBox.innerHTML = "";
-    currentSuggestions = [];
-    suggestionActive = -1;
-    return;
-  }
-  // DuckDuckGo with CORS proxy (for Vercel)
-  const apiUrl = "https://corsproxy.io/?" + encodeURIComponent("https://ac.duckduckgo.com/ac/?q=" + encodeURIComponent(val) + "&type=list");
-  if (suggestionFetchController) suggestionFetchController.abort();
-  suggestionFetchController = new AbortController();
-  try {
-    const resp = await fetch(apiUrl, { signal: suggestionFetchController.signal });
-    if (!resp.ok) throw new Error();
-    const data = await resp.json();
-    currentSuggestions = (data || []).map(s => s.phrase).filter(Boolean);
-    if (currentSuggestions.length === 0) {
-      suggestionBox.classList.add("hidden");
-      suggestionBox.innerHTML = "";
-      suggestionActive = -1;
-      return;
-    }
-    suggestionBox.innerHTML = currentSuggestions.map((s, i) =>
-      `<div class="suggestion-item${i === suggestionActive ? ' active' : ''}" data-idx="${i}">${s.replace(/</g,"&lt;")}</div>`
-    ).join("");
-    suggestionBox.classList.remove("hidden");
-    suggestionActive = -1;
-  } catch (err) {
-    suggestionBox.classList.add("hidden");
-    suggestionBox.innerHTML = "";
-    currentSuggestions = [];
-    suggestionActive = -1;
-  }
-});
-addressInput.addEventListener("keydown", function(e) {
-  if (!currentSuggestions.length || suggestionBox.classList.contains("hidden")) return;
-  if (e.key === "ArrowDown") {
-    e.preventDefault();
-    suggestionActive = (suggestionActive + 1) % currentSuggestions.length;
-    updateSuggestionBoxActive();
-  } else if (e.key === "ArrowUp") {
-    e.preventDefault();
-    suggestionActive = (suggestionActive - 1 + currentSuggestions.length) % currentSuggestions.length;
-    updateSuggestionBoxActive();
-  } else if (e.key === "Enter") {
-    if (suggestionActive !== -1) {
-      e.preventDefault();
-      selectSuggestion(suggestionActive);
-    }
-    suggestionBox.classList.add("hidden");
-  } else if (e.key === "Escape") {
-    suggestionBox.classList.add("hidden");
-    suggestionActive = -1;
-  }
-});
-function updateSuggestionBoxActive() {
-  Array.from(suggestionBox.children).forEach((el, i) => {
-    if (i === suggestionActive) el.classList.add("active");
-    else el.classList.remove("active");
-  });
-  if (suggestionActive !== -1) {
-    const el = suggestionBox.children[suggestionActive];
-    if (el) el.scrollIntoView({ block: "nearest" });
-    addressInput.value = currentSuggestions[suggestionActive];
-  }
-}
-function selectSuggestion(idx) {
-  if (idx < 0 || idx >= currentSuggestions.length) return;
-  addressInput.value = currentSuggestions[idx];
-  suggestionBox.classList.add("hidden");
-  suggestionActive = -1;
-}
-suggestionBox.addEventListener("mousedown", function(e) {
-  const target = e.target.closest('.suggestion-item');
-  if (target) {
-    const idx = parseInt(target.dataset.idx);
-    selectSuggestion(idx);
-    setTimeout(() => {
-      document.getElementById("address-bar-form").dispatchEvent(new Event("submit"));
-    }, 0);
-  }
-});
-document.addEventListener("click", function(e) {
-  if (!suggestionBox.contains(e.target) && e.target !== addressInput) {
-    suggestionBox.classList.add("hidden");
-    suggestionActive = -1;
-  }
-  if (!proxyDropdown.contains(e.target) && e.target !== proxyToggleBtn) {
-    proxyDropdown.classList.add("hidden");
-  }
-  if (!searchEngineDropdown.contains(e.target) && e.target !== searchEngineBtn) {
-    searchEngineDropdown.classList.add("hidden");
-  }
-});
-
-// -- Form/Navigation --
-document.getElementById("address-bar-form").addEventListener("submit", async function(event) {
-  event.preventDefault();
-  suggestionBox.classList.add("hidden");
-  suggestionActive = -1;
-  const tab = getActiveTab();
-  if (!tab) return;
-  let url = addressInput.value.trim();
-  if (!url) return;
-  // Support carbon://newtab and carbon://history
-  if (url === CARBON_NEWTAB) {
-    updateTabHistory(tab, CARBON_NEWTAB);
-    renderTabs();
-    renderTabContent(tab);
-    return;
-  }
-  if (url === CARBON_HISTORY) {
-    updateTabHistory(tab, CARBON_HISTORY);
-    renderTabs();
-    renderTabContent(tab);
-    return;
-  }
-  updateTabHistory(tab, url);
-  renderTabs();
-  renderTabContent(tab);
-});
-document.getElementById("back-btn").onclick = function() {
-  const tab = getActiveTab();
-  if (!tab || tab.pointer <= 0) return;
-  tab.pointer--;
-  updateAddressBar(tab);
-  renderTabContent(tab);
-};
-document.getElementById("forward-btn").onclick = function() {
-  const tab = getActiveTab();
-  if (!tab || tab.pointer >= tab.history.length - 1) return;
-  tab.pointer++;
-  updateAddressBar(tab);
-  renderTabContent(tab);
-};
-document.getElementById("refresh-btn").onclick = function() {
-  const tab = getActiveTab();
-  if (!tab || typeof tab.pointer !== "number" || tab.pointer < 0) return;
-  renderTabContent(tab);
-};
-document.getElementById("home-btn").onclick = function() {
-  const tab = getActiveTab();
-  if (!tab) return;
-  updateTabHistory(tab, CARBON_NEWTAB);
-  updateAddressBar(tab);
-  renderTabContent(tab);
-};
-function takeTabsSnapshot() {
-  closedTabsSnapshot = JSON.parse(JSON.stringify(tabs));
-  localStorage.setItem("carbon-proxy-last-tabs", JSON.stringify(closedTabsSnapshot));
-}
-function restoreTabsFromSnapshot() {
-  let fromLS = localStorage.getItem("carbon-proxy-last-tabs");
-  let snapshot = closedTabsSnapshot.length
-    ? closedTabsSnapshot
-    : (fromLS ? JSON.parse(fromLS) : []);
-  if (!snapshot.length) return;
-  tabs = snapshot.map(tab => ({
-    ...tab,
-    id: "tab-" + (tabIdCounter++),
-  }));
-  activeTab = tabs.length ? tabs[0].id : null;
-  renderTabs();
-  setActiveTab(activeTab);
-  closedTabsSnapshot = [];
-  localStorage.removeItem("carbon-proxy-last-tabs");
-}
-const menuBtn = document.getElementById("menu-btn");
-const dropdown = document.getElementById("dropdown-menu");
-menuBtn.onclick = (e) => { dropdown.classList.toggle("hidden"); e.stopPropagation(); };
-window.onclick = (e) => {
-  if (!dropdown.contains(e.target) && e.target !== menuBtn) dropdown.classList.add("hidden");
-};
-document.getElementById("clear-history-btn").onclick = function() {
-  const tab = getActiveTab();
-  if (!tab) return;
-  tab.history = [CARBON_NEWTAB];
-  tab.pointer = 0;
-  tab.url = CARBON_NEWTAB;
-  tab.title = "New Tab";
-  updateAddressBar(tab);
-  renderTabContent(tab);
-  dropdown.classList.add("hidden");
-};
-document.getElementById("close-all-tabs-btn").onclick = function() {
-  if (tabs.length > 0) takeTabsSnapshot();
-  tabs = [];
-  activeTab = null;
-  renderTabs();
-  document.getElementById("proxy-iframe").src = "";
-  document.getElementById("address-bar-input").value = "";
-  dropdown.classList.add("hidden");
-};
-document.getElementById("restore-tabs-btn").onclick = function() {
-  restoreTabsFromSnapshot();
-  dropdown.classList.add("hidden");
-};
-document.getElementById("new-tab-btn").addEventListener("click", () => addTab(CARBON_NEWTAB));
-
-// -- History Modal Logic --
-const historyBtn = document.getElementById("history-btn");
-const historyModalBg = document.getElementById("history-modal-bg");
-const historyModal = document.getElementById("history-modal");
-const modalHistoryList = document.getElementById("modal-history-list");
-const closeHistoryModalBtn = document.getElementById("close-history-modal");
-historyBtn.onclick = (e) => { renderModalHistoryList(); openHistoryModal(); e.stopPropagation(); };
-closeHistoryModalBtn.onclick = closeHistoryModal;
-historyModalBg.onclick = function(e) { if (e.target === historyModalBg) closeHistoryModal(); };
-function openHistoryModal() {
-  historyModalBg.classList.remove("pointer-events-none", "opacity-0");
-  historyModalBg.classList.add("pointer-events-auto", "opacity-100");
-  historyModal.classList.remove("scale-95", "opacity-0");
-  historyModal.classList.add("scale-100", "opacity-100");
-}
-function closeHistoryModal() {
-  historyModalBg.classList.add("pointer-events-none", "opacity-0");
-  historyModalBg.classList.remove("pointer-events-auto", "opacity-100");
-  historyModal.classList.add("scale-95", "opacity-0");
-  historyModal.classList.remove("scale-100", "opacity-100");
-}
-function renderModalHistoryList() {
-  const tab = getActiveTab();
-  modalHistoryList.innerHTML = "";
-  if (!tab || !tab.history.length) {
-    modalHistoryList.innerHTML = "<div class='text-gray-500 italic text-center py-4'>No history for this tab.</div>";
-    return;
-  }
-  tab.history.forEach((url, idx) => {
-    if(url === CARBON_NEWTAB || url === CARBON_HISTORY) return;
-    const row = document.createElement("div");
-    row.className = `flex items-center justify-between p-3 rounded-lg hover:bg-dark-600 cursor-pointer transition-colors ${idx === tab.pointer ? 'bg-cyan-500/20 border border-cyan-400' : ''}`;
-    row.innerHTML = `<span class="flex-1 ${idx === tab.pointer ? 'text-cyan-400 font-bold' : ''} truncate">${url}</span>`;
-    row.onclick = () => {
-      tab.pointer = idx;
-      updateAddressBar(tab);
-      renderTabContent(tab);
-      closeHistoryModal();
-    };
-    if (tab.history.length > 1) {
-      const rmBtn = document.createElement("button");
-      rmBtn.className = "ml-2 text-gray-400 hover:text-red-500";
-      rmBtn.title = "Remove from history";
-      rmBtn.textContent = "✕";
-      rmBtn.onclick = (e) => {
-        e.stopPropagation();
-        tab.history.splice(idx, 1);
-        if (tab.pointer >= tab.history.length) tab.pointer = tab.history.length - 1;
-        renderModalHistoryList();
-      };
-      row.appendChild(rmBtn);
-    }
-    modalHistoryList.appendChild(row);
-  });
+  return __uv$config.prefix + __uv$config.encodeUrl(url);
 }
 
-// -- Fullscreen Button Logic --
-const fullscreenBtn = document.getElementById("fullscreen-btn");
-fullscreenBtn.onclick = function() {
-  let el = document.documentElement;
-  if (!document.fullscreenElement && el.requestFullscreen) {
-    el.requestFullscreen();
-    fullscreenBtn.title = "Exit Fullscreen";
-    fullscreenBtn.querySelector('i').className = "bx bx-exit-fullscreen text-2xl text-gray-300 group-hover:text-white transition-colors";
-  } else if (document.exitFullscreen) {
-    document.exitFullscreen();
-    fullscreenBtn.title = "Fullscreen";
-    fullscreenBtn.querySelector('i').className = "bx bx-fullscreen text-2xl text-gray-300 group-hover:text-white transition-colors";
-  }
-};
-document.addEventListener('fullscreenchange', function() {
-  if (!document.fullscreenElement) {
-    fullscreenBtn.title = "Fullscreen";
-    fullscreenBtn.querySelector('i').className = "bx bx-fullscreen text-2xl text-gray-300 group-hover:text-white transition-colors";
-  } else {
-    fullscreenBtn.title = "Exit Fullscreen";
-    fullscreenBtn.querySelector('i').className = "bx bx-exit-fullscreen text-2xl text-gray-300 group-hover:text-white transition-colors";
-  }
-});
 
-// -- Keyboard Shortcuts --
-document.addEventListener("keydown", (e) => {
-  if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === "t") {
-    e.preventDefault(); addTab(CARBON_NEWTAB);
-  }
-  if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === "w") {
-    e.preventDefault(); if (activeTab) removeTab(activeTab);
-  }
-  if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key === "Tab") {
-    e.preventDefault();
-    const idx = tabs.findIndex(t => t.id === activeTab);
-    if (tabs.length > 1 && idx !== -1) setActiveTab(tabs[(idx + 1) % tabs.length].id);
-  }
-  if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === "Tab") {
-    e.preventDefault();
-    const idx = tabs.findIndex(t => t.id === activeTab);
-    if (tabs.length > 1 && idx !== -1) setActiveTab(tabs[(idx - 1 + tabs.length) % tabs.length].id);
-  }
-  if (e.altKey && !e.shiftKey && e.key === "ArrowLeft") document.getElementById("back-btn").click();
-  if (e.altKey && !e.shiftKey && e.key === "ArrowRight") document.getElementById("forward-btn").click();
-  if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === "n") {
-    e.preventDefault(); addTab(CARBON_NEWTAB);
-  }
-  if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === "h") {
-    e.preventDefault();
-    const tab = getActiveTab();
-    if (tab) updateTabHistory(tab, CARBON_HISTORY);
-    renderTabs();
-    renderTabContent(getActiveTab());
-  }
-  if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === "f") {
-    e.preventDefault();
-    fullscreenBtn.click();
-  }
-});
-
-// -- Listen for iframe events for carbon://newtab, carbon://history nav --
-window.addEventListener('message', function(ev) {
-  if (!ev.data) return;
-  if (ev.data.type === 'carbon-history-nav' && ev.data.tabId && typeof ev.data.idx === 'number') {
-    const t = tabs.find(t => t.id === ev.data.tabId);
-    if (t && t.history[ev.data.idx]) {
-      t.pointer = ev.data.idx;
-      setActiveTab(t.id);
-      updateAddressBar(t);
-      renderTabContent(t);
-    }
-  }
-});
-window.addEventListener('carbon-newtab', () => {
-  addTab(CARBON_NEWTAB);
-});
-window.addEventListener('carbon-history', () => {
-  const tab = getActiveTab();
-  if (tab) {
-    updateTabHistory(tab, CARBON_HISTORY);
-    renderTabs();
-    renderTabContent(tab);
-  }
-});
-
-// -- INIT --
-window.addEventListener("DOMContentLoaded", () => {
-  if (tabs.length === 0) addTab(CARBON_NEWTAB);
-  // Make sure the content fills the viewport
-  document.body.style.height = "100vh";
-  document.body.style.width = "100vw";
-  document.getElementById("__carbon-root").style.height = "100%";
-  document.getElementById("__carbon-root").style.width = "100%";
-});
 </script>
+<script type="module" src="logic.js"></script>
+<!-- You MUST implement carbon-ui.js with all the UI logic from previous answers, using the above backend functions -->
 </body>
 </html>
