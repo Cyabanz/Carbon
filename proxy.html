@@ -138,6 +138,37 @@
       font-size: 0.97rem;
       vertical-align: middle;
     }
+    .suggestion-box {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 100%;
+      z-index: 1200;
+      background: #1a1a2e;
+      border-radius: 0 0 0.5rem 0.5rem;
+      border: 1px solid #23234d;
+      border-top: none;
+      max-height: 220px;
+      overflow-y: auto;
+      box-shadow: 0 6px 20px 2px #000A;
+      color: #fff;
+      font-size: 1rem;
+      width: 100%;
+    }
+    .suggestion-item {
+      padding: 0.73rem 1.1rem;
+      cursor: pointer;
+      transition: background 0.16s;
+      border-bottom: 1px solid #23234d;
+    }
+    .suggestion-item:last-child {
+      border-bottom: none;
+    }
+    .suggestion-item:hover,
+    .suggestion-item.active {
+      background: #23234d;
+      color: #0ff;
+    }
     @media (max-width: 480px) {
       .custom-select {
         width: 100%;
@@ -200,7 +231,7 @@
         </div>
       </div>
       <!-- Search Engine Select -->
-      <div class="flex items-center md:ml-auto">
+      <div class="flex items-center md:ml-auto relative">
         <label for="search-engine" class="mr-2 text-cyan-400 font-semibold hidden md:inline">Search:</label>
         <select id="search-engine" class="custom-select" aria-label="Select search engine">
           <option value="https://search.brave.com/search?q=%s">Brave</option>
@@ -212,17 +243,20 @@
         </select>
       </div>
     </div>
-    <!-- Search/Address Bar -->
-    <form id="address-bar-form" class="w-full flex items-center mb-2">
-      <input
-        id="address-bar-input"
-        type="text"
-        spellcheck="false"
-        autocomplete="off"
-        placeholder="Search the web freely"
-        class="bg-[#23234d] w-full focus:outline-none border-b-2 border-cyan-400 text-center py-2 text-lg transition-all duration-300 placeholder-white/50 focus:border-indigo-500 rounded"
-      />
-    </form>
+    <!-- Search/Address Bar with Suggestion Box -->
+    <div class="relative w-full flex items-center mb-2" id="address-bar-container">
+      <form id="address-bar-form" class="w-full flex items-center">
+        <input
+          id="address-bar-input"
+          type="text"
+          spellcheck="false"
+          autocomplete="off"
+          placeholder="Search the web freely"
+          class="bg-[#23234d] w-full focus:outline-none border-b-2 border-cyan-400 text-center py-2 text-lg transition-all duration-300 placeholder-white/50 focus:border-indigo-500 rounded"
+        />
+      </form>
+      <div id="suggestion-box" class="suggestion-box hidden"></div>
+    </div>
     <!-- Tab Content Area (iframe) -->
     <div class="rounded-lg overflow-hidden bg-black border border-[#23234d]">
       <iframe id="proxy-iframe" title="Proxy Frame" class="w-full h-[60vh] border-0" src=""></iframe>
@@ -322,6 +356,108 @@ let activeTab = null;
 let tabIdCounter = 1;
 let closedTabsSnapshot = [];
 
+// DuckDuckGo Suggestions Logic
+const addressInput = document.getElementById("address-bar-input");
+const suggestionBox = document.getElementById("suggestion-box");
+let suggestionActive = -1;
+let currentSuggestions = [];
+let suggestionFetchController = null;
+
+addressInput.addEventListener("input", async function(e) {
+  const val = addressInput.value.trim();
+  if (!val || val.startsWith("http")) {
+    suggestionBox.classList.add("hidden");
+    suggestionBox.innerHTML = "";
+    currentSuggestions = [];
+    suggestionActive = -1;
+    return;
+  }
+  // Only provide suggestions if using DuckDuckGo, Google, Brave, Bing, Yahoo or Ecosia (all support suggestions)
+  // We use DuckDuckGo's API for all
+  const apiUrl = "https://ac.duckduckgo.com/ac/?q=" + encodeURIComponent(val) + "&type=list";
+  if (suggestionFetchController) suggestionFetchController.abort();
+  suggestionFetchController = new AbortController();
+  try {
+    const resp = await fetch(apiUrl, { signal: suggestionFetchController.signal });
+    if (!resp.ok) throw new Error();
+    const data = await resp.json();
+    currentSuggestions = (data || []).map(s => s.phrase).filter(Boolean);
+    if (currentSuggestions.length === 0) {
+      suggestionBox.classList.add("hidden");
+      suggestionBox.innerHTML = "";
+      suggestionActive = -1;
+      return;
+    }
+    suggestionBox.innerHTML = currentSuggestions.map((s, i) =>
+      `<div class="suggestion-item${i === suggestionActive ? ' active' : ''}" data-idx="${i}">${s.replace(/</g,"&lt;")}</div>`
+    ).join("");
+    suggestionBox.classList.remove("hidden");
+    suggestionActive = -1;
+  } catch (err) {
+    suggestionBox.classList.add("hidden");
+    suggestionBox.innerHTML = "";
+    currentSuggestions = [];
+    suggestionActive = -1;
+  }
+});
+addressInput.addEventListener("keydown", function(e) {
+  if (!currentSuggestions.length || suggestionBox.classList.contains("hidden")) return;
+  if (e.key === "ArrowDown") {
+    e.preventDefault();
+    suggestionActive = (suggestionActive + 1) % currentSuggestions.length;
+    updateSuggestionBoxActive();
+  } else if (e.key === "ArrowUp") {
+    e.preventDefault();
+    suggestionActive = (suggestionActive - 1 + currentSuggestions.length) % currentSuggestions.length;
+    updateSuggestionBoxActive();
+  } else if (e.key === "Enter") {
+    if (suggestionActive !== -1) {
+      e.preventDefault();
+      selectSuggestion(suggestionActive);
+    }
+    suggestionBox.classList.add("hidden");
+  } else if (e.key === "Escape") {
+    suggestionBox.classList.add("hidden");
+    suggestionActive = -1;
+  }
+});
+function updateSuggestionBoxActive() {
+  Array.from(suggestionBox.children).forEach((el, i) => {
+    if (i === suggestionActive) el.classList.add("active");
+    else el.classList.remove("active");
+  });
+  if (suggestionActive !== -1) {
+    // scroll active into view
+    const el = suggestionBox.children[suggestionActive];
+    if (el) el.scrollIntoView({ block: "nearest" });
+    addressInput.value = currentSuggestions[suggestionActive];
+  }
+}
+function selectSuggestion(idx) {
+  if (idx < 0 || idx >= currentSuggestions.length) return;
+  addressInput.value = currentSuggestions[idx];
+  suggestionBox.classList.add("hidden");
+  suggestionActive = -1;
+}
+suggestionBox.addEventListener("mousedown", function(e) {
+  const target = e.target.closest('.suggestion-item');
+  if (target) {
+    const idx = parseInt(target.dataset.idx);
+    selectSuggestion(idx);
+    // Submit the form after picking a suggestion
+    setTimeout(() => {
+      document.getElementById("address-bar-form").dispatchEvent(new Event("submit"));
+    }, 0);
+  }
+});
+document.addEventListener("click", function(e) {
+  if (!suggestionBox.contains(e.target) && e.target !== addressInput) {
+    suggestionBox.classList.add("hidden");
+    suggestionActive = -1;
+  }
+});
+
+// Per-tab history: { id, urls: [], pointer }
 function createTab(url = "") {
   const id = "tab-" + tabIdCounter++;
   return {
@@ -392,7 +528,6 @@ function renderTabs() {
 }
 
 function updateAddressBar(tab) {
-  const addressInput = document.getElementById("address-bar-input");
   addressInput.value = tab.history[tab.pointer] || "";
 }
 
@@ -444,7 +579,7 @@ function removeTab(tabId) {
         activeTab = null;
         renderTabs();
         document.getElementById("proxy-iframe").src = "";
-        document.getElementById("address-bar-input").value = "";
+        addressInput.value = "";
       }
     } else {
       renderTabs();
@@ -478,9 +613,10 @@ function getActiveTab() {
 // Address Bar Form Submission
 document.getElementById("address-bar-form").addEventListener("submit", async function(event) {
   event.preventDefault();
+  suggestionBox.classList.add("hidden");
+  suggestionActive = -1;
   const tab = getActiveTab();
   if (!tab) return;
-  const addressInput = document.getElementById("address-bar-input");
   let url = addressInput.value.trim();
   if (!url) return;
   updateTabHistory(tab, url);
@@ -566,7 +702,7 @@ document.getElementById("close-all-tabs-btn").onclick = function() {
   activeTab = null;
   renderTabs();
   document.getElementById("proxy-iframe").src = "";
-  document.getElementById("address-bar-input").value = "";
+  addressInput.value = "";
   dropdown.classList.remove("active");
 };
 document.getElementById("restore-tabs-btn").onclick = function() {
