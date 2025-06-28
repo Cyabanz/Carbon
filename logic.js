@@ -1,92 +1,160 @@
-// == Carbon Proxy Main Script ==
-// (Place this file in your /public or root as lethal.proxy.carbon.js)
-// All logic: tabs, proxy toggle, search engine dropdown, suggestions, modal, snapshot, history
+//////////////////////////////
+///     Backend + Proxy    ///
+//////////////////////////////
 
-// ---- BEGIN LETHAL IMPORTS ----
-import {
-  makeURL,
-  getProxied,
-  setProxy,
-  setTransport,
-  setWisp,
-} from "/lethal.mjs";
-// ---- END LETHAL IMPORTS ----
+// --- Scramjet, BareMux, UV, Service Worker, and Backend Logic ---
 
-const engines = {
-  "https://search.brave.com/search?q=%s": "Brave",
-  "https://duckduckgo.com/?q=%s": "DuckDuckGo",
-  "https://www.google.com/search?q=%s": "Google",
-  "https://www.bing.com/search?q=%s": "Bing",
-  "https://search.yahoo.com/search?p=%s": "Yahoo",
-  "https://www.ecosia.org/search?q=%s": "Ecosia"
+// --- Scramjet + BareMux Init ---
+let scramjet = null, BareMux = null, connection = null;
+let wispURL = null, transportURL = null, proxyOption = null;
+const transportOptions = {
+  epoxy: "https://cdn.jsdelivr.net/npm/@mercuryworkshop/epoxy-transport/dist/index.mjs",
+  libcurl: "https://cdn.jsdelivr.net/npm/@mercuryworkshop/libcurl-transport/dist/index.mjs"
 };
 
-// -- Search Engine Dropdown --
-const searchEngineBtn = document.getElementById("search-engine-btn");
-const searchEngineText = document.getElementById("search-engine-text");
-const searchEngineDropdown = document.getElementById("search-engine-dropdown");
+async function ensureBareScramReady() {
+  if (!scramjet) {
+    await import("/scram/scramjet.shared.js");
+    await import("/scram/scramjet.controller.js");
+    const { ScramjetController } = await import("/scram/scramjet.controller.js");
+    scramjet = new ScramjetController({
+      files: {
+        wasm: "/scram/scramjet.wasm.wasm",
+        worker: "/scram/scramjet.worker.js",
+        client: "/scram/scramjet.client.js",
+        shared: "/scram/scramjet.shared.js",
+        sync: "/scram/scramjet.sync.js",
+      },
+      flags: {
+        serviceworkers: false,
+        syncxhr: false,
+        naiiveRewriter: false,
+        strictRewrites: true,
+        rewriterLogs: false,
+        captureErrors: true,
+        cleanErrors: true,
+        scramitize: false,
+        sourcemaps: true,
+      },
+    });
+    await scramjet.init();
+  }
+  if (!BareMux) {
+    BareMux = await import("https://cdn.jsdelivr.net/gh/Coding4Hours/cdn/bare-mux/index.mjs");
+    connection = new BareMux.BareMuxConnection("/bareworker.js");
+  }
+  return { scramjet, BareMux, connection };
+}
+
+// Service Worker registration
+const swAllowedHostnames = ["localhost", "127.0.0.1"];
+async function registerSW() {
+  if (!navigator.serviceWorker) {
+    if (
+      location.protocol !== "https:" &&
+      !swAllowedHostnames.includes(location.hostname)
+    )
+      throw new Error("Service workers cannot be registered without https.");
+    throw new Error("Your browser doesn't support service workers.");
+  }
+  await navigator.serviceWorker.register("./ultraworker.js");
+}
+await registerSW();
+console.log("lethal.js: Service Worker registered");
+
+// --- Proxy/Transport/Wisp Control ---
+async function updateBareMux() {
+  if (connection && transportURL && wispURL) {
+    await connection.setTransport(transportURL, [{ wisp: wispURL }]);
+  }
+}
+export async function setTransport(transport) {
+  transportURL = transportOptions[transport] || transport;
+  await updateBareMux();
+}
+export function getTransport() { return transportURL; }
+export async function setWisp(wisp) { wispURL = wisp; await updateBareMux(); }
+export function getWisp() { return wispURL; }
+export async function setProxy(proxy) {
+  proxyOption = proxy;
+  if (proxy === "uv") {
+    await import("https://cdn.jsdelivr.net/gh/Coding4Hours/cdn/uv/uv.bundle.js");
+    await import("./uv.config.js");
+  } else {
+    await ensureBareScramReady();
+    await import("/scram/scramjet.worker.js");
+  }
+}
+export function getProxy() { return proxyOption; }
+export function makeURL(input, template = "https://search.brave.com/search?q=%s") {
+  try { return new URL(input).toString(); } catch (err) {}
+  const url = new URL(`http://${input}`);
+  if (url.hostname.includes(".")) return url.toString();
+  return template.replace("%s", encodeURIComponent(input));
+}
+export async function getProxied(input) {
+  const url = makeURL(input);
+  if (proxyOption === "scram") {
+    await ensureBareScramReady();
+    return scramjet.encodeUrl(url);
+  }
+  return __uv$config.prefix + __uv$config.encodeUrl(url);
+}
+
+//////////////////////////////
+///        UI Logic        ///
+//////////////////////////////
+
+const CARBON_NEWTAB = "carbon://newtab";
+const CARBON_HISTORY = "carbon://history";
+const engines = {
+  "https://search.brave.com/search?q=%s": ["Brave", "bxl-brave"],
+  "https://duckduckgo.com/?q=%s": ["DuckDuckGo", "bxl-duckduckgo"],
+  "https://www.google.com/search?q=%s": ["Google", "bxl-google"],
+  "https://www.bing.com/search?q=%s": ["Bing", "bxl-microsoft"],
+  "https://search.yahoo.com/search?p=%s": ["Yahoo", "bxl-yahoo"],
+  "https://www.ecosia.org/search?q=%s": ["Ecosia", "bxl-leaf"]
+};
 
 function getCurrentSearchEngine() {
   return localStorage.getItem("search-engine") || "https://search.brave.com/search?q=%s";
 }
 function setCurrentSearchEngine(url) {
   localStorage.setItem("search-engine", url);
-  searchEngineText.textContent = engines[url] || "Unknown";
+  updateSearchEngineDisplay();
 }
 function updateSearchEngineDisplay() {
   const current = getCurrentSearchEngine();
-  searchEngineText.textContent = engines[current] || "Brave";
+  const [name, icon] = engines[current] || ["Brave", "bxl-brave"];
+  document.getElementById("search-engine-icon").className = `bx ${icon} text-2xl`;
+  document.getElementById("search-engine-btn").title = name;
 }
-searchEngineBtn.addEventListener("click", (e) => {
-  e.stopPropagation();
-  searchEngineDropdown.classList.toggle("hidden");
-  const arrow = searchEngineBtn.querySelector("svg");
-  arrow.style.transform = searchEngineDropdown.classList.contains("hidden") ? "rotate(0deg)" : "rotate(180deg)";
-});
-document.querySelectorAll("[data-engine]").forEach(btn => {
-  btn.addEventListener("click", (e) => {
-    const engine = e.target.dataset.engine;
-    setCurrentSearchEngine(engine);
-    searchEngineDropdown.classList.add("hidden");
-    const arrow = searchEngineBtn.querySelector("svg");
-    arrow.style.transform = "rotate(0deg)";
-    const tab = getActiveTab();
-    if (tab && tab.history[tab.pointer]) {
-      let v = tab.history[tab.pointer];
-      if (!/^(https?:)?\/\//.test(v) && v.length > 0) renderTabContent(tab);
-    }
-  });
-});
-updateSearchEngineDisplay();
 
-// -- Proxy Toggle Button --
-const proxyToggleBtn = document.getElementById("proxy-toggle-btn");
-const proxyToggleText = document.getElementById("proxy-toggle-text");
-function updateProxyToggleUI(backend) {
-  if (backend === "scram") {
-    proxyToggleBtn.classList.remove('border-cyan-400');
-    proxyToggleBtn.classList.add('border-yellow-400', 'bg-yellow-500/20');
-    proxyToggleText.textContent = "Scramjet";
+// Proxy Toggle UI
+function getCurrentProxy() {
+  return localStorage.getItem("proxy-backend") || "uv";
+}
+function setCurrentProxy(proxy) {
+  localStorage.setItem("proxy-backend", proxy);
+  updateProxyToggleUI(proxy);
+}
+function updateProxyToggleUI(proxy) {
+  const btn = document.getElementById("proxy-toggle-btn");
+  const icon = document.getElementById("proxy-toggle-icon");
+  if (proxy === "scram") {
+    btn.classList.remove('border-cyan-400');
+    btn.classList.add('border-yellow-400', 'bg-yellow-500/20');
+    icon.className = "bx bx-network-chart text-2xl";
+    btn.title = "Scramjet";
   } else {
-    proxyToggleBtn.classList.remove('border-yellow-400', 'bg-yellow-500/20');
-    proxyToggleBtn.classList.add('border-cyan-400');
-    proxyToggleText.textContent = "UV";
+    btn.classList.remove('border-yellow-400', 'bg-yellow-500/20');
+    btn.classList.add('border-cyan-400');
+    icon.className = "bx bx-cloud text-2xl";
+    btn.title = "UV";
   }
 }
-proxyToggleBtn.addEventListener("click", async function() {
-  const currentBackend = localStorage.getItem("proxy-backend") || "uv";
-  const newBackend = currentBackend === "uv" ? "scram" : "uv";
-  await setProxy(newBackend);
-  localStorage.setItem("proxy-backend", newBackend);
-  updateProxyToggleUI(newBackend);
-  const tab = getActiveTab();
-  if (tab) renderTabContent(tab);
-});
-let initialBackend = localStorage.getItem("proxy-backend") || "uv";
-updateProxyToggleUI(initialBackend);
 
-// ---- Proxy Setup ----
-let backend = localStorage.getItem("proxy-backend") || "uv";
+let backend = getCurrentProxy();
 let wisp = localStorage.getItem("wisp-server") || "wss://anura.pro/";
 let transport = localStorage.getItem("proxy-transport");
 setWisp(wisp);
@@ -95,14 +163,31 @@ if (transport) setTransport(transport);
 else if (navigator.userAgent.indexOf("Firefox") > 0) setTransport("libcurl");
 else setTransport("epoxy");
 
-// -- Tabs Logic --
+// --- Tabs Logic ---
 let tabs = [];
 let activeTab = null;
 let tabIdCounter = 1;
 let closedTabsSnapshot = [];
-
 function createTab(url = "") {
   const id = "tab-" + tabIdCounter++;
+  if (url === CARBON_NEWTAB || url === "") {
+    return {
+      id,
+      title: "New Tab",
+      url: CARBON_NEWTAB,
+      history: [CARBON_NEWTAB],
+      pointer: 0
+    };
+  }
+  if (url === CARBON_HISTORY) {
+    return {
+      id,
+      title: "Tab History",
+      url: CARBON_HISTORY,
+      history: [CARBON_HISTORY],
+      pointer: 0
+    };
+  }
   return {
     id,
     title: url ? url : "New Tab",
@@ -137,7 +222,10 @@ function renderTabs() {
     const content = document.createElement("div");
     content.className = "flex items-center w-full h-full";
     const title = document.createElement("span");
-    title.textContent = tab.title.length > 18 ? tab.title.slice(0, 15) + "..." : tab.title;
+    let dispTitle = tab.title;
+    if (tab.history[tab.pointer] === CARBON_NEWTAB) dispTitle = "New Tab";
+    if (tab.history[tab.pointer] === CARBON_HISTORY) dispTitle = "Tab History";
+    title.textContent = dispTitle.length > 18 ? dispTitle.slice(0, 15) + "..." : dispTitle;
     title.className = "flex-1 truncate text-sm font-medium";
     content.appendChild(title);
     const closeBtn = document.createElement("button");
@@ -176,7 +264,17 @@ function renderTabs() {
   });
 }
 function updateAddressBar(tab) {
-  document.getElementById("address-bar-input").value = tab.history[tab.pointer] || "";
+  const input = document.getElementById("address-bar-input");
+  if (tab.history[tab.pointer] === CARBON_NEWTAB) {
+    input.value = "";
+    input.placeholder = "Search the web freely";
+  } else if (tab.history[tab.pointer] === CARBON_HISTORY) {
+    input.value = CARBON_HISTORY;
+    input.placeholder = "Tab History";
+  } else {
+    input.value = tab.history[tab.pointer] || "";
+    input.placeholder = "Search the web freely";
+  }
 }
 function renderTabContent(tab) {
   const iframe = document.getElementById("proxy-iframe");
@@ -185,6 +283,62 @@ function renderTabContent(tab) {
     return;
   }
   let url = tab.history[tab.pointer];
+  if (url === CARBON_NEWTAB) {
+    iframe.srcdoc = `
+      <!DOCTYPE html>
+      <html style="background: #1a1a2e; color: #fff; height:100%;margin:0;padding:0;">
+      <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@700&display=swap" rel="stylesheet">
+        <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
+      </head>
+      <body style="height:100%;margin:0;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:'Inter',sans-serif;background:linear-gradient(135deg,#0f0f23 0%,#1a1a2e 60%,#16213e 100%)">
+        <div style="text-align:center;">
+          <i class='bx bxs-cube text-7xl' style="color:#0ff;font-size:64px;"></i>
+          <h1 style="font-size:2.2rem;font-weight:700;margin-top:12px;">CARBON Proxy</h1>
+          <p style="font-size:1.1rem;color:#aaa;margin-top:8px;">A secure, private, tabbed web proxy browser.</p>
+        </div>
+        <div style="margin-top:48px;display:flex;gap:24px;justify-content:center;">
+          <button onclick="parent.dispatchEvent(new CustomEvent('carbon-newtab'))" style="padding:20px 36px;border:none;border-radius:14px;background:#23234d;color:#fff;font-size:1.07rem;font-weight:500;cursor:pointer;box-shadow:0 4px 32px 0 #0008;transition:background 0.2s;">New Tab</button>
+          <button onclick="parent.dispatchEvent(new CustomEvent('carbon-history'))" style="padding:20px 36px;border:none;border-radius:14px;background:#16213e;color:#0ff;font-size:1.07rem;font-weight:500;cursor:pointer;box-shadow:0 4px 32px 0 #0008;transition:background 0.2s;">Tab History</button>
+        </div>
+      </body>
+      </html>
+    `;
+    return;
+  }
+  if (url === CARBON_HISTORY) {
+    let allHistory = [];
+    tabs.forEach(tab => {
+      if(Array.isArray(tab.history)) {
+        tab.history.forEach((url, idx) => {
+          if(url && url !== CARBON_NEWTAB && url !== CARBON_HISTORY)
+            allHistory.push({url, tabId: tab.id, tabTitle: tab.title, idx});
+        });
+      }
+    });
+    iframe.srcdoc = `
+      <!DOCTYPE html>
+      <html style="background: #23234d; color: #fff; height:100%;margin:0;">
+      <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@700&display=swap" rel="stylesheet">
+        <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
+      </head>
+      <body style="height:100%;margin:0;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;font-family:'Inter',sans-serif;">
+        <div style="width:100%;max-width:600px;margin:auto;">
+          <h2 style="font-size:2rem;font-weight:700;margin:36px 0 18px;text-align:center;"><i class='bx bx-history' style="vertical-align:middle;color:#0ff;"></i> History</h2>
+          <div style="max-height:360px;overflow-y:auto;background:#1a1a2e;border-radius:14px;padding:20px;">
+            ${allHistory.length === 0 ? "<div style='color:#aaa;text-align:center;'>No history available.</div>" : allHistory.map(h => `<div style="margin:7px 0;padding:10px 0;border-bottom:1px solid #333;display:flex;align-items:center;">
+              <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:1.03rem;color:#0ff;cursor:pointer;" onclick="parent.postMessage({type:'carbon-history-nav',tabId:'${h.tabId}',idx:${h.idx}},'*')">${h.url}</span>
+            </div>`).join("")}
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+    return;
+  }
   let search = getCurrentSearchEngine();
   makeURLAndProxied(url, search).then(src => { iframe.src = src; });
 }
@@ -234,6 +388,13 @@ function reorderTab(draggedTabId, targetTabId) {
   renderTabs();
 }
 function updateTabHistory(tab, url) {
+  if (url === CARBON_NEWTAB || url === CARBON_HISTORY) {
+    tab.history = [url];
+    tab.pointer = 0;
+    tab.url = url;
+    tab.title = url === CARBON_NEWTAB ? "New Tab" : "Tab History";
+    return;
+  }
   if (tab.pointer < tab.history.length - 1) {
     tab.history = tab.history.slice(0, tab.pointer + 1);
   }
@@ -244,7 +405,42 @@ function updateTabHistory(tab, url) {
 }
 function getActiveTab() { return tabs.find(t => t.id === activeTab); }
 
-// -- DuckDuckGo Search Suggestions (with CORS proxy for Vercel) --
+// --- Search Engine Dropdown & Proxy Dropdown ---
+document.getElementById("search-engine-btn").addEventListener("click", (e) => {
+  e.stopPropagation();
+  document.getElementById("search-engine-dropdown").classList.toggle("hidden");
+});
+document.querySelectorAll("#search-engine-dropdown [data-engine]").forEach(btn => {
+  btn.addEventListener("click", (e) => {
+    const engine = e.currentTarget.dataset.engine;
+    setCurrentSearchEngine(engine);
+    document.getElementById("search-engine-dropdown").classList.add("hidden");
+    const tab = getActiveTab();
+    if (tab && tab.history[tab.pointer]) {
+      let v = tab.history[tab.pointer];
+      if (!/^(https?:)?\/\//.test(v) && v.length > 0) renderTabContent(tab);
+    }
+  });
+});
+updateSearchEngineDisplay();
+
+document.getElementById("proxy-toggle-btn").addEventListener("click", (e) => {
+  e.stopPropagation();
+  document.getElementById("proxy-dropdown").classList.toggle("hidden");
+});
+document.querySelectorAll("#proxy-dropdown [data-proxy]").forEach(btn => {
+  btn.addEventListener("click", async (e) => {
+    const proxy = e.currentTarget.dataset.proxy;
+    await setProxy(proxy);
+    setCurrentProxy(proxy);
+    document.getElementById("proxy-dropdown").classList.add("hidden");
+    const tab = getActiveTab();
+    if (tab) renderTabContent(tab);
+  });
+});
+updateProxyToggleUI(getCurrentProxy());
+
+// --- DuckDuckGo Suggestions ---
 const addressInput = document.getElementById("address-bar-input");
 const suggestionBox = document.getElementById("suggestion-box");
 let suggestionActive = -1;
@@ -252,14 +448,13 @@ let currentSuggestions = [];
 let suggestionFetchController = null;
 addressInput.addEventListener("input", async function(e) {
   const val = addressInput.value.trim();
-  if (!val || val.startsWith("http")) {
+  if (!val || val.startsWith("http") || val.startsWith(CARBON_NEWTAB) || val.startsWith(CARBON_HISTORY)) {
     suggestionBox.classList.add("hidden");
     suggestionBox.innerHTML = "";
     currentSuggestions = [];
     suggestionActive = -1;
     return;
   }
-  // DuckDuckGo with CORS proxy (for Vercel)
   const apiUrl = "https://corsproxy.io/?" + encodeURIComponent("https://ac.duckduckgo.com/ac/?q=" + encodeURIComponent(val) + "&type=list");
   if (suggestionFetchController) suggestionFetchController.abort();
   suggestionFetchController = new AbortController();
@@ -339,9 +534,15 @@ document.addEventListener("click", function(e) {
     suggestionBox.classList.add("hidden");
     suggestionActive = -1;
   }
+  if (!document.getElementById("proxy-dropdown").contains(e.target) && e.target !== document.getElementById("proxy-toggle-btn")) {
+    document.getElementById("proxy-dropdown").classList.add("hidden");
+  }
+  if (!document.getElementById("search-engine-dropdown").contains(e.target) && e.target !== document.getElementById("search-engine-btn")) {
+    document.getElementById("search-engine-dropdown").classList.add("hidden");
+  }
 });
 
-// -- Form/Navigation --
+// --- Form/Navigation ---
 document.getElementById("address-bar-form").addEventListener("submit", async function(event) {
   event.preventDefault();
   suggestionBox.classList.add("hidden");
@@ -350,6 +551,18 @@ document.getElementById("address-bar-form").addEventListener("submit", async fun
   if (!tab) return;
   let url = addressInput.value.trim();
   if (!url) return;
+  if (url === CARBON_NEWTAB) {
+    updateTabHistory(tab, CARBON_NEWTAB);
+    renderTabs();
+    renderTabContent(tab);
+    return;
+  }
+  if (url === CARBON_HISTORY) {
+    updateTabHistory(tab, CARBON_HISTORY);
+    renderTabs();
+    renderTabContent(tab);
+    return;
+  }
   updateTabHistory(tab, url);
   renderTabs();
   renderTabContent(tab);
@@ -376,8 +589,7 @@ document.getElementById("refresh-btn").onclick = function() {
 document.getElementById("home-btn").onclick = function() {
   const tab = getActiveTab();
   if (!tab) return;
-  const homepage = "";
-  updateTabHistory(tab, homepage);
+  updateTabHistory(tab, CARBON_NEWTAB);
   updateAddressBar(tab);
   renderTabContent(tab);
 };
@@ -401,28 +613,21 @@ function restoreTabsFromSnapshot() {
   closedTabsSnapshot = [];
   localStorage.removeItem("carbon-proxy-last-tabs");
 }
-const menuBtn = document.getElementById("menu-btn");
-const dropdown = document.getElementById("dropdown-menu");
-menuBtn.onclick = (e) => { dropdown.classList.toggle("hidden"); e.stopPropagation(); };
+document.getElementById("menu-btn").onclick = (e) => { document.getElementById("dropdown-menu").classList.toggle("hidden"); e.stopPropagation(); };
 window.onclick = (e) => {
-  if (!dropdown.contains(e.target) && e.target !== menuBtn) dropdown.classList.add("hidden");
-  if (!searchEngineDropdown.contains(e.target) && e.target !== searchEngineBtn) {
-    searchEngineDropdown.classList.add("hidden");
-    const arrow = searchEngineBtn.querySelector("svg");
-    arrow.style.transform = "rotate(0deg)";
-  }
-  closeHistoryModal();
+  if (!document.getElementById("dropdown-menu").contains(e.target) && e.target !== document.getElementById("menu-btn"))
+    document.getElementById("dropdown-menu").classList.add("hidden");
 };
 document.getElementById("clear-history-btn").onclick = function() {
   const tab = getActiveTab();
   if (!tab) return;
-  tab.history = [];
-  tab.pointer = -1;
-  tab.url = "New Tab";
+  tab.history = [CARBON_NEWTAB];
+  tab.pointer = 0;
+  tab.url = CARBON_NEWTAB;
   tab.title = "New Tab";
   updateAddressBar(tab);
   renderTabContent(tab);
-  dropdown.classList.add("hidden");
+  document.getElementById("dropdown-menu").classList.add("hidden");
 };
 document.getElementById("close-all-tabs-btn").onclick = function() {
   if (tabs.length > 0) takeTabsSnapshot();
@@ -431,15 +636,15 @@ document.getElementById("close-all-tabs-btn").onclick = function() {
   renderTabs();
   document.getElementById("proxy-iframe").src = "";
   document.getElementById("address-bar-input").value = "";
-  dropdown.classList.add("hidden");
+  document.getElementById("dropdown-menu").classList.add("hidden");
 };
 document.getElementById("restore-tabs-btn").onclick = function() {
   restoreTabsFromSnapshot();
-  dropdown.classList.add("hidden");
+  document.getElementById("dropdown-menu").classList.add("hidden");
 };
-document.getElementById("new-tab-btn").addEventListener("click", () => addTab());
+document.getElementById("new-tab-btn").addEventListener("click", () => addTab(CARBON_NEWTAB));
 
-// -- History Modal Logic --
+// --- History Modal Logic ---
 const historyBtn = document.getElementById("history-btn");
 const historyModalBg = document.getElementById("history-modal-bg");
 const historyModal = document.getElementById("history-modal");
@@ -468,6 +673,7 @@ function renderModalHistoryList() {
     return;
   }
   tab.history.forEach((url, idx) => {
+    if(url === CARBON_NEWTAB || url === CARBON_HISTORY) return;
     const row = document.createElement("div");
     row.className = `flex items-center justify-between p-3 rounded-lg hover:bg-dark-600 cursor-pointer transition-colors ${idx === tab.pointer ? 'bg-cyan-500/20 border border-cyan-400' : ''}`;
     row.innerHTML = `<span class="flex-1 ${idx === tab.pointer ? 'text-cyan-400 font-bold' : ''} truncate">${url}</span>`;
@@ -494,10 +700,34 @@ function renderModalHistoryList() {
   });
 }
 
-// -- Keyboard Shortcuts --
+// --- Fullscreen Button Logic ---
+const fullscreenBtn = document.getElementById("fullscreen-btn");
+fullscreenBtn.onclick = function() {
+  let el = document.documentElement;
+  if (!document.fullscreenElement && el.requestFullscreen) {
+    el.requestFullscreen();
+    fullscreenBtn.title = "Exit Fullscreen";
+    fullscreenBtn.querySelector('i').className = "bx bx-exit-fullscreen text-2xl text-gray-300 group-hover:text-white transition-colors";
+  } else if (document.exitFullscreen) {
+    document.exitFullscreen();
+    fullscreenBtn.title = "Fullscreen";
+    fullscreenBtn.querySelector('i').className = "bx bx-fullscreen text-2xl text-gray-300 group-hover:text-white transition-colors";
+  }
+};
+document.addEventListener('fullscreenchange', function() {
+  if (!document.fullscreenElement) {
+    fullscreenBtn.title = "Fullscreen";
+    fullscreenBtn.querySelector('i').className = "bx bx-fullscreen text-2xl text-gray-300 group-hover:text-white transition-colors";
+  } else {
+    fullscreenBtn.title = "Exit Fullscreen";
+    fullscreenBtn.querySelector('i').className = "bx bx-exit-fullscreen text-2xl text-gray-300 group-hover:text-white transition-colors";
+  }
+});
+
+// --- Keyboard Shortcuts & iframe parent communication ---
 document.addEventListener("keydown", (e) => {
   if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === "t") {
-    e.preventDefault(); addTab();
+    e.preventDefault(); addTab(CARBON_NEWTAB);
   }
   if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === "w") {
     e.preventDefault(); if (activeTab) removeTab(activeTab);
@@ -514,9 +744,48 @@ document.addEventListener("keydown", (e) => {
   }
   if (e.altKey && !e.shiftKey && e.key === "ArrowLeft") document.getElementById("back-btn").click();
   if (e.altKey && !e.shiftKey && e.key === "ArrowRight") document.getElementById("forward-btn").click();
+  if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === "n") {
+    e.preventDefault(); addTab(CARBON_NEWTAB);
+  }
+  if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === "h") {
+    e.preventDefault();
+    const tab = getActiveTab();
+    if (tab) updateTabHistory(tab, CARBON_HISTORY);
+    renderTabs();
+    renderTabContent(getActiveTab());
+  }
+  if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === "f") {
+    e.preventDefault();
+    fullscreenBtn.click();
+  }
 });
-
-// -- INIT --
+window.addEventListener('message', function(ev) {
+  if (!ev.data) return;
+  if (ev.data.type === 'carbon-history-nav' && ev.data.tabId && typeof ev.data.idx === 'number') {
+    const t = tabs.find(t => t.id === ev.data.tabId);
+    if (t && t.history[ev.data.idx]) {
+      t.pointer = ev.data.idx;
+      setActiveTab(t.id);
+      updateAddressBar(t);
+      renderTabContent(t);
+    }
+  }
+});
+window.addEventListener('carbon-newtab', () => {
+  addTab(CARBON_NEWTAB);
+});
+window.addEventListener('carbon-history', () => {
+  const tab = getActiveTab();
+  if (tab) {
+    updateTabHistory(tab, CARBON_HISTORY);
+    renderTabs();
+    renderTabContent(tab);
+  }
+});
 window.addEventListener("DOMContentLoaded", () => {
-  if (tabs.length === 0) addTab();
+  if (tabs.length === 0) addTab(CARBON_NEWTAB);
+  document.body.style.height = "100vh";
+  document.body.style.width = "100vw";
+  document.getElementById("__carbon-root").style.height = "100%";
+  document.getElementById("__carbon_root").style.width = "100%";
 });
