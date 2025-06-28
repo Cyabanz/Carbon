@@ -28,6 +28,8 @@
     }
   </script>
   <style>
+    html, body, #__carbon-root { height: 100%; width: 100%; min-height: 100%; }
+    body { min-height: 100vh; min-width: 100vw; }
     .suggestion-box {
       position: absolute;
       left: 0;
@@ -69,15 +71,15 @@
     }
   </style>
 </head>
-<body class="font-inter bg-gradient-to-br from-dark-900 via-dark-800 to-dark-500 min-h-screen text-white overflow-x-hidden">
-
-<main class="flex flex-col items-center justify-center min-h-screen p-4">
-  <div class="w-full max-w-6xl mx-auto">
+<body class="font-inter bg-gradient-to-br from-dark-900 via-dark-800 to-dark-500 min-h-screen min-w-full h-full w-full text-white overflow-x-hidden" style="height:100vh;width:100vw;">
+<div id="__carbon-root" class="min-h-screen min-w-full h-full w-full flex flex-col">
+<main class="flex flex-1 flex-col items-center justify-center min-h-screen min-w-full w-full h-full p-0">
+  <div class="w-full h-full max-w-full mx-auto flex flex-col flex-1">
     <!-- Main Container -->
-    <div class="bg-dark-800/90 backdrop-blur-sm rounded-2xl shadow-2xl border border-dark-700/50 overflow-hidden">
+    <div class="flex flex-col w-full h-full bg-dark-800/90 backdrop-blur-sm rounded-none shadow-none border-0 flex-1 overflow-hidden">
       
       <!-- Tab Bar -->
-      <div class="bg-dark-700/80 border-b border-dark-600/50 flex items-end">
+      <div class="bg-dark-700/80 border-b border-dark-600/50 flex items-end" style="min-height:40px;">
         <div id="tabs-bar" class="flex items-end flex-1 overflow-x-auto scrollbar-hide min-h-[40px] px-2 pt-2"></div>
         <button id="new-tab-btn" 
                 class="flex-shrink-0 w-8 h-8 rounded-full bg-transparent hover:bg-dark-600 text-gray-400 hover:text-white font-bold text-xl transition-all duration-200 flex items-center justify-center mx-2 mb-1" 
@@ -119,6 +121,9 @@
               </button>
               <button id="history-btn" class="w-10 h-10 rounded-xl bg-dark-600 hover:bg-dark-500 transition-colors duration-200 flex items-center justify-center group" title="Show History">
                 <i class='bx bx-history text-2xl text-gray-300 group-hover:text-white transition-colors'></i>
+              </button>
+              <button id="fullscreen-btn" class="w-10 h-10 rounded-xl bg-dark-600 hover:bg-dark-500 transition-colors duration-200 flex items-center justify-center group" title="Fullscreen">
+                <i class='bx bx-fullscreen text-2xl text-gray-300 group-hover:text-white transition-colors'></i>
               </button>
             </div>
           </div>
@@ -182,10 +187,10 @@
       </div>
       
       <!-- Content Area -->
-      <div class="bg-black border-t border-dark-600/30">
+      <div class="bg-black border-t border-dark-600/30 flex-1 min-h-0 w-full h-full">
         <iframe id="proxy-iframe"
                 title="Proxy Frame"
-                class="w-full h-[70vh] border-0"></iframe>
+                class="w-full h-full min-h-0 border-0" style="height:100%;min-height:0;"></iframe>
       </div>
     </div>
   </div>
@@ -209,6 +214,7 @@
     </div>
   </div>
 </main>
+</div>
 <script type="module">
 // --- LETHAL IMPORTS (replace with your actual lethal.mjs import logic) ---
 import {
@@ -228,6 +234,9 @@ const engines = {
   "https://search.yahoo.com/search?p=%s": ["Yahoo", "bxl-yahoo"],
   "https://www.ecosia.org/search?q=%s": ["Ecosia", "bxl-leaf"]
 };
+
+const CARBON_NEWTAB = "carbon://newtab";
+const CARBON_HISTORY = "carbon://history";
 
 // --- Search Engine Dropdown as Boxicon Button ---
 const searchEngineBtn = document.getElementById("search-engine-btn");
@@ -321,6 +330,25 @@ let tabIdCounter = 1;
 let closedTabsSnapshot = [];
 function createTab(url = "") {
   const id = "tab-" + tabIdCounter++;
+  // If url is carbon://newtab, don't add to history
+  if (url === CARBON_NEWTAB || url === "") {
+    return {
+      id,
+      title: "New Tab",
+      url: CARBON_NEWTAB,
+      history: [CARBON_NEWTAB],
+      pointer: 0
+    };
+  }
+  if (url === CARBON_HISTORY) {
+    return {
+      id,
+      title: "Tab History",
+      url: CARBON_HISTORY,
+      history: [CARBON_HISTORY],
+      pointer: 0
+    };
+  }
   return {
     id,
     title: url ? url : "New Tab",
@@ -355,7 +383,11 @@ function renderTabs() {
     const content = document.createElement("div");
     content.className = "flex items-center w-full h-full";
     const title = document.createElement("span");
-    title.textContent = tab.title.length > 18 ? tab.title.slice(0, 15) + "..." : tab.title;
+    // Custom title for carbon:// tabs
+    let dispTitle = tab.title;
+    if (tab.history[tab.pointer] === CARBON_NEWTAB) dispTitle = "New Tab";
+    if (tab.history[tab.pointer] === CARBON_HISTORY) dispTitle = "Tab History";
+    title.textContent = dispTitle.length > 18 ? dispTitle.slice(0, 15) + "..." : dispTitle;
     title.className = "flex-1 truncate text-sm font-medium";
     content.appendChild(title);
     const closeBtn = document.createElement("button");
@@ -394,7 +426,16 @@ function renderTabs() {
   });
 }
 function updateAddressBar(tab) {
-  document.getElementById("address-bar-input").value = tab.history[tab.pointer] || "";
+  if (tab.history[tab.pointer] === CARBON_NEWTAB) {
+    document.getElementById("address-bar-input").value = "";
+    document.getElementById("address-bar-input").placeholder = "Search the web freely";
+  } else if (tab.history[tab.pointer] === CARBON_HISTORY) {
+    document.getElementById("address-bar-input").value = CARBON_HISTORY;
+    document.getElementById("address-bar-input").placeholder = "Tab History";
+  } else {
+    document.getElementById("address-bar-input").value = tab.history[tab.pointer] || "";
+    document.getElementById("address-bar-input").placeholder = "Search the web freely";
+  }
 }
 function renderTabContent(tab) {
   const iframe = document.getElementById("proxy-iframe");
@@ -403,6 +444,65 @@ function renderTabContent(tab) {
     return;
   }
   let url = tab.history[tab.pointer];
+  if (url === CARBON_NEWTAB) {
+    // Show new tab page
+    iframe.srcdoc = `
+      <!DOCTYPE html>
+      <html style="background: #1a1a2e; color: #fff; height:100%;margin:0;padding:0;">
+      <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@700&display=swap" rel="stylesheet">
+        <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
+      </head>
+      <body style="height:100%;margin:0;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:'Inter',sans-serif;background:linear-gradient(135deg,#0f0f23 0%,#1a1a2e 60%,#16213e 100%)">
+        <div style="text-align:center;">
+          <i class='bx bxs-cube text-7xl' style="color:#0ff;font-size:64px;"></i>
+          <h1 style="font-size:2.2rem;font-weight:700;margin-top:12px;">CARBON Proxy</h1>
+          <p style="font-size:1.1rem;color:#aaa;margin-top:8px;">A secure, private, tabbed web proxy browser.</p>
+        </div>
+        <div style="margin-top:48px;display:flex;gap:24px;justify-content:center;">
+          <button onclick="parent.dispatchEvent(new CustomEvent('carbon-newtab'))" style="padding:20px 36px;border:none;border-radius:14px;background:#23234d;color:#fff;font-size:1.07rem;font-weight:500;cursor:pointer;box-shadow:0 4px 32px 0 #0008;transition:background 0.2s;">New Tab</button>
+          <button onclick="parent.dispatchEvent(new CustomEvent('carbon-history'))" style="padding:20px 36px;border:none;border-radius:14px;background:#16213e;color:#0ff;font-size:1.07rem;font-weight:500;cursor:pointer;box-shadow:0 4px 32px 0 #0008;transition:background 0.2s;">Tab History</button>
+        </div>
+      </body>
+      </html>
+    `;
+    return;
+  }
+  if (url === CARBON_HISTORY) {
+    // Render a simple custom history page inside the iframe
+    const tab = getActiveTab();
+    let allHistory = [];
+    tabs.forEach(tab => {
+      if(Array.isArray(tab.history)) {
+        tab.history.forEach((url, idx) => {
+          if(url && url !== CARBON_NEWTAB && url !== CARBON_HISTORY)
+            allHistory.push({url, tabId: tab.id, tabTitle: tab.title, idx});
+        });
+      }
+    });
+    iframe.srcdoc = `
+      <!DOCTYPE html>
+      <html style="background: #23234d; color: #fff; height:100%;margin:0;">
+      <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@700&display=swap" rel="stylesheet">
+        <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
+      </head>
+      <body style="height:100%;margin:0;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;font-family:'Inter',sans-serif;">
+        <div style="width:100%;max-width:600px;margin:auto;">
+          <h2 style="font-size:2rem;font-weight:700;margin:36px 0 18px;text-align:center;"><i class='bx bx-history' style="vertical-align:middle;color:#0ff;"></i> History</h2>
+          <div style="max-height:360px;overflow-y:auto;background:#1a1a2e;border-radius:14px;padding:20px;">
+            ${allHistory.length === 0 ? "<div style='color:#aaa;text-align:center;'>No history available.</div>" : allHistory.map(h => `<div style="margin:7px 0;padding:10px 0;border-bottom:1px solid #333;display:flex;align-items:center;">
+              <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:1.03rem;color:#0ff;cursor:pointer;" onclick="parent.postMessage({type:'carbon-history-nav',tabId:'${h.tabId}',idx:${h.idx}},'*')">${h.url}</span>
+            </div>`).join("")}
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+    return;
+  }
   let search = getCurrentSearchEngine();
   makeURLAndProxied(url, search).then(src => { iframe.src = src; });
 }
@@ -452,6 +552,14 @@ function reorderTab(draggedTabId, targetTabId) {
   renderTabs();
 }
 function updateTabHistory(tab, url) {
+  // carbon://specials are single-entry
+  if (url === CARBON_NEWTAB || url === CARBON_HISTORY) {
+    tab.history = [url];
+    tab.pointer = 0;
+    tab.url = url;
+    tab.title = url === CARBON_NEWTAB ? "New Tab" : "Tab History";
+    return;
+  }
   if (tab.pointer < tab.history.length - 1) {
     tab.history = tab.history.slice(0, tab.pointer + 1);
   }
@@ -470,7 +578,7 @@ let currentSuggestions = [];
 let suggestionFetchController = null;
 addressInput.addEventListener("input", async function(e) {
   const val = addressInput.value.trim();
-  if (!val || val.startsWith("http")) {
+  if (!val || val.startsWith("http") || val.startsWith(CARBON_NEWTAB) || val.startsWith(CARBON_HISTORY)) {
     suggestionBox.classList.add("hidden");
     suggestionBox.innerHTML = "";
     currentSuggestions = [];
@@ -574,6 +682,19 @@ document.getElementById("address-bar-form").addEventListener("submit", async fun
   if (!tab) return;
   let url = addressInput.value.trim();
   if (!url) return;
+  // Support carbon://newtab and carbon://history
+  if (url === CARBON_NEWTAB) {
+    updateTabHistory(tab, CARBON_NEWTAB);
+    renderTabs();
+    renderTabContent(tab);
+    return;
+  }
+  if (url === CARBON_HISTORY) {
+    updateTabHistory(tab, CARBON_HISTORY);
+    renderTabs();
+    renderTabContent(tab);
+    return;
+  }
   updateTabHistory(tab, url);
   renderTabs();
   renderTabContent(tab);
@@ -600,8 +721,7 @@ document.getElementById("refresh-btn").onclick = function() {
 document.getElementById("home-btn").onclick = function() {
   const tab = getActiveTab();
   if (!tab) return;
-  const homepage = "";
-  updateTabHistory(tab, homepage);
+  updateTabHistory(tab, CARBON_NEWTAB);
   updateAddressBar(tab);
   renderTabContent(tab);
 };
@@ -634,9 +754,9 @@ window.onclick = (e) => {
 document.getElementById("clear-history-btn").onclick = function() {
   const tab = getActiveTab();
   if (!tab) return;
-  tab.history = [];
-  tab.pointer = -1;
-  tab.url = "New Tab";
+  tab.history = [CARBON_NEWTAB];
+  tab.pointer = 0;
+  tab.url = CARBON_NEWTAB;
   tab.title = "New Tab";
   updateAddressBar(tab);
   renderTabContent(tab);
@@ -655,7 +775,7 @@ document.getElementById("restore-tabs-btn").onclick = function() {
   restoreTabsFromSnapshot();
   dropdown.classList.add("hidden");
 };
-document.getElementById("new-tab-btn").addEventListener("click", () => addTab());
+document.getElementById("new-tab-btn").addEventListener("click", () => addTab(CARBON_NEWTAB));
 
 // -- History Modal Logic --
 const historyBtn = document.getElementById("history-btn");
@@ -686,6 +806,7 @@ function renderModalHistoryList() {
     return;
   }
   tab.history.forEach((url, idx) => {
+    if(url === CARBON_NEWTAB || url === CARBON_HISTORY) return;
     const row = document.createElement("div");
     row.className = `flex items-center justify-between p-3 rounded-lg hover:bg-dark-600 cursor-pointer transition-colors ${idx === tab.pointer ? 'bg-cyan-500/20 border border-cyan-400' : ''}`;
     row.innerHTML = `<span class="flex-1 ${idx === tab.pointer ? 'text-cyan-400 font-bold' : ''} truncate">${url}</span>`;
@@ -712,10 +833,34 @@ function renderModalHistoryList() {
   });
 }
 
+// -- Fullscreen Button Logic --
+const fullscreenBtn = document.getElementById("fullscreen-btn");
+fullscreenBtn.onclick = function() {
+  let el = document.documentElement;
+  if (!document.fullscreenElement && el.requestFullscreen) {
+    el.requestFullscreen();
+    fullscreenBtn.title = "Exit Fullscreen";
+    fullscreenBtn.querySelector('i').className = "bx bx-exit-fullscreen text-2xl text-gray-300 group-hover:text-white transition-colors";
+  } else if (document.exitFullscreen) {
+    document.exitFullscreen();
+    fullscreenBtn.title = "Fullscreen";
+    fullscreenBtn.querySelector('i').className = "bx bx-fullscreen text-2xl text-gray-300 group-hover:text-white transition-colors";
+  }
+};
+document.addEventListener('fullscreenchange', function() {
+  if (!document.fullscreenElement) {
+    fullscreenBtn.title = "Fullscreen";
+    fullscreenBtn.querySelector('i').className = "bx bx-fullscreen text-2xl text-gray-300 group-hover:text-white transition-colors";
+  } else {
+    fullscreenBtn.title = "Exit Fullscreen";
+    fullscreenBtn.querySelector('i').className = "bx bx-exit-fullscreen text-2xl text-gray-300 group-hover:text-white transition-colors";
+  }
+});
+
 // -- Keyboard Shortcuts --
 document.addEventListener("keydown", (e) => {
   if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === "t") {
-    e.preventDefault(); addTab();
+    e.preventDefault(); addTab(CARBON_NEWTAB);
   }
   if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === "w") {
     e.preventDefault(); if (activeTab) removeTab(activeTab);
@@ -732,11 +877,55 @@ document.addEventListener("keydown", (e) => {
   }
   if (e.altKey && !e.shiftKey && e.key === "ArrowLeft") document.getElementById("back-btn").click();
   if (e.altKey && !e.shiftKey && e.key === "ArrowRight") document.getElementById("forward-btn").click();
+  if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === "n") {
+    e.preventDefault(); addTab(CARBON_NEWTAB);
+  }
+  if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === "h") {
+    e.preventDefault();
+    const tab = getActiveTab();
+    if (tab) updateTabHistory(tab, CARBON_HISTORY);
+    renderTabs();
+    renderTabContent(getActiveTab());
+  }
+  if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === "f") {
+    e.preventDefault();
+    fullscreenBtn.click();
+  }
+});
+
+// -- Listen for iframe events for carbon://newtab, carbon://history nav --
+window.addEventListener('message', function(ev) {
+  if (!ev.data) return;
+  if (ev.data.type === 'carbon-history-nav' && ev.data.tabId && typeof ev.data.idx === 'number') {
+    const t = tabs.find(t => t.id === ev.data.tabId);
+    if (t && t.history[ev.data.idx]) {
+      t.pointer = ev.data.idx;
+      setActiveTab(t.id);
+      updateAddressBar(t);
+      renderTabContent(t);
+    }
+  }
+});
+window.addEventListener('carbon-newtab', () => {
+  addTab(CARBON_NEWTAB);
+});
+window.addEventListener('carbon-history', () => {
+  const tab = getActiveTab();
+  if (tab) {
+    updateTabHistory(tab, CARBON_HISTORY);
+    renderTabs();
+    renderTabContent(tab);
+  }
 });
 
 // -- INIT --
 window.addEventListener("DOMContentLoaded", () => {
-  if (tabs.length === 0) addTab();
+  if (tabs.length === 0) addTab(CARBON_NEWTAB);
+  // Make sure the content fills the viewport
+  document.body.style.height = "100vh";
+  document.body.style.width = "100vw";
+  document.getElementById("__carbon-root").style.height = "100%";
+  document.getElementById("__carbon-root").style.width = "100%";
 });
 </script>
 </body>
