@@ -1,10 +1,8 @@
 //////////////////////////////
-///     Backend + Proxy    ///
+///         Proxy/Backend  ///
 //////////////////////////////
 
-// --- Scramjet, BareMux, UV, Service Worker, and Backend Logic ---
-
-// --- Scramjet + BareMux Init ---
+// --- Scramjet, BareMux, UV, Service Worker, Proxy Backend logic ---
 let scramjet = null, BareMux = null, connection = null;
 let wispURL = null, transportURL = null, proxyOption = null;
 const transportOptions = {
@@ -15,7 +13,6 @@ const transportOptions = {
 async function ensureBareScramReady() {
   if (!scramjet) {
     await import("/scram/scramjet.shared.js");
-    await import("/scram/scramjet.controller.js");
     const { ScramjetController } = await import("/scram/scramjet.controller.js");
     scramjet = new ScramjetController({
       files: {
@@ -46,7 +43,6 @@ async function ensureBareScramReady() {
   return { scramjet, BareMux, connection };
 }
 
-// Service Worker registration
 const swAllowedHostnames = ["localhost", "127.0.0.1"];
 async function registerSW() {
   if (!navigator.serviceWorker) {
@@ -60,22 +56,20 @@ async function registerSW() {
   await navigator.serviceWorker.register("./ultraworker.js");
 }
 await registerSW();
-console.log("lethal.js: Service Worker registered");
 
-// --- Proxy/Transport/Wisp Control ---
 async function updateBareMux() {
   if (connection && transportURL && wispURL) {
     await connection.setTransport(transportURL, [{ wisp: wispURL }]);
   }
 }
-export async function setTransport(transport) {
+async function setTransport(transport) {
   transportURL = transportOptions[transport] || transport;
   await updateBareMux();
 }
-export function getTransport() { return transportURL; }
-export async function setWisp(wisp) { wispURL = wisp; await updateBareMux(); }
-export function getWisp() { return wispURL; }
-export async function setProxy(proxy) {
+function getTransport() { return transportURL; }
+async function setWisp(wisp) { wispURL = wisp; await updateBareMux(); }
+function getWisp() { return wispURL; }
+async function setProxy(proxy) {
   proxyOption = proxy;
   if (proxy === "uv") {
     await import("https://cdn.jsdelivr.net/gh/Coding4Hours/cdn/uv/uv.bundle.js");
@@ -85,14 +79,14 @@ export async function setProxy(proxy) {
     await import("/scram/scramjet.worker.js");
   }
 }
-export function getProxy() { return proxyOption; }
-export function makeURL(input, template = "https://search.brave.com/search?q=%s") {
+function getProxy() { return proxyOption; }
+function makeURL(input, template = "https://search.brave.com/search?q=%s") {
   try { return new URL(input).toString(); } catch (err) {}
   const url = new URL(`http://${input}`);
   if (url.hostname.includes(".")) return url.toString();
   return template.replace("%s", encodeURIComponent(input));
 }
-export async function getProxied(input) {
+async function getProxied(input) {
   const url = makeURL(input);
   if (proxyOption === "scram") {
     await ensureBareScramReady();
@@ -405,7 +399,7 @@ function updateTabHistory(tab, url) {
 }
 function getActiveTab() { return tabs.find(t => t.id === activeTab); }
 
-// --- Search Engine Dropdown & Proxy Dropdown ---
+// Search Engine / Proxy Dropdowns
 document.getElementById("search-engine-btn").addEventListener("click", (e) => {
   e.stopPropagation();
   document.getElementById("search-engine-dropdown").classList.toggle("hidden");
@@ -440,7 +434,7 @@ document.querySelectorAll("#proxy-dropdown [data-proxy]").forEach(btn => {
 });
 updateProxyToggleUI(getCurrentProxy());
 
-// --- DuckDuckGo Suggestions ---
+// DuckDuckGo Suggestions
 const addressInput = document.getElementById("address-bar-input");
 const suggestionBox = document.getElementById("suggestion-box");
 let suggestionActive = -1;
@@ -542,7 +536,7 @@ document.addEventListener("click", function(e) {
   }
 });
 
-// --- Form/Navigation ---
+// Form & Navigation
 document.getElementById("address-bar-form").addEventListener("submit", async function(event) {
   event.preventDefault();
   suggestionBox.classList.add("hidden");
@@ -644,7 +638,7 @@ document.getElementById("restore-tabs-btn").onclick = function() {
 };
 document.getElementById("new-tab-btn").addEventListener("click", () => addTab(CARBON_NEWTAB));
 
-// --- History Modal Logic ---
+// History Modal
 const historyBtn = document.getElementById("history-btn");
 const historyModalBg = document.getElementById("history-modal-bg");
 const historyModal = document.getElementById("history-modal");
@@ -700,8 +694,15 @@ function renderModalHistoryList() {
   });
 }
 
-// --- Fullscreen Button Logic ---
-const fullscreenBtn = document.getElementById("fullscreen-btn");
+// Fullscreen Button
+const fullscreenBtn = document.createElement("button");
+fullscreenBtn.id = "fullscreen-btn";
+fullscreenBtn.className = "w-10 h-10 rounded-xl bg-dark-600 hover:bg-dark-500 transition-colors duration-200 flex items-center justify-center group";
+fullscreenBtn.title = "Fullscreen";
+fullscreenBtn.innerHTML = `<i class='bx bx-fullscreen text-2xl text-gray-300 group-hover:text-white transition-colors'></i>`;
+const navBtns = document.getElementById("history-btn").parentNode;
+navBtns.appendChild(fullscreenBtn);
+
 fullscreenBtn.onclick = function() {
   let el = document.documentElement;
   if (!document.fullscreenElement && el.requestFullscreen) {
@@ -724,7 +725,7 @@ document.addEventListener('fullscreenchange', function() {
   }
 });
 
-// --- Keyboard Shortcuts & iframe parent communication ---
+// Keyboard Shortcuts & iframe nav
 document.addEventListener("keydown", (e) => {
   if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === "t") {
     e.preventDefault(); addTab(CARBON_NEWTAB);
@@ -787,5 +788,5 @@ window.addEventListener("DOMContentLoaded", () => {
   document.body.style.height = "100vh";
   document.body.style.width = "100vw";
   document.getElementById("__carbon-root").style.height = "100%";
-  document.getElementById("__carbon_root").style.width = "100%";
+  document.getElementById("__carbon-root").style.width = "100%";
 });
