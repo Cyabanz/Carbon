@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CARBON Proxy</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            'inter': ['Inter', 'sans-serif'],
+          },
+          colors: {
+            'dark': {
+              900: '#0f0f23',
+              800: '#1a1a2e',
+              700: '#23234d',
+              600: '#2c2c5c',
+              500: '#16213e'
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    .suggestion-box {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 100%;
+      z-index: 1200;
+      background: #1a1a2e;
+      border-radius: 0 0 0.75rem 0.75rem;
+      border: 1px solid #23234d;
+      border-top: none;
+      max-height: 220px;
+      overflow-y: auto;
+      box-shadow: 0 6px 20px 2px #000A;
+      color: #fff;
+      font-size: 1rem;
+      width: 100%;
+    }
+    .suggestion-item {
+      padding: 0.73rem 1.1rem;
+      cursor: pointer;
+      transition: background 0.16s;
+      border-bottom: 1px solid #23234d;
+    }
+    .suggestion-item:last-child {
+      border-bottom: none;
+    }
+    .suggestion-item:hover,
+    .suggestion-item.active {
+      background: #23234d;
+      color: #0ff;
+    }
+    .scrollbar-hide::-webkit-scrollbar { display: none; }
+    .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+  </style>
+</head>
+<body class="font-inter bg-gradient-to-br from-dark-900 via-dark-800 to-dark-500 min-h-screen text-white overflow-x-hidden">
+
+<main class="flex flex-col items-center justify-center min-h-screen p-4">
+  <div class="w-full max-w-6xl mx-auto">
+    <!-- Main Container -->
+    <div class="bg-dark-800/90 backdrop-blur-sm rounded-2xl shadow-2xl border border-dark-700/50 overflow-hidden">
+      
+      <!-- Tab Bar -->
+      <div class="bg-dark-700/80 border-b border-dark-600/50 flex items-end">
+        <div id="tabs-bar" class="flex items-end flex-1 overflow-x-auto scrollbar-hide min-h-[40px] px-2 pt-2"></div>
+        <button id="new-tab-btn" 
+                class="flex-shrink-0 w-8 h-8 rounded-full bg-transparent hover:bg-dark-600 text-gray-400 hover:text-white font-bold text-xl transition-all duration-200 flex items-center justify-center mx-2 mb-1" 
+                title="New Tab (Ctrl+T)">
+          +
+        </button>
+      </div>
+      
+      <!-- Header with Controls -->
+      <div class="bg-dark-700/50 p-4 border-b border-dark-600/30">
+        <div class="flex flex-col lg:flex-row gap-4 items-start lg:items-center">
+          <!-- Navigation Buttons -->
+          <div class="flex items-center gap-2">
+            <button id="back-btn" class="w-10 h-10 rounded-lg bg-dark-600 hover:bg-dark-500 transition-colors duration-200 flex items-center justify-center group" title="Back">
+              <svg class="w-5 h-5 text-gray-300 group-hover:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 18l-6-6 6-6"/>
+              </svg>
+            </button>
+            <button id="forward-btn" class="w-10 h-10 rounded-lg bg-dark-600 hover:bg-dark-500 transition-colors duration-200 flex items-center justify-center group" title="Forward">
+              <svg class="w-5 h-5 text-gray-300 group-hover:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 6l6 6-6 6"/>
+              </svg>
+            </button>
+            <button id="refresh-btn" class="w-10 h-10 rounded-lg bg-dark-600 hover:bg-dark-500 transition-colors duration-200 flex items-center justify-center group" title="Refresh">
+              <svg class="w-5 h-5 text-gray-300 group-hover:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v6h6M20 20v-6h-6M5.07 19A9 9 0 1 1 21 12.94"/>
+              </svg>
+            </button>
+            <button id="home-btn" class="w-10 h-10 rounded-lg bg-dark-600 hover:bg-dark-500 transition-colors duration-200 flex items-center justify-center group" title="Home">
+              <svg class="w-5 h-5 text-gray-300 group-hover:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l9-9 9 9M4 10v10h16V10"/>
+              </svg>
+            </button>
+            <button id="history-btn" class="w-10 h-10 rounded-lg bg-dark-600 hover:bg-dark-500 transition-colors duration-200 flex items-center justify-center group" title="Show History">
+              <i class='bx bx-history text-xl text-gray-300 group-hover:text-white transition-colors'></i>
+            </button>
+          </div>
+          
+          <!-- Proxy Toggle Button -->
+          <button id="proxy-toggle-btn"
+            class="flex-1 w-full max-w-xs px-6 py-3 rounded-xl bg-dark-600 hover:bg-dark-500 text-white font-bold text-lg border-2 border-cyan-400 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+            style="min-width:180px">
+            <span id="proxy-toggle-text">UV</span>
+          </button>
+          
+          <!-- Search Engine Dropdown -->
+          <div class="w-full max-w-xs relative flex-1">
+            <button id="search-engine-btn"
+              class="w-full px-6 py-3 rounded-xl bg-dark-600 hover:bg-dark-500 text-white font-bold text-lg border-2 border-cyan-400 transition-all duration-200 flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-cyan-500"
+              type="button">
+              <span id="search-engine-text">Brave</span>
+              <svg class="w-5 h-5 ml-2 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+              </svg>
+            </button>
+            <div id="search-engine-dropdown"
+              class="hidden absolute left-0 top-full w-full bg-dark-700 border-2 border-cyan-400 rounded-xl shadow-xl z-50 mt-1 py-1 overflow-hidden">
+              <button data-engine="https://search.brave.com/search?q=%s" class="w-full text-left px-6 py-3 text-white hover:bg-dark-600 transition-colors text-lg">Brave</button>
+              <button data-engine="https://duckduckgo.com/?q=%s" class="w-full text-left px-6 py-3 text-white hover:bg-dark-600 transition-colors text-lg">DuckDuckGo</button>
+              <button data-engine="https://www.google.com/search?q=%s" class="w-full text-left px-6 py-3 text-white hover:bg-dark-600 transition-colors text-lg">Google</button>
+              <button data-engine="https://www.bing.com/search?q=%s" class="w-full text-left px-6 py-3 text-white hover:bg-dark-600 transition-colors text-lg">Bing</button>
+              <button data-engine="https://search.yahoo.com/search?p=%s" class="w-full text-left px-6 py-3 text-white hover:bg-dark-600 transition-colors text-lg">Yahoo</button>
+              <button data-engine="https://www.ecosia.org/search?q=%s" class="w-full text-left px-6 py-3 text-white hover:bg-dark-600 transition-colors text-lg">Ecosia</button>
+            </div>
+          </div>
+          
+          <!-- 3-Dots Menu -->
+          <div class="relative">
+            <button id="menu-btn"
+              class="w-10 h-10 rounded-lg bg-dark-600 hover:bg-dark-500 transition-colors duration-200 flex items-center justify-center group"
+              title="Menu">
+              <svg class="w-5 h-5 text-gray-300 group-hover:text-white transition-colors" fill="currentColor" viewBox="0 0 24 24">
+                <circle cx="5" cy="12" r="2"/>
+                <circle cx="12" cy="12" r="2"/>
+                <circle cx="19" cy="12" r="2"/>
+              </svg>
+            </button>
+            <div id="dropdown-menu"
+              class="hidden absolute right-0 top-12 bg-dark-700 border border-dark-600 rounded-lg shadow-xl z-50 min-w-[180px] py-2">
+              <button id="clear-history-btn"
+                class="w-full text-left px-4 py-2 text-white hover:bg-dark-600 transition-colors text-sm">
+                Clear History
+              </button>
+              <button id="close-all-tabs-btn"
+                class="w-full text-left px-4 py-2 text-white hover:bg-dark-600 transition-colors text-sm">
+                Close All Tabs
+              </button>
+              <button id="restore-tabs-btn"
+                class="w-full text-left px-4 py-2 text-white hover:bg-dark-600 transition-colors text-sm">
+                Restore Tabs
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Address Bar -->
+      <div class="p-4 bg-dark-700/30 relative">
+        <form id="address-bar-form" class="w-full">
+          <input id="address-bar-input"
+                 type="text"
+                 spellcheck="false"
+                 autocomplete="off"
+                 placeholder="Search the web freely"
+                 class="w-full bg-dark-600 border-2 border-cyan-400 text-white rounded-xl px-6 py-4 text-lg placeholder-gray-400 focus:outline-none focus:border-cyan-300 focus:bg-dark-500 transition-all duration-300"/>
+        </form>
+        <div id="suggestion-box" class="suggestion-box hidden"></div>
+      </div>
+      
+      <!-- Content Area -->
+      <div class="bg-black border-t border-dark-600/30">
+        <iframe id="proxy-iframe"
+                title="Proxy Frame"
+                class="w-full h-[70vh] border-0"></iframe>
+      </div>
+    </div>
+  </div>
+  
+  <!-- History Modal -->
+  <div id="history-modal-bg"
+       class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center opacity-0 pointer-events-none transition-opacity duration-300 z-50">
+    <div id="history-modal"
+         class="bg-dark-700 border border-dark-600 rounded-2xl shadow-2xl max-w-md w-[90vw] p-6 relative transform scale-95 opacity-0 transition-all duration-300">
+      <button id="close-history-modal"
+              class="absolute top-4 right-4 text-gray-400 hover:text-red-400 transition-colors">
+        <i class='bx bx-x text-2xl'></i>
+      </button>
+      <h2 class="text-xl font-bold mb-6 text-white flex items-center">
+        <i class='bx bx-history mr-3 text-cyan-400'></i>
+        Tab History
+      </h2>
+      <div id="modal-history-list"
+           class="max-h-80 overflow-y-auto space-y-2 text-gray-300 scrollbar-thin scrollbar-thumb-cyan-500 scrollbar-track-dark-600">
+      </div>
+    </div>
+  </div>
+</main>
+<script type="module" src="logic.js"></script>
+</body>
+</html>
