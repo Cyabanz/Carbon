@@ -61,6 +61,12 @@
     }
     .scrollbar-hide::-webkit-scrollbar { display: none; }
     .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+    .dropdown-list {
+      min-width: 160px;
+    }
+    .dropdown-list button {
+      font-size: 1rem;
+    }
   </style>
 </head>
 <body class="font-inter bg-gradient-to-br from-dark-900 via-dark-800 to-dark-500 min-h-screen text-white overflow-x-hidden">
@@ -86,68 +92,60 @@
           <!-- Navigation Buttons -->
           <div class="flex items-center gap-2">
             <button id="back-btn" class="w-10 h-10 rounded-lg bg-dark-600 hover:bg-dark-500 transition-colors duration-200 flex items-center justify-center group" title="Back">
-              <svg class="w-5 h-5 text-gray-300 group-hover:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 18l-6-6 6-6"/>
-              </svg>
+              <i class='bx bx-arrow-back text-2xl text-gray-300 group-hover:text-white transition-colors'></i>
             </button>
             <button id="forward-btn" class="w-10 h-10 rounded-lg bg-dark-600 hover:bg-dark-500 transition-colors duration-200 flex items-center justify-center group" title="Forward">
-              <svg class="w-5 h-5 text-gray-300 group-hover:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 6l6 6-6 6"/>
-              </svg>
+              <i class='bx bx-arrow-forward text-2xl text-gray-300 group-hover:text-white transition-colors'></i>
             </button>
             <button id="refresh-btn" class="w-10 h-10 rounded-lg bg-dark-600 hover:bg-dark-500 transition-colors duration-200 flex items-center justify-center group" title="Refresh">
-              <svg class="w-5 h-5 text-gray-300 group-hover:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v6h6M20 20v-6h-6M5.07 19A9 9 0 1 1 21 12.94"/>
-              </svg>
+              <i class='bx bx-refresh text-2xl text-gray-300 group-hover:text-white transition-colors'></i>
             </button>
             <button id="home-btn" class="w-10 h-10 rounded-lg bg-dark-600 hover:bg-dark-500 transition-colors duration-200 flex items-center justify-center group" title="Home">
-              <svg class="w-5 h-5 text-gray-300 group-hover:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l9-9 9 9M4 10v10h16V10"/>
-              </svg>
+              <i class='bx bx-home-alt text-2xl text-gray-300 group-hover:text-white transition-colors'></i>
             </button>
             <button id="history-btn" class="w-10 h-10 rounded-lg bg-dark-600 hover:bg-dark-500 transition-colors duration-200 flex items-center justify-center group" title="Show History">
-              <i class='bx bx-history text-xl text-gray-300 group-hover:text-white transition-colors'></i>
+              <i class='bx bx-history text-2xl text-gray-300 group-hover:text-white transition-colors'></i>
             </button>
           </div>
           
-          <!-- Proxy Toggle Button -->
-          <button id="proxy-toggle-btn"
-            class="flex-1 w-full max-w-xs px-6 py-3 rounded-xl bg-dark-600 hover:bg-dark-500 text-white font-bold text-lg border-2 border-cyan-400 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-cyan-500"
-            style="min-width:180px">
-            <span id="proxy-toggle-text">UV</span>
-          </button>
+          <!-- Proxy Toggle Icon Button -->
+          <div class="relative flex items-center ml-0 lg:ml-6">
+            <button id="proxy-toggle-btn"
+              class="w-12 h-12 rounded-full bg-dark-600 hover:bg-dark-500 text-cyan-400 border-2 border-cyan-400 flex items-center justify-center text-2xl group transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+              title="Switch Proxy">
+              <i id="proxy-toggle-icon" class='bx bx-cloud text-2xl'></i>
+            </button>
+            <div id="proxy-dropdown"
+              class="hidden dropdown-list absolute left-0 top-14 bg-dark-700 border-2 border-cyan-400 rounded-xl shadow-xl z-50 py-1">
+              <button data-proxy="uv" class="w-full flex items-center gap-2 px-4 py-3 text-white hover:bg-dark-600 transition-colors text-lg"><i class='bx bx-cloud'></i>UV</button>
+              <button data-proxy="scram" class="w-full flex items-center gap-2 px-4 py-3 text-white hover:bg-dark-600 transition-colors text-lg"><i class='bx bx-network-chart'></i>Scramjet</button>
+            </div>
+          </div>
           
-          <!-- Search Engine Dropdown -->
-          <div class="w-full max-w-xs relative flex-1">
+          <!-- Search Engine Icon Button -->
+          <div class="relative flex items-center ml-0 lg:ml-6">
             <button id="search-engine-btn"
-              class="w-full px-6 py-3 rounded-xl bg-dark-600 hover:bg-dark-500 text-white font-bold text-lg border-2 border-cyan-400 transition-all duration-200 flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-cyan-500"
-              type="button">
-              <span id="search-engine-text">Brave</span>
-              <svg class="w-5 h-5 ml-2 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-              </svg>
+              class="w-12 h-12 rounded-full bg-dark-600 hover:bg-dark-500 text-cyan-400 border-2 border-cyan-400 flex items-center justify-center text-2xl group transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+              title="Switch Search">
+              <i id="search-engine-icon" class='bx bxl-brave text-2xl'></i>
             </button>
             <div id="search-engine-dropdown"
-              class="hidden absolute left-0 top-full w-full bg-dark-700 border-2 border-cyan-400 rounded-xl shadow-xl z-50 mt-1 py-1 overflow-hidden">
-              <button data-engine="https://search.brave.com/search?q=%s" class="w-full text-left px-6 py-3 text-white hover:bg-dark-600 transition-colors text-lg">Brave</button>
-              <button data-engine="https://duckduckgo.com/?q=%s" class="w-full text-left px-6 py-3 text-white hover:bg-dark-600 transition-colors text-lg">DuckDuckGo</button>
-              <button data-engine="https://www.google.com/search?q=%s" class="w-full text-left px-6 py-3 text-white hover:bg-dark-600 transition-colors text-lg">Google</button>
-              <button data-engine="https://www.bing.com/search?q=%s" class="w-full text-left px-6 py-3 text-white hover:bg-dark-600 transition-colors text-lg">Bing</button>
-              <button data-engine="https://search.yahoo.com/search?p=%s" class="w-full text-left px-6 py-3 text-white hover:bg-dark-600 transition-colors text-lg">Yahoo</button>
-              <button data-engine="https://www.ecosia.org/search?q=%s" class="w-full text-left px-6 py-3 text-white hover:bg-dark-600 transition-colors text-lg">Ecosia</button>
+              class="hidden dropdown-list absolute left-0 top-14 bg-dark-700 border-2 border-cyan-400 rounded-xl shadow-xl z-50 py-1">
+              <button data-engine="https://search.brave.com/search?q=%s" class="w-full flex items-center gap-2 px-4 py-3 text-white hover:bg-dark-600 transition-colors text-lg"><i class='bx bxl-brave'></i>Brave</button>
+              <button data-engine="https://duckduckgo.com/?q=%s" class="w-full flex items-center gap-2 px-4 py-3 text-white hover:bg-dark-600 transition-colors text-lg"><i class='bx bxl-duckduckgo'></i>DuckDuckGo</button>
+              <button data-engine="https://www.google.com/search?q=%s" class="w-full flex items-center gap-2 px-4 py-3 text-white hover:bg-dark-600 transition-colors text-lg"><i class='bx bxl-google'></i>Google</button>
+              <button data-engine="https://www.bing.com/search?q=%s" class="w-full flex items-center gap-2 px-4 py-3 text-white hover:bg-dark-600 transition-colors text-lg"><i class='bx bxl-microsoft'></i>Bing</button>
+              <button data-engine="https://search.yahoo.com/search?p=%s" class="w-full flex items-center gap-2 px-4 py-3 text-white hover:bg-dark-600 transition-colors text-lg"><i class='bx bxl-yahoo'></i>Yahoo</button>
+              <button data-engine="https://www.ecosia.org/search?q=%s" class="w-full flex items-center gap-2 px-4 py-3 text-white hover:bg-dark-600 transition-colors text-lg"><i class='bx bxl-leaf'></i>Ecosia</button>
             </div>
           </div>
           
           <!-- 3-Dots Menu -->
-          <div class="relative">
+          <div class="relative ml-auto">
             <button id="menu-btn"
               class="w-10 h-10 rounded-lg bg-dark-600 hover:bg-dark-500 transition-colors duration-200 flex items-center justify-center group"
               title="Menu">
-              <svg class="w-5 h-5 text-gray-300 group-hover:text-white transition-colors" fill="currentColor" viewBox="0 0 24 24">
-                <circle cx="5" cy="12" r="2"/>
-                <circle cx="12" cy="12" r="2"/>
-                <circle cx="19" cy="12" r="2"/>
-              </svg>
+              <i class='bx bx-dots-horizontal-rounded text-2xl text-gray-300 group-hover:text-white transition-colors'></i>
             </button>
             <div id="dropdown-menu"
               class="hidden absolute right-0 top-12 bg-dark-700 border border-dark-600 rounded-lg shadow-xl z-50 min-w-[180px] py-2">
@@ -209,6 +207,535 @@
     </div>
   </div>
 </main>
-<script type="module" src="logic.js"></script>
+<script type="module">
+// --- LETHAL IMPORTS (replace with your actual lethal.mjs import logic) ---
+import {
+  makeURL,
+  getProxied,
+  setProxy,
+  setTransport,
+  setWisp,
+} from "/lethal.mjs";
+// --- END LETHAL IMPORTS ---
+
+const engines = {
+  "https://search.brave.com/search?q=%s": ["Brave", "bxl-brave"],
+  "https://duckduckgo.com/?q=%s": ["DuckDuckGo", "bxl-duckduckgo"],
+  "https://www.google.com/search?q=%s": ["Google", "bxl-google"],
+  "https://www.bing.com/search?q=%s": ["Bing", "bxl-microsoft"],
+  "https://search.yahoo.com/search?p=%s": ["Yahoo", "bxl-yahoo"],
+  "https://www.ecosia.org/search?q=%s": ["Ecosia", "bxl-leaf"]
+};
+
+// --- Search Engine Dropdown as Boxicon Button ---
+const searchEngineBtn = document.getElementById("search-engine-btn");
+const searchEngineIcon = document.getElementById("search-engine-icon");
+const searchEngineDropdown = document.getElementById("search-engine-dropdown");
+function getCurrentSearchEngine() {
+  return localStorage.getItem("search-engine") || "https://search.brave.com/search?q=%s";
+}
+function setCurrentSearchEngine(url) {
+  localStorage.setItem("search-engine", url);
+  updateSearchEngineDisplay();
+}
+function updateSearchEngineDisplay() {
+  const current = getCurrentSearchEngine();
+  const [name, icon] = engines[current] || ["Brave", "bxl-brave"];
+  searchEngineIcon.className = `bx ${icon} text-2xl`;
+  searchEngineBtn.title = name;
+}
+searchEngineBtn.addEventListener("click", (e) => {
+  e.stopPropagation();
+  searchEngineDropdown.classList.toggle("hidden");
+});
+document.querySelectorAll("#search-engine-dropdown [data-engine]").forEach(btn => {
+  btn.addEventListener("click", (e) => {
+    const engine = e.currentTarget.dataset.engine;
+    setCurrentSearchEngine(engine);
+    searchEngineDropdown.classList.add("hidden");
+    const tab = getActiveTab();
+    if (tab && tab.history[tab.pointer]) {
+      let v = tab.history[tab.pointer];
+      if (!/^(https?:)?\/\//.test(v) && v.length > 0) renderTabContent(tab);
+    }
+  });
+});
+updateSearchEngineDisplay();
+
+// --- Proxy Toggle as Boxicon Button ---
+const proxyToggleBtn = document.getElementById("proxy-toggle-btn");
+const proxyToggleIcon = document.getElementById("proxy-toggle-icon");
+const proxyDropdown = document.getElementById("proxy-dropdown");
+function getCurrentProxy() {
+  return localStorage.getItem("proxy-backend") || "uv";
+}
+function setCurrentProxy(proxy) {
+  localStorage.setItem("proxy-backend", proxy);
+  updateProxyToggleUI(proxy);
+}
+function updateProxyToggleUI(proxy) {
+  if (proxy === "scram") {
+    proxyToggleBtn.classList.remove('border-cyan-400');
+    proxyToggleBtn.classList.add('border-yellow-400', 'bg-yellow-500/20');
+    proxyToggleIcon.className = "bx bx-network-chart text-2xl";
+    proxyToggleBtn.title = "Scramjet";
+  } else {
+    proxyToggleBtn.classList.remove('border-yellow-400', 'bg-yellow-500/20');
+    proxyToggleBtn.classList.add('border-cyan-400');
+    proxyToggleIcon.className = "bx bx-cloud text-2xl";
+    proxyToggleBtn.title = "UV";
+  }
+}
+proxyToggleBtn.addEventListener("click", (e) => {
+  e.stopPropagation();
+  proxyDropdown.classList.toggle("hidden");
+});
+document.querySelectorAll("#proxy-dropdown [data-proxy]").forEach(btn => {
+  btn.addEventListener("click", async (e) => {
+    const proxy = e.currentTarget.dataset.proxy;
+    await setProxy(proxy);
+    setCurrentProxy(proxy);
+    proxyDropdown.classList.add("hidden");
+    const tab = getActiveTab();
+    if (tab) renderTabContent(tab);
+  });
+});
+updateProxyToggleUI(getCurrentProxy());
+
+// --- Proxy Setup ---
+let backend = getCurrentProxy();
+let wisp = localStorage.getItem("wisp-server") || "wss://anura.pro/";
+let transport = localStorage.getItem("proxy-transport");
+setWisp(wisp);
+setProxy(backend);
+if (transport) setTransport(transport);
+else if (navigator.userAgent.indexOf("Firefox") > 0) setTransport("libcurl");
+else setTransport("epoxy");
+
+// --- Tabs Logic ---
+let tabs = [];
+let activeTab = null;
+let tabIdCounter = 1;
+let closedTabsSnapshot = [];
+function createTab(url = "") {
+  const id = "tab-" + tabIdCounter++;
+  return {
+    id,
+    title: url ? url : "New Tab",
+    url,
+    history: url ? [url] : [],
+    pointer: url ? 0 : -1
+  };
+}
+function renderTabs() {
+  const tabsBar = document.getElementById("tabs-bar");
+  tabsBar.innerHTML = "";
+  tabs.forEach((tab, idx) => {
+    const tabElement = document.createElement("div");
+    tabElement.className = `
+      relative flex items-center cursor-pointer select-none transition-all duration-200 group
+      ${tab.id === activeTab 
+        ? 'bg-dark-600 text-white border-t-2 border-cyan-400' 
+        : 'bg-dark-700/50 text-gray-300 hover:bg-dark-600/70 hover:text-white border-t-2 border-transparent'
+      }
+    `;
+    tabElement.style.cssText = `
+      height: 36px;
+      min-width: 180px;
+      max-width: 240px;
+      margin-right: -8px;
+      clip-path: polygon(8px 0%, calc(100% - 8px) 0%, 100% 100%, 0% 100%);
+      padding: 0 20px 0 16px;
+      z-index: ${tab.id === activeTab ? '10' : '1'};
+    `;
+    tabElement.setAttribute("draggable", "true");
+    tabElement.setAttribute("data-tab-id", tab.id);
+    const content = document.createElement("div");
+    content.className = "flex items-center w-full h-full";
+    const title = document.createElement("span");
+    title.textContent = tab.title.length > 18 ? tab.title.slice(0, 15) + "..." : tab.title;
+    title.className = "flex-1 truncate text-sm font-medium";
+    content.appendChild(title);
+    const closeBtn = document.createElement("button");
+    closeBtn.className = "ml-2 w-5 h-5 rounded-full flex items-center justify-center hover:bg-white/20 transition-all duration-200 opacity-0 group-hover:opacity-100";
+    closeBtn.innerHTML = "&times;";
+    closeBtn.title = "Close Tab (Ctrl+W)";
+    closeBtn.style.fontSize = "16px";
+    closeBtn.onclick = (e) => {
+      e.stopPropagation();
+      removeTab(tab.id);
+    };
+    content.appendChild(closeBtn);
+    tabElement.appendChild(content);
+    tabElement.onclick = () => setActiveTab(tab.id);
+    tabElement.addEventListener("dragstart", (e) => {
+      e.dataTransfer.setData("text/plain", tab.id);
+      tabElement.classList.add("opacity-50");
+    });
+    tabElement.addEventListener("dragend", (e) => {
+      tabElement.classList.remove("opacity-50");
+    });
+    tabElement.addEventListener("dragover", (e) => {
+      e.preventDefault();
+      tabElement.classList.add("ring-2", "ring-cyan-400");
+    });
+    tabElement.addEventListener("dragleave", (e) => {
+      tabElement.classList.remove("ring-2", "ring-cyan-400");
+    });
+    tabElement.addEventListener("drop", (e) => {
+      e.preventDefault();
+      tabElement.classList.remove("ring-2", "ring-cyan-400");
+      const draggedTabId = e.dataTransfer.getData("text/plain");
+      reorderTab(draggedTabId, tab.id);
+    });
+    tabsBar.appendChild(tabElement);
+  });
+}
+function updateAddressBar(tab) {
+  document.getElementById("address-bar-input").value = tab.history[tab.pointer] || "";
+}
+function renderTabContent(tab) {
+  const iframe = document.getElementById("proxy-iframe");
+  if (!tab || typeof tab.pointer !== "number" || tab.pointer < 0 || !tab.history[tab.pointer]) {
+    iframe.src = "";
+    return;
+  }
+  let url = tab.history[tab.pointer];
+  let search = getCurrentSearchEngine();
+  makeURLAndProxied(url, search).then(src => { iframe.src = src; });
+}
+async function makeURLAndProxied(url, search) {
+  try {
+    let urlToLoad = makeURL(url, search);
+    return await getProxied(urlToLoad);
+  } catch (e) { return ""; }
+}
+function setActiveTab(tabId) {
+  activeTab = tabId;
+  renderTabs();
+  const tab = tabs.find(t => t.id === tabId);
+  updateAddressBar(tab);
+  renderTabContent(tab);
+}
+function addTab(url = "") {
+  const tab = createTab(url);
+  tabs.push(tab);
+  setActiveTab(tab.id);
+}
+function removeTab(tabId) {
+  const idx = tabs.findIndex(t => t.id === tabId);
+  if (idx !== -1) {
+    takeTabsSnapshot();
+    tabs.splice(idx, 1);
+    if (activeTab === tabId) {
+      if (tabs[idx - 1]) setActiveTab(tabs[idx - 1].id);
+      else if (tabs[idx]) setActiveTab(tabs[idx].id);
+      else {
+        activeTab = null;
+        renderTabs();
+        document.getElementById("proxy-iframe").src = "";
+        document.getElementById("address-bar-input").value = "";
+      }
+    } else {
+      renderTabs();
+    }
+  }
+}
+function reorderTab(draggedTabId, targetTabId) {
+  const fromIdx = tabs.findIndex(t => t.id === draggedTabId);
+  const toIdx = tabs.findIndex(t => t.id === targetTabId);
+  if (fromIdx === -1 || toIdx === -1 || fromIdx === toIdx) return;
+  const [removed] = tabs.splice(fromIdx, 1);
+  tabs.splice(toIdx, 0, removed);
+  renderTabs();
+}
+function updateTabHistory(tab, url) {
+  if (tab.pointer < tab.history.length - 1) {
+    tab.history = tab.history.slice(0, tab.pointer + 1);
+  }
+  tab.history.push(url);
+  tab.pointer = tab.history.length - 1;
+  tab.url = url;
+  tab.title = url ? url : "New Tab";
+}
+function getActiveTab() { return tabs.find(t => t.id === activeTab); }
+
+// -- DuckDuckGo Search Suggestions (with CORS proxy for Vercel) --
+const addressInput = document.getElementById("address-bar-input");
+const suggestionBox = document.getElementById("suggestion-box");
+let suggestionActive = -1;
+let currentSuggestions = [];
+let suggestionFetchController = null;
+addressInput.addEventListener("input", async function(e) {
+  const val = addressInput.value.trim();
+  if (!val || val.startsWith("http")) {
+    suggestionBox.classList.add("hidden");
+    suggestionBox.innerHTML = "";
+    currentSuggestions = [];
+    suggestionActive = -1;
+    return;
+  }
+  // DuckDuckGo with CORS proxy (for Vercel)
+  const apiUrl = "https://corsproxy.io/?" + encodeURIComponent("https://ac.duckduckgo.com/ac/?q=" + encodeURIComponent(val) + "&type=list");
+  if (suggestionFetchController) suggestionFetchController.abort();
+  suggestionFetchController = new AbortController();
+  try {
+    const resp = await fetch(apiUrl, { signal: suggestionFetchController.signal });
+    if (!resp.ok) throw new Error();
+    const data = await resp.json();
+    currentSuggestions = (data || []).map(s => s.phrase).filter(Boolean);
+    if (currentSuggestions.length === 0) {
+      suggestionBox.classList.add("hidden");
+      suggestionBox.innerHTML = "";
+      suggestionActive = -1;
+      return;
+    }
+    suggestionBox.innerHTML = currentSuggestions.map((s, i) =>
+      `<div class="suggestion-item${i === suggestionActive ? ' active' : ''}" data-idx="${i}">${s.replace(/</g,"&lt;")}</div>`
+    ).join("");
+    suggestionBox.classList.remove("hidden");
+    suggestionActive = -1;
+  } catch (err) {
+    suggestionBox.classList.add("hidden");
+    suggestionBox.innerHTML = "";
+    currentSuggestions = [];
+    suggestionActive = -1;
+  }
+});
+addressInput.addEventListener("keydown", function(e) {
+  if (!currentSuggestions.length || suggestionBox.classList.contains("hidden")) return;
+  if (e.key === "ArrowDown") {
+    e.preventDefault();
+    suggestionActive = (suggestionActive + 1) % currentSuggestions.length;
+    updateSuggestionBoxActive();
+  } else if (e.key === "ArrowUp") {
+    e.preventDefault();
+    suggestionActive = (suggestionActive - 1 + currentSuggestions.length) % currentSuggestions.length;
+    updateSuggestionBoxActive();
+  } else if (e.key === "Enter") {
+    if (suggestionActive !== -1) {
+      e.preventDefault();
+      selectSuggestion(suggestionActive);
+    }
+    suggestionBox.classList.add("hidden");
+  } else if (e.key === "Escape") {
+    suggestionBox.classList.add("hidden");
+    suggestionActive = -1;
+  }
+});
+function updateSuggestionBoxActive() {
+  Array.from(suggestionBox.children).forEach((el, i) => {
+    if (i === suggestionActive) el.classList.add("active");
+    else el.classList.remove("active");
+  });
+  if (suggestionActive !== -1) {
+    const el = suggestionBox.children[suggestionActive];
+    if (el) el.scrollIntoView({ block: "nearest" });
+    addressInput.value = currentSuggestions[suggestionActive];
+  }
+}
+function selectSuggestion(idx) {
+  if (idx < 0 || idx >= currentSuggestions.length) return;
+  addressInput.value = currentSuggestions[idx];
+  suggestionBox.classList.add("hidden");
+  suggestionActive = -1;
+}
+suggestionBox.addEventListener("mousedown", function(e) {
+  const target = e.target.closest('.suggestion-item');
+  if (target) {
+    const idx = parseInt(target.dataset.idx);
+    selectSuggestion(idx);
+    setTimeout(() => {
+      document.getElementById("address-bar-form").dispatchEvent(new Event("submit"));
+    }, 0);
+  }
+});
+document.addEventListener("click", function(e) {
+  if (!suggestionBox.contains(e.target) && e.target !== addressInput) {
+    suggestionBox.classList.add("hidden");
+    suggestionActive = -1;
+  }
+  if (!proxyDropdown.contains(e.target) && e.target !== proxyToggleBtn) {
+    proxyDropdown.classList.add("hidden");
+  }
+  if (!searchEngineDropdown.contains(e.target) && e.target !== searchEngineBtn) {
+    searchEngineDropdown.classList.add("hidden");
+  }
+});
+
+// -- Form/Navigation --
+document.getElementById("address-bar-form").addEventListener("submit", async function(event) {
+  event.preventDefault();
+  suggestionBox.classList.add("hidden");
+  suggestionActive = -1;
+  const tab = getActiveTab();
+  if (!tab) return;
+  let url = addressInput.value.trim();
+  if (!url) return;
+  updateTabHistory(tab, url);
+  renderTabs();
+  renderTabContent(tab);
+});
+document.getElementById("back-btn").onclick = function() {
+  const tab = getActiveTab();
+  if (!tab || tab.pointer <= 0) return;
+  tab.pointer--;
+  updateAddressBar(tab);
+  renderTabContent(tab);
+};
+document.getElementById("forward-btn").onclick = function() {
+  const tab = getActiveTab();
+  if (!tab || tab.pointer >= tab.history.length - 1) return;
+  tab.pointer++;
+  updateAddressBar(tab);
+  renderTabContent(tab);
+};
+document.getElementById("refresh-btn").onclick = function() {
+  const tab = getActiveTab();
+  if (!tab || typeof tab.pointer !== "number" || tab.pointer < 0) return;
+  renderTabContent(tab);
+};
+document.getElementById("home-btn").onclick = function() {
+  const tab = getActiveTab();
+  if (!tab) return;
+  const homepage = "";
+  updateTabHistory(tab, homepage);
+  updateAddressBar(tab);
+  renderTabContent(tab);
+};
+function takeTabsSnapshot() {
+  closedTabsSnapshot = JSON.parse(JSON.stringify(tabs));
+  localStorage.setItem("carbon-proxy-last-tabs", JSON.stringify(closedTabsSnapshot));
+}
+function restoreTabsFromSnapshot() {
+  let fromLS = localStorage.getItem("carbon-proxy-last-tabs");
+  let snapshot = closedTabsSnapshot.length
+    ? closedTabsSnapshot
+    : (fromLS ? JSON.parse(fromLS) : []);
+  if (!snapshot.length) return;
+  tabs = snapshot.map(tab => ({
+    ...tab,
+    id: "tab-" + (tabIdCounter++),
+  }));
+  activeTab = tabs.length ? tabs[0].id : null;
+  renderTabs();
+  setActiveTab(activeTab);
+  closedTabsSnapshot = [];
+  localStorage.removeItem("carbon-proxy-last-tabs");
+}
+const menuBtn = document.getElementById("menu-btn");
+const dropdown = document.getElementById("dropdown-menu");
+menuBtn.onclick = (e) => { dropdown.classList.toggle("hidden"); e.stopPropagation(); };
+window.onclick = (e) => {
+  if (!dropdown.contains(e.target) && e.target !== menuBtn) dropdown.classList.add("hidden");
+};
+document.getElementById("clear-history-btn").onclick = function() {
+  const tab = getActiveTab();
+  if (!tab) return;
+  tab.history = [];
+  tab.pointer = -1;
+  tab.url = "New Tab";
+  tab.title = "New Tab";
+  updateAddressBar(tab);
+  renderTabContent(tab);
+  dropdown.classList.add("hidden");
+};
+document.getElementById("close-all-tabs-btn").onclick = function() {
+  if (tabs.length > 0) takeTabsSnapshot();
+  tabs = [];
+  activeTab = null;
+  renderTabs();
+  document.getElementById("proxy-iframe").src = "";
+  document.getElementById("address-bar-input").value = "";
+  dropdown.classList.add("hidden");
+};
+document.getElementById("restore-tabs-btn").onclick = function() {
+  restoreTabsFromSnapshot();
+  dropdown.classList.add("hidden");
+};
+document.getElementById("new-tab-btn").addEventListener("click", () => addTab());
+
+// -- History Modal Logic --
+const historyBtn = document.getElementById("history-btn");
+const historyModalBg = document.getElementById("history-modal-bg");
+const historyModal = document.getElementById("history-modal");
+const modalHistoryList = document.getElementById("modal-history-list");
+const closeHistoryModalBtn = document.getElementById("close-history-modal");
+historyBtn.onclick = (e) => { renderModalHistoryList(); openHistoryModal(); e.stopPropagation(); };
+closeHistoryModalBtn.onclick = closeHistoryModal;
+historyModalBg.onclick = function(e) { if (e.target === historyModalBg) closeHistoryModal(); };
+function openHistoryModal() {
+  historyModalBg.classList.remove("pointer-events-none", "opacity-0");
+  historyModalBg.classList.add("pointer-events-auto", "opacity-100");
+  historyModal.classList.remove("scale-95", "opacity-0");
+  historyModal.classList.add("scale-100", "opacity-100");
+}
+function closeHistoryModal() {
+  historyModalBg.classList.add("pointer-events-none", "opacity-0");
+  historyModalBg.classList.remove("pointer-events-auto", "opacity-100");
+  historyModal.classList.add("scale-95", "opacity-0");
+  historyModal.classList.remove("scale-100", "opacity-100");
+}
+function renderModalHistoryList() {
+  const tab = getActiveTab();
+  modalHistoryList.innerHTML = "";
+  if (!tab || !tab.history.length) {
+    modalHistoryList.innerHTML = "<div class='text-gray-500 italic text-center py-4'>No history for this tab.</div>";
+    return;
+  }
+  tab.history.forEach((url, idx) => {
+    const row = document.createElement("div");
+    row.className = `flex items-center justify-between p-3 rounded-lg hover:bg-dark-600 cursor-pointer transition-colors ${idx === tab.pointer ? 'bg-cyan-500/20 border border-cyan-400' : ''}`;
+    row.innerHTML = `<span class="flex-1 ${idx === tab.pointer ? 'text-cyan-400 font-bold' : ''} truncate">${url}</span>`;
+    row.onclick = () => {
+      tab.pointer = idx;
+      updateAddressBar(tab);
+      renderTabContent(tab);
+      closeHistoryModal();
+    };
+    if (tab.history.length > 1) {
+      const rmBtn = document.createElement("button");
+      rmBtn.className = "ml-2 text-gray-400 hover:text-red-500";
+      rmBtn.title = "Remove from history";
+      rmBtn.textContent = "✕";
+      rmBtn.onclick = (e) => {
+        e.stopPropagation();
+        tab.history.splice(idx, 1);
+        if (tab.pointer >= tab.history.length) tab.pointer = tab.history.length - 1;
+        renderModalHistoryList();
+      };
+      row.appendChild(rmBtn);
+    }
+    modalHistoryList.appendChild(row);
+  });
+}
+
+// -- Keyboard Shortcuts --
+document.addEventListener("keydown", (e) => {
+  if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === "t") {
+    e.preventDefault(); addTab();
+  }
+  if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === "w") {
+    e.preventDefault(); if (activeTab) removeTab(activeTab);
+  }
+  if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key === "Tab") {
+    e.preventDefault();
+    const idx = tabs.findIndex(t => t.id === activeTab);
+    if (tabs.length > 1 && idx !== -1) setActiveTab(tabs[(idx + 1) % tabs.length].id);
+  }
+  if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === "Tab") {
+    e.preventDefault();
+    const idx = tabs.findIndex(t => t.id === activeTab);
+    if (tabs.length > 1 && idx !== -1) setActiveTab(tabs[(idx - 1 + tabs.length) % tabs.length].id);
+  }
+  if (e.altKey && !e.shiftKey && e.key === "ArrowLeft") document.getElementById("back-btn").click();
+  if (e.altKey && !e.shiftKey && e.key === "ArrowRight") document.getElementById("forward-btn").click();
+});
+
+// -- INIT --
+window.addEventListener("DOMContentLoaded", () => {
+  if (tabs.length === 0) addTab();
+});
+</script>
 </body>
 </html>
