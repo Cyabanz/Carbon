@@ -5,136 +5,68 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CARBON</title>
     <script defer async src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
-    <script defer async src="/js/hamburger.js"></script>
     <link rel="stylesheet" href="styles.css"></link>
+    <script defer async src="/js/hamburger.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
-    <!-- SortableJS for draggable tabs -->
-    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
-    <style>
-        /* Custom tab styles for draggable tabs */
-        .carbon-tabs-list {
-            display: flex;
-            align-items: center;
-            background: #181830;
-            border-radius: 12px 12px 0 0;
-            padding: 0.25rem 0.5rem 0.25rem 0.5rem;
-            overflow-x: auto;
-            gap: 0.25rem;
-            user-select: none;
-            margin: 1.5rem 0 0.5rem 0;
-        }
-        .carbon-tab {
-            display: flex;
-            align-items: center;
-            background: #222244;
-            border-radius: 8px 8px 0 0;
-            margin-right: 0.15rem;
-            padding: 0.3rem 0.9rem 0.3rem 0.55rem;
-            cursor: pointer;
-            border: 1px solid transparent;
-            border-bottom: none;
-            position: relative;
-            min-width: 120px;
-            max-width: 210px;
-            transition: background 0.18s, border 0.18s;
-            font-size: 1rem;
-        }
-        .carbon-tab.active {
-            background: #23234a;
-            border: 1px solid #3b82f6;
-            border-bottom: 2px solid #22d3ee;
-            color: #fff;
-            z-index: 2;
-        }
-        .carbon-tab .tab-favicon {
-            width: 18px;
-            height: 18px;
-            margin-right: 7px;
-            border-radius: 3px;
-            background: #eee;
-            object-fit: contain;
-        }
-        .carbon-tab .tab-title {
-            flex: 1;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-            max-width: 110px;
-            margin-right: 7px;
-        }
-        .carbon-tab .tab-close-btn {
-            color: #aaa;
-            background: none;
-            border: none;
-            font-size: 1.18rem;
-            cursor: pointer;
-            margin-left: 2px;
-            transition: color 0.2s;
-            padding: 0 2px;
-        }
-        .carbon-tab .tab-close-btn:hover {
-            color: #e11d48;
-        }
-        .carbon-tab-add-btn {
-            background: linear-gradient(90deg,#06b6d4,#6366f1);
-            border: none;
-            border-radius: 8px 8px 0 0;
-            font-size: 1.25rem;
-            padding: 0 0.8rem;
-            cursor: pointer;
-            margin-left: 0.18rem;
-            height: 35px;
-            color: #fff;
-            transition: background 0.18s;
-        }
-        .carbon-tab-add-btn:hover {
-            background: linear-gradient(90deg,#22d3ee,#a5b4fc);
-        }
-        #carbon-tab-content {
-            min-height: 340px;
-            background: #20203a;
-            border-radius: 0 0 12px 12px;
-            box-shadow: 0 2px 12px rgba(30,58,138,0.07);
-            overflow: hidden;
-            margin-bottom: 2rem;
-        }
-        #carbon-tab-content iframe {
-            border: none;
-            width: 100%;
-            height: 64vh;
-            min-height: 340px;
-            background: #181830;
-        }
-        .carbon-search-bar {
-            width: 100%;
-            max-width: 560px;
-            margin: 0 auto 0.2rem auto;
-            z-index: 20;
-        }
-        .carbon-search-input {
-            width: 100%;
-            font-size: 1.05rem;
-            background: #222244;
-            color: #fff;
-            border-radius: 8px;
-            padding: 0.7rem 1.6rem 0.7rem 1rem;
-            border: 1.5px solid #334155;
-            outline: none;
-            transition: border 0.2s;
-        }
-        .carbon-search-input:focus {
-            border: 1.5px solid #3b82f6;
-        }
-        .carbon-shortcuts {
-            font-size: 0.93rem;
-            color: #a5b4fc;
-            margin-bottom: 0.5rem;
-        }
-        @media (max-width: 700px) {
-            .carbon-tabs-list {margin-top:0.7rem;}
-            #carbon-tab-content {border-radius:0;}
-        }
-    </style>
+    <script defer type="module">
+      import {
+        setTransport,
+        setWisp,
+        setProxy,
+        makeURL,
+        getProxied,
+      } from "./lethal.mjs";
+
+      // --- Form ---
+      const form = document.getElementById("form");
+      const addressInput = document.getElementById("address");
+      let search =
+        localStorage.getItem("search-engine") ||
+        "https://search.brave.com/search?q=%s";
+      let frame = document.getElementById("frame");
+
+      // --- Proxy ---
+      let backend = localStorage.getItem("proxy-backend") || "uv";
+      let wisp = localStorage.getItem("wisp-server") || "wss://anura.pro/";
+      let transport = localStorage.getItem("proxy-transport");
+
+      setWisp(wisp);
+      setProxy(backend);
+
+      if (transport) setTransport(transport);
+      else if (navigator.userAgent.indexOf("Firefox") > 0) setTransport("libcurl");
+      else setTransport("epoxy");
+
+      // --- Form ---
+      form.addEventListener("submit", async (event) => {
+        event.preventDefault();
+
+        document.getElementById("proxy-container").classList.remove("hidden");
+        const urlToLoad = makeURL(addressInput.value, search);
+        frame.src = await getProxied(urlToLoad);
+      });
+
+      // --- Event Listeners ---
+      // basically we monkey patch localstorage.setitem to emit an event
+      window.addEventListener("search-engine-changed", () => {
+        search = localStorage.getItem("search-engine");
+      });
+
+      window.addEventListener("proxy-backend-changed", () => {
+        backend = localStorage.getItem("proxy-backend");
+        setProxy(localStorage.getItem("proxy-backend"));
+      });
+
+      window.addEventListener("wisp-server-changed", () => {
+        wisp = localStorage.getItem("wisp-server");
+        setWisp(localStorage.getItem("wisp-server"));
+      });
+
+      window.addEventListener("proxy-transport-changed", () => {
+        transport = localStorage.getItem("proxy-transport");
+        setTransport(localStorage.getItem("proxy-transport"));
+      });
+    </script>
 </head>
 <body class="bg-gradient-to-br from-[#0f0f23] via-[#1a1a2e] to-[#16213e] min-h-screen text-white overflow-x-hidden relative">
     <!-- Navbar -->
@@ -146,203 +78,121 @@
             <span class="block w-6 h-0.5 rounded bg-gradient-to-r from-cyan-400 to-indigo-500 transition-all duration-300"></span>
         </div>
     </nav>
+
     <!-- Mobile Menu -->
-    <aside class="fixed top-0 right-[-100%] w-72 h-full bg-[#0f0f23f2] backdrop-blur-md border-l border-white/10 pt-24 px-8 z-[999] transition-all duration-300" id="mobileMenu">
+    <div class="fixed top-0 right-[-100%] w-72 h-full bg-[#0f0f23f2] backdrop-blur-md border-l border-white/10 pt-24 px-8 z-[999] transition-all duration-300" id="mobileMenu">
         <a href="/" class="mobile-menu-item block py-4 mb-2 text-white font-semibold text-lg border-b border-white/10 relative overflow-hidden transition-all duration-300 hover:text-cyan-400 hover:pl-4">Home</a>
         <a href="#games" class="mobile-menu-item block py-4 mb-2 text-white font-semibold text-lg border-b border-white/10 relative overflow-hidden transition-all duration-300 hover:text-cyan-400 hover:pl-4">Games</a>
         <a href="/proxy" class="mobile-menu-item block py-4 mb-2 text-white font-semibold text-lg border-b border-white/10 relative overflow-hidden transition-all duration-300 hover:text-cyan-400 hover:pl-4">Proxy</a>
-    </aside>
-    <div class="overlay fixed inset-0 bg-black bg-opacity-50 opacity-0 invisible transition-all duration-300 z-[998]" id="overlay" onclick="closeMenu()"></div>
-    <!-- Animated Blobs -->
-    <div class="blob1 pointer-events-none absolute rounded-full opacity-10 blur-3xl" style="width:300px;height:300px;top:10%;left:10%;background:linear-gradient(45deg,#00d4ff,#5865f2);animation:float 20s infinite ease-in-out;"></div>
-    <div class="blob2 pointer-events-none absolute rounded-full opacity-10 blur-3xl" style="width:250px;height:250px;top:60%;right:10%;background:linear-gradient(45deg,#5865f2,#8b5cf6);animation:float 20s infinite ease-in-out -7s;"></div>
-    <div class="blob3 pointer-events-none absolute rounded-full opacity-10 blur-3xl" style="width:200px;height:200px;bottom:20%;left:20%;background:linear-gradient(45deg,#00d4ff,#8b5cf6);animation:float 20s infinite ease-in-out -14s;"></div>
+    </div>
+    <div class="overlay fixed inset-0 bg-black bg-opacity-50 opacity-0 invisible transition-all duration-300 z-[998]" id="overlay"></div>
+
+    <!-- Main Content -->
     <main class="flex flex-col items-center justify-center min-h-screen pt-28 pb-8 px-4 relative z-10">
 
-        <!-- Shortcuts/Info -->
-        <div class="carbon-shortcuts text-center animate-[fadeInUp_1s_ease-out_0.03s_both]">
-            <span class="mr-3">Keyboard: <kbd>Ctrl+T</kbd> new tab, <kbd>Ctrl+W</kbd> close, <kbd>Ctrl+Tab</kbd> next, <kbd>Ctrl+Shift+Tab</kbd> prev</span>
+      <!-- Tabs Navigation -->
+      <div class="w-full max-w-lg mx-auto mb-6">
+        <div class="flex border-b border-cyan-400">
+          <button class="tab-btn px-4 py-2 text-cyan-400 border-b-2 border-cyan-400 font-semibold focus:outline-none" data-tab="tab1">Proxy</button>
+          <button class="tab-btn px-4 py-2 text-white hover:text-cyan-400 font-semibold focus:outline-none" data-tab="tab2">Settings</button>
+          <button class="tab-btn px-4 py-2 text-white hover:text-cyan-400 font-semibold focus:outline-none" data-tab="tab3">Info</button>
         </div>
-        <!-- Search Bar -->
-        <div class="carbon-search-bar mb-2 animate-[fadeInUp_1s_ease-out_0.05s_both]">
-            <input 
-                id="carbon-search-input"
-                class="carbon-search-input"
-                type="text"
-                placeholder="Type URL or search, press Enter..."
-                autocomplete="off"
-                spellcheck="false"
-                aria-label="Search or URL"
-            />
-        </div>
-        <!-- Tabs Bar -->
-        <div id="carbon-tabs-bar" class="w-full max-w-4xl">
-            <ul id="carbon-tabs-list" class="carbon-tabs-list"></ul>
-            <button id="carbon-tab-add-btn" class="carbon-tab-add-btn" title="New Tab (Ctrl+T)">+</button>
-        </div>
-        <!-- Tabs Content -->
-        <section id="carbon-tab-content" class="w-full max-w-4xl"></section>
+      </div>
 
-        <!-- Original landing content -->
-        <div class="flex flex-col items-center justify-center w-full">
-            <div class="logo-container mb-8 animate-[fadeInUp_1s_ease-out] flex justify-center">
-                <div class="logo relative w-[120px] h-[120px] cursor-pointer transition-transform duration-300 hover:scale-110 hover:rotate-3 flex items-center justify-center" onclick="createParticles(event)">
-                    <div class="logo-ring logo-ring-1 absolute border-8 rounded-full" style="width:120px; height:120px; border-color:transparent; border-top-color:#00d4ff; border-right-color:#00d4ff; transform:rotate(-45deg); animation:spin 8s linear infinite;"></div>
-                    <div class="logo-ring logo-ring-2 absolute top-[15px] left-[15px] border-8 rounded-full" style="width:90px; height:90px; border-color:transparent; border-bottom-color:#5865f2; border-left-color:#5865f2; transform:rotate(45deg); animation:spinReverse 12s linear infinite;"></div>
-                </div>
+      <!-- Tabs Content -->
+      <div id="tab1" class="tab-content w-full flex flex-col items-center">
+        <form id="form" class="w-full md:w-2/3 lg:w-1/2">
+          <input
+            autofocus="true"
+            spellcheck="false"
+            autocomplete="off"
+            id="address"
+            type="text"
+            placeholder="Search the web freely"
+            class="bg-transparent w-full focus:outline-none border-b-2 border-cyan-400 text-center py-2 text-xl transition-all duration-300 placeholder-white/50 focus:border-indigo-500"
+          />
+        </form>
+        <div id="proxy-container" class="fixed inset-0 z-[2000] hidden">
+            <div id="proxy-controls" class="z-[150] h-12 bg-black/20 backdrop-blur-md flex items-center justify-end px-4">
+                <button id="close-proxy" class="text-white text-2xl font-bold hover:text-cyan-400 transition-colors">&times;</button>
             </div>
-            <h1 class="title font-black text-center bg-gradient-to-r from-cyan-400 via-indigo-500 to-purple-400 bg-clip-text text-transparent mb-12 tracking-tighter animate-[fadeInUp_1s_ease-out_0.2s_both] text-5xl sm:text-6xl md:text-7xl flex justify-center">CARBON</h1>
-            <div class="blob-button animate-[fadeInUp_1s_ease-out_0.6s_both]">Blob placeholder</div>
+            <iframe title="Proxy Frame" id="frame" class="z-[100] w-full h-[calc(100%-3rem)] border-0"></iframe>
         </div>
+      </div>
+      <div id="tab2" class="tab-content w-full flex flex-col items-center hidden">
+        <!-- Settings content goes here -->
+        <div class="mt-8 text-center">
+          <h2 class="text-2xl font-bold mb-2 bg-gradient-to-r from-cyan-400 to-indigo-500 bg-clip-text text-transparent">Settings</h2>
+          <p class="text-white/80 mb-4">Customize your proxy experience:</p>
+          <ul class="text-left mx-auto w-full max-w-sm space-y-2">
+            <li>
+              <span class="font-semibold text-cyan-400">Proxy backend:</span>
+              <span id="current-backend" class="ml-2"></span>
+            </li>
+            <li>
+              <span class="font-semibold text-cyan-400">Transport:</span>
+              <span id="current-transport" class="ml-2"></span>
+            </li>
+            <li>
+              <span class="font-semibold text-cyan-400">Wisp server:</span>
+              <span id="current-wisp" class="ml-2"></span>
+            </li>
+          </ul>
+        </div>
+        <script>
+          // Dynamically show current settings
+          window.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('current-backend').textContent = localStorage.getItem('proxy-backend') || 'uv';
+            document.getElementById('current-transport').textContent = localStorage.getItem('proxy-transport') || (navigator.userAgent.indexOf("Firefox") > 0 ? "libcurl" : "epoxy");
+            document.getElementById('current-wisp').textContent = localStorage.getItem('wisp-server') || 'wss://anura.pro/';
+          });
+        </script>
+      </div>
+      <div id="tab3" class="tab-content w-full flex flex-col items-center hidden">
+        <!-- Info content goes here -->
+        <div class="mt-8 text-center max-w-lg">
+          <h2 class="text-2xl font-bold mb-2 bg-gradient-to-r from-cyan-400 to-indigo-500 bg-clip-text text-transparent">About Proxy</h2>
+          <p class="text-white/80 mb-4">
+            This proxy lets you browse freely with privacy and flexibility. Powered by Carbon's advanced backend switching and transport options.
+          </p>
+          <ul class="text-left mx-auto w-full max-w-sm space-y-2">
+            <li><span class="font-semibold text-cyan-400">Open Source:</span> <a href="https://github.com/Carbon-Services/carbon-services.github.io" target="_blank" class="underline hover:text-indigo-400">View on GitHub</a></li>
+            <li><span class="font-semibold text-cyan-400">Contact:</span> <a href="mailto:support@carbon.services" class="underline hover:text-indigo-400">support@carbon.services</a></li>
+          </ul>
+        </div>
+      </div>
+      <link rel="modulepreload" href="https://cdn.jsdelivr.net/gh/Coding4Hours/cdn/uv/uv.bundle.js">
+      <link rel="modulepreload" href="/scram/scramjet.worker.js">
+      <script defer type="module" src="lethal.mjs"></script>
+      <script>
+        // Tabs logic
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+          btn.addEventListener('click', function() {
+            // Remove active class from all buttons
+            document.querySelectorAll('.tab-btn').forEach(b => {
+              b.classList.remove('text-cyan-400', 'border-b-2', 'border-cyan-400');
+              b.classList.add('text-white');
+            });
+            // Add active class to this button
+            this.classList.remove('text-white');
+            this.classList.add('text-cyan-400', 'border-b-2', 'border-cyan-400');
+            // Hide all tab contents
+            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.add('hidden'));
+            // Show selected tab
+            document.getElementById(this.dataset.tab).classList.remove('hidden');
+          });
+        });
+
+        // Close proxy modal logic
+        document.addEventListener('DOMContentLoaded', () => {
+          const closeBtn = document.getElementById('close-proxy');
+          if (closeBtn) {
+            closeBtn.addEventListener('click', () => {
+              document.getElementById('proxy-container').classList.add('hidden');
+            });
+          }
+        });
+      </script>
     </main>
-    <script>
-    // --- Tab Data & Helpers ---
-    let carbonTabs = [];
-    let carbonActiveTabId = null;
-    let carbonTabIdCounter = 0;
-
-    function carbonSanitizeUrl(urlOrQuery) {
-        urlOrQuery = urlOrQuery.trim();
-        if (urlOrQuery.match(/^https?:\/\//i)) return urlOrQuery;
-        if (urlOrQuery.match(/^([a-z0-9-]+\.)+[a-z]{2,}(\/.*)?$/i)) return 'https://' + urlOrQuery;
-        return 'https://duckduckgo.com/?q=' + encodeURIComponent(urlOrQuery);
-    }
-
-    function carbonGetFaviconUrl(url) {
-        try {
-            const u = new URL(url);
-            return `https://www.google.com/s2/favicons?domain=${u.hostname}&sz=32`;
-        } catch {
-            return `https://www.google.com/s2/favicons?domain=invalid&sz=32`;
-        }
-    }
-
-    function carbonAddTab(url, select = true) {
-        carbonTabIdCounter++;
-        const id = 'tab' + carbonTabIdCounter;
-        const favicon = carbonGetFaviconUrl(url);
-        const title = url.replace(/^https?:\/\//, '').replace(/\/$/, '');
-        carbonTabs.push({ id, url, title, favicon });
-        if (select) carbonActiveTabId = id;
-        carbonRenderTabs();
-        if (select) carbonLoadTabContent(id);
-    }
-
-    function carbonRemoveTab(id) {
-        const idx = carbonTabs.findIndex(t => t.id === id);
-        if (idx === -1) return;
-        carbonTabs.splice(idx, 1);
-        if (carbonActiveTabId === id) {
-            if (carbonTabs[idx]) carbonActiveTabId = carbonTabs[idx].id;
-            else if (carbonTabs[idx-1]) carbonActiveTabId = carbonTabs[idx-1].id;
-            else carbonActiveTabId = carbonTabs[0]?.id || null;
-        }
-        carbonRenderTabs();
-        if (carbonActiveTabId) carbonLoadTabContent(carbonActiveTabId);
-        else document.getElementById('carbon-tab-content').innerHTML = '';
-    }
-
-    function carbonSwitchTab(dir) {
-        if (!carbonActiveTabId || carbonTabs.length < 2) return;
-        let idx = carbonTabs.findIndex(t => t.id === carbonActiveTabId);
-        if (dir === 'next') idx = (idx + 1) % carbonTabs.length;
-        if (dir === 'prev') idx = (idx - 1 + carbonTabs.length) % carbonTabs.length;
-        carbonActiveTabId = carbonTabs[idx].id;
-        carbonRenderTabs();
-        carbonLoadTabContent(carbonActiveTabId);
-    }
-
-    function carbonRenderTabs() {
-        const ul = document.getElementById('carbon-tabs-list');
-        ul.innerHTML = '';
-        carbonTabs.forEach(tab => {
-            const li = document.createElement('li');
-            li.className = 'carbon-tab' + (tab.id === carbonActiveTabId ? ' active' : '');
-            li.dataset.tabId = tab.id;
-            li.innerHTML = `
-                <img class="tab-favicon" src="${tab.favicon}" alt="favicon">
-                <span class="tab-title" title="${tab.title}">${tab.title}</span>
-                <button class="tab-close-btn" title="Close tab (Ctrl+W)" tabindex="-1">&times;</button>
-            `;
-            li.querySelector('.tab-close-btn').onclick = e => {
-                e.stopPropagation();
-                carbonRemoveTab(tab.id);
-            };
-            li.onclick = (e) => {
-                if (tab.id !== carbonActiveTabId) {
-                    carbonActiveTabId = tab.id;
-                    carbonRenderTabs();
-                    carbonLoadTabContent(tab.id);
-                }
-            };
-            ul.appendChild(li);
-        });
-    }
-
-    function carbonLoadTabContent(tabId) {
-        const tab = carbonTabs.find(t => t.id === tabId);
-        if (!tab) return;
-        const main = document.getElementById('carbon-tab-content');
-        main.innerHTML = `<iframe sandbox="allow-scripts allow-forms allow-same-origin" src="${tab.url}" title="${tab.title}"></iframe>`;
-        // Try to update the tab title from iframe if possible
-        const iframe = main.querySelector('iframe');
-        iframe.addEventListener('load', () => {
-            try {
-                let docTitle = iframe.contentDocument ? iframe.contentDocument.title : '';
-                if (docTitle && docTitle.length > 0) {
-                    tab.title = docTitle;
-                    carbonRenderTabs();
-                }
-            } catch {}
-        });
-    }
-    // --- UI events ---
-    // Search bar: open URL or search query in new tab (Enter)
-    document.getElementById('carbon-search-input').addEventListener('keydown', function(e) {
-        if (e.key === 'Enter') {
-            const input = this.value.trim();
-            if (!input) return;
-            carbonAddTab(carbonSanitizeUrl(input));
-            this.value = '';
-        }
-    });
-    // Add new tab button
-    document.getElementById('carbon-tab-add-btn').addEventListener('click', function() {
-        carbonAddTab('https://www.example.com');
-        document.getElementById('carbon-search-input').focus();
-    });
-    // Keyboard shortcuts
-    document.addEventListener('keydown', function(e) {
-        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 't') {
-            e.preventDefault();
-            carbonAddTab('https://www.example.com');
-            document.getElementById('carbon-search-input').focus();
-        }
-        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'w') {
-            e.preventDefault();
-            if (carbonActiveTabId) carbonRemoveTab(carbonActiveTabId);
-        }
-        if ((e.ctrlKey || e.metaKey) && e.key === 'Tab') {
-            e.preventDefault();
-            if (e.shiftKey) carbonSwitchTab('prev');
-            else carbonSwitchTab('next');
-        }
-    });
-    // Drag-n-drop tabs
-    Sortable.create(document.getElementById('carbon-tabs-list'), {
-        animation: 180,
-        direction: 'horizontal',
-        filter: '.tab-close-btn',
-        draggable: '.carbon-tab',
-        onEnd: function(evt) {
-            if (evt.oldIndex === evt.newIndex) return;
-            const moved = carbonTabs.splice(evt.oldIndex, 1)[0];
-            carbonTabs.splice(evt.newIndex, 0, moved);
-            carbonRenderTabs();
-        }
-    });
-    // --- Initial tab
-    carbonAddTab('https://carbon-design-system.github.io/carbon-website/');
-    </script>
 </body>
 </html>
