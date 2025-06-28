@@ -1,321 +1,348 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Web Tabs App</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <!-- Carbon Design System CSS -->
-  <link rel="stylesheet" href="https://unpkg.com/carbon-components/css/carbon-components.min.css">
-  <style>
-    body {
-      background: #f4f4f4;
-      font-family: 'IBM Plex Sans', Arial, sans-serif;
-      margin: 0;
-      padding: 0;
-    }
-    .app-bar {
-      background: #ffffff;
-      padding: 1rem 2rem 0.5rem 2rem;
-      box-shadow: 0 1px 4px rgba(0,0,0,0.06);
-      z-index: 2;
-      position: relative;
-    }
-    .tabs-list {
-      display: flex;
-      align-items: center;
-      user-select: none;
-      padding: 0.5rem 0 0.5rem 2rem;
-      background: #f4f4f4;
-      overflow-x: auto;
-      white-space: nowrap;
-      gap: 0.25rem;
-    }
-    .tab {
-      display: flex;
-      align-items: center;
-      background: #fff;
-      border-radius: 6px 6px 0 0;
-      margin-right: 0.25rem;
-      padding: 0.25rem 0.75rem 0.25rem 0.5rem;
-      cursor: pointer;
-      border: 1px solid transparent;
-      border-bottom: none;
-      position: relative;
-      min-width: 140px;
-      transition: background 0.15s, border 0.15s;
-      font-size: 0.98rem;
-    }
-    .tab.active {
-      background: #e5e5e5;
-      border: 1px solid #bebebe;
-      border-bottom: 2px solid #0f62fe;
-      z-index: 2;
-    }
-    .tab .favicon {
-      width: 18px;
-      height: 18px;
-      margin-right: 8px;
-      border-radius: 3px;
-      background: #eee;
-      object-fit: contain;
-    }
-    .tab .tab-title {
-      flex: 1;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-      max-width: 120px;
-      margin-right: 8px;
-    }
-    .tab .close-btn {
-      color: #888;
-      background: none;
-      border: none;
-      font-size: 1.2rem;
-      cursor: pointer;
-      margin-left: 0.25rem;
-      transition: color 0.2s;
-      padding: 0 2px;
-    }
-    .tab .close-btn:hover {
-      color: #e71d36;
-    }
-    .tab-add-btn {
-      background: #fff;
-      border: none;
-      border-radius: 6px;
-      font-size: 1.3rem;
-      padding: 0 0.7rem;
-      cursor: pointer;
-      transition: background 0.15s;
-      color: #0f62fe;
-      margin-left: 0.15rem;
-      margin-top: 0.1rem;
-      height: 33px;
-    }
-    .tab-add-btn:hover {
-      background: #e5e5e5;
-    }
-    #tab-content {
-      height: calc(100vh - 150px);
-      min-height: 350px;
-      background: #fff;
-      box-shadow: 0 1px 6px rgba(0,0,0,0.05);
-      border-radius: 0 0 10px 10px;
-      margin: 0 2rem 2rem 2rem;
-      overflow: hidden;
-      position: relative;
-      z-index: 1;
-    }
-    #tab-content iframe {
-      border: none;
-      width: 100%;
-      height: 100%;
-      min-height: 320px;
-      background: #fff;
-    }
-    @media (max-width: 700px) {
-      .app-bar, #tab-content { margin: 0; border-radius: 0; }
-      .tabs-list { padding-left: 0.5rem; }
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CARBON</title>
+    <script defer async src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <script defer async src="/js/hamburger.js"></script>
+    <link rel="stylesheet" href="styles.css"></link>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
+    <!-- SortableJS for draggable tabs -->
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
+    <style>
+        /* Custom tab styles for draggable tabs */
+        .carbon-tabs-list {
+            display: flex;
+            align-items: center;
+            background: #181830;
+            border-radius: 12px 12px 0 0;
+            padding: 0.25rem 0.5rem 0.25rem 0.5rem;
+            overflow-x: auto;
+            gap: 0.25rem;
+            user-select: none;
+            margin: 1.5rem 0 0.5rem 0;
+        }
+        .carbon-tab {
+            display: flex;
+            align-items: center;
+            background: #222244;
+            border-radius: 8px 8px 0 0;
+            margin-right: 0.15rem;
+            padding: 0.3rem 0.9rem 0.3rem 0.55rem;
+            cursor: pointer;
+            border: 1px solid transparent;
+            border-bottom: none;
+            position: relative;
+            min-width: 120px;
+            max-width: 210px;
+            transition: background 0.18s, border 0.18s;
+            font-size: 1rem;
+        }
+        .carbon-tab.active {
+            background: #23234a;
+            border: 1px solid #3b82f6;
+            border-bottom: 2px solid #22d3ee;
+            color: #fff;
+            z-index: 2;
+        }
+        .carbon-tab .tab-favicon {
+            width: 18px;
+            height: 18px;
+            margin-right: 7px;
+            border-radius: 3px;
+            background: #eee;
+            object-fit: contain;
+        }
+        .carbon-tab .tab-title {
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            max-width: 110px;
+            margin-right: 7px;
+        }
+        .carbon-tab .tab-close-btn {
+            color: #aaa;
+            background: none;
+            border: none;
+            font-size: 1.18rem;
+            cursor: pointer;
+            margin-left: 2px;
+            transition: color 0.2s;
+            padding: 0 2px;
+        }
+        .carbon-tab .tab-close-btn:hover {
+            color: #e11d48;
+        }
+        .carbon-tab-add-btn {
+            background: linear-gradient(90deg,#06b6d4,#6366f1);
+            border: none;
+            border-radius: 8px 8px 0 0;
+            font-size: 1.25rem;
+            padding: 0 0.8rem;
+            cursor: pointer;
+            margin-left: 0.18rem;
+            height: 35px;
+            color: #fff;
+            transition: background 0.18s;
+        }
+        .carbon-tab-add-btn:hover {
+            background: linear-gradient(90deg,#22d3ee,#a5b4fc);
+        }
+        #carbon-tab-content {
+            min-height: 340px;
+            background: #20203a;
+            border-radius: 0 0 12px 12px;
+            box-shadow: 0 2px 12px rgba(30,58,138,0.07);
+            overflow: hidden;
+            margin-bottom: 2rem;
+        }
+        #carbon-tab-content iframe {
+            border: none;
+            width: 100%;
+            height: 64vh;
+            min-height: 340px;
+            background: #181830;
+        }
+        .carbon-search-bar {
+            width: 100%;
+            max-width: 560px;
+            margin: 0 auto 0.2rem auto;
+            z-index: 20;
+        }
+        .carbon-search-input {
+            width: 100%;
+            font-size: 1.05rem;
+            background: #222244;
+            color: #fff;
+            border-radius: 8px;
+            padding: 0.7rem 1.6rem 0.7rem 1rem;
+            border: 1.5px solid #334155;
+            outline: none;
+            transition: border 0.2s;
+        }
+        .carbon-search-input:focus {
+            border: 1.5px solid #3b82f6;
+        }
+        .carbon-shortcuts {
+            font-size: 0.93rem;
+            color: #a5b4fc;
+            margin-bottom: 0.5rem;
+        }
+        @media (max-width: 700px) {
+            .carbon-tabs-list {margin-top:0.7rem;}
+            #carbon-tab-content {border-radius:0;}
+        }
+    </style>
 </head>
-<body>
-  <div class="app-bar">
-    <div class="bx--search bx--search--lg" role="search">
-      <input class="bx--search-input" type="text" placeholder="Type URL or search and press Enter (Ctrl+T for new tab)" id="url-input" autocomplete="off" spellcheck="false" aria-label="Search or URL">
-      <button class="bx--search-close" tabindex="-1" aria-label="Clear input" type="button"></button>
-    </div>
-  </div>
-  <nav>
-    <ul id="tabs-list" class="tabs-list"></ul>
-    <button id="tab-add-btn" class="tab-add-btn" title="New Tab (Ctrl+T)">+</button>
-  </nav>
-  <main id="tab-content"></main>
+<body class="bg-gradient-to-br from-[#0f0f23] via-[#1a1a2e] to-[#16213e] min-h-screen text-white overflow-x-hidden relative">
+    <!-- Navbar -->
+    <nav class="fixed top-0 left-0 right-0 z-[1000] flex justify-between items-center px-8 py-4 bg-[#0f0f23cc] border-b border-white/10 backdrop-blur-md animate-[slideDown_0.5s_ease-out]">
+        <div class="navbar-brand text-2xl md:text-3xl font-extrabold bg-gradient-to-r from-cyan-400 to-indigo-500 bg-clip-text text-transparent tracking-tighter select-none">CARBON</div>
+        <div class="hamburger flex flex-col gap-1.5 cursor-pointer p-2 transition-transform duration-300" id="hamburger" onclick="toggleMenu()">
+            <span class="block w-6 h-0.5 rounded bg-gradient-to-r from-cyan-400 to-indigo-500 transition-all duration-300"></span>
+            <span class="block w-6 h-0.5 rounded bg-gradient-to-r from-cyan-400 to-indigo-500 transition-all duration-300"></span>
+            <span class="block w-6 h-0.5 rounded bg-gradient-to-r from-cyan-400 to-indigo-500 transition-all duration-300"></span>
+        </div>
+    </nav>
+    <!-- Mobile Menu -->
+    <aside class="fixed top-0 right-[-100%] w-72 h-full bg-[#0f0f23f2] backdrop-blur-md border-l border-white/10 pt-24 px-8 z-[999] transition-all duration-300" id="mobileMenu">
+        <a href="/" class="mobile-menu-item block py-4 mb-2 text-white font-semibold text-lg border-b border-white/10 relative overflow-hidden transition-all duration-300 hover:text-cyan-400 hover:pl-4">Home</a>
+        <a href="#games" class="mobile-menu-item block py-4 mb-2 text-white font-semibold text-lg border-b border-white/10 relative overflow-hidden transition-all duration-300 hover:text-cyan-400 hover:pl-4">Games</a>
+        <a href="/proxy" class="mobile-menu-item block py-4 mb-2 text-white font-semibold text-lg border-b border-white/10 relative overflow-hidden transition-all duration-300 hover:text-cyan-400 hover:pl-4">Proxy</a>
+    </aside>
+    <div class="overlay fixed inset-0 bg-black bg-opacity-50 opacity-0 invisible transition-all duration-300 z-[998]" id="overlay" onclick="closeMenu()"></div>
+    <!-- Animated Blobs -->
+    <div class="blob1 pointer-events-none absolute rounded-full opacity-10 blur-3xl" style="width:300px;height:300px;top:10%;left:10%;background:linear-gradient(45deg,#00d4ff,#5865f2);animation:float 20s infinite ease-in-out;"></div>
+    <div class="blob2 pointer-events-none absolute rounded-full opacity-10 blur-3xl" style="width:250px;height:250px;top:60%;right:10%;background:linear-gradient(45deg,#5865f2,#8b5cf6);animation:float 20s infinite ease-in-out -7s;"></div>
+    <div class="blob3 pointer-events-none absolute rounded-full opacity-10 blur-3xl" style="width:200px;height:200px;bottom:20%;left:20%;background:linear-gradient(45deg,#00d4ff,#8b5cf6);animation:float 20s infinite ease-in-out -14s;"></div>
+    <main class="flex flex-col items-center justify-center min-h-screen pt-28 pb-8 px-4 relative z-10">
 
-  <!-- SortableJS for drag-and-drop tabs -->
-  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
-  <script>
-    // --- Tab data and helpers
-    let tabs = [];
-    let activeTabId = null;
-    let tabIdCounter = 0;
+        <!-- Shortcuts/Info -->
+        <div class="carbon-shortcuts text-center animate-[fadeInUp_1s_ease-out_0.03s_both]">
+            <span class="mr-3">Keyboard: <kbd>Ctrl+T</kbd> new tab, <kbd>Ctrl+W</kbd> close, <kbd>Ctrl+Tab</kbd> next, <kbd>Ctrl+Shift+Tab</kbd> prev</span>
+        </div>
+        <!-- Search Bar -->
+        <div class="carbon-search-bar mb-2 animate-[fadeInUp_1s_ease-out_0.05s_both]">
+            <input 
+                id="carbon-search-input"
+                class="carbon-search-input"
+                type="text"
+                placeholder="Type URL or search, press Enter..."
+                autocomplete="off"
+                spellcheck="false"
+                aria-label="Search or URL"
+            />
+        </div>
+        <!-- Tabs Bar -->
+        <div id="carbon-tabs-bar" class="w-full max-w-4xl">
+            <ul id="carbon-tabs-list" class="carbon-tabs-list"></ul>
+            <button id="carbon-tab-add-btn" class="carbon-tab-add-btn" title="New Tab (Ctrl+T)">+</button>
+        </div>
+        <!-- Tabs Content -->
+        <section id="carbon-tab-content" class="w-full max-w-4xl"></section>
 
-    function sanitizeUrl(urlOrQuery) {
-      urlOrQuery = urlOrQuery.trim();
-      if (urlOrQuery.match(/^https?:\/\//i)) return urlOrQuery;
-      // Domain only: e.g. github.com
-      if (urlOrQuery.match(/^([a-z0-9-]+\.)+[a-z]{2,}(\/.*)?$/i)) return 'https://' + urlOrQuery;
-      // Otherwise, treat as search query
-      return 'https://duckduckgo.com/?q=' + encodeURIComponent(urlOrQuery);
+        <!-- Original landing content -->
+        <div class="flex flex-col items-center justify-center w-full">
+            <div class="logo-container mb-8 animate-[fadeInUp_1s_ease-out] flex justify-center">
+                <div class="logo relative w-[120px] h-[120px] cursor-pointer transition-transform duration-300 hover:scale-110 hover:rotate-3 flex items-center justify-center" onclick="createParticles(event)">
+                    <div class="logo-ring logo-ring-1 absolute border-8 rounded-full" style="width:120px; height:120px; border-color:transparent; border-top-color:#00d4ff; border-right-color:#00d4ff; transform:rotate(-45deg); animation:spin 8s linear infinite;"></div>
+                    <div class="logo-ring logo-ring-2 absolute top-[15px] left-[15px] border-8 rounded-full" style="width:90px; height:90px; border-color:transparent; border-bottom-color:#5865f2; border-left-color:#5865f2; transform:rotate(45deg); animation:spinReverse 12s linear infinite;"></div>
+                </div>
+            </div>
+            <h1 class="title font-black text-center bg-gradient-to-r from-cyan-400 via-indigo-500 to-purple-400 bg-clip-text text-transparent mb-12 tracking-tighter animate-[fadeInUp_1s_ease-out_0.2s_both] text-5xl sm:text-6xl md:text-7xl flex justify-center">CARBON</h1>
+            <div class="blob-button animate-[fadeInUp_1s_ease-out_0.6s_both]">Blob placeholder</div>
+        </div>
+    </main>
+    <script>
+    // --- Tab Data & Helpers ---
+    let carbonTabs = [];
+    let carbonActiveTabId = null;
+    let carbonTabIdCounter = 0;
+
+    function carbonSanitizeUrl(urlOrQuery) {
+        urlOrQuery = urlOrQuery.trim();
+        if (urlOrQuery.match(/^https?:\/\//i)) return urlOrQuery;
+        if (urlOrQuery.match(/^([a-z0-9-]+\.)+[a-z]{2,}(\/.*)?$/i)) return 'https://' + urlOrQuery;
+        return 'https://duckduckgo.com/?q=' + encodeURIComponent(urlOrQuery);
     }
 
-    function getFaviconUrl(url) {
-      try {
-        const u = new URL(url);
-        return `https://www.google.com/s2/favicons?domain=${u.hostname}&sz=32`;
-      } catch {
-        return `https://www.google.com/s2/favicons?domain=invalid&sz=32`;
-      }
-    }
-
-    function addTab(url, select = true) {
-      tabIdCounter++;
-      const id = 'tab' + tabIdCounter;
-      const favicon = getFaviconUrl(url);
-      const title = url.replace(/^https?:\/\//, '').replace(/\/$/, '');
-      tabs.push({ id, url, title, favicon });
-      if (select) activeTabId = id;
-      renderTabs();
-      if (select) loadTabContent(id);
-    }
-
-    function removeTab(id) {
-      const idx = tabs.findIndex(t => t.id === id);
-      if (idx === -1) return;
-      tabs.splice(idx, 1);
-      if (activeTabId === id) {
-        if (tabs[idx]) activeTabId = tabs[idx].id;
-        else if (tabs[idx-1]) activeTabId = tabs[idx-1].id;
-        else activeTabId = tabs[0]?.id || null;
-      }
-      renderTabs();
-      if (activeTabId) loadTabContent(activeTabId);
-      else document.getElementById('tab-content').innerHTML = '';
-    }
-
-    function switchTab(dir) {
-      if (!activeTabId || tabs.length < 2) return;
-      let idx = tabs.findIndex(t => t.id === activeTabId);
-      if (dir === 'next') idx = (idx + 1) % tabs.length;
-      if (dir === 'prev') idx = (idx - 1 + tabs.length) % tabs.length;
-      activeTabId = tabs[idx].id;
-      renderTabs();
-      loadTabContent(activeTabId);
-    }
-
-    function updateTabTitleFromIframe(tab, iframe) {
-      try {
-        // Try to get title from iframe (if same origin)
-        const doc = iframe.contentDocument || iframe.contentWindow?.document;
-        if (doc && doc.title) {
-          tab.title = doc.title;
-          renderTabs();
-        }
-      } catch {
-        // Cross-origin, fallback to nothing
-      }
-    }
-
-    function renderTabs() {
-      const ul = document.getElementById('tabs-list');
-      ul.innerHTML = '';
-      tabs.forEach(tab => {
-        const li = document.createElement('li');
-        li.className = 'tab' + (tab.id === activeTabId ? ' active' : '');
-        li.dataset.tabId = tab.id;
-        li.innerHTML = `
-          <img class="favicon" src="${tab.favicon}" alt="favicon">
-          <span class="tab-title" title="${tab.title}">${tab.title}</span>
-          <button class="close-btn" title="Close tab (Ctrl+W)" tabindex="-1">&times;</button>
-        `;
-        li.querySelector('.close-btn').onclick = e => {
-          e.stopPropagation();
-          removeTab(tab.id);
-        };
-        li.onclick = (e) => {
-          if (tab.id !== activeTabId) {
-            activeTabId = tab.id;
-            renderTabs();
-            loadTabContent(tab.id);
-          }
-        };
-        ul.appendChild(li);
-      });
-    }
-
-    function loadTabContent(tabId) {
-      const tab = tabs.find(t => t.id === tabId);
-      if (!tab) return;
-      const main = document.getElementById('tab-content');
-      main.innerHTML = `<iframe sandbox="allow-scripts allow-forms allow-same-origin" src="${tab.url}" title="${tab.title}"></iframe>`;
-      // Try to update the tab title after iframe loads (may fail cross-origin)
-      const iframe = main.querySelector('iframe');
-      iframe.addEventListener('load', () => {
-        // Try to update tab title from iframe if possible
+    function carbonGetFaviconUrl(url) {
         try {
-          let docTitle = iframe.contentDocument ? iframe.contentDocument.title : '';
-          if (docTitle && docTitle.length > 0) {
-            tab.title = docTitle;
-            renderTabs();
-          }
+            const u = new URL(url);
+            return `https://www.google.com/s2/favicons?domain=${u.hostname}&sz=32`;
         } catch {
-          // Cross-origin: do nothing
+            return `https://www.google.com/s2/favicons?domain=invalid&sz=32`;
         }
-      });
     }
 
-    // --- UI events
+    function carbonAddTab(url, select = true) {
+        carbonTabIdCounter++;
+        const id = 'tab' + carbonTabIdCounter;
+        const favicon = carbonGetFaviconUrl(url);
+        const title = url.replace(/^https?:\/\//, '').replace(/\/$/, '');
+        carbonTabs.push({ id, url, title, favicon });
+        if (select) carbonActiveTabId = id;
+        carbonRenderTabs();
+        if (select) carbonLoadTabContent(id);
+    }
 
+    function carbonRemoveTab(id) {
+        const idx = carbonTabs.findIndex(t => t.id === id);
+        if (idx === -1) return;
+        carbonTabs.splice(idx, 1);
+        if (carbonActiveTabId === id) {
+            if (carbonTabs[idx]) carbonActiveTabId = carbonTabs[idx].id;
+            else if (carbonTabs[idx-1]) carbonActiveTabId = carbonTabs[idx-1].id;
+            else carbonActiveTabId = carbonTabs[0]?.id || null;
+        }
+        carbonRenderTabs();
+        if (carbonActiveTabId) carbonLoadTabContent(carbonActiveTabId);
+        else document.getElementById('carbon-tab-content').innerHTML = '';
+    }
+
+    function carbonSwitchTab(dir) {
+        if (!carbonActiveTabId || carbonTabs.length < 2) return;
+        let idx = carbonTabs.findIndex(t => t.id === carbonActiveTabId);
+        if (dir === 'next') idx = (idx + 1) % carbonTabs.length;
+        if (dir === 'prev') idx = (idx - 1 + carbonTabs.length) % carbonTabs.length;
+        carbonActiveTabId = carbonTabs[idx].id;
+        carbonRenderTabs();
+        carbonLoadTabContent(carbonActiveTabId);
+    }
+
+    function carbonRenderTabs() {
+        const ul = document.getElementById('carbon-tabs-list');
+        ul.innerHTML = '';
+        carbonTabs.forEach(tab => {
+            const li = document.createElement('li');
+            li.className = 'carbon-tab' + (tab.id === carbonActiveTabId ? ' active' : '');
+            li.dataset.tabId = tab.id;
+            li.innerHTML = `
+                <img class="tab-favicon" src="${tab.favicon}" alt="favicon">
+                <span class="tab-title" title="${tab.title}">${tab.title}</span>
+                <button class="tab-close-btn" title="Close tab (Ctrl+W)" tabindex="-1">&times;</button>
+            `;
+            li.querySelector('.tab-close-btn').onclick = e => {
+                e.stopPropagation();
+                carbonRemoveTab(tab.id);
+            };
+            li.onclick = (e) => {
+                if (tab.id !== carbonActiveTabId) {
+                    carbonActiveTabId = tab.id;
+                    carbonRenderTabs();
+                    carbonLoadTabContent(tab.id);
+                }
+            };
+            ul.appendChild(li);
+        });
+    }
+
+    function carbonLoadTabContent(tabId) {
+        const tab = carbonTabs.find(t => t.id === tabId);
+        if (!tab) return;
+        const main = document.getElementById('carbon-tab-content');
+        main.innerHTML = `<iframe sandbox="allow-scripts allow-forms allow-same-origin" src="${tab.url}" title="${tab.title}"></iframe>`;
+        // Try to update the tab title from iframe if possible
+        const iframe = main.querySelector('iframe');
+        iframe.addEventListener('load', () => {
+            try {
+                let docTitle = iframe.contentDocument ? iframe.contentDocument.title : '';
+                if (docTitle && docTitle.length > 0) {
+                    tab.title = docTitle;
+                    carbonRenderTabs();
+                }
+            } catch {}
+        });
+    }
+    // --- UI events ---
     // Search bar: open URL or search query in new tab (Enter)
-    document.getElementById('url-input').addEventListener('keydown', function(e) {
-      if (e.key === 'Enter') {
-        const input = this.value.trim();
-        if (!input) return;
-        addTab(sanitizeUrl(input));
-        this.value = '';
-      }
+    document.getElementById('carbon-search-input').addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+            const input = this.value.trim();
+            if (!input) return;
+            carbonAddTab(carbonSanitizeUrl(input));
+            this.value = '';
+        }
     });
-    // Clear button
-    document.querySelector('.bx--search-close').addEventListener('click', function() {
-      document.getElementById('url-input').value = '';
-      document.getElementById('url-input').focus();
-    });
-
     // Add new tab button
-    document.getElementById('tab-add-btn').addEventListener('click', function() {
-      addTab('https://www.example.com');
-      document.getElementById('url-input').focus();
+    document.getElementById('carbon-tab-add-btn').addEventListener('click', function() {
+        carbonAddTab('https://www.example.com');
+        document.getElementById('carbon-search-input').focus();
     });
-
     // Keyboard shortcuts
     document.addEventListener('keydown', function(e) {
-      // New tab: Ctrl+T or Cmd+T
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 't') {
-        e.preventDefault();
-        addTab('https://www.example.com');
-        document.getElementById('url-input').focus();
-      }
-      // Close tab: Ctrl+W or Cmd+W
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'w') {
-        e.preventDefault();
-        if (activeTabId) removeTab(activeTabId);
-      }
-      // Switch tab: Ctrl+Tab, Ctrl+Shift+Tab
-      if ((e.ctrlKey || e.metaKey) && e.key === 'Tab') {
-        e.preventDefault();
-        if (e.shiftKey) switchTab('prev');
-        else switchTab('next');
-      }
+        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 't') {
+            e.preventDefault();
+            carbonAddTab('https://www.example.com');
+            document.getElementById('carbon-search-input').focus();
+        }
+        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'w') {
+            e.preventDefault();
+            if (carbonActiveTabId) carbonRemoveTab(carbonActiveTabId);
+        }
+        if ((e.ctrlKey || e.metaKey) && e.key === 'Tab') {
+            e.preventDefault();
+            if (e.shiftKey) carbonSwitchTab('prev');
+            else carbonSwitchTab('next');
+        }
     });
-
-    // --- Drag-n-drop tabs
-    Sortable.create(document.getElementById('tabs-list'), {
-      animation: 180,
-      direction: 'horizontal',
-      filter: '.close-btn',
-      draggable: '.tab',
-      onEnd: function(evt) {
-        if (evt.oldIndex === evt.newIndex) return;
-        const moved = tabs.splice(evt.oldIndex, 1)[0];
-        tabs.splice(evt.newIndex, 0, moved);
-        renderTabs();
-      }
+    // Drag-n-drop tabs
+    Sortable.create(document.getElementById('carbon-tabs-list'), {
+        animation: 180,
+        direction: 'horizontal',
+        filter: '.tab-close-btn',
+        draggable: '.carbon-tab',
+        onEnd: function(evt) {
+            if (evt.oldIndex === evt.newIndex) return;
+            const moved = carbonTabs.splice(evt.oldIndex, 1)[0];
+            carbonTabs.splice(evt.newIndex, 0, moved);
+            carbonRenderTabs();
+        }
     });
-
     // --- Initial tab
-    addTab('https://carbon-design-system.github.io/carbon-website/');
-
-  </script>
+    carbonAddTab('https://carbon-design-system.github.io/carbon-website/');
+    </script>
 </body>
 </html>
