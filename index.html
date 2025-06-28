@@ -7,6 +7,8 @@
   <script defer async src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
   <link rel="stylesheet" href="styles.css">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
+  <!-- Boxicons CDN for icons -->
+  <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
   <style>
     .draggable-tab {
       user-select: none;
@@ -62,6 +64,16 @@
     .history-scroll::-webkit-scrollbar-track {
       background: #181829;
     }
+    /* History modal */
+    .history-modal-bg {
+      background: rgba(0,0,0,0.5);
+      z-index: 2000;
+      transition: opacity 0.2s;
+    }
+    .history-modal {
+      z-index: 2010;
+      transition: transform 0.2s, opacity 0.2s;
+    }
   </style>
 </head>
 <body class="bg-gradient-to-br from-[#0f0f23] via-[#1a1a2e] to-[#16213e] min-h-screen text-white overflow-x-hidden relative">
@@ -88,6 +100,10 @@
       </button>
       <button id="home-btn" class="rounded bg-[#23234d] hover:bg-[#2c2c5c] p-2 flex items-center justify-center" title="Home">
         <svg width="20" height="20" stroke="white" fill="none" viewBox="0 0 24 24"><path d="M3 12l9-9 9 9M4 10v10h16V10" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <!-- History Icon -->
+      <button id="history-btn" class="rounded bg-[#23234d] hover:bg-[#2c2c5c] p-2 flex items-center justify-center" title="Show History">
+        <i class='bx bx-history text-2xl'></i>
       </button>
       <div class="relative">
         <button id="menu-btn" class="rounded bg-[#23234d] hover:bg-[#2c2c5c] p-2 flex items-center justify-center" title="Menu">
@@ -116,11 +132,14 @@
     <div class="rounded-lg overflow-hidden bg-black border border-[#23234d]">
       <iframe id="proxy-iframe" title="Proxy Frame" class="w-full h-[60vh] border-0" src=""></iframe>
     </div>
+  </div>
 
-    <!-- Search History -->
-    <div class="mt-4">
-      <span class="text-white/90 font-semibold">History</span>
-      <div id="history-list" class="history-scroll max-h-40 overflow-y-auto text-white/80 mt-1 space-y-1 text-sm"></div>
+  <!-- History Modal (hidden by default) -->
+  <div id="history-modal-bg" class="fixed inset-0 history-modal-bg flex items-center justify-center opacity-0 pointer-events-none">
+    <div id="history-modal" class="history-modal bg-[#23234d] rounded-xl shadow-xl max-w-lg w-[95vw] p-6 relative transform scale-95 opacity-0">
+      <button id="close-history-modal" class="absolute top-3 right-3 text-white/80 hover:text-red-400 text-2xl"><i class='bx bx-x'></i></button>
+      <h2 class="text-xl font-bold mb-4 text-white/90 flex items-center"><i class='bx bx-history mr-2'></i>Tab History</h2>
+      <div id="modal-history-list" class="history-scroll max-h-72 overflow-y-auto text-white/80 space-y-1 text-sm"></div>
     </div>
   </div>
 </main>
@@ -255,7 +274,6 @@ function setActiveTab(tabId) {
   const tab = tabs.find(t => t.id === tabId);
   updateAddressBar(tab);
   renderTabContent(tab);
-  updateHistoryList(tab);
 }
 
 function addTab(url = "") {
@@ -277,7 +295,6 @@ function removeTab(tabId) {
         renderTabs();
         document.getElementById("proxy-iframe").src = "";
         document.getElementById("address-bar-input").value = "";
-        document.getElementById("history-list").innerHTML = "";
       }
     } else {
       renderTabs();
@@ -305,47 +322,14 @@ function updateTabHistory(tab, url) {
   tab.title = url ? url : "New Tab";
 }
 
-function updateHistoryList(tab) {
-  const historyDiv = document.getElementById("history-list");
-  historyDiv.innerHTML = "";
-  if (!tab || !tab.history.length) {
-    historyDiv.innerHTML = "<em class='block text-white/40'>No history for this tab.</em>";
-    return;
-  }
-  tab.history.forEach((url, idx) => {
-    const row = document.createElement("div");
-    row.className = "flex items-center gap-2 group";
-    row.innerHTML = `<span class="${idx === tab.pointer ? 'text-cyan-400 font-bold' : ''}">${url}</span>`;
-    row.onclick = () => {
-      tab.pointer = idx;
-      updateAddressBar(tab);
-      renderTabContent(tab);
-      updateHistoryList(tab);
-    };
-    // Little remove button
-    if (tab.history.length > 1) {
-      const rmBtn = document.createElement("button");
-      rmBtn.className = "ml-2 text-white/40 hover:text-red-500";
-      rmBtn.title = "Remove from history";
-      rmBtn.textContent = "✕";
-      rmBtn.onclick = (e) => {
-        e.stopPropagation();
-        tab.history.splice(idx, 1);
-        if (tab.pointer >= tab.history.length) tab.pointer = tab.history.length - 1;
-        updateAddressBar(tab);
-        renderTabContent(tab);
-        updateHistoryList(tab);
-      };
-      row.appendChild(rmBtn);
-    }
-    historyDiv.appendChild(row);
-  });
+function getActiveTab() {
+  return tabs.find(t => t.id === activeTab);
 }
 
 // Address Bar Form Submission
 document.getElementById("address-bar-form").addEventListener("submit", async function(event) {
   event.preventDefault();
-  const tab = tabs.find(t => t.id === activeTab);
+  const tab = getActiveTab();
   if (!tab) return;
   const addressInput = document.getElementById("address-bar-input");
   let url = addressInput.value.trim();
@@ -353,39 +337,35 @@ document.getElementById("address-bar-form").addEventListener("submit", async fun
   updateTabHistory(tab, url);
   renderTabs();
   renderTabContent(tab);
-  updateHistoryList(tab);
 });
 
 // Toolbar Buttons
 document.getElementById("back-btn").onclick = function() {
-  const tab = tabs.find(t => t.id === activeTab);
+  const tab = getActiveTab();
   if (!tab || tab.pointer <= 0) return;
   tab.pointer--;
   updateAddressBar(tab);
   renderTabContent(tab);
-  updateHistoryList(tab);
 };
 document.getElementById("forward-btn").onclick = function() {
-  const tab = tabs.find(t => t.id === activeTab);
+  const tab = getActiveTab();
   if (!tab || tab.pointer >= tab.history.length - 1) return;
   tab.pointer++;
   updateAddressBar(tab);
   renderTabContent(tab);
-  updateHistoryList(tab);
 };
 document.getElementById("refresh-btn").onclick = function() {
-  const tab = tabs.find(t => t.id === activeTab);
+  const tab = getActiveTab();
   if (!tab || typeof tab.pointer !== "number" || tab.pointer < 0) return;
   renderTabContent(tab);
 };
 document.getElementById("home-btn").onclick = function() {
-  const tab = tabs.find(t => t.id === activeTab);
+  const tab = getActiveTab();
   if (!tab) return;
   const homepage = "";
   updateTabHistory(tab, homepage);
   updateAddressBar(tab);
   renderTabContent(tab);
-  updateHistoryList(tab);
 };
 
 // 3 Dots Menu Logic
@@ -398,10 +378,11 @@ menuBtn.onclick = (e) => {
 window.onclick = (e) => {
   if (!dropdown.contains(e.target) && e.target !== menuBtn) {
     dropdown.classList.remove("active");
+    closeHistoryModal();
   }
 };
 document.getElementById("clear-history-btn").onclick = function() {
-  const tab = tabs.find(t => t.id === activeTab);
+  const tab = getActiveTab();
   if (!tab) return;
   tab.history = [];
   tab.pointer = -1;
@@ -409,7 +390,6 @@ document.getElementById("clear-history-btn").onclick = function() {
   tab.title = "New Tab";
   updateAddressBar(tab);
   renderTabContent(tab);
-  updateHistoryList(tab);
   dropdown.classList.remove("active");
 };
 document.getElementById("close-all-tabs-btn").onclick = function() {
@@ -418,7 +398,6 @@ document.getElementById("close-all-tabs-btn").onclick = function() {
   renderTabs();
   document.getElementById("proxy-iframe").src = "";
   document.getElementById("address-bar-input").value = "";
-  document.getElementById("history-list").innerHTML = "";
   dropdown.classList.remove("active");
 };
 
@@ -463,6 +442,77 @@ document.addEventListener("keydown", (e) => {
 
 // New Tab Button
 document.getElementById("new-tab-btn").addEventListener("click", () => addTab());
+
+// --- HISTORY MODAL LOGIC --- //
+const historyBtn = document.getElementById("history-btn");
+const historyModalBg = document.getElementById("history-modal-bg");
+const historyModal = document.getElementById("history-modal");
+const modalHistoryList = document.getElementById("modal-history-list");
+const closeHistoryModalBtn = document.getElementById("close-history-modal");
+
+historyBtn.onclick = (e) => {
+  renderModalHistoryList();
+  openHistoryModal();
+  e.stopPropagation();
+};
+closeHistoryModalBtn.onclick = closeHistoryModal;
+historyModalBg.onclick = function(e) {
+  if (e.target === historyModalBg) closeHistoryModal();
+};
+
+function openHistoryModal() {
+  historyModalBg.classList.remove("pointer-events-none");
+  historyModalBg.classList.add("pointer-events-auto");
+  historyModalBg.style.opacity = "1";
+  historyModal.classList.remove("scale-95", "opacity-0");
+  historyModal.classList.add("scale-100", "opacity-100");
+  setTimeout(() => {
+    historyModalBg.style.opacity = "1";
+    historyModal.classList.add("opacity-100");
+  }, 10);
+}
+function closeHistoryModal() {
+  historyModalBg.classList.add("pointer-events-none");
+  historyModalBg.classList.remove("pointer-events-auto");
+  historyModalBg.style.opacity = "0";
+  historyModal.classList.add("scale-95", "opacity-0");
+  historyModal.classList.remove("scale-100", "opacity-100");
+}
+
+function renderModalHistoryList() {
+  const tab = getActiveTab();
+  modalHistoryList.innerHTML = "";
+  if (!tab || !tab.history.length) {
+    modalHistoryList.innerHTML = "<em class='block text-white/40'>No history for this tab.</em>";
+    return;
+  }
+  tab.history.forEach((url, idx) => {
+    const row = document.createElement("div");
+    row.className = "flex items-center gap-2 group";
+    row.innerHTML = `<span class="${idx === tab.pointer ? 'text-cyan-400 font-bold' : ''}">${url}</span>`;
+    row.onclick = () => {
+      tab.pointer = idx;
+      updateAddressBar(tab);
+      renderTabContent(tab);
+      closeHistoryModal();
+    };
+    // Little remove button
+    if (tab.history.length > 1) {
+      const rmBtn = document.createElement("button");
+      rmBtn.className = "ml-2 text-white/40 hover:text-red-500";
+      rmBtn.title = "Remove from history";
+      rmBtn.textContent = "✕";
+      rmBtn.onclick = (e) => {
+        e.stopPropagation();
+        tab.history.splice(idx, 1);
+        if (tab.pointer >= tab.history.length) tab.pointer = tab.history.length - 1;
+        renderModalHistoryList();
+      };
+      row.appendChild(rmBtn);
+    }
+    modalHistoryList.appendChild(row);
+  });
+}
 
 // Init: Add one tab on load
 window.addEventListener("DOMContentLoaded", () => {
