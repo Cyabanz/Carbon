@@ -48,6 +48,7 @@
     .dropdown-menu button:hover {
       background: #2c2c5c;
     }
+    /* Custom scrollbar for history */
     .history-scroll {
       scrollbar-width: thin;
       scrollbar-color: #5865f2 #181829;
@@ -91,65 +92,11 @@
       background: #23234d;
       color: #fff;
     }
-    .toggle-switch {
-      position: relative;
-      display: inline-block;
-      width: 60px;
-      height: 30px;
-      vertical-align: middle;
-      margin-left: 1rem;
-      margin-right: 0.5rem;
-    }
-    .toggle-switch input {
-      display: none;
-    }
-    .slider {
-      position: absolute;
-      cursor: pointer;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background: #23234d;
-      border-radius: 30px;
-      transition: background 0.2s;
-      border: 2px solid #0ff;
-    }
-    .slider:before {
-      position: absolute;
-      content: "";
-      height: 24px;
-      width: 24px;
-      left: 3px;
-      bottom: 2px;
-      background: #fff;
-      border-radius: 50%;
-      transition: 0.2s;
-    }
-    .toggle-switch input:checked + .slider {
-      background: #5865f2;
-      border-color: #5865f2;
-    }
-    .toggle-switch input:checked + .slider:before {
-      transform: translateX(30px);
-      background: #fff;
-    }
-    .toggle-label {
-      margin-right: 0.5rem;
-      font-weight: 600;
-      color: #0ff;
-      font-size: 0.97rem;
-      vertical-align: middle;
-    }
     @media (max-width: 480px) {
       .custom-select {
         width: 100%;
         margin-left: 0;
         margin-top: 0.5rem;
-      }
-      .toggle-label {
-        margin-left: 0;
-      }
-      .toggle-switch {
-        margin-left: 0.25rem;
-        margin-right: 0.25rem;
       }
     }
   </style>
@@ -181,13 +128,6 @@
         <button id="history-btn" class="rounded bg-[#23234d] hover:bg-[#2c2c5c] p-2 flex items-center justify-center" title="Show History">
           <i class='bx bx-history text-2xl'></i>
         </button>
-        <!-- Proxy Toggle -->
-        <label class="toggle-label" for="proxy-toggle">UV</label>
-        <div class="toggle-switch">
-          <input type="checkbox" id="proxy-toggle">
-          <span class="slider"></span>
-        </div>
-        <label class="toggle-label" for="proxy-toggle" id="proxy-toggle-label" style="color:#f8d94e">Scramjet</label>
         <div class="relative">
           <button id="menu-btn" class="rounded bg-[#23234d] hover:bg-[#2c2c5c] p-2 flex items-center justify-center" title="Menu">
             <svg width="20" height="20" fill="white" viewBox="0 0 24 24"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
@@ -247,6 +187,14 @@ import {
 } from "./lethal.mjs";
 
 // ---- Search Engine Management ----
+const searchEngineList = [
+  { name: "Brave", url: "https://search.brave.com/search?q=%s" },
+  { name: "DuckDuckGo", url: "https://duckduckgo.com/?q=%s" },
+  { name: "Google", url: "https://www.google.com/search?q=%s" },
+  { name: "Bing", url: "https://www.bing.com/search?q=%s" },
+  { name: "Yahoo", url: "https://search.yahoo.com/search?p=%s" },
+  { name: "Ecosia", url: "https://www.ecosia.org/search?q=%s" },
+];
 const searchEngineSelect = document.getElementById("search-engine");
 function getCurrentSearchEngine() {
   return localStorage.getItem("search-engine") ||
@@ -266,6 +214,7 @@ function updateSearchEngineSelect() {
 }
 searchEngineSelect.addEventListener("change", (e) => {
   setCurrentSearchEngine(e.target.value);
+  // optionally reload current tab with new engine if the input is not a URL
   const tab = getActiveTab();
   if (tab && tab.history[tab.pointer]) {
     let v = tab.history[tab.pointer];
@@ -275,36 +224,6 @@ searchEngineSelect.addEventListener("change", (e) => {
   }
 });
 updateSearchEngineSelect();
-
-// ---- Proxy Backend Toggle ----
-const proxyToggle = document.getElementById("proxy-toggle");
-const proxyToggleLabel = document.getElementById("proxy-toggle-label");
-function updateProxyToggleUI(backend) {
-  if (backend === "scram") {
-    proxyToggle.checked = true;
-    proxyToggleLabel.style.color = "#0ff";
-  } else {
-    proxyToggle.checked = false;
-    proxyToggleLabel.style.color = "#f8d94e";
-  }
-}
-proxyToggle.addEventListener("change", async function() {
-  if (proxyToggle.checked) {
-    await setProxy("scram");
-    localStorage.setItem("proxy-backend", "scram");
-    updateProxyToggleUI("scram");
-  } else {
-    await setProxy("uv");
-    localStorage.setItem("proxy-backend", "uv");
-    updateProxyToggleUI("uv");
-  }
-  // Refresh current tab
-  const tab = getActiveTab();
-  if (tab) renderTabContent(tab);
-});
-// Set toggle state on load
-let initialBackend = localStorage.getItem("proxy-backend") || "uv";
-updateProxyToggleUI(initialBackend);
 
 // ---- Proxy Setup ----
 let backend = localStorage.getItem("proxy-backend") || "uv";
@@ -322,6 +241,7 @@ let activeTab = null;
 let tabIdCounter = 1;
 let closedTabsSnapshot = [];
 
+// Per-tab history: { id, urls: [], pointer }
 function createTab(url = "") {
   const id = "tab-" + tabIdCounter++;
   return {
@@ -397,6 +317,7 @@ function updateAddressBar(tab) {
 }
 
 function renderTabContent(tab) {
+  // Set iframe src
   const iframe = document.getElementById("proxy-iframe");
   if (!tab || typeof tab.pointer !== "number" || tab.pointer < 0 || !tab.history[tab.pointer]) {
     iframe.src = "";
@@ -437,6 +358,7 @@ function removeTab(tabId) {
   if (idx !== -1) {
     takeTabsSnapshot();
     tabs.splice(idx, 1);
+    // If closing the active tab, activate previous, or next, or none
     if (activeTab === tabId) {
       if (tabs[idx - 1]) setActiveTab(tabs[idx - 1].id);
       else if (tabs[idx]) setActiveTab(tabs[idx].id);
@@ -462,6 +384,7 @@ function reorderTab(draggedTabId, targetTabId) {
 }
 
 function updateTabHistory(tab, url) {
+  // If not at end, cut forward history
   if (tab.pointer < tab.history.length - 1) {
     tab.history = tab.history.slice(0, tab.pointer + 1);
   }
@@ -488,6 +411,7 @@ document.getElementById("address-bar-form").addEventListener("submit", async fun
   renderTabContent(tab);
 });
 
+// Toolbar Buttons
 document.getElementById("back-btn").onclick = function() {
   const tab = getActiveTab();
   if (!tab || tab.pointer <= 0) return;
@@ -516,7 +440,9 @@ document.getElementById("home-btn").onclick = function() {
   renderTabContent(tab);
 };
 
+// --- Restore Tabs (Snapshot) --- //
 function takeTabsSnapshot() {
+  // Save a snapshot of the tabs state before closing all
   closedTabsSnapshot = JSON.parse(JSON.stringify(tabs));
   localStorage.setItem("carbon-proxy-last-tabs", JSON.stringify(closedTabsSnapshot));
 }
@@ -528,7 +454,7 @@ function restoreTabsFromSnapshot() {
   if (!snapshot.length) return;
   tabs = snapshot.map(tab => ({
     ...tab,
-    id: "tab-" + (tabIdCounter++),
+    id: "tab-" + (tabIdCounter++), // ensure unique id
   }));
   activeTab = tabs.length ? tabs[0].id : null;
   renderTabs();
@@ -536,7 +462,7 @@ function restoreTabsFromSnapshot() {
   closedTabsSnapshot = [];
   localStorage.removeItem("carbon-proxy-last-tabs");
 }
-
+// 3 Dots Menu Logic
 const menuBtn = document.getElementById("menu-btn");
 const dropdown = document.getElementById("dropdown-menu");
 menuBtn.onclick = (e) => {
@@ -576,14 +502,17 @@ document.getElementById("restore-tabs-btn").onclick = function() {
 
 // Keyboard Shortcuts
 document.addEventListener("keydown", (e) => {
+  // Cmd/Ctrl+T: New tab
   if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === "t") {
     e.preventDefault();
     addTab();
   }
+  // Cmd/Ctrl+W: Close tab
   if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === "w") {
     e.preventDefault();
     if (activeTab) removeTab(activeTab);
   }
+  // Cmd/Ctrl+Tab: Next tab
   if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key === "Tab") {
     e.preventDefault();
     const idx = tabs.findIndex(t => t.id === activeTab);
@@ -592,6 +521,7 @@ document.addEventListener("keydown", (e) => {
       setActiveTab(tabs[nextIdx].id);
     }
   }
+  // Cmd/Ctrl+Shift+Tab: Previous tab
   if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === "Tab") {
     e.preventDefault();
     const idx = tabs.findIndex(t => t.id === activeTab);
@@ -600,6 +530,7 @@ document.addEventListener("keydown", (e) => {
       setActiveTab(tabs[prevIdx].id);
     }
   }
+  // Alt+Left/Right for back/forward
   if (e.altKey && !e.shiftKey && e.key === "ArrowLeft") {
     document.getElementById("back-btn").click();
   }
@@ -608,8 +539,10 @@ document.addEventListener("keydown", (e) => {
   }
 });
 
+// New Tab Button
 document.getElementById("new-tab-btn").addEventListener("click", () => addTab());
 
+// --- HISTORY MODAL LOGIC --- //
 const historyBtn = document.getElementById("history-btn");
 const historyModalBg = document.getElementById("history-modal-bg");
 const historyModal = document.getElementById("history-modal");
@@ -662,6 +595,7 @@ function renderModalHistoryList() {
       renderTabContent(tab);
       closeHistoryModal();
     };
+    // Little remove button
     if (tab.history.length > 1) {
       const rmBtn = document.createElement("button");
       rmBtn.className = "ml-2 text-white/40 hover:text-red-500";
