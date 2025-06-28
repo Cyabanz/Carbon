@@ -7,7 +7,6 @@
   <script defer async src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
   <link rel="stylesheet" href="styles.css">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
-  <!-- Boxicons CDN for icons -->
   <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
   <style>
     .draggable-tab {
@@ -64,7 +63,6 @@
     .history-scroll::-webkit-scrollbar-track {
       background: #181829;
     }
-    /* History modal */
     .history-modal-bg {
       background: rgba(0,0,0,0.5);
       z-index: 2000;
@@ -74,48 +72,85 @@
       z-index: 2010;
       transition: transform 0.2s, opacity 0.2s;
     }
+    .custom-select {
+      background: #23234d;
+      border-radius: 0.375rem;
+      padding: 0.5rem 2.5rem 0.5rem 0.75rem;
+      color: #fff;
+      border: 2px solid #0ff;
+      outline: none;
+      appearance: none;
+      width: 200px;
+      font-size: 1rem;
+      margin-left: 0.75rem;
+      transition: border-color 0.2s;
+    }
+    .custom-select:focus {
+      border-color: #6366f1;
+    }
+    .custom-select option {
+      background: #23234d;
+      color: #fff;
+    }
+    @media (max-width: 480px) {
+      .custom-select {
+        width: 100%;
+        margin-left: 0;
+        margin-top: 0.5rem;
+      }
+    }
   </style>
 </head>
 <body class="bg-gradient-to-br from-[#0f0f23] via-[#1a1a2e] to-[#16213e] min-h-screen text-white overflow-x-hidden relative">
 
 <main class="flex flex-col items-center justify-center min-h-screen px-2 py-8 relative z-10">
   <div class="w-full max-w-4xl mx-auto shadow-lg rounded-lg bg-[#1a1a2e]/80 p-3 pt-4">
-
     <!-- Tabs Bar -->
     <div class="flex items-center space-x-2 relative">
       <div id="tabs-bar" class="flex items-center space-x-2 overflow-x-auto pb-2"></div>
       <button id="new-tab-btn" class="ml-2 px-3 py-1 rounded bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-lg" title="New Tab (Ctrl+T)">+</button>
     </div>
-
     <!-- Toolbar -->
-    <div class="flex items-center gap-2 mt-2 mb-2 tab-actions relative">
-      <button id="back-btn" class="rounded bg-[#23234d] hover:bg-[#2c2c5c] p-2 flex items-center justify-center" title="Back">
-        <svg width="20" height="20" stroke="white" fill="none" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </button>
-      <button id="forward-btn" class="rounded bg-[#23234d] hover:bg-[#2c2c5c] p-2 flex items-center justify-center" title="Forward">
-        <svg width="20" height="20" stroke="white" fill="none" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </button>
-      <button id="refresh-btn" class="rounded bg-[#23234d] hover:bg-[#2c2c5c] p-2 flex items-center justify-center" title="Refresh">
-        <svg width="20" height="20" stroke="white" fill="none" viewBox="0 0 24 24"><path d="M4 4v6h6M20 20v-6h-6M5.07 19A9 9 0 1 1 21 12.94" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </button>
-      <button id="home-btn" class="rounded bg-[#23234d] hover:bg-[#2c2c5c] p-2 flex items-center justify-center" title="Home">
-        <svg width="20" height="20" stroke="white" fill="none" viewBox="0 0 24 24"><path d="M3 12l9-9 9 9M4 10v10h16V10" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </button>
-      <!-- History Icon -->
-      <button id="history-btn" class="rounded bg-[#23234d] hover:bg-[#2c2c5c] p-2 flex items-center justify-center" title="Show History">
-        <i class='bx bx-history text-2xl'></i>
-      </button>
-      <div class="relative">
-        <button id="menu-btn" class="rounded bg-[#23234d] hover:bg-[#2c2c5c] p-2 flex items-center justify-center" title="Menu">
-          <svg width="20" height="20" fill="white" viewBox="0 0 24 24"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
+    <div class="flex flex-col md:flex-row md:items-center gap-2 mt-2 mb-2 tab-actions relative">
+      <div class="flex items-center gap-2">
+        <button id="back-btn" class="rounded bg-[#23234d] hover:bg-[#2c2c5c] p-2 flex items-center justify-center" title="Back">
+          <svg width="20" height="20" stroke="white" fill="none" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </button>
-        <div id="dropdown-menu" class="dropdown-menu">
-          <button id="clear-history-btn">Clear History</button>
-          <button id="close-all-tabs-btn">Close All Tabs</button>
+        <button id="forward-btn" class="rounded bg-[#23234d] hover:bg-[#2c2c5c] p-2 flex items-center justify-center" title="Forward">
+          <svg width="20" height="20" stroke="white" fill="none" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <button id="refresh-btn" class="rounded bg-[#23234d] hover:bg-[#2c2c5c] p-2 flex items-center justify-center" title="Refresh">
+          <svg width="20" height="20" stroke="white" fill="none" viewBox="0 0 24 24"><path d="M4 4v6h6M20 20v-6h-6M5.07 19A9 9 0 1 1 21 12.94" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <button id="home-btn" class="rounded bg-[#23234d] hover:bg-[#2c2c5c] p-2 flex items-center justify-center" title="Home">
+          <svg width="20" height="20" stroke="white" fill="none" viewBox="0 0 24 24"><path d="M3 12l9-9 9 9M4 10v10h16V10" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <button id="history-btn" class="rounded bg-[#23234d] hover:bg-[#2c2c5c] p-2 flex items-center justify-center" title="Show History">
+          <i class='bx bx-history text-2xl'></i>
+        </button>
+        <div class="relative">
+          <button id="menu-btn" class="rounded bg-[#23234d] hover:bg-[#2c2c5c] p-2 flex items-center justify-center" title="Menu">
+            <svg width="20" height="20" fill="white" viewBox="0 0 24 24"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
+          </button>
+          <div id="dropdown-menu" class="dropdown-menu">
+            <button id="clear-history-btn">Clear History</button>
+            <button id="close-all-tabs-btn">Close All Tabs</button>
+          </div>
         </div>
       </div>
+      <!-- Search Engine Select -->
+      <div class="flex items-center md:ml-auto">
+        <label for="search-engine" class="mr-2 text-cyan-400 font-semibold hidden md:inline">Search:</label>
+        <select id="search-engine" class="custom-select" aria-label="Select search engine">
+          <option value="https://search.brave.com/search?q=%s">Brave</option>
+          <option value="https://duckduckgo.com/?q=%s">DuckDuckGo</option>
+          <option value="https://www.google.com/search?q=%s">Google</option>
+          <option value="https://www.bing.com/search?q=%s">Bing</option>
+          <option value="https://search.yahoo.com/search?p=%s">Yahoo</option>
+          <option value="https://www.ecosia.org/search?q=%s">Ecosia</option>
+        </select>
+      </div>
     </div>
-
     <!-- Search/Address Bar -->
     <form id="address-bar-form" class="w-full flex items-center mb-2">
       <input
@@ -127,13 +162,11 @@
         class="bg-[#23234d] w-full focus:outline-none border-b-2 border-cyan-400 text-center py-2 text-lg transition-all duration-300 placeholder-white/50 focus:border-indigo-500 rounded"
       />
     </form>
-
     <!-- Tab Content Area (iframe) -->
     <div class="rounded-lg overflow-hidden bg-black border border-[#23234d]">
       <iframe id="proxy-iframe" title="Proxy Frame" class="w-full h-[60vh] border-0" src=""></iframe>
     </div>
   </div>
-
   <!-- History Modal (hidden by default) -->
   <div id="history-modal-bg" class="fixed inset-0 history-modal-bg flex items-center justify-center opacity-0 pointer-events-none">
     <div id="history-modal" class="history-modal bg-[#23234d] rounded-xl shadow-xl max-w-lg w-[95vw] p-6 relative transform scale-95 opacity-0">
@@ -143,7 +176,6 @@
     </div>
   </div>
 </main>
-
 <script type="module">
 import {
   makeURL,
@@ -153,7 +185,46 @@ import {
   setWisp,
 } from "./lethal.mjs";
 
-// Initial Proxy Setup
+// ---- Search Engine Management ----
+const searchEngineList = [
+  { name: "Brave", url: "https://search.brave.com/search?q=%s" },
+  { name: "DuckDuckGo", url: "https://duckduckgo.com/?q=%s" },
+  { name: "Google", url: "https://www.google.com/search?q=%s" },
+  { name: "Bing", url: "https://www.bing.com/search?q=%s" },
+  { name: "Yahoo", url: "https://search.yahoo.com/search?p=%s" },
+  { name: "Ecosia", url: "https://www.ecosia.org/search?q=%s" },
+];
+const searchEngineSelect = document.getElementById("search-engine");
+function getCurrentSearchEngine() {
+  return localStorage.getItem("search-engine") ||
+    "https://search.brave.com/search?q=%s";
+}
+function setCurrentSearchEngine(url) {
+  localStorage.setItem("search-engine", url);
+}
+function updateSearchEngineSelect() {
+  const current = getCurrentSearchEngine();
+  for (const opt of searchEngineSelect.options) {
+    if (opt.value === current) {
+      opt.selected = true;
+      break;
+    }
+  }
+}
+searchEngineSelect.addEventListener("change", (e) => {
+  setCurrentSearchEngine(e.target.value);
+  // optionally reload current tab with new engine if the input is not a URL
+  const tab = getActiveTab();
+  if (tab && tab.history[tab.pointer]) {
+    let v = tab.history[tab.pointer];
+    if (!/^(https?:)?\/\//.test(v) && v.length > 0) {
+      renderTabContent(tab);
+    }
+  }
+});
+updateSearchEngineSelect();
+
+// ---- Proxy Setup ----
 let backend = localStorage.getItem("proxy-backend") || "uv";
 let wisp = localStorage.getItem("wisp-server") || "wss://anura.pro/";
 let transport = localStorage.getItem("proxy-transport");
@@ -251,9 +322,7 @@ function renderTabContent(tab) {
     return;
   }
   let url = tab.history[tab.pointer];
-  let search =
-    localStorage.getItem("search-engine") ||
-    "https://search.brave.com/search?q=%s";
+  let search = getCurrentSearchEngine();
   makeURLAndProxied(url, search).then(src => {
     iframe.src = src;
   });
