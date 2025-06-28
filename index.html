@@ -28,7 +28,7 @@
       top: 110%;
       background: #23234d;
       border-radius: 0.5rem;
-      min-width: 140px;
+      min-width: 170px;
       z-index: 100;
       box-shadow: 0 6px 16px 3px rgba(0,0,0,.4);
     }
@@ -135,6 +135,7 @@
           <div id="dropdown-menu" class="dropdown-menu">
             <button id="clear-history-btn">Clear History</button>
             <button id="close-all-tabs-btn">Close All Tabs</button>
+            <button id="restore-tabs-btn">Restore Tabs</button>
           </div>
         </div>
       </div>
@@ -238,6 +239,7 @@ else setTransport("epoxy");
 let tabs = [];
 let activeTab = null;
 let tabIdCounter = 1;
+let closedTabsSnapshot = [];
 
 // Per-tab history: { id, urls: [], pointer }
 function createTab(url = "") {
@@ -354,6 +356,7 @@ function addTab(url = "") {
 function removeTab(tabId) {
   const idx = tabs.findIndex(t => t.id === tabId);
   if (idx !== -1) {
+    takeTabsSnapshot();
     tabs.splice(idx, 1);
     // If closing the active tab, activate previous, or next, or none
     if (activeTab === tabId) {
@@ -437,6 +440,28 @@ document.getElementById("home-btn").onclick = function() {
   renderTabContent(tab);
 };
 
+// --- Restore Tabs (Snapshot) --- //
+function takeTabsSnapshot() {
+  // Save a snapshot of the tabs state before closing all
+  closedTabsSnapshot = JSON.parse(JSON.stringify(tabs));
+  localStorage.setItem("carbon-proxy-last-tabs", JSON.stringify(closedTabsSnapshot));
+}
+function restoreTabsFromSnapshot() {
+  let fromLS = localStorage.getItem("carbon-proxy-last-tabs");
+  let snapshot = closedTabsSnapshot.length
+    ? closedTabsSnapshot
+    : (fromLS ? JSON.parse(fromLS) : []);
+  if (!snapshot.length) return;
+  tabs = snapshot.map(tab => ({
+    ...tab,
+    id: "tab-" + (tabIdCounter++), // ensure unique id
+  }));
+  activeTab = tabs.length ? tabs[0].id : null;
+  renderTabs();
+  setActiveTab(activeTab);
+  closedTabsSnapshot = [];
+  localStorage.removeItem("carbon-proxy-last-tabs");
+}
 // 3 Dots Menu Logic
 const menuBtn = document.getElementById("menu-btn");
 const dropdown = document.getElementById("dropdown-menu");
@@ -462,11 +487,16 @@ document.getElementById("clear-history-btn").onclick = function() {
   dropdown.classList.remove("active");
 };
 document.getElementById("close-all-tabs-btn").onclick = function() {
+  if (tabs.length > 0) takeTabsSnapshot();
   tabs = [];
   activeTab = null;
   renderTabs();
   document.getElementById("proxy-iframe").src = "";
   document.getElementById("address-bar-input").value = "";
+  dropdown.classList.remove("active");
+};
+document.getElementById("restore-tabs-btn").onclick = function() {
+  restoreTabsFromSnapshot();
   dropdown.classList.remove("active");
 };
 
