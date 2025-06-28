@@ -4,11 +4,20 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CARBON</title>
-
     <script defer async src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <script defer async src="/js/hamburger.js"></script>
     <link rel="stylesheet" href="styles.css"></link>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
+    <style>
+      .draggable-tab {
+        user-select: none;
+        cursor: grab;
+        transition: background 0.2s;
+      }
+      .draggable-tab.dragging {
+        opacity: 0.5;
+      }
+    </style>
 </head>
 <body class="bg-gradient-to-br from-[#0f0f23] via-[#1a1a2e] to-[#16213e] min-h-screen text-white overflow-x-hidden relative">
     <!-- Navbar -->
@@ -35,18 +44,211 @@
     <div class="blob3 pointer-events-none absolute rounded-full opacity-10 blur-3xl" style="width:200px;height:200px;bottom:20%;left:20%;background:linear-gradient(45deg,#00d4ff,#8b5cf6);animation:float 20s infinite ease-in-out -14s;"></div>
 
     <main class="flex flex-col items-center justify-center min-h-screen pt-28 pb-8 px-4 relative z-10">
-        <div class="flex flex-col items-center justify-center w-full">
-            <div class="logo-container mb-8 animate-[fadeInUp_1s_ease-out] flex justify-center">
-                <div class="logo relative w-[120px] h-[120px] cursor-pointer transition-transform duration-300 hover:scale-110 hover:rotate-3 flex items-center justify-center" onclick="createParticles(event)">
-                    <div class="logo-ring logo-ring-1 absolute border-8 rounded-full" style="width:120px; height:120px; border-color:transparent; border-top-color:#00d4ff; border-right-color:#00d4ff; transform:rotate(-45deg); animation:spin 8s linear infinite;"></div>
-                    <div class="logo-ring logo-ring-2 absolute top-[15px] left-[15px] border-8 rounded-full" style="width:90px; height:90px; border-color:transparent; border-bottom-color:#5865f2; border-left-color:#5865f2; transform:rotate(45deg); animation:spinReverse 12s linear infinite;"></div>
-                </div>
-            </div>
-            <h1 class="title font-black text-center bg-gradient-to-r from-cyan-400 via-indigo-500 to-purple-400 bg-clip-text text-transparent mb-12 tracking-tighter animate-[fadeInUp_1s_ease-out_0.2s_both] text-5xl sm:text-6xl md:text-7xl flex justify-center">CARBON</h1>
-            <div class="blob-button animate-[fadeInUp_1s_ease-out_0.6s_both]">Blob placeholder</div>
-        </div>
-    </main>
+      <!-- Chrome-like Tabs Bar -->
+      <div class="w-full max-w-4xl mx-auto shadow-lg rounded-lg bg-[#1a1a2e]/80 p-4">
+        <div id="tabs-bar" class="flex items-center space-x-2 overflow-x-auto pb-2"></div>
+        <button id="new-tab-btn" class="ml-2 px-3 py-1 rounded bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-lg" title="New Tab (Ctrl+T)">+</button>
+        <div id="tab-content-area" class="mt-4"></div>
+      </div>
+      <script type="module">
+        import {
+          makeURL,
+          getProxied,
+        } from "./lethal.mjs";
 
-    </body>
+        let tabs = [];
+        let activeTab = null;
+        let tabIdCounter = 1;
+
+        function createTab(url='') {
+          const id = 'tab-' + tabIdCounter++;
+          return {
+            id,
+            title: url ? url : 'New Tab',
+            url,
+            iframeId: 'iframe-' + id
+          };
+        }
+
+        function renderTabs() {
+          const tabsBar = document.getElementById('tabs-bar');
+          tabsBar.innerHTML = '';
+          tabs.forEach((tab, idx) => {
+            const btn = document.createElement('div');
+            btn.className = 'draggable-tab flex items-center px-4 py-2 rounded-t-lg bg-[#23234d] hover:bg-[#2c2c5c] text-white relative group select-none mr-1 ' +
+              (tab.id === activeTab ? 'border-t-2 border-cyan-400 font-bold bg-[#292955]' : '');
+            btn.setAttribute('draggable', 'true');
+            btn.setAttribute('data-tab-id', tab.id);
+            btn.textContent = tab.title.length > 18 ? tab.title.slice(0,15) + '...' : tab.title;
+
+            // Close icon
+            const closeBtn = document.createElement('span');
+            closeBtn.className = 'ml-2 cursor-pointer opacity-60 hover:opacity-100 transition-opacity';
+            closeBtn.innerHTML = '&times;';
+            closeBtn.title = 'Close Tab (Ctrl+W)';
+            closeBtn.onclick = (e) => {
+              e.stopPropagation();
+              removeTab(tab.id);
+            };
+            btn.appendChild(closeBtn);
+
+            // Activate tab on click
+            btn.onclick = () => setActiveTab(tab.id);
+
+            // --- Drag and Drop Handlers ---
+            btn.addEventListener('dragstart', (e) => {
+              e.dataTransfer.setData('text/plain', tab.id);
+              btn.classList.add('dragging');
+            });
+            btn.addEventListener('dragend', (e) => {
+              btn.classList.remove('dragging');
+            });
+            btn.addEventListener('dragover', (e) => {
+              e.preventDefault();
+              btn.classList.add('bg-[#23234d]/80');
+            });
+            btn.addEventListener('dragleave', (e) => {
+              btn.classList.remove('bg-[#23234d]/80');
+            });
+            btn.addEventListener('drop', (e) => {
+              e.preventDefault();
+              btn.classList.remove('bg-[#23234d]/80');
+              const draggedTabId = e.dataTransfer.getData('text/plain');
+              reorderTab(draggedTabId, tab.id);
+            });
+
+            tabsBar.appendChild(btn);
+          });
+        }
+
+        function renderTabContent() {
+          const area = document.getElementById('tab-content-area');
+          const tab = tabs.find(t => t.id === activeTab);
+          if (!tab) {
+            area.innerHTML = '<div class="text-center text-lg text-white/70 py-8">No tab selected</div>';
+            return;
+          }
+          area.innerHTML = `
+            <form id="form-${tab.id}" class="w-full md:w-2/3 lg:w-1/2 mx-auto mb-3">
+              <input
+                spellcheck="false"
+                autocomplete="off"
+                id="address-${tab.id}"
+                type="text"
+                value="${tab.url || ''}"
+                placeholder="Search the web freely"
+                class="bg-transparent w-full focus:outline-none border-b-2 border-cyan-400 text-center py-2 text-xl transition-all duration-300 placeholder-white/50 focus:border-indigo-500"
+              />
+            </form>
+            <div id="proxy-container-${tab.id}">
+              <iframe title="Proxy Frame" id="${tab.iframeId}" class="w-full h-[70vh] border-0 bg-black"></iframe>
+            </div>
+          `;
+
+          // Attach form listener
+          document.getElementById(`form-${tab.id}`).addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const addressInput = document.getElementById(`address-${tab.id}`);
+            let url = addressInput.value;
+            tab.url = url;
+            tab.title = url ? url : 'New Tab';
+            renderTabs();
+            try {
+              let search =
+                localStorage.getItem("search-engine") ||
+                "https://search.brave.com/search?q=%s";
+              let frame = document.getElementById(tab.iframeId);
+              let urlToLoad = makeURL(url, search);
+              frame.src = await getProxied(urlToLoad);
+            } catch (e) {}
+          });
+
+          // Auto-fill iframe if url exists
+          if (tab.url) {
+            document.getElementById(`form-${tab.id}`).dispatchEvent(new Event('submit'));
+          }
+        }
+
+        function setActiveTab(tabId) {
+          activeTab = tabId;
+          renderTabs();
+          renderTabContent();
+        }
+
+        function addTab(url='') {
+          const tab = createTab(url);
+          tabs.push(tab);
+          setActiveTab(tab.id);
+        }
+
+        function removeTab(tabId) {
+          const idx = tabs.findIndex(t => t.id === tabId);
+          if (idx !== -1) {
+            tabs.splice(idx, 1);
+            // If closing the active tab, activate previous, or next, or none
+            if (activeTab === tabId) {
+              if (tabs[idx - 1]) setActiveTab(tabs[idx - 1].id);
+              else if (tabs[idx]) setActiveTab(tabs[idx].id);
+              else {
+                activeTab = null;
+                renderTabs();
+                renderTabContent();
+              }
+            } else {
+              renderTabs();
+            }
+          }
+        }
+
+        function reorderTab(draggedTabId, targetTabId) {
+          const fromIdx = tabs.findIndex(t => t.id === draggedTabId);
+          const toIdx = tabs.findIndex(t => t.id === targetTabId);
+          if (fromIdx === -1 || toIdx === -1 || fromIdx === toIdx) return;
+          const [removed] = tabs.splice(fromIdx, 1);
+          tabs.splice(toIdx, 0, removed);
+          renderTabs();
+        }
+
+        // --- Keyboard Shortcuts ---
+        document.addEventListener('keydown', (e) => {
+          // Cmd/Ctrl+T: New tab
+          if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === 't') {
+            e.preventDefault();
+            addTab();
+          }
+          // Cmd/Ctrl+W: Close tab
+          if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === 'w') {
+            e.preventDefault();
+            if (activeTab) removeTab(activeTab);
+          }
+          // Cmd/Ctrl+Tab: Next tab
+          if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key === 'Tab') {
+            e.preventDefault();
+            const idx = tabs.findIndex(t => t.id === activeTab);
+            if (tabs.length > 1 && idx !== -1) {
+              const nextIdx = (idx + 1) % tabs.length;
+              setActiveTab(tabs[nextIdx].id);
+            }
+          }
+          // Cmd/Ctrl+Shift+Tab: Previous tab
+          if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'Tab') {
+            e.preventDefault();
+            const idx = tabs.findIndex(t => t.id === activeTab);
+            if (tabs.length > 1 && idx !== -1) {
+              const prevIdx = (idx - 1 + tabs.length) % tabs.length;
+              setActiveTab(tabs[prevIdx].id);
+            }
+          }
+        });
+
+        // --- New Tab Button ---
+        document.getElementById('new-tab-btn').addEventListener('click', () => addTab());
+
+        // --- Init: Add one tab on load ---
+        window.addEventListener('DOMContentLoaded', () => {
+          if (tabs.length === 0) addTab();
+        });
+      </script>
+    </main>
 </body>
 </html>
