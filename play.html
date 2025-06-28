@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Play Game - CARBON</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
+  <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <style>
+    .toggle-selected {
+      @apply bg-cyan-500 text-black font-bold;
+    }
+    .toggle-unselected {
+      @apply bg-white/10 text-white;
+    }
+  </style>
+</head>
+<body class="bg-gradient-to-br from-[#0f0f23] via-[#1a1a2e] to-[#16213e] min-h-screen text-white font-[Inter]">
+
+  <!-- Navbar -->
+  <nav class="flex items-center justify-between px-8 py-4 bg-[#0f0f23cc] border-b border-white/10 backdrop-blur-md fixed top-0 left-0 right-0 z-50">
+    <a href="index.html" class="text-2xl font-extrabold bg-gradient-to-r from-cyan-400 to-indigo-500 bg-clip-text text-transparent tracking-tighter">CARBON</a>
+    <div class="flex items-center gap-4">
+      <div id="userSection"></div>
+    </div>
+  </nav>
+
+  <!-- LOGIN SCREEN (shown if not logged in) -->
+  <div id="loginScreen" class="flex flex-col items-center justify-center h-screen w-full bg-gradient-to-br from-[#0f0f23] via-[#1a1a2e] to-[#16213e] fixed left-0 top-0 z-50">
+    <div class="bg-[#1a1a2e] rounded-2xl shadow-2xl p-12 border border-cyan-600/30 flex flex-col items-center">
+      <div class="text-3xl font-bold bg-gradient-to-r from-cyan-400 to-indigo-500 bg-clip-text text-transparent mb-6">Sign In to Play</div>
+      <button onclick="googleSignIn()" class="flex items-center gap-3 bg-cyan-500 hover:bg-cyan-400 text-black font-bold px-6 py-3 rounded-lg text-lg transition">
+        <i class='bx bxl-google text-2xl'></i> Sign in with Google
+      </button>
+      <div id="loginError" class="text-pink-400 mt-6 hidden"></div>
+    </div>
+  </div>
+
+  <main class="pt-28 max-w-4xl mx-auto px-4">
+    <!-- Proxy Toggle -->
+    <div id="proxyToggleContainer" class="flex justify-end mb-4 items-center gap-4">
+      <span class="text-white/60 text-sm">Proxy:</span>
+      <button id="proxyScramBtn" class="px-4 py-1 rounded toggle-unselected" aria-pressed="false">Scram</button>
+      <button id="proxyUvBtn" class="px-4 py-1 rounded toggle-unselected" aria-pressed="false">Ultraviolet</button>
+    </div>
+
+    <div id="gameFrameContainer" class="rounded-2xl shadow-2xl bg-[#181b2a] border border-cyan-600/30 overflow-hidden hidden">
+      <div class="relative aspect-video bg-black">
+        <iframe id="gameFrameEmbed" src="" class="w-full h-full" frameborder="0" allowfullscreen></iframe>
+        <div class="absolute top-4 right-4 flex gap-2 z-10">
+          <button id="likeBtn" class="w-10 h-10 bg-white/10 hover:bg-cyan-500/80 text-white rounded-full flex items-center justify-center transition" title="Like">
+            <i class='bx bx-like text-xl'></i>
+          </button>
+          <button id="favBtn" class="w-10 h-10 bg-white/10 hover:bg-pink-500/80 text-white rounded-full flex items-center justify-center transition" title="Favorite">
+            <i class='bx bx-heart text-xl'></i>
+          </button>
+          <button id="dislikeBtn" class="w-10 h-10 bg-white/10 hover:bg-red-500/80 text-white rounded-full flex items-center justify-center transition" title="Dislike">
+            <i class='bx bx-dislike text-xl'></i>
+          </button>
+          <button id="shareBtn" class="w-10 h-10 bg-white/10 hover:bg-indigo-500/80 text-white rounded-full flex items-center justify-center transition" title="Share">
+            <i class='bx bx-share-alt text-xl'></i>
+          </button>
+          <button id="playlistBtn" class="w-10 h-10 bg-white/10 hover:bg-yellow-400/80 text-white rounded-full flex items-center justify-center transition" title="Add to Playlist">
+            <i class='bx bx-list-plus text-xl'></i>
+          </button>
+        </div>
+      </div>
+      <div class="flex flex-col md:flex-row p-6 gap-6 items-start bg-[#232445]">
+        <div class="flex-1">
+          <h2 id="gameFrameTitle" class="text-2xl font-bold text-cyan-300 mb-2"></h2>
+          <p id="gameFrameDesc" class="text-white/80 mb-2"></p>
+          <div id="gameFrameTags" class="flex items-center gap-2 text-sm text-white/50 mb-2"></div>
+        </div>
+        <div class="flex flex-col gap-2 w-full md:w-auto">
+          <button id="fullscreenBtn" class="bg-gradient-to-r from-cyan-400 to-indigo-500 text-black font-bold px-6 py-2 rounded-lg hover:scale-105 transition-transform">Play Fullscreen</button>
+          <a href="profile.html" class="bg-white/10 text-white px-6 py-2 rounded-lg hover:bg-cyan-400/20 transition text-center">View Profile</a>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Lethal Proxy Logic and Imports -->
+  <script type="module">
+    //////////////////////////////
+    ///          Init          ///
+    //////////////////////////////
+    await import("/scram/scramjet.shared.js");
+    await import("/scram/scramjet.controller.js");
+
+    const scramjet = new ScramjetController({
+      files: {
+        wasm: "/scram/scramjet.wasm.wasm",
+        worker: "/scram/scramjet.worker.js",
+        client: "/scram/scramjet.client.js",
+        shared: "/scram/scramjet.shared.js",
+        sync: "/scram/scramjet.sync.js",
+      },
+      flags: {
+        serviceworkers: false,
+        syncxhr: false,
+        naiiveRewriter: false,
+        strictRewrites: true,
+        rewriterLogs: false,
+        captureErrors: true,
+        cleanErrors: true,
+        scramitize: false,
+        sourcemaps: true,
+      },
+    });
+
+    scramjet.init();
+
+    import * as BareMux from "https://cdn.jsdelivr.net/gh/Coding4Hours/cdn/bare-mux/index.mjs";
+
+    //////////////////////////////
+    ///         Options        ///
+    //////////////////////////////
+    const connection = new BareMux.BareMuxConnection("/bareworker.js");
+
+    let wispURL = null;
+    let transportURL = null;
+    let proxyOption = "scram"; // Default to scram
+
+    const transportOptions = {
+      epoxy:
+        "https://cdn.jsdelivr.net/npm/@mercuryworkshop/epoxy-transport/dist/index.mjs",
+      libcurl:
+        "https://cdn.jsdelivr.net/npm/@mercuryworkshop/libcurl-transport/dist/index.mjs",
+    };
+
+    //////////////////////////////
+    ///           SW           ///
+    //////////////////////////////
+    const stockSW = "./ultraworker.js";
+    const swAllowedHostnames = ["localhost", "127.0.0.1"];
+
+    async function registerSW() {
+      if (!navigator.serviceWorker) {
+        if (
+          location.protocol !== "https:" &&
+          !swAllowedHostnames.includes(location.hostname)
+        )
+          throw new Error("Service workers cannot be registered without https.");
+
+        throw new Error("Your browser doesn't support service workers.");
+      }
+      await navigator.serviceWorker.register(stockSW);
+    }
+
+    await registerSW();
+    console.log("lethal.js: Service Worker registered");
+
+    //////////////////////////////
+    ///        Functions       ///
+    //////////////////////////////
+
+    function makeURL(
+      input,
+      template = "https://search.brave.com/search?q=%s",
+    ) {
+      try {
+        return new URL(input).toString();
+      } catch (err) {}
+
+      const url = new URL(`http://${input}`);
+      if (url.hostname.includes(".")) return url.toString();
+
+      return template.replace("%s", encodeURIComponent(input));
+    }
+
+    async function updateBareMux() {
+      if (transportURL != null && wispURL != null) {
+        console.log(
+          `lethal.js: Setting BareMux to ${transportURL} and Wisp to ${wispURL}`,
+        );
+        await connection.setTransport(transportURL, [{ wisp: wispURL }]);
+      }
+    }
+
+    async function setTransport(transport) {
+      console.log(`lethal.js: Setting transport to ${transport}`);
+      transportURL = transportOptions[transport];
+      if (!transportURL) {
+        transportURL = transport;
+      }
+      await updateBareMux();
+    }
+
+    function getTransport() {
+      return transportURL;
+    }
+
+    async function setWisp(wisp) {
+      console.log(`lethal.js: Setting Wisp to ${wisp}`);
+      wispURL = wisp;
+      await updateBareMux();
+    }
+
+    function getWisp() {
+      return wispURL;
+    }
+
+    async function setProxy(proxy) {
+      console.log(`lethal.js: Setting proxy backend to ${proxy}`);
+      if (proxy === "uv") {
+        await import("https://cdn.jsdelivr.net/gh/Coding4Hours/cdn/uv/uv.bundle.js");
+        await import("./uv.config.js");
+      } else {
+        import("/scram/scramjet.worker.js");
+      }
+      proxyOption = proxy;
+    }
+
+    function getProxy() {
+      return proxyOption;
+    }
+
+    async function getProxied(input) {
+      const url = makeURL(input);
+      if (proxyOption === "scram") return scramjet.encodeUrl(url);
+      return __uv$config.prefix + __uv$config.encodeUrl(url);
+    }
+
+    // Expose for use in classic script
+    window.lethalProxy = {
+      setProxy,
+      getProxy,
+      getProxied,
+    };
+  </script>
+
+  <!-- Main App Logic -->
+  <script>
+    // FIREBASE INIT
+    const firebaseConfig = {
+      apiKey: "AIzaSyC4ilHYP1T-kdXbWPoHJHhD2aj0pNWmMec",
+      authDomain: "carbon-services.firebaseapp.com",
+      projectId: "carbon-services",
+      storageBucket: "carbon-services.firebasestorage.app",
+      messagingSenderId: "288385472070",
+      appId: "1:288385472070:web:c4be3ff186e248fc645c47",
+      measurementId: "G-Y2K1RQYE74"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+
+    // -- Google Sign-In Logic --
+    function googleSignIn() {
+      const provider = new firebase.auth.GoogleAuthProvider();
+      auth.signInWithPopup(provider)
+        .catch((error) => {
+          document.getElementById('loginError').innerText = error.message;
+          document.getElementById('loginError').classList.remove('hidden');
+        });
+    }
+    function signOut() {
+      auth.signOut().then(() => location.reload());
+    }
+
+    // -- Game Data Loading --
+    let gamesData = [];
+    let currentGameId = null;
+    let currentGame = null;
+    async function loadGamesData() {
+      const res = await fetch('js/games.json');
+      gamesData = await res.json();
+    }
+
+    function getGameIdFromURL() {
+      const urlParams = new URLSearchParams(window.location.search);
+      return urlParams.get('id');
+    }
+
+    // -- Firestore Helpers --
+    async function getUserDocRef(uid) {
+      return db.collection('users').doc(uid);
+    }
+    async function updateUserArray(uid, field, gameId, add = true) {
+      const ref = await getUserDocRef(uid);
+      if (add) {
+        await ref.set({ [field]: firebase.firestore.FieldValue.arrayUnion(gameId) }, { merge: true });
+      } else {
+        await ref.set({ [field]: firebase.firestore.FieldValue.arrayRemove(gameId) }, { merge: true });
+      }
+    }
+    async function getUserGameLists(uid) {
+      const doc = await db.collection('users').doc(uid).get();
+      return doc.exists ? doc.data() : { likedGames: [], favoriteGames: [], playlist: [] };
+    }
+
+    // -- UI Helpers --
+    function setButtonActive(btn, isActive, activeClass='bg-cyan-500/80') {
+      btn.classList.toggle(activeClass, isActive);
+    }
+    function renderUserSection(user) {
+      const section = document.getElementById('userSection');
+      if (!user) {
+        section.innerHTML = '';
+      } else {
+        section.innerHTML = `
+          <img src="${user.photoURL}" class="w-8 h-8 rounded-full inline mr-2" title="${user.displayName}">
+          <span class="mr-3">${user.displayName}</span>
+          <button onclick="signOut()" class="bg-white/10 px-3 py-1 rounded hover:bg-pink-600 text-white">Sign Out</button>
+        `;
+      }
+    }
+
+    // -- Proxy Toggle Logic --
+    let proxySelected = "scram";
+    function updateProxyToggleUI() {
+      document.getElementById("proxyScramBtn").classList.toggle("bg-cyan-500", proxySelected === "scram");
+      document.getElementById("proxyScramBtn").classList.toggle("text-black", proxySelected === "scram");
+      document.getElementById("proxyScramBtn").classList.toggle("bg-white/10", proxySelected !== "scram");
+      document.getElementById("proxyScramBtn").classList.toggle("text-white", proxySelected !== "scram");
+
+      document.getElementById("proxyUvBtn").classList.toggle("bg-cyan-500", proxySelected === "uv");
+      document.getElementById("proxyUvBtn").classList.toggle("text-black", proxySelected === "uv");
+      document.getElementById("proxyUvBtn").classList.toggle("bg-white/10", proxySelected !== "uv");
+      document.getElementById("proxyUvBtn").classList.toggle("text-white", proxySelected !== "uv");
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      document.getElementById("proxyScramBtn").onclick = async () => {
+        proxySelected = "scram";
+        updateProxyToggleUI();
+        if(window.lethalProxy) await window.lethalProxy.setProxy("scram");
+        reloadFrameWithProxy();
+      };
+      document.getElementById("proxyUvBtn").onclick = async () => {
+        proxySelected = "uv";
+        updateProxyToggleUI();
+        if(window.lethalProxy) await window.lethalProxy.setProxy("uv");
+        reloadFrameWithProxy();
+      };
+      updateProxyToggleUI();
+    });
+
+    // -- Reload the iframe with proxy url --
+    async function reloadFrameWithProxy() {
+      if (!currentGame) return;
+      if (window.lethalProxy && window.lethalProxy.getProxied) {
+        const proxiedURL = await window.lethalProxy.getProxied(currentGame.url);
+        document.getElementById('gameFrameEmbed').src = proxiedURL;
+      } else {
+        document.getElementById('gameFrameEmbed').src = currentGame.url;
+      }
+    }
+
+    // -- LOGIN GUARD + MAIN LOGIC --
+    document.addEventListener('DOMContentLoaded', async () => {
+      document.getElementById('gameFrameContainer').classList.add('hidden');
+      document.getElementById('loginScreen').classList.remove('hidden');
+
+      // Firebase Auth State
+      auth.onAuthStateChanged(async (user) => {
+        renderUserSection(user);
+
+        if (!user) {
+          document.getElementById('loginScreen').classList.remove('hidden');
+          document.getElementById('gameFrameContainer').classList.add('hidden');
+          return;
+        }
+
+        document.getElementById('loginScreen').classList.add('hidden');
+        document.getElementById('gameFrameContainer').classList.remove('hidden');
+        await loadGamesData();
+        currentGameId = getGameIdFromURL();
+        currentGame = gamesData.find(g => g.id == currentGameId || String(g.id) == currentGameId);
+        if (!currentGame) {
+          document.getElementById('gameFrameContainer').innerHTML = `<div class="text-center p-12 text-red-400">Game not found.</div>`;
+          return;
+        }
+
+        // Proxy logic: load proxied url
+        setTimeout(reloadFrameWithProxy, 250); // give lethalProxy time to load
+
+        document.getElementById('gameFrameTitle').textContent = currentGame.title;
+        document.getElementById('gameFrameDesc').textContent = currentGame.description;
+        document.getElementById('gameFrameTags').innerHTML = `
+          <span class="bg-cyan-400/20 text-cyan-300 px-2 py-0.5 rounded">${currentGame.category}</span>
+          ${currentGame.featured ? '<span class="bg-indigo-400/20 text-indigo-300 px-2 py-0.5 rounded">Featured</span>' : ''}
+        `;
+        document.getElementById('fullscreenBtn').onclick = () => {
+          const iframe = document.getElementById('gameFrameEmbed');
+          if (iframe.requestFullscreen) iframe.requestFullscreen();
+        };
+        let lists = await getUserGameLists(user.uid);
+        setButtonActive(document.getElementById('likeBtn'), lists.likedGames?.includes(currentGameId));
+        setButtonActive(document.getElementById('favBtn'), lists.favoriteGames?.includes(currentGameId), 'bg-pink-600/80');
+        setButtonActive(document.getElementById('playlistBtn'), lists.playlist?.includes(currentGameId), 'bg-yellow-400/80');
+
+        document.getElementById('likeBtn').onclick = async () => {
+          const isLiked = lists.likedGames?.includes(currentGameId);
+          await updateUserArray(user.uid, 'likedGames', currentGameId, !isLiked);
+          lists = await getUserGameLists(user.uid);
+          setButtonActive(document.getElementById('likeBtn'), lists.likedGames?.includes(currentGameId));
+        };
+        document.getElementById('favBtn').onclick = async () => {
+          const isFav = lists.favoriteGames?.includes(currentGameId);
+          await updateUserArray(user.uid, 'favoriteGames', currentGameId, !isFav);
+          lists = await getUserGameLists(user.uid);
+          setButtonActive(document.getElementById('favBtn'), lists.favoriteGames?.includes(currentGameId), 'bg-pink-600/80');
+        };
+        document.getElementById('dislikeBtn').onclick = async () => {
+          const isLiked = lists.likedGames?.includes(currentGameId);
+          if (isLiked) {
+            await updateUserArray(user.uid, 'likedGames', currentGameId, false);
+          }
+          alert('Game disliked!');
+          lists = await getUserGameLists(user.uid);
+          setButtonActive(document.getElementById('likeBtn'), lists.likedGames?.includes(currentGameId));
+        };
+        document.getElementById('shareBtn').onclick = () => {
+          const url = `${window.location.origin}/play.html?id=${currentGameId}`;
+          navigator.clipboard.writeText(url);
+          alert('Game link copied!');
+        };
+        document.getElementById('playlistBtn').onclick = async () => {
+          const inPlaylist = lists.playlist?.includes(currentGameId);
+          await updateUserArray(user.uid, 'playlist', currentGameId, !inPlaylist);
+          lists = await getUserGameLists(user.uid);
+          setButtonActive(document.getElementById('playlistBtn'), lists.playlist?.includes(currentGameId), 'bg-yellow-400/80');
+        };
+      });
+    });
+
+  </script>
+</body>
+</html>
