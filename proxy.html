@@ -1,198 +1,263 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CARBON</title>
-    <script defer async src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
-    <link rel="stylesheet" href="styles.css"></link>
-    <script defer async src="/js/hamburger.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
-    <script defer type="module">
-      import {
-        setTransport,
-        setWisp,
-        setProxy,
-        makeURL,
-        getProxied,
-      } from "./lethal.mjs";
-
-      // --- Form ---
-      const form = document.getElementById("form");
-      const addressInput = document.getElementById("address");
-      let search =
-        localStorage.getItem("search-engine") ||
-        "https://search.brave.com/search?q=%s";
-      let frame = document.getElementById("frame");
-
-      // --- Proxy ---
-      let backend = localStorage.getItem("proxy-backend") || "uv";
-      let wisp = localStorage.getItem("wisp-server") || "wss://anura.pro/";
-      let transport = localStorage.getItem("proxy-transport");
-
-      setWisp(wisp);
-      setProxy(backend);
-
-      if (transport) setTransport(transport);
-      else if (navigator.userAgent.indexOf("Firefox") > 0) setTransport("libcurl");
-      else setTransport("epoxy");
-
-      // --- Form ---
-      form.addEventListener("submit", async (event) => {
-        event.preventDefault();
-
-        document.getElementById("proxy-container").classList.remove("hidden");
-        const urlToLoad = makeURL(addressInput.value, search);
-        frame.src = await getProxied(urlToLoad);
-      });
-
-      // --- Event Listeners ---
-      // basically we monkey patch localstorage.setitem to emit an event
-      window.addEventListener("search-engine-changed", () => {
-        search = localStorage.getItem("search-engine");
-      });
-
-      window.addEventListener("proxy-backend-changed", () => {
-        backend = localStorage.getItem("proxy-backend");
-        setProxy(localStorage.getItem("proxy-backend"));
-      });
-
-      window.addEventListener("wisp-server-changed", () => {
-        wisp = localStorage.getItem("wisp-server");
-        setWisp(localStorage.getItem("wisp-server"));
-      });
-
-      window.addEventListener("proxy-transport-changed", () => {
-        transport = localStorage.getItem("proxy-transport");
-        setTransport(localStorage.getItem("proxy-transport"));
-      });
-    </script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CARBON</title>
+  <script defer async src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <link rel="stylesheet" href="styles.css"></link>
+  <script defer async src="/js/hamburger.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
+  <style>
+    .draggable-tab {
+      user-select: none;
+      cursor: grab;
+      transition: background 0.2s;
+    }
+    .draggable-tab.dragging {
+      opacity: 0.5;
+    }
+  </style>
 </head>
 <body class="bg-gradient-to-br from-[#0f0f23] via-[#1a1a2e] to-[#16213e] min-h-screen text-white overflow-x-hidden relative">
-    <!-- Navbar -->
-    <nav class="fixed top-0 left-0 right-0 z-[1000] flex justify-between items-center px-8 py-4 bg-[#0f0f23cc] border-b border-white/10 backdrop-blur-md animate-[slideDown_0.5s_ease-out]">
-        <div class="navbar-brand text-2xl md:text-3xl font-extrabold bg-gradient-to-r from-cyan-400 to-indigo-500 bg-clip-text text-transparent tracking-tighter select-none">CARBON</div>
-        <div class="hamburger flex flex-col gap-1.5 cursor-pointer p-2 transition-transform duration-300" id="hamburger" onclick="toggleMenu()">
-            <span class="block w-6 h-0.5 rounded bg-gradient-to-r from-cyan-400 to-indigo-500 transition-all duration-300"></span>
-            <span class="block w-6 h-0.5 rounded bg-gradient-to-r from-cyan-400 to-indigo-500 transition-all duration-300"></span>
-            <span class="block w-6 h-0.5 rounded bg-gradient-to-r from-cyan-400 to-indigo-500 transition-all duration-300"></span>
-        </div>
-    </nav>
-
-    <!-- Mobile Menu -->
-    <div class="fixed top-0 right-[-100%] w-72 h-full bg-[#0f0f23f2] backdrop-blur-md border-l border-white/10 pt-24 px-8 z-[999] transition-all duration-300" id="mobileMenu">
-        <a href="/" class="mobile-menu-item block py-4 mb-2 text-white font-semibold text-lg border-b border-white/10 relative overflow-hidden transition-all duration-300 hover:text-cyan-400 hover:pl-4">Home</a>
-        <a href="#games" class="mobile-menu-item block py-4 mb-2 text-white font-semibold text-lg border-b border-white/10 relative overflow-hidden transition-all duration-300 hover:text-cyan-400 hover:pl-4">Games</a>
-        <a href="/proxy" class="mobile-menu-item block py-4 mb-2 text-white font-semibold text-lg border-b border-white/10 relative overflow-hidden transition-all duration-300 hover:text-cyan-400 hover:pl-4">Proxy</a>
+  <!-- Navbar -->
+  <nav class="fixed top-0 left-0 right-0 z-[1000] flex justify-between items-center px-8 py-4 bg-[#0f0f23cc] border-b border-white/10 backdrop-blur-md animate-[slideDown_0.5s_ease-out]">
+    <div class="navbar-brand text-2xl md:text-3xl font-extrabold bg-gradient-to-r from-cyan-400 to-indigo-500 bg-clip-text text-transparent tracking-tighter select-none">CARBON</div>
+    <div class="hamburger flex flex-col gap-1.5 cursor-pointer p-2 transition-transform duration-300" id="hamburger" onclick="toggleMenu()">
+      <span class="block w-6 h-0.5 rounded bg-gradient-to-r from-cyan-400 to-indigo-500 transition-all duration-300"></span>
+      <span class="block w-6 h-0.5 rounded bg-gradient-to-r from-cyan-400 to-indigo-500 transition-all duration-300"></span>
+      <span class="block w-6 h-0.5 rounded bg-gradient-to-r from-cyan-400 to-indigo-500 transition-all duration-300"></span>
     </div>
-    <div class="overlay fixed inset-0 bg-black bg-opacity-50 opacity-0 invisible transition-all duration-300 z-[998]" id="overlay"></div>
+  </nav>
 
-    <!-- Main Content -->
-    <main class="flex flex-col items-center justify-center min-h-screen pt-28 pb-8 px-4 relative z-10">
+  <!-- Mobile Menu -->
+  <div class="fixed top-0 right-[-100%] w-72 h-full bg-[#0f0f23f2] backdrop-blur-md border-l border-white/10 pt-24 px-8 z-[999] transition-all duration-300" id="mobileMenu">
+    <a href="/" class="mobile-menu-item block py-4 mb-2 text-white font-semibold text-lg border-b border-white/10 relative overflow-hidden transition-all duration-300 hover:text-cyan-400 hover:pl-4">Home</a>
+    <a href="#games" class="mobile-menu-item block py-4 mb-2 text-white font-semibold text-lg border-b border-white/10 relative overflow-hidden transition-all duration-300 hover:text-cyan-400 hover:pl-4">Games</a>
+    <a href="/proxy" class="mobile-menu-item block py-4 mb-2 text-white font-semibold text-lg border-b border-white/10 relative overflow-hidden transition-all duration-300 hover:text-cyan-400 hover:pl-4">Proxy</a>
+  </div>
+  <div class="overlay fixed inset-0 bg-black bg-opacity-50 opacity-0 invisible transition-all duration-300 z-[998]" id="overlay"></div>
 
-      <!-- Tabs Navigation -->
-      <div class="w-full max-w-lg mx-auto mb-6">
-        <div class="flex border-b border-cyan-400">
-          <button class="tab-btn px-4 py-2 text-cyan-400 border-b-2 border-cyan-400 font-semibold focus:outline-none" data-tab="tab1">Proxy</button>
-          <button class="tab-btn px-4 py-2 text-white hover:text-cyan-400 font-semibold focus:outline-none" data-tab="tab2">Settings</button>
-          <button class="tab-btn px-4 py-2 text-white hover:text-cyan-400 font-semibold focus:outline-none" data-tab="tab3">Info</button>
-        </div>
+  <main class="flex flex-col items-center justify-center min-h-screen pt-28 pb-8 px-4 relative z-10">
+    <div class="w-full max-w-4xl mx-auto shadow-lg rounded-lg bg-[#1a1a2e]/80 p-4">
+      <!-- Chrome-like Tabs Bar -->
+      <div id="tabs-bar" class="flex items-center space-x-2 overflow-x-auto pb-2">
+        <!-- Tabs will be rendered here -->
       </div>
+      <!-- New Tab Button -->
+      <button id="new-tab-btn" class="ml-2 px-3 py-1 rounded bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-lg" title="New Tab (Ctrl+T)">+</button>
 
-      <!-- Tabs Content -->
-      <div id="tab1" class="tab-content w-full flex flex-col items-center">
-        <form id="form" class="w-full md:w-2/3 lg:w-1/2">
-          <input
-            autofocus="true"
-            spellcheck="false"
-            autocomplete="off"
-            id="address"
-            type="text"
-            placeholder="Search the web freely"
-            class="bg-transparent w-full focus:outline-none border-b-2 border-cyan-400 text-center py-2 text-xl transition-all duration-300 placeholder-white/50 focus:border-indigo-500"
-          />
-        </form>
-        <div id="proxy-container" class="fixed inset-0 z-[2000] hidden">
-            <div id="proxy-controls" class="z-[150] h-12 bg-black/20 backdrop-blur-md flex items-center justify-end px-4">
-                <button id="close-proxy" class="text-white text-2xl font-bold hover:text-cyan-400 transition-colors">&times;</button>
-            </div>
-            <iframe title="Proxy Frame" id="frame" class="z-[100] w-full h-[calc(100%-3rem)] border-0"></iframe>
-        </div>
-      </div>
-      <div id="tab2" class="tab-content w-full flex flex-col items-center hidden">
-        <!-- Settings content goes here -->
-        <div class="mt-8 text-center">
-          <h2 class="text-2xl font-bold mb-2 bg-gradient-to-r from-cyan-400 to-indigo-500 bg-clip-text text-transparent">Settings</h2>
-          <p class="text-white/80 mb-4">Customize your proxy experience:</p>
-          <ul class="text-left mx-auto w-full max-w-sm space-y-2">
-            <li>
-              <span class="font-semibold text-cyan-400">Proxy backend:</span>
-              <span id="current-backend" class="ml-2"></span>
-            </li>
-            <li>
-              <span class="font-semibold text-cyan-400">Transport:</span>
-              <span id="current-transport" class="ml-2"></span>
-            </li>
-            <li>
-              <span class="font-semibold text-cyan-400">Wisp server:</span>
-              <span id="current-wisp" class="ml-2"></span>
-            </li>
-          </ul>
-        </div>
-        <script>
-          // Dynamically show current settings
-          window.addEventListener('DOMContentLoaded', () => {
-            document.getElementById('current-backend').textContent = localStorage.getItem('proxy-backend') || 'uv';
-            document.getElementById('current-transport').textContent = localStorage.getItem('proxy-transport') || (navigator.userAgent.indexOf("Firefox") > 0 ? "libcurl" : "epoxy");
-            document.getElementById('current-wisp').textContent = localStorage.getItem('wisp-server') || 'wss://anura.pro/';
+      <!-- Tab Content Area -->
+      <div id="tab-content-area" class="mt-4"></div>
+    </div>
+
+    <link rel="modulepreload" href="https://cdn.jsdelivr.net/gh/Coding4Hours/cdn/uv/uv.bundle.js">
+    <link rel="modulepreload" href="/scram/scramjet.worker.js">
+    <script defer type="module" src="lethal.mjs"></script>
+    <script>
+      // --- Tabs State ---
+      let tabs = [];
+      let activeTab = null;
+      let tabIdCounter = 1;
+
+      // --- Helper Functions ---
+      function createTab(url='') {
+        const id = 'tab-' + tabIdCounter++;
+        return {
+          id,
+          title: url ? url : 'New Tab',
+          url,
+          iframeId: 'iframe-' + id
+        };
+      }
+
+      function renderTabs() {
+        const tabsBar = document.getElementById('tabs-bar');
+        tabsBar.innerHTML = '';
+        tabs.forEach((tab, idx) => {
+          const btn = document.createElement('div');
+          btn.className = 'draggable-tab flex items-center px-4 py-2 rounded-t-lg bg-[#23234d] hover:bg-[#2c2c5c] text-white relative group select-none mr-1 ' +
+            (tab.id === activeTab ? 'border-t-2 border-cyan-400 font-bold bg-[#292955]' : '');
+          btn.setAttribute('draggable', 'true');
+          btn.setAttribute('data-tab-id', tab.id);
+          btn.textContent = tab.title.length > 18 ? tab.title.slice(0,15) + '...' : tab.title;
+
+          // Close icon
+          const closeBtn = document.createElement('span');
+          closeBtn.className = 'ml-2 cursor-pointer opacity-60 hover:opacity-100 transition-opacity';
+          closeBtn.innerHTML = '&times;';
+          closeBtn.title = 'Close Tab (Ctrl+W)';
+          closeBtn.onclick = (e) => {
+            e.stopPropagation();
+            removeTab(tab.id);
+          };
+          btn.appendChild(closeBtn);
+
+          // Activate tab on click
+          btn.onclick = () => setActiveTab(tab.id);
+
+          // --- Drag and Drop Handlers ---
+          btn.addEventListener('dragstart', (e) => {
+            e.dataTransfer.setData('text/plain', tab.id);
+            btn.classList.add('dragging');
           });
-        </script>
-      </div>
-      <div id="tab3" class="tab-content w-full flex flex-col items-center hidden">
-        <!-- Info content goes here -->
-        <div class="mt-8 text-center max-w-lg">
-          <h2 class="text-2xl font-bold mb-2 bg-gradient-to-r from-cyan-400 to-indigo-500 bg-clip-text text-transparent">About Proxy</h2>
-          <p class="text-white/80 mb-4">
-            This proxy lets you browse freely with privacy and flexibility. Powered by Carbon's advanced backend switching and transport options.
-          </p>
-          <ul class="text-left mx-auto w-full max-w-sm space-y-2">
-            <li><span class="font-semibold text-cyan-400">Open Source:</span> <a href="https://github.com/Carbon-Services/carbon-services.github.io" target="_blank" class="underline hover:text-indigo-400">View on GitHub</a></li>
-            <li><span class="font-semibold text-cyan-400">Contact:</span> <a href="mailto:support@carbon.services" class="underline hover:text-indigo-400">support@carbon.services</a></li>
-          </ul>
-        </div>
-      </div>
-      <link rel="modulepreload" href="https://cdn.jsdelivr.net/gh/Coding4Hours/cdn/uv/uv.bundle.js">
-      <link rel="modulepreload" href="/scram/scramjet.worker.js">
-      <script defer type="module" src="lethal.mjs"></script>
-      <script>
-        // Tabs logic
-        document.querySelectorAll('.tab-btn').forEach(btn => {
-          btn.addEventListener('click', function() {
-            // Remove active class from all buttons
-            document.querySelectorAll('.tab-btn').forEach(b => {
-              b.classList.remove('text-cyan-400', 'border-b-2', 'border-cyan-400');
-              b.classList.add('text-white');
-            });
-            // Add active class to this button
-            this.classList.remove('text-white');
-            this.classList.add('text-cyan-400', 'border-b-2', 'border-cyan-400');
-            // Hide all tab contents
-            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.add('hidden'));
-            // Show selected tab
-            document.getElementById(this.dataset.tab).classList.remove('hidden');
+          btn.addEventListener('dragend', (e) => {
+            btn.classList.remove('dragging');
           });
+          btn.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            btn.classList.add('bg-[#23234d]/80');
+          });
+          btn.addEventListener('dragleave', (e) => {
+            btn.classList.remove('bg-[#23234d]/80');
+          });
+          btn.addEventListener('drop', (e) => {
+            e.preventDefault();
+            btn.classList.remove('bg-[#23234d]/80');
+            const draggedTabId = e.dataTransfer.getData('text/plain');
+            reorderTab(draggedTabId, tab.id);
+          });
+
+          tabsBar.appendChild(btn);
+        });
+      }
+
+      function renderTabContent() {
+        const area = document.getElementById('tab-content-area');
+        const tab = tabs.find(t => t.id === activeTab);
+        if (!tab) {
+          area.innerHTML = '<div class="text-center text-lg text-white/70 py-8">No tab selected</div>';
+          return;
+        }
+        area.innerHTML = `
+          <form id="form-${tab.id}" class="w-full md:w-2/3 lg:w-1/2 mx-auto mb-3">
+            <input
+              spellcheck="false"
+              autocomplete="off"
+              id="address-${tab.id}"
+              type="text"
+              value="${tab.url || ''}"
+              placeholder="Search the web freely"
+              class="bg-transparent w-full focus:outline-none border-b-2 border-cyan-400 text-center py-2 text-xl transition-all duration-300 placeholder-white/50 focus:border-indigo-500"
+            />
+          </form>
+          <div id="proxy-container-${tab.id}">
+            <iframe title="Proxy Frame" id="${tab.iframeId}" class="w-full h-[70vh] border-0 bg-black"></iframe>
+          </div>
+        `;
+
+        // Attach form listener
+        document.getElementById(`form-${tab.id}`).addEventListener('submit', async (event) => {
+          event.preventDefault();
+          const addressInput = document.getElementById(`address-${tab.id}`);
+          let url = addressInput.value;
+          tab.url = url;
+          tab.title = url ? url : 'New Tab';
+          renderTabs();
+          // Use lethal.mjs logic
+          try {
+            let search =
+              localStorage.getItem("search-engine") ||
+              "https://search.brave.com/search?q=%s";
+            let frame = document.getElementById(tab.iframeId);
+            // If lethal.mjs is loaded as a module, use window.makeURL/getProxied
+            let urlToLoad = window.makeURL ? window.makeURL(url, search) : url;
+            let getProxied = window.getProxied || (async (u) => u);
+            frame.src = await getProxied(urlToLoad);
+          } catch (e) {}
         });
 
-        // Close proxy modal logic
-        document.addEventListener('DOMContentLoaded', () => {
-          const closeBtn = document.getElementById('close-proxy');
-          if (closeBtn) {
-            closeBtn.addEventListener('click', () => {
-              document.getElementById('proxy-container').classList.add('hidden');
-            });
+        // Auto-fill iframe if url exists
+        if (tab.url) {
+          document.getElementById(`form-${tab.id}`).dispatchEvent(new Event('submit'));
+        }
+      }
+
+      function setActiveTab(tabId) {
+        activeTab = tabId;
+        renderTabs();
+        renderTabContent();
+      }
+
+      function addTab(url='') {
+        const tab = createTab(url);
+        tabs.push(tab);
+        setActiveTab(tab.id);
+      }
+
+      function removeTab(tabId) {
+        const idx = tabs.findIndex(t => t.id === tabId);
+        if (idx !== -1) {
+          tabs.splice(idx, 1);
+          // If closing the active tab, activate previous, or next, or none
+          if (activeTab === tabId) {
+            if (tabs[idx - 1]) setActiveTab(tabs[idx - 1].id);
+            else if (tabs[idx]) setActiveTab(tabs[idx].id);
+            else {
+              activeTab = null;
+              renderTabs();
+              renderTabContent();
+            }
+          } else {
+            renderTabs();
           }
+        }
+      }
+
+      function reorderTab(draggedTabId, targetTabId) {
+        const fromIdx = tabs.findIndex(t => t.id === draggedTabId);
+        const toIdx = tabs.findIndex(t => t.id === targetTabId);
+        if (fromIdx === -1 || toIdx === -1 || fromIdx === toIdx) return;
+        const [removed] = tabs.splice(fromIdx, 1);
+        tabs.splice(toIdx, 0, removed);
+        renderTabs();
+      }
+
+      // --- Keyboard Shortcuts ---
+      document.addEventListener('keydown', (e) => {
+        // Cmd/Ctrl+T: New tab
+        if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === 't') {
+          e.preventDefault();
+          addTab();
+        }
+        // Cmd/Ctrl+W: Close tab
+        if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === 'w') {
+          e.preventDefault();
+          if (activeTab) removeTab(activeTab);
+        }
+        // Cmd/Ctrl+Tab: Next tab
+        if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key === 'Tab') {
+          e.preventDefault();
+          const idx = tabs.findIndex(t => t.id === activeTab);
+          if (tabs.length > 1 && idx !== -1) {
+            const nextIdx = (idx + 1) % tabs.length;
+            setActiveTab(tabs[nextIdx].id);
+          }
+        }
+        // Cmd/Ctrl+Shift+Tab: Previous tab
+        if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'Tab') {
+          e.preventDefault();
+          const idx = tabs.findIndex(t => t.id === activeTab);
+          if (tabs.length > 1 && idx !== -1) {
+            const prevIdx = (idx - 1 + tabs.length) % tabs.length;
+            setActiveTab(tabs[prevIdx].id);
+          }
+        }
+      });
+
+      // --- New Tab Button ---
+      document.getElementById('new-tab-btn').addEventListener('click', () => addTab());
+
+      // --- Init: Add one tab on load ---
+      window.addEventListener('DOMContentLoaded', () => {
+        // Expose window.makeURL/getProxied for inline script access
+        import('./lethal.mjs').then(m => {
+          window.makeURL = m.makeURL;
+          window.getProxied = m.getProxied;
         });
-      </script>
-    </main>
+        if (tabs.length === 0) addTab();
+      });
+    </script>
+  </main>
 </body>
 </html>
