@@ -129,12 +129,36 @@
             <i class='bx bx-list-plus text-xl'></i>
           </button>
         </div>
+        <!-- STAR RATING SYSTEM UNDER IFRAME -->
+        <div class="absolute left-0 right-0 bottom-0 flex flex-col items-center bg-[#232445]/80 p-4 z-20">
+          <div id="starRatingSectionFrame" class="w-full max-w-xl mx-auto">
+            <div id="starsContainerFrame" class="flex gap-1 text-3xl justify-center"></div>
+            <div class="text-sm mt-1 flex flex-wrap justify-center items-center gap-2 text-cyan-200">
+              <span id="starRatingSummaryFrame"></span>
+              <span id="starRatingCountFrame"></span>
+              <span id="starRatingErrorFrame" class="text-pink-400"></span>
+            </div>
+            <div id="ratingPercentContainerFrame" class="flex items-center justify-center mt-2 gap-2">
+              <span id="ratingPercentTextFrame" class="text-indigo-400 font-semibold"></span>
+              <div class="w-40 h-2 bg-slate-700 rounded overflow-hidden">
+                <div id="ratingPercentBarFrame" class="h-2 bg-indigo-400 rounded transition-all duration-300" style="width:0%"></div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
       <div class="flex flex-col md:flex-row p-6 gap-6 items-start bg-[#232445]">
         <div class="flex-1"></div>
         <div class="flex flex-col gap-2 w-full md:w-auto">
           <button id="fullscreenBtnBottom" class="bg-gradient-to-r from-cyan-400 to-indigo-500 text-black font-bold px-6 py-2 rounded-lg hover:scale-105 transition-transform">Fullscreen</button>
           <a href="profile.html" class="bg-white/10 text-white px-6 py-2 rounded-lg hover:bg-cyan-400/20 transition text-center">View Profile</a>
+        </div>
+      </div>
+      <!-- LIKE PERCENTAGE SYSTEM UNDER IFRAME -->
+      <div class="flex justify-center items-center gap-2 pb-4 pt-2">
+        <span id="likePercentTextFrame" class="text-cyan-400 font-semibold"></span>
+        <div class="w-40 h-2 bg-slate-700 rounded overflow-hidden">
+          <div id="likePercentBarFrame" class="h-2 bg-cyan-400 rounded transition-all duration-300" style="width:0%"></div>
         </div>
       </div>
     </div>
@@ -346,8 +370,10 @@
       percent: 0 // percent of people who gave 4 or 5 stars
     };
 
-    function renderStarRatingUI() {
-      const container = document.getElementById('starsContainer');
+    function renderStarRatingUI(target = "") {
+      // target: "" (default), or "Frame" for frame section
+      const pre = target ? target : "";
+      const container = document.getElementById('starsContainer' + pre);
       if (!container) return;
       container.innerHTML = '';
       let fill = starRatingData.yourRating ? starRatingData.yourRating : Math.round(starRatingData.average);
@@ -374,13 +400,13 @@
         }
         container.appendChild(star);
       }
-      document.getElementById('starRatingSummary').textContent =
+      document.getElementById('starRatingSummary' + pre).textContent =
         starRatingData.count ? `${starRatingData.average.toFixed(2)} / 5` : "Not rated";
-      document.getElementById('starRatingCount').textContent =
+      document.getElementById('starRatingCount' + pre).textContent =
         starRatingData.count === 1 ? "1 rating" : (starRatingData.count ? `${starRatingData.count} ratings` : "");
-      document.getElementById('starRatingError').textContent = starRatingData.error || '';
+      document.getElementById('starRatingError' + pre).textContent = starRatingData.error || '';
       // Render percent of high ratings
-      renderRatingPercentUI();
+      renderRatingPercentUI(target);
     }
 
     async function loadStarRating(gameId) {
@@ -413,27 +439,32 @@
       }
       starRatingData.loading = false;
       renderStarRatingUI();
+      renderStarRatingUI("Frame");
     }
 
     async function submitStarRating(stars) {
       if (!firebase.auth().currentUser) {
         starRatingData.error = "Sign in first!";
         renderStarRatingUI();
+        renderStarRatingUI("Frame");
         return;
       }
       if (!currentGameId) {
         starRatingData.error = "Game not loaded!";
         renderStarRatingUI();
+        renderStarRatingUI("Frame");
         return;
       }
       if (stars < 1 || stars > 5) {
         starRatingData.error = "Invalid rating value!";
         renderStarRatingUI();
+        renderStarRatingUI("Frame");
         return;
       }
       starRatingData.loading = true;
       starRatingData.error = "";
       renderStarRatingUI();
+      renderStarRatingUI("Frame");
       try {
         const ref = db.collection("games").doc(currentGameId).collection("ratings").doc(firebase.auth().currentUser.uid);
         await ref.set({
@@ -445,14 +476,18 @@
       } catch (e) {
         starRatingData.error = "Failed to rate, try again.";
         renderStarRatingUI();
+        renderStarRatingUI("Frame");
       }
       starRatingData.loading = false;
       renderStarRatingUI();
+      renderStarRatingUI("Frame");
     }
 
-    function renderRatingPercentUI() {
-      const txt = document.getElementById('ratingPercentText');
-      const bar = document.getElementById('ratingPercentBar');
+    function renderRatingPercentUI(target = "") {
+      // target: "" or "Frame"
+      const pre = target ? target : "";
+      const txt = document.getElementById('ratingPercentText' + pre);
+      const bar = document.getElementById('ratingPercentBar' + pre);
       if (!txt || !bar) return;
       if (starRatingData.count === 0) {
         txt.textContent = "Not enough ratings yet";
@@ -496,11 +531,14 @@
         // ignore
       }
       renderLikePercentUI();
+      renderLikePercentUI("Frame");
     }
 
-    function renderLikePercentUI() {
-      const txt = document.getElementById('likePercentText');
-      const bar = document.getElementById('likePercentBar');
+    function renderLikePercentUI(target = "") {
+      // target: "" or "Frame"
+      const pre = target ? target : "";
+      const txt = document.getElementById('likePercentText' + pre);
+      const bar = document.getElementById('likePercentBar' + pre);
       if (!txt || !bar) return;
       if (likeStats.userCount === 0) {
         txt.textContent = "No users yet";
@@ -606,6 +644,9 @@
             const iframe = document.getElementById('gameFrameEmbed');
             requestFullScreen(iframe);
           };
+          // Show the star/like UI under the iframe, and update their values
+          renderStarRatingUI("Frame");
+          renderLikePercentUI("Frame");
         };
         let historyIds = [];
         try {
