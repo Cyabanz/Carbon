@@ -29,6 +29,50 @@
       color: #06b6d4 !important;
       border-color: #06b6d4 !important;
     }
+    /* CrazyGames-like info box styling */
+    .game-info-box {
+      background: #101624;
+      border: 1px solid #06b6d4;
+      border-radius: 1rem;
+      padding: 1.5rem 2rem;
+      color: #dbeafe;
+      margin-bottom: 1.5rem;
+    }
+    .game-info-box table {
+      width: 100%;
+    }
+    .game-info-box th {
+      text-align: left;
+      padding-right: 1.2rem;
+      color: #67e8f9;
+      font-weight: 600;
+      width: 120px;
+      font-family: inherit;
+      font-size: 1rem;
+      vertical-align: top;
+      padding-bottom: .4rem;
+    }
+    .game-info-box td {
+      padding-bottom: .4rem;
+      font-family: inherit;
+      font-size: .98rem;
+    }
+    .game-info-box .info-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: .5rem .8rem;
+    }
+    .game-info-box .info-list span {
+      background: #1e293b;
+      color: #38bdf8;
+      padding: 0.15rem 0.7rem;
+      border-radius: 9999px;
+      font-size: .96rem;
+      font-weight: 500;
+      margin-right: .3rem;
+      margin-bottom: .2rem;
+      display: inline-block;
+    }
   </style>
 </head>
 <body class="bg-gradient-to-br from-[#0f0f23] via-[#1a1a2e] to-[#16213e] min-h-screen text-white font-[Inter]">
@@ -96,6 +140,9 @@
         </div>
       </div>
     </div>
+    <!-- GAME INFO BOX - for "crazygames"-like info -->
+    <div id="gameInfoBox" class="game-info-box mb-8"></div>
+
     <!-- Real iframe, shown after play -->
     <div id="gameFrameContainer" class="rounded-2xl shadow-2xl bg-[#181b2a] border border-cyan-600/30 overflow-hidden mt-8 hidden">
       <div class="relative aspect-video bg-black">
@@ -148,6 +195,8 @@
           <a href="profile.html" class="bg-white/10 text-white px-6 py-2 rounded-lg hover:bg-cyan-400/20 transition text-center">View Profile</a>
         </div>
       </div>
+      <!-- GAME INFO BOX (IN IFRAME PANEL) -->
+      <div id="gameInfoBoxFrame" class="game-info-box mb-8 mx-6"></div>
       <div id="tagGamesListModal" class="hidden fixed inset-0 z-[10000] bg-black/70 flex items-center justify-center">
         <div class="bg-[#232445] rounded-xl p-8 max-w-lg w-full shadow-2xl border border-cyan-400/20 relative">
           <button onclick="closeTagGamesModal()" class="absolute top-3 right-4 text-white/70 hover:text-pink-400 text-xl"><i class='bx bx-x'></i></button>
@@ -485,6 +534,39 @@
       `).join('');
     }
 
+    // Render game info developer/release/technology/platforms/controls
+    function renderGameInfoBox(game, elId) {
+      if (!game) return;
+      const el = document.getElementById(elId);
+      if (!el) return;
+      el.innerHTML = `
+        <table>
+          <tr>
+            <th>Developer</th>
+            <td>${game.developer || "Unknown"}</td>
+          </tr>
+          <tr>
+            <th>Release</th>
+            <td>${game.release || "Unknown"}</td>
+          </tr>
+          <tr>
+            <th>Technology</th>
+            <td>${game.technology || "Unknown"}</td>
+          </tr>
+          <tr>
+            <th>Platforms</th>
+            <td class="info-list">
+              ${Array.isArray(game.platforms) ? game.platforms.map(p => `<span>${p}</span>`).join('') : (game.platforms || "Unknown")}
+            </td>
+          </tr>
+          <tr>
+            <th>Controls</th>
+            <td>${game.controls || "See in-game"}</td>
+          </tr>
+        </table>
+      `;
+    }
+
     document.addEventListener('DOMContentLoaded', async () => {
       showPreloader();
       document.getElementById('gameFrameContainer').classList.add('hidden');
@@ -518,6 +600,8 @@
         if (currentGame.featured) document.getElementById('gameFeaturedTag').classList.remove('hidden');
         else document.getElementById('gameFeaturedTag').classList.add('hidden');
         await loadStarRating(currentGameId);
+        // show info box
+        renderGameInfoBox(currentGame, "gameInfoBox");
         document.getElementById('bigPlayBtn').onclick = async () => {
           showPreloader();
           document.getElementById('gameInfoHolder').classList.add('hidden');
@@ -575,6 +659,8 @@
             const iframe = document.getElementById('gameFrameEmbed');
             requestFullScreen(iframe);
           };
+          // Show info box in iframe panel
+          renderGameInfoBox(currentGame, "gameInfoBoxFrame");
         };
         hidePreloader();
       });
