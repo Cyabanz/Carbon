@@ -134,150 +134,20 @@
     </div>
   </main>
 
+  <!-- lethal.mjs logic -->
   <script type="module">
-    //////////////////////////////
-    ///          Init          ///
-    //////////////////////////////
-    await import("/scram/scramjet.shared.js")
-    await import("/scram/scramjet.controller.js")
-
-    const scramjet = new ScramjetController({
-      files: {
-        wasm: "/scram/scramjet.wasm.wasm",
-        worker: "/scram/scramjet.worker.js",
-        client: "/scram/scramjet.client.js",
-        shared: "/scram/scramjet.shared.js",
-        sync: "/scram/scramjet.sync.js",
-      },
-      flags: {
-        serviceworkers: false,
-        syncxhr: false,
-        naiiveRewriter: false,
-        strictRewrites: true,
-        rewriterLogs: false,
-        captureErrors: true,
-        cleanErrors: true,
-        scramitize: false,
-        sourcemaps: true,
-      },
-    })
-
-    scramjet.init()
-
-    import * as BareMux from "https://cdn.jsdelivr.net/gh/Coding4Hours/cdn/bare-mux/index.mjs"
-
-    //////////////////////////////
-    ///         Options        ///
-    //////////////////////////////
-    const connection = new BareMux.BareMuxConnection("/bareworker.js")
-
-    let wispURL = null
-    let transportURL = null
-    let proxyOption = "scram" // default
-    const transportOptions = {
-      epoxy:
-        "https://cdn.jsdelivr.net/npm/@mercuryworkshop/epoxy-transport/dist/index.mjs",
-      libcurl:
-        "https://cdn.jsdelivr.net/npm/@mercuryworkshop/libcurl-transport/dist/index.mjs",
-    }
-
-    //////////////////////////////
-    ///           SW           ///
-    //////////////////////////////
-    const stockSW = "./ultraworker.js"
-    const swAllowedHostnames = ["localhost", "127.0.0.1"]
-
-    async function registerSW() {
-      if (!navigator.serviceWorker) {
-        if (
-          location.protocol !== "https:" &&
-          !swAllowedHostnames.includes(location.hostname)
-        )
-          throw new Error("Service workers cannot be registered without https.")
-
-        throw new Error("Your browser doesn't support service workers.")
-      }
-
-      await navigator.serviceWorker.register(stockSW)
-    }
-
-    await registerSW()
-
-    //////////////////////////////
-    ///        Functions       ///
-    //////////////////////////////
-    function makeURL(
-      input,
-      template = "https://search.brave.com/search?q=%s",
-    ) {
-      try {
-        return new URL(input).toString()
-      } catch (err) {}
-
-      const url = new URL(`http://${input}`)
-      if (url.hostname.includes(".")) return url.toString()
-
-      return template.replace("%s", encodeURIComponent(input))
-    }
-
-    async function updateBareMux() {
-      if (transportURL != null && wispURL != null) {
-        await connection.setTransport(transportURL, [{ wisp: wispURL }])
-      }
-    }
-
-    async function setTransport(transport) {
-      transportURL = transportOptions[transport]
-      if (!transportURL) {
-        transportURL = transport
-      }
-      await updateBareMux()
-    }
-
-    function getTransport() {
-      return transportURL
-    }
-
-    async function setWisp(wisp) {
-      wispURL = wisp
-      await updateBareMux()
-    }
-
-    function getWisp() {
-      return wispURL
-    }
-
-    async function setProxy(proxy) {
-      if (proxy === "uv") {
-        await import("https://cdn.jsdelivr.net/gh/Coding4Hours/cdn/uv/uv.bundle.js")
-        await import("./uv.config.js")
-      } else {
-        import("/scram/scramjet.worker.js")
-      }
-      proxyOption = proxy
-    }
-
-    function getProxy() {
-      return proxyOption
-    }
-
-    async function getProxied(input) {
-      const url = makeURL(input)
-      if (proxyOption === "scram") return scramjet.encodeUrl(url)
-      return __uv$config.prefix + __uv$config.encodeUrl(url)
-    }
-
-    // Expose to window for other scripts
-    window.lethalProxy = {
+    import {
+      makeURL,
+      getProxied,
       setProxy,
       getProxy,
-      getProxied,
-    };
+    } from "/lethal.mjs";
 
     // Proxy toggle icon logic
     function updateProxyIcon() {
       const btn = document.getElementById('proxyToggleBtn');
       const icon = document.getElementById('proxyIcon');
+      const proxyOption = getProxy();
       if (proxyOption === "scram") {
         btn.classList.add("active");
         icon.className = "bx bx-transfer";
@@ -288,14 +158,15 @@
         icon.style.color = "#a855f7";
       }
     }
-    function setupProxyToggleBtn() {
+    async function setupProxyToggleBtn(reloadFrameCallback) {
       const btn = document.getElementById('proxyToggleBtn');
       if (!btn) return;
       btn.onclick = async () => {
-        proxyOption = (proxyOption === "scram") ? "uv" : "scram";
-        await window.lethalProxy.setProxy(proxyOption);
+        let current = getProxy();
+        let next = (current === "scram" ? "uv" : "scram");
+        await setProxy(next);
         updateProxyIcon();
-        if (window.reloadFrameWithProxy) window.reloadFrameWithProxy();
+        if (typeof reloadFrameCallback === "function") reloadFrameCallback();
       };
       updateProxyIcon();
     }
@@ -334,7 +205,7 @@
     let currentGameId = null;
     window.currentGame = null;
     async function loadGamesData() {
-      const res = await fetch('games.json');
+      const res = await fetch('js/games.json');
       gamesData = await res.json();
     }
     function getGameIdFromURL() {
@@ -466,12 +337,15 @@
           addGameToLocalHistory(currentGameId);
           document.getElementById('gameInfoHolder').classList.add('hidden');
           document.getElementById('gameFrameContainer').classList.remove('hidden');
-          if (window.lethalProxy && window.lethalProxy.getProxied) {
-            const proxiedURL = await window.lethalProxy.getProxied(window.currentGame.url);
-            document.getElementById('gameFrameEmbed').src = proxiedURL;
-          } else {
-            document.getElementById('gameFrameEmbed').src = window.currentGame.url;
+          // Use lethal.mjs for proxy logic
+          const { getProxied, getProxy } = await import("/lethal.mjs");
+          let src = "";
+          try {
+            src = await getProxied(window.currentGame.url);
+          } catch (e) {
+            src = window.currentGame.url;
           }
+          document.getElementById('gameFrameEmbed').src = src;
           document.getElementById('gameFrameEmbed').onload = hidePreloader;
           let lists = await getUserGameLists(user.uid);
           setButtonActive(document.getElementById('likeBtn'), lists.likedGames?.includes(currentGameId));
@@ -519,16 +393,29 @@
             const iframe = document.getElementById('gameFrameEmbed');
             requestFullScreen(iframe);
           };
-          if(window.setupProxyToggleBtn) window.setupProxyToggleBtn();
+          // Setup proxy toggle icon in iframe controls (after they exist!)
+          if(window.setupProxyToggleBtn) window.setupProxyToggleBtn(async () => {
+            // Reload proxy when toggled
+            const { getProxied } = await import("/lethal.mjs");
+            let src = "";
+            try {
+              src = await getProxied(window.currentGame.url);
+            } catch (e) {
+              src = window.currentGame.url;
+            }
+            document.getElementById('gameFrameEmbed').src = src;
+          });
         };
         window.reloadFrameWithProxy = async function() {
           if (!window.currentGame || !document.getElementById('gameFrameEmbed')) return;
-          if (window.lethalProxy && window.lethalProxy.getProxied) {
-            const proxiedURL = await window.lethalProxy.getProxied(window.currentGame.url);
-            document.getElementById('gameFrameEmbed').src = proxiedURL;
-          } else {
-            document.getElementById('gameFrameEmbed').src = window.currentGame.url;
+          const { getProxied } = await import("/lethal.mjs");
+          let src = "";
+          try {
+            src = await getProxied(window.currentGame.url);
+          } catch (e) {
+            src = window.currentGame.url;
           }
+          document.getElementById('gameFrameEmbed').src = src;
         };
         let historyIds = [];
         try {
