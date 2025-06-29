@@ -122,7 +122,8 @@
       </div>
       <div class="flex flex-col md:flex-row p-6 gap-6 items-start bg-[#232445]">
         <div class="flex-1">
-          <!-- STAR RATING SYSTEM (ALWAYS SHOW UNDER IFRAME) -->
+          <!-- GAME NAME AND STAR RATING SYSTEM UNDER IFRAME -->
+          <div id="gameTitleDisplayFrame" class="text-2xl md:text-3xl font-extrabold text-cyan-400 mb-3"></div>
           <div id="starRatingSectionFrame" class="max-w-xl my-4">
             <div id="starsContainerFrame" class="flex gap-1 text-3xl"></div>
             <div class="text-sm mt-1 flex flex-wrap items-center gap-2 text-cyan-200">
@@ -199,7 +200,6 @@
 
     async function loadProxiedGameIframe() {
       await ensureProxyReady();
-      // Get current game from window
       let gamesData = window.gamesData || [];
       let currentGameId = window.currentGameId;
       let currentGame = gamesData.find(g => String(g.id) === String(currentGameId));
@@ -208,7 +208,6 @@
       document.getElementById("gameFrameEmbed").src = proxied;
     }
 
-    // Patch Play button to use proxy for iframe!
     window.loadProxiedGameIframe = loadProxiedGameIframe;
     window.ensureProxyReady = ensureProxyReady;
     window.updateProxyToggleUI = updateProxyToggleUI;
@@ -303,9 +302,7 @@
     function hidePreloader() {
       document.getElementById('preloader').style.display = 'none';
     }
-    function renderGameHistory(gameIds, gamesData) {
-      // Removed: No-op
-    }
+    function renderGameHistory(gameIds, gamesData) {}
     function requestFullScreen(element) {
       if (element.requestFullscreen) element.requestFullscreen();
       else if (element.webkitRequestFullscreen) element.webkitRequestFullscreen();
@@ -358,7 +355,6 @@
       document.getElementById('starRatingCount' + pre).textContent =
         starRatingData.count === 1 ? "1 rating" : (starRatingData.count ? `${starRatingData.count} ratings` : "");
       document.getElementById('starRatingError' + pre).textContent = starRatingData.error || '';
-      // Render percent of high ratings
       renderRatingPercentUI(target);
     }
 
@@ -373,7 +369,7 @@
         const ratingsRef = db.collection("games").doc(gameId).collection("ratings");
         const snap = await ratingsRef.get();
         let total = 0, count = 0, your = 0, user = firebase.auth().currentUser;
-        let highCount = 0; // 4 or 5 stars
+        let highCount = 0;
         snap.forEach(doc => {
           const d = doc.data();
           if (typeof d.rating === "number" && d.rating >= 1 && d.rating <= 5) {
@@ -437,7 +433,6 @@
     }
 
     function renderRatingPercentUI(target = "") {
-      // target: "" or "Frame"
       const pre = target ? target : "";
       const txt = document.getElementById('ratingPercentText' + pre);
       const bar = document.getElementById('ratingPercentBar' + pre);
@@ -478,7 +473,6 @@
         document.getElementById('loginScreen').classList.add('hidden');
         document.getElementById('gameInfoHolder').classList.remove('hidden');
         document.getElementById('gameCoverImg').src = currentGame.image;
-        // Show game name above star rating
         document.getElementById('gameTitleDisplay').textContent = currentGame.title || "";
         document.getElementById('gameFrameDesc').textContent = currentGame.description;
         document.getElementById('gameCategoryTag').textContent = currentGame.category || '';
@@ -491,7 +485,6 @@
           addGameToLocalHistory(currentGameId);
           document.getElementById('gameInfoHolder').classList.add('hidden');
           document.getElementById('gameFrameContainer').classList.remove('hidden');
-          // Use proxy loader for iframe!
           await window.loadProxiedGameIframe();
           document.getElementById('gameFrameEmbed').onload = hidePreloader;
           let lists = await getUserGameLists(user.uid);
@@ -530,7 +523,6 @@
             lists = await getUserGameLists(user.uid);
             setButtonActive(document.getElementById('playlistBtn'), lists.playlist?.includes(currentGameId), 'bg-yellow-400/80');
           };
-          // Fullscreen buttons
           document.getElementById('fullscreenBtn').onclick = (e) => {
             e.preventDefault();
             const iframe = document.getElementById('gameFrameEmbed');
@@ -541,7 +533,8 @@
             const iframe = document.getElementById('gameFrameEmbed');
             requestFullScreen(iframe);
           };
-          // Always show the star/like UI under the iframe, and update their values
+          // Show game name and star rating UI under the iframe
+          document.getElementById('gameTitleDisplayFrame').textContent = currentGame.title || "";
           renderStarRatingUI("Frame");
         };
         hidePreloader();
