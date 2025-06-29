@@ -54,10 +54,6 @@
   </div>
 
   <main class="pt-28 max-w-4xl mx-auto px-4">
-    <div id="gameHistoryContainer" class="mb-8 hidden">
-      <h2 class="text-xl font-bold mb-2 text-cyan-300">Recently Played</h2>
-      <div id="gameHistory" class="grid gap-4"></div>
-    </div>
     <div id="gameInfoHolder" class="rounded-2xl shadow-2xl bg-[#181b2a] border border-cyan-600/30 overflow-hidden mt-2">
       <!-- Game "cover" with play button -->
       <div class="relative aspect-video bg-black flex items-center justify-center">
@@ -307,36 +303,7 @@
       document.getElementById('preloader').style.display = 'none';
     }
     function renderGameHistory(gameIds, gamesData) {
-      const container = document.getElementById('gameHistory');
-      if (!Array.isArray(gameIds) || !gameIds.length) {
-        document.getElementById('gameHistoryContainer').classList.add('hidden');
-        return;
-      }
-      document.getElementById('gameHistoryContainer').classList.remove('hidden');
-      container.innerHTML = gameIds
-        .filter(id => id !== currentGameId)
-        .map(id => {
-          const game = gamesData.find(g => String(g.id) === String(id));
-          if (!game) return '';
-          return `
-            <a href="play.html?id=${game.id}" class="flex items-center gap-4 bg-white/5 border border-white/10 rounded-xl p-3 hover:border-cyan-400/40 transition group shadow-sm">
-              <div class="relative w-20 h-16 flex-shrink-0 rounded-lg overflow-hidden">
-                <img src="${game.image}" alt="${game.title}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
-              </div>
-              <div class="flex-1">
-                <div class="font-bold text-lg text-cyan-300">${game.title}</div>
-                <div class="text-sm text-white/70">${game.description}</div>
-                <div class="flex gap-2 mt-1 text-xs">
-                  <span class="bg-cyan-400/20 text-cyan-300 px-2 py-0.5 rounded">${game.category}</span>
-                  ${game.featured ? '<span class="bg-indigo-400/20 text-indigo-300 px-2 py-0.5 rounded">Featured</span>' : ''}
-                </div>
-              </div>
-              <button class="ml-auto px-5 py-2 rounded-lg bg-gradient-to-r from-cyan-400 to-indigo-500 text-black font-bold hover:scale-105 transition-transform">
-                Play
-              </button>
-            </a>
-          `;
-        }).join('');
+      // Removed: No-op
     }
     function requestFullScreen(element) {
       if (element.requestFullscreen) element.requestFullscreen();
@@ -575,14 +542,6 @@
           // Always show the star/like UI under the iframe, and update their values
           renderStarRatingUI("Frame");
         };
-        let historyIds = [];
-        try {
-          const lists = await getUserGameLists(user.uid);
-          historyIds = (lists.history || []).slice().reverse();
-        } catch {
-          historyIds = getLocalHistory();
-        }
-        renderGameHistory(historyIds, gamesData);
         hidePreloader();
       });
     });
