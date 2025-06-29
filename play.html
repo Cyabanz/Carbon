@@ -114,6 +114,166 @@
     </div>
   </main>
 
+  <!-- lethal.mjs and Proxy Toggle Setup -->
+  <script type="module">
+    ////////// lethal.mjs SETUP BEGIN //////////
+
+    // Scramjet setup
+    await import("/scram/scramjet.shared.js");
+    await import("/scram/scramjet.controller.js");
+
+    const scramjet = new window.ScramjetController({
+      files: {
+        wasm: "/scram/scramjet.wasm.wasm",
+        worker: "/scram/scramjet.worker.js",
+        client: "/scram/scramjet.client.js",
+        shared: "/scram/scramjet.shared.js",
+        sync: "/scram/scramjet.sync.js",
+      },
+      flags: {
+        serviceworkers: false,
+        syncxhr: false,
+        naiiveRewriter: false,
+        strictRewrites: true,
+        rewriterLogs: false,
+        captureErrors: true,
+        cleanErrors: true,
+        scramitize: false,
+        sourcemaps: true,
+      },
+    });
+    scramjet.init();
+
+    // BareMux setup
+    const BareMux = await import("https://cdn.jsdelivr.net/gh/Coding4Hours/cdn/bare-mux/index.mjs");
+    const connection = new BareMux.BareMuxConnection("/bareworker.js");
+
+    let wispURL = null;
+    let transportURL = null;
+    let proxyOption = "uv"; // default
+
+    const transportOptions = {
+      epoxy: "https://cdn.jsdelivr.net/npm/@mercuryworkshop/epoxy-transport/dist/index.mjs",
+      libcurl: "https://cdn.jsdelivr.net/npm/@mercuryworkshop/libcurl-transport/dist/index.mjs",
+    };
+
+    const stockSW = "./ultraworker.js";
+    const swAllowedHostnames = ["localhost", "127.0.0.1"];
+    async function registerSW() {
+      if (!navigator.serviceWorker) {
+        if (
+          location.protocol !== "https:" &&
+          !swAllowedHostnames.includes(location.hostname)
+        )
+          throw new Error("Service workers cannot be registered without https.");
+        throw new Error("Your browser doesn't support service workers.");
+      }
+      await navigator.serviceWorker.register(stockSW);
+    }
+    await registerSW();
+
+    function makeURL(input, template = "https://search.brave.com/search?q=%s") {
+      try {
+        return new URL(input).toString();
+      } catch (err) {}
+      const url = new URL(`http://${input}`);
+      if (url.hostname.includes(".")) return url.toString();
+      return template.replace("%s", encodeURIComponent(input));
+    }
+
+    async function updateBareMux() {
+      if (transportURL != null && wispURL != null) {
+        await connection.setTransport(transportURL, [{ wisp: wispURL }]);
+      }
+    }
+    async function setTransport(transport) {
+      transportURL = transportOptions[transport];
+      if (!transportURL) transportURL = transport;
+      await updateBareMux();
+    }
+    function getTransport() {
+      return transportURL;
+    }
+    async function setWisp(wisp) {
+      wispURL = wisp;
+      await updateBareMux();
+    }
+    function getWisp() {
+      return wispURL;
+    }
+    async function setProxy(proxy) {
+      if (proxy === "uv") {
+        await import("https://cdn.jsdelivr.net/gh/Coding4Hours/cdn/uv/uv.bundle.js");
+        await import("./uv.config.js");
+      } else if (proxy === "scram") {
+        await import("/scram/scramjet.worker.js");
+      }
+      proxyOption = proxy;
+    }
+    function getProxy() {
+      return proxyOption;
+    }
+    async function getProxied(input) {
+      const url = makeURL(input);
+      if (proxyOption === "scram") return scramjet.encodeUrl(url);
+      return window.__uv$config.prefix + window.__uv$config.encodeUrl(url);
+    }
+
+    // Proxy toggle icon (bottom right, no text)
+    function renderProxyToggle(targetSelector = "body") {
+      if (document.getElementById("proxyToggleIcon")) return;
+      const btn = document.createElement("button");
+      btn.id = "proxyToggleIcon";
+      btn.title = "Toggle Proxy";
+      btn.style = `
+        position: fixed;
+        bottom: 2rem;
+        right: 2rem;
+        z-index: 9999;
+        background: #181b2a;
+        border: 2px solid #06b6d4;
+        border-radius: 50%;
+        width: 48px;
+        height: 48px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: border-color 0.2s, background 0.2s;
+      `;
+      btn.innerHTML = `
+        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" fill="currentColor" viewBox="0 0 16 16">
+          <path d="M0 7.5A.5.5 0 0 1 .5 7h13.793l-3.147-3.146a.5.5 0 1 1 .708-.708l4 4a.5.5 0 0 1 0 .708l-4 4a.5.5 0 0 1-.708-.708L14.293 8H.5a.5.5 0 0 1-.5-.5z"/>
+        </svg>
+      `;
+      function updateHighlight() {
+        if (getProxy() === "scram") {
+          btn.style.borderColor = "#f472b6";
+          btn.style.background = "#232445";
+        } else {
+          btn.style.borderColor = "#06b6d4";
+          btn.style.background = "#181b2a";
+        }
+      }
+      btn.addEventListener("click", async () => {
+        const newProxy = getProxy() === "scram" ? "uv" : "scram";
+        await setProxy(newProxy);
+        updateHighlight();
+      });
+      updateHighlight();
+      const target = document.querySelector(targetSelector);
+      if (target) target.appendChild(btn);
+      else document.body.appendChild(btn);
+    }
+
+    // Render the proxy toggle icon on DOMContentLoaded
+    document.addEventListener("DOMContentLoaded", () => {
+      renderProxyToggle();
+    });
+
+    ////////// lethal.mjs SETUP END //////////
+  </script>
+
   <script>
     // FIREBASE INIT
     const firebaseConfig = {
