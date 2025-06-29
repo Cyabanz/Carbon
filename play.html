@@ -26,13 +26,23 @@
       100% { transform: rotate(360deg);}
     }
     .proxy-icon-btn {
-      @apply w-10 h-10 bg-white/10 hover:bg-cyan-400/80 text-white rounded-full flex items-center justify-center transition relative;
+      width: 2.5rem; height: 2.5rem;
+      background: rgba(255,255,255,0.07);
+      border-radius: 9999px;
+      display: flex; align-items: center; justify-content: center;
+      transition: background 0.15s, box-shadow 0.15s;
+      cursor: pointer;
+      border: none;
+      outline: none;
+      color: #fff;
+      position: relative;
     }
-    .proxy-active-outline {
+    .proxy-icon-btn.active {
       box-shadow: 0 0 0 2px #06b6d4;
+      background: rgba(6,182,212,0.09);
     }
-    .proxy-tooltip {
-      @apply absolute left-1/2 -translate-x-1/2 top-full mt-2 px-3 py-1 z-50 text-xs rounded bg-black/80 text-white whitespace-nowrap pointer-events-none opacity-0 group-hover:opacity-100 transition;
+    .proxy-icon-btn .bx {
+      font-size: 1.35rem;
     }
   </style>
 </head>
@@ -63,21 +73,11 @@
   </div>
 
   <main class="pt-28 max-w-4xl mx-auto px-4">
-    <!-- (Optional) Proxy Toggle Outside Frame 
-    <div id="proxyToggleContainer" class="flex justify-end mb-4 items-center gap-4">
-      <span class="text-white/60 text-sm">Proxy:</span>
-      <button id="proxyToggleBtnTop" class="proxy-icon-btn group" aria-pressed="true">
-        <i id="proxyIconTop" class='bx bx-transfer text-2xl'></i>
-        <span id="proxyTooltipTop" class="proxy-tooltip">Scramjet Proxy</span>
-      </button>
-    </div>
-    -->
     <div id="gameHistoryContainer" class="mb-8 hidden">
       <h2 class="text-xl font-bold mb-2 text-cyan-300">Recently Played</h2>
       <div id="gameHistory" class="grid gap-4"></div>
     </div>
     <div id="gameInfoHolder" class="rounded-2xl shadow-2xl bg-[#181b2a] border border-cyan-600/30 overflow-hidden mt-2">
-      <!-- Game "cover" with play button -->
       <div class="relative aspect-video bg-black flex items-center justify-center">
         <img id="gameCoverImg" src="" class="w-full h-full object-cover pointer-events-none select-none rounded-t-2xl" alt="Game Cover" />
         <button id="bigPlayBtn" class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10 bg-gradient-to-br from-cyan-400 to-indigo-500 text-white font-extrabold rounded-lg px-10 py-5 shadow-lg text-2xl hover:scale-105 transition-all flex items-center gap-3 group">
@@ -100,7 +100,6 @@
         </div>
       </div>
     </div>
-    <!-- Real iframe, shown after play -->
     <div id="gameFrameContainer" class="rounded-2xl shadow-2xl bg-[#181b2a] border border-cyan-600/30 overflow-hidden mt-8 hidden">
       <div class="relative aspect-video bg-black">
         <iframe id="gameFrameEmbed" src="" class="w-full h-full" frameborder="0" allowfullscreen allow="fullscreen"></iframe>
@@ -114,10 +113,8 @@
           <button id="dislikeBtn" class="w-10 h-10 bg-white/10 hover:bg-red-500/80 text-white rounded-full flex items-center justify-center transition" title="Dislike">
             <i class='bx bx-dislike text-xl'></i>
           </button>
-          <!-- Proxy Toggle as a single icon -->
-          <button id="proxyToggleBtn" class="proxy-icon-btn group" aria-pressed="true">
-            <i id="proxyIcon" class='bx bx-transfer text-2xl'></i>
-            <span id="proxyTooltip" class="proxy-tooltip">Scramjet Proxy</span>
+          <button id="proxyToggleBtn" class="proxy-icon-btn" title="Proxy">
+            <i id="proxyIcon" class='bx bx-transfer'></i>
           </button>
           <button id="shareBtn" class="w-10 h-10 bg-white/10 hover:bg-indigo-500/80 text-white rounded-full flex items-center justify-center transition" title="Share">
             <i class='bx bx-share-alt text-xl'></i>
@@ -137,13 +134,12 @@
     </div>
   </main>
 
-  <!-- lethal.mjs functionality and proxy toggle -->
   <script type="module">
     //////////////////////////////
     ///          Init          ///
     //////////////////////////////
-    await import("/scram/scramjet.shared.js");
-    await import("/scram/scramjet.controller.js");
+    await import("/scram/scramjet.shared.js")
+    await import("/scram/scramjet.controller.js")
 
     const scramjet = new ScramjetController({
       files: {
@@ -164,33 +160,32 @@
         scramitize: false,
         sourcemaps: true,
       },
-    });
+    })
 
-    scramjet.init();
+    scramjet.init()
 
-    import * as BareMux from "https://cdn.jsdelivr.net/gh/Coding4Hours/cdn/bare-mux/index.mjs";
+    import * as BareMux from "https://cdn.jsdelivr.net/gh/Coding4Hours/cdn/bare-mux/index.mjs"
 
     //////////////////////////////
     ///         Options        ///
     //////////////////////////////
-    const connection = new BareMux.BareMuxConnection("/bareworker.js");
+    const connection = new BareMux.BareMuxConnection("/bareworker.js")
 
-    let wispURL = null;
-    let transportURL = null;
-    let proxyOption = "scram"; // Default to scram
-
+    let wispURL = null
+    let transportURL = null
+    let proxyOption = "scram" // default
     const transportOptions = {
       epoxy:
         "https://cdn.jsdelivr.net/npm/@mercuryworkshop/epoxy-transport/dist/index.mjs",
       libcurl:
         "https://cdn.jsdelivr.net/npm/@mercuryworkshop/libcurl-transport/dist/index.mjs",
-    };
+    }
 
     //////////////////////////////
     ///           SW           ///
     //////////////////////////////
-    const stockSW = "./ultraworker.js";
-    const swAllowedHostnames = ["localhost", "127.0.0.1"];
+    const stockSW = "./ultraworker.js"
+    const swAllowedHostnames = ["localhost", "127.0.0.1"]
 
     async function registerSW() {
       if (!navigator.serviceWorker) {
@@ -198,118 +193,114 @@
           location.protocol !== "https:" &&
           !swAllowedHostnames.includes(location.hostname)
         )
-          throw new Error("Service workers cannot be registered without https.");
+          throw new Error("Service workers cannot be registered without https.")
 
-        throw new Error("Your browser doesn't support service workers.");
+        throw new Error("Your browser doesn't support service workers.")
       }
-      await navigator.serviceWorker.register(stockSW);
+
+      await navigator.serviceWorker.register(stockSW)
     }
 
-    await registerSW();
+    await registerSW()
 
     //////////////////////////////
     ///        Functions       ///
     //////////////////////////////
-
     function makeURL(
       input,
       template = "https://search.brave.com/search?q=%s",
     ) {
       try {
-        return new URL(input).toString();
+        return new URL(input).toString()
       } catch (err) {}
 
-      const url = new URL(`http://${input}`);
-      if (url.hostname.includes(".")) return url.toString();
+      const url = new URL(`http://${input}`)
+      if (url.hostname.includes(".")) return url.toString()
 
-      return template.replace("%s", encodeURIComponent(input));
+      return template.replace("%s", encodeURIComponent(input))
     }
 
     async function updateBareMux() {
       if (transportURL != null && wispURL != null) {
-        await connection.setTransport(transportURL, [{ wisp: wispURL }]);
+        await connection.setTransport(transportURL, [{ wisp: wispURL }])
       }
     }
 
     async function setTransport(transport) {
-      transportURL = transportOptions[transport];
+      transportURL = transportOptions[transport]
       if (!transportURL) {
-        transportURL = transport;
+        transportURL = transport
       }
-      await updateBareMux();
+      await updateBareMux()
     }
 
     function getTransport() {
-      return transportURL;
+      return transportURL
     }
 
     async function setWisp(wisp) {
-      wispURL = wisp;
-      await updateBareMux();
+      wispURL = wisp
+      await updateBareMux()
     }
 
     function getWisp() {
-      return wispURL;
+      return wispURL
     }
 
     async function setProxy(proxy) {
       if (proxy === "uv") {
-        await import("https://cdn.jsdelivr.net/gh/Coding4Hours/cdn/uv/uv.bundle.js");
-        await import("./uv.config.js");
+        await import("https://cdn.jsdelivr.net/gh/Coding4Hours/cdn/uv/uv.bundle.js")
+        await import("./uv.config.js")
       } else {
-        import("/scram/scramjet.worker.js");
+        import("/scram/scramjet.worker.js")
       }
-      proxyOption = proxy;
+      proxyOption = proxy
     }
 
     function getProxy() {
-      return proxyOption;
+      return proxyOption
     }
 
     async function getProxied(input) {
-      const url = makeURL(input);
-      if (proxyOption === "scram") return scramjet.encodeUrl(url);
-      return __uv$config.prefix + __uv$config.encodeUrl(url);
+      const url = makeURL(input)
+      if (proxyOption === "scram") return scramjet.encodeUrl(url)
+      return __uv$config.prefix + __uv$config.encodeUrl(url)
     }
 
-    // Expose for classic script use
+    // Expose to window for other scripts
     window.lethalProxy = {
       setProxy,
       getProxy,
       getProxied,
     };
 
-    // Proxy Toggle (Icon) UI Logic
-    function updateProxyToggleUI() {
-      const icon = document.getElementById("proxyIcon");
-      const tooltip = document.getElementById("proxyTooltip");
+    // Proxy toggle icon logic
+    function updateProxyIcon() {
+      const btn = document.getElementById('proxyToggleBtn');
+      const icon = document.getElementById('proxyIcon');
       if (proxyOption === "scram") {
-        icon.className = "bx bx-transfer text-2xl";
+        btn.classList.add("active");
+        icon.className = "bx bx-transfer";
         icon.style.color = "#06b6d4";
-        document.getElementById("proxyToggleBtn").classList.add("proxy-active-outline");
-        tooltip.innerText = "Scramjet Proxy";
       } else {
-        icon.className = "bx bx-shield-quarter text-2xl";
+        btn.classList.remove("active");
+        icon.className = "bx bx-shield-quarter";
         icon.style.color = "#a855f7";
-        document.getElementById("proxyToggleBtn").classList.remove("proxy-active-outline");
-        tooltip.innerText = "Ultraviolet Proxy";
       }
     }
-
     function setupProxyToggleBtn() {
-      const proxyBtn = document.getElementById("proxyToggleBtn");
-      if (!proxyBtn) return;
-      proxyBtn.onclick = async () => {
-        proxyOption = proxyOption === "scram" ? "uv" : "scram";
-        updateProxyToggleUI();
-        if(window.lethalProxy) await window.lethalProxy.setProxy(proxyOption);
-        if(window.reloadFrameWithProxy) window.reloadFrameWithProxy();
+      const btn = document.getElementById('proxyToggleBtn');
+      if (!btn) return;
+      btn.onclick = async () => {
+        proxyOption = (proxyOption === "scram") ? "uv" : "scram";
+        await window.lethalProxy.setProxy(proxyOption);
+        updateProxyIcon();
+        if (window.reloadFrameWithProxy) window.reloadFrameWithProxy();
       };
-      updateProxyToggleUI();
+      updateProxyIcon();
     }
-
     window.setupProxyToggleBtn = setupProxyToggleBtn;
-    window.updateProxyToggleUI = updateProxyToggleUI;
+    window.updateProxyIcon = updateProxyIcon;
   </script>
 
   <script>
@@ -518,7 +509,6 @@
             lists = await getUserGameLists(user.uid);
             setButtonActive(document.getElementById('playlistBtn'), lists.playlist?.includes(currentGameId), 'bg-yellow-400/80');
           };
-          // Fullscreen buttons
           document.getElementById('fullscreenBtn').onclick = (e) => {
             e.preventDefault();
             const iframe = document.getElementById('gameFrameEmbed');
@@ -529,10 +519,8 @@
             const iframe = document.getElementById('gameFrameEmbed');
             requestFullScreen(iframe);
           };
-          // Setup proxy toggle icon in iframe controls (after they exist!)
           if(window.setupProxyToggleBtn) window.setupProxyToggleBtn();
         };
-        // Proxy toggle always applies to iframe
         window.reloadFrameWithProxy = async function() {
           if (!window.currentGame || !document.getElementById('gameFrameEmbed')) return;
           if (window.lethalProxy && window.lethalProxy.getProxied) {
