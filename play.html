@@ -58,8 +58,8 @@
       <!-- Game "cover" with play button -->
       <div class="relative aspect-video bg-black flex items-center justify-center">
         <img id="gameCoverImg" src="" class="w-full h-full object-cover pointer-events-none select-none rounded-t-2xl" alt="Game Cover" />
-        <button id="bigPlayBtn" class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10 bg-gradient-to-br from-cyan-400 to-indigo-500 text-white font-extrabold rounded-lg px-10 py-5 shadow-lg text-2xl hover:scale-105 transition-all flex items-center gap-3 group">
-          <i class='bx bx-play-circle text-3xl drop-shadow-lg group-hover:scale-110 transition-transform'></i>
+        <button id="bigPlayBtn" class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10 bg-gradient-to-br from-cyan-400 to-indigo-500 text-white font-extrabold rounded-lg px-6 py-3 shadow-lg text-lg hover:scale-105 transition-all flex items-center gap-3 group min-w-[120px]">
+          <i class='bx bx-play-circle text-2xl drop-shadow-lg group-hover:scale-110 transition-transform'></i>
           <span class="block text-base font-bold">Play</span>
         </button>
         <div class="absolute bottom-4 left-4 flex gap-3">
@@ -69,9 +69,7 @@
       </div>
       <div class="flex flex-col md:flex-row p-6 gap-6 items-start bg-[#232445]">
         <div class="flex-1">
-          <!-- GAME NAME DISPLAYED ABOVE RATING SYSTEM -->
           <div id="gameTitleDisplay" class="text-2xl md:text-3xl font-extrabold text-cyan-400 mb-3"></div>
-          <!-- STAR RATING SYSTEM (ALWAYS SHOW) -->
           <div id="starRatingSection" class="my-4">
             <div id="starsContainer" class="flex gap-1 text-3xl"></div>
             <div class="text-sm mt-1 flex flex-wrap items-center gap-2 text-cyan-200">
@@ -108,7 +106,6 @@
           <button id="dislikeBtn" class="w-10 h-10 bg-white/10 hover:bg-red-500/80 text-white rounded-full flex items-center justify-center transition" title="Dislike">
             <i class='bx bx-dislike text-xl'></i>
           </button>
-          <!-- Proxy Toggle Icon Button (no text, just icon) -->
           <button id="proxyToggleBtn" class="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center transition border-2 border-cyan-400" title="Toggle Proxy">
             <i id="proxyToggleIcon" class="bx bx-cloud text-xl"></i>
           </button>
@@ -122,7 +119,6 @@
       </div>
       <div class="flex flex-col md:flex-row p-6 gap-6 items-start bg-[#232445]">
         <div class="flex-1">
-          <!-- GAME NAME AND STAR RATING SYSTEM UNDER IFRAME -->
           <div id="gameTitleDisplayFrame" class="text-2xl md:text-3xl font-extrabold text-cyan-400 mb-3"></div>
           <div id="starRatingSectionFrame" class="max-w-xl my-4">
             <div id="starsContainerFrame" class="flex gap-1 text-3xl"></div>
@@ -137,6 +133,8 @@
                 <div id="ratingPercentBarFrame" class="h-2 bg-indigo-400 rounded transition-all duration-300" style="width:0%"></div>
               </div>
             </div>
+            <!-- Category count displayed here -->
+            <div id="categoryGamesCountFrame" class="mt-5 text-cyan-300 text-base font-semibold"></div>
           </div>
         </div>
         <div class="flex flex-col gap-2 w-full md:w-auto">
@@ -147,7 +145,6 @@
     </div>
   </main>
 
-  <!-- Lethal Proxy Setup (module, robust SW/bare-mux wait, toggle logic) -->
   <script type="module">
     import {
       makeURL,
@@ -191,7 +188,6 @@
       localStorage.setItem("proxy-backend", proxyOption);
       await ensureProxyReady();
       updateProxyToggleUI(proxyOption);
-      // If gameFrameContainer is shown, reload iframe with new proxy
       if (!document.getElementById("gameFrameContainer").classList.contains("hidden")) {
         loadProxiedGameIframe();
       }
@@ -214,7 +210,6 @@
   </script>
 
   <script>
-    // FIREBASE INIT
     const firebaseConfig = {
       apiKey: "AIzaSyC4ilHYP1T-kdXbWPoHJHhD2aj0pNWmMec",
       authDomain: "carbon-services.firebaseapp.com",
@@ -243,11 +238,22 @@
     let gamesData = [];
     let currentGameId = null;
     let currentGame = null;
+    let categoryCounts = {};
+
     async function loadGamesData() {
       const res = await fetch('games.json');
       gamesData = await res.json();
       window.gamesData = gamesData;
+      // Calculate category counts
+      categoryCounts = {};
+      gamesData.forEach(game => {
+        if (game.category) {
+          categoryCounts[game.category] = (categoryCounts[game.category] || 0) + 1;
+        }
+      });
+      window.categoryCounts = categoryCounts;
     }
+
     function getGameIdFromURL() {
       const urlParams = new URLSearchParams(window.location.search);
       return urlParams.get('id');
@@ -446,6 +452,18 @@
       }
     }
 
+    // Render category count info below rating in the iframe panel
+    function renderCategoryGamesCountFrame(currentGame) {
+      const el = document.getElementById('categoryGamesCountFrame');
+      if (!el || !currentGame || !currentGame.category || !window.categoryCounts) {
+        if (el) el.textContent = "";
+        return;
+      }
+      const cat = currentGame.category;
+      const count = window.categoryCounts[cat] || 0;
+      el.textContent = `${cat} (${count}) games`;
+    }
+
     document.addEventListener('DOMContentLoaded', async () => {
       showPreloader();
       document.getElementById('gameFrameContainer').classList.add('hidden');
@@ -533,9 +551,9 @@
             const iframe = document.getElementById('gameFrameEmbed');
             requestFullScreen(iframe);
           };
-          // Show game name and star rating UI under the iframe
           document.getElementById('gameTitleDisplayFrame').textContent = currentGame.title || "";
           renderStarRatingUI("Frame");
+          renderCategoryGamesCountFrame(currentGame);
         };
         hidePreloader();
       });
