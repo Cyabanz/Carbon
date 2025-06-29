@@ -12,15 +12,36 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
   <style>
-    .toggle-selected {
-      @apply bg-cyan-500 text-black font-bold;
+    .loader {
+      border: 8px solid #16213e;
+      border-top: 8px solid #06b6d4;
+      border-radius: 50%;
+      width: 70px;
+      height: 70px;
+      animation: spin 1s linear infinite;
+      margin: auto;
     }
-    .toggle-unselected {
+    @keyframes spin {
+      0% { transform: rotate(0deg);}
+      100% { transform: rotate(360deg);}
+    }
+    .proxy-toggle-btn {
+      @apply px-4 py-1 rounded-lg text-sm font-bold transition;
+    }
+    .proxy-active {
+      @apply bg-cyan-500 text-black;
+    }
+    .proxy-inactive {
       @apply bg-white/10 text-white;
     }
   </style>
 </head>
 <body class="bg-gradient-to-br from-[#0f0f23] via-[#1a1a2e] to-[#16213e] min-h-screen text-white font-[Inter]">
+
+  <!-- Preloader -->
+  <div id="preloader" class="fixed z-[9999] inset-0 flex flex-col justify-center items-center bg-gradient-to-br from-[#0f0f23] via-[#1a1a2e] to-[#16213e]">
+    <div class="loader"></div>
+  </div>
 
   <!-- Navbar -->
   <nav class="flex items-center justify-between px-8 py-4 bg-[#0f0f23cc] border-b border-white/10 backdrop-blur-md fixed top-0 left-0 right-0 z-50">
@@ -30,7 +51,7 @@
     </div>
   </nav>
 
-  <!-- LOGIN SCREEN (shown if not logged in) -->
+  <!-- LOGIN SCREEN -->
   <div id="loginScreen" class="flex flex-col items-center justify-center h-screen w-full bg-gradient-to-br from-[#0f0f23] via-[#1a1a2e] to-[#16213e] fixed left-0 top-0 z-50">
     <div class="bg-[#1a1a2e] rounded-2xl shadow-2xl p-12 border border-cyan-600/30 flex flex-col items-center">
       <div class="text-3xl font-bold bg-gradient-to-r from-cyan-400 to-indigo-500 bg-clip-text text-transparent mb-6">Sign In to Play</div>
@@ -42,17 +63,39 @@
   </div>
 
   <main class="pt-28 max-w-4xl mx-auto px-4">
-    <!-- Proxy Toggle -->
-    <div id="proxyToggleContainer" class="flex justify-end mb-4 items-center gap-4">
-      <span class="text-white/60 text-sm">Proxy:</span>
-      <button id="proxyScramBtn" class="px-4 py-1 rounded toggle-unselected" aria-pressed="false">Scram</button>
-      <button id="proxyUvBtn" class="px-4 py-1 rounded toggle-unselected" aria-pressed="false">Ultraviolet</button>
+    <div id="gameHistoryContainer" class="mb-8 hidden">
+      <h2 class="text-xl font-bold mb-2 text-cyan-300">Recently Played</h2>
+      <div id="gameHistory" class="grid gap-4"></div>
     </div>
-
-    <div id="gameFrameContainer" class="rounded-2xl shadow-2xl bg-[#181b2a] border border-cyan-600/30 overflow-hidden hidden">
+    <div id="gameInfoHolder" class="rounded-2xl shadow-2xl bg-[#181b2a] border border-cyan-600/30 overflow-hidden mt-2">
+      <!-- Game "cover" with play button -->
+      <div class="relative aspect-video bg-black flex items-center justify-center">
+        <img id="gameCoverImg" src="" class="w-full h-full object-cover pointer-events-none select-none rounded-t-2xl" alt="Game Cover" />
+        <button id="bigPlayBtn" class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10 bg-gradient-to-br from-cyan-400 to-indigo-500 text-white font-extrabold rounded-lg px-10 py-5 shadow-lg text-2xl hover:scale-105 transition-all flex items-center gap-3 group">
+          <i class='bx bx-play-circle text-3xl drop-shadow-lg group-hover:scale-110 transition-transform'></i>
+          <span class="block text-base font-bold">Play</span>
+        </button>
+        <div class="absolute bottom-4 left-4 flex gap-3">
+          <span id="gameCategoryTag" class="bg-cyan-400/30 text-cyan-300 px-3 py-1 rounded text-xs font-semibold"></span>
+          <span id="gameFeaturedTag" class="bg-indigo-400/30 text-indigo-200 px-3 py-1 rounded text-xs font-semibold hidden">Featured</span>
+        </div>
+      </div>
+      <div class="flex flex-col md:flex-row p-6 gap-6 items-start bg-[#232445]">
+        <div class="flex-1">
+          <h2 id="gameFrameTitle" class="text-2xl font-bold text-cyan-300 mb-2"></h2>
+          <p id="gameFrameDesc" class="text-white/80 mb-2"></p>
+        </div>
+        <div class="flex flex-col gap-2 w-full md:w-auto">
+          <button id="fullscreenBtn" class="bg-gradient-to-r from-cyan-400 to-indigo-500 text-black font-bold px-6 py-2 rounded-lg hover:scale-105 transition-transform">Fullscreen</button>
+          <a href="profile.html" class="bg-white/10 text-white px-6 py-2 rounded-lg hover:bg-cyan-400/20 transition text-center">View Profile</a>
+        </div>
+      </div>
+    </div>
+    <!-- Real iframe, shown after play -->
+    <div id="gameFrameContainer" class="rounded-2xl shadow-2xl bg-[#181b2a] border border-cyan-600/30 overflow-hidden mt-8 hidden">
       <div class="relative aspect-video bg-black">
-        <iframe id="gameFrameEmbed" src="" class="w-full h-full" frameborder="0" allowfullscreen></iframe>
-        <div class="absolute top-4 right-4 flex gap-2 z-10">
+        <iframe id="gameFrameEmbed" src="" class="w-full h-full" frameborder="0" allowfullscreen allow="fullscreen"></iframe>
+        <div class="absolute top-4 right-4 flex gap-2 z-10 items-center">
           <button id="likeBtn" class="w-10 h-10 bg-white/10 hover:bg-cyan-500/80 text-white rounded-full flex items-center justify-center transition" title="Like">
             <i class='bx bx-like text-xl'></i>
           </button>
@@ -62,6 +105,11 @@
           <button id="dislikeBtn" class="w-10 h-10 bg-white/10 hover:bg-red-500/80 text-white rounded-full flex items-center justify-center transition" title="Dislike">
             <i class='bx bx-dislike text-xl'></i>
           </button>
+          <!-- Proxy Toggle in iframe controls -->
+          <div class="flex items-center space-x-1 ml-2">
+            <button id="proxyScramBtnIframe" class="proxy-toggle-btn proxy-active" aria-pressed="true" title="Scramjet Proxy">Scramjet</button>
+            <button id="proxyUvBtnIframe" class="proxy-toggle-btn proxy-inactive" aria-pressed="false" title="Ultraviolet Proxy">Ultraviolet</button>
+          </div>
           <button id="shareBtn" class="w-10 h-10 bg-white/10 hover:bg-indigo-500/80 text-white rounded-full flex items-center justify-center transition" title="Share">
             <i class='bx bx-share-alt text-xl'></i>
           </button>
@@ -71,20 +119,16 @@
         </div>
       </div>
       <div class="flex flex-col md:flex-row p-6 gap-6 items-start bg-[#232445]">
-        <div class="flex-1">
-          <h2 id="gameFrameTitle" class="text-2xl font-bold text-cyan-300 mb-2"></h2>
-          <p id="gameFrameDesc" class="text-white/80 mb-2"></p>
-          <div id="gameFrameTags" class="flex items-center gap-2 text-sm text-white/50 mb-2"></div>
-        </div>
+        <div class="flex-1"></div>
         <div class="flex flex-col gap-2 w-full md:w-auto">
-          <button id="fullscreenBtn" class="bg-gradient-to-r from-cyan-400 to-indigo-500 text-black font-bold px-6 py-2 rounded-lg hover:scale-105 transition-transform">Play Fullscreen</button>
+          <button id="fullscreenBtnBottom" class="bg-gradient-to-r from-cyan-400 to-indigo-500 text-black font-bold px-6 py-2 rounded-lg hover:scale-105 transition-transform">Fullscreen</button>
           <a href="profile.html" class="bg-white/10 text-white px-6 py-2 rounded-lg hover:bg-cyan-400/20 transition text-center">View Profile</a>
         </div>
       </div>
     </div>
   </main>
 
-  <!-- Lethal Proxy Logic and Imports -->
+  <!-- lethal.mjs functionality and proxy toggle -->
   <script type="module">
     //////////////////////////////
     ///          Init          ///
@@ -153,7 +197,6 @@
     }
 
     await registerSW();
-    console.log("lethal.js: Service Worker registered");
 
     //////////////////////////////
     ///        Functions       ///
@@ -175,15 +218,11 @@
 
     async function updateBareMux() {
       if (transportURL != null && wispURL != null) {
-        console.log(
-          `lethal.js: Setting BareMux to ${transportURL} and Wisp to ${wispURL}`,
-        );
         await connection.setTransport(transportURL, [{ wisp: wispURL }]);
       }
     }
 
     async function setTransport(transport) {
-      console.log(`lethal.js: Setting transport to ${transport}`);
       transportURL = transportOptions[transport];
       if (!transportURL) {
         transportURL = transport;
@@ -196,7 +235,6 @@
     }
 
     async function setWisp(wisp) {
-      console.log(`lethal.js: Setting Wisp to ${wisp}`);
       wispURL = wisp;
       await updateBareMux();
     }
@@ -206,7 +244,6 @@
     }
 
     async function setProxy(proxy) {
-      console.log(`lethal.js: Setting proxy backend to ${proxy}`);
       if (proxy === "uv") {
         await import("https://cdn.jsdelivr.net/gh/Coding4Hours/cdn/uv/uv.bundle.js");
         await import("./uv.config.js");
@@ -226,15 +263,85 @@
       return __uv$config.prefix + __uv$config.encodeUrl(url);
     }
 
-    // Expose for use in classic script
+    // Expose for classic script use
     window.lethalProxy = {
       setProxy,
       getProxy,
       getProxied,
     };
+
+    // Proxy Toggle UI Logic
+    function updateProxyToggleUI() {
+      const ids = [
+        "proxyScramBtn", "proxyUvBtn", // main toggle (if present)
+        "proxyScramBtnIframe", "proxyUvBtnIframe" // iframe controls
+      ];
+      ids.forEach(id => {
+        const scramBtn = document.getElementById("proxyScramBtnIframe");
+        const uvBtn = document.getElementById("proxyUvBtnIframe");
+        if (scramBtn) {
+          scramBtn.classList.toggle("proxy-active", proxyOption === "scram");
+          scramBtn.classList.toggle("proxy-inactive", proxyOption !== "scram");
+        }
+        if (uvBtn) {
+          uvBtn.classList.toggle("proxy-active", proxyOption === "uv");
+          uvBtn.classList.toggle("proxy-inactive", proxyOption !== "uv");
+        }
+        // Top toggles (if present)
+        const scramBtnMain = document.getElementById("proxyScramBtn");
+        const uvBtnMain = document.getElementById("proxyUvBtn");
+        if (scramBtnMain) {
+          scramBtnMain.classList.toggle("proxy-active", proxyOption === "scram");
+          scramBtnMain.classList.toggle("proxy-inactive", proxyOption !== "scram");
+        }
+        if (uvBtnMain) {
+          uvBtnMain.classList.toggle("proxy-active", proxyOption === "uv");
+          uvBtnMain.classList.toggle("proxy-inactive", proxyOption !== "uv");
+        }
+      });
+    }
+
+    function setupProxyToggleBtns() {
+      const scramBtnIframe = document.getElementById("proxyScramBtnIframe");
+      const uvBtnIframe = document.getElementById("proxyUvBtnIframe");
+      if (scramBtnIframe && uvBtnIframe) {
+        scramBtnIframe.onclick = async () => {
+          proxyOption = "scram";
+          updateProxyToggleUI();
+          if(window.lethalProxy) await window.lethalProxy.setProxy("scram");
+          if(window.reloadFrameWithProxy) window.reloadFrameWithProxy();
+        };
+        uvBtnIframe.onclick = async () => {
+          proxyOption = "uv";
+          updateProxyToggleUI();
+          if(window.lethalProxy) await window.lethalProxy.setProxy("uv");
+          if(window.reloadFrameWithProxy) window.reloadFrameWithProxy();
+        };
+      }
+      // (optional) top toggles if you want both
+      const scramBtnMain = document.getElementById("proxyScramBtn");
+      const uvBtnMain = document.getElementById("proxyUvBtn");
+      if (scramBtnMain && uvBtnMain) {
+        scramBtnMain.onclick = async () => {
+          proxyOption = "scram";
+          updateProxyToggleUI();
+          if(window.lethalProxy) await window.lethalProxy.setProxy("scram");
+          if(window.reloadFrameWithProxy) window.reloadFrameWithProxy();
+        };
+        uvBtnMain.onclick = async () => {
+          proxyOption = "uv";
+          updateProxyToggleUI();
+          if(window.lethalProxy) await window.lethalProxy.setProxy("uv");
+          if(window.reloadFrameWithProxy) window.reloadFrameWithProxy();
+        };
+      }
+      updateProxyToggleUI();
+    }
+
+    window.setupProxyToggleBtns = setupProxyToggleBtns;
+    window.updateProxyToggleUI = updateProxyToggleUI;
   </script>
 
-  <!-- Main App Logic -->
   <script>
     // FIREBASE INIT
     const firebaseConfig = {
@@ -250,7 +357,6 @@
     const auth = firebase.auth();
     const db = firebase.firestore();
 
-    // -- Google Sign-In Logic --
     function googleSignIn() {
       const provider = new firebase.auth.GoogleAuthProvider();
       auth.signInWithPopup(provider)
@@ -263,21 +369,17 @@
       auth.signOut().then(() => location.reload());
     }
 
-    // -- Game Data Loading --
     let gamesData = [];
     let currentGameId = null;
-    let currentGame = null;
+    window.currentGame = null;
     async function loadGamesData() {
       const res = await fetch('js/games.json');
       gamesData = await res.json();
     }
-
     function getGameIdFromURL() {
       const urlParams = new URLSearchParams(window.location.search);
       return urlParams.get('id');
     }
-
-    // -- Firestore Helpers --
     async function getUserDocRef(uid) {
       return db.collection('users').doc(uid);
     }
@@ -291,10 +393,22 @@
     }
     async function getUserGameLists(uid) {
       const doc = await db.collection('users').doc(uid).get();
-      return doc.exists ? doc.data() : { likedGames: [], favoriteGames: [], playlist: [] };
+      return doc.exists ? doc.data() : { likedGames: [], favoriteGames: [], playlist: [], history: [] };
     }
-
-    // -- UI Helpers --
+    async function updateGameHistory(uid, gameId) {
+      const ref = await getUserDocRef(uid);
+      await ref.set({ history: firebase.firestore.FieldValue.arrayUnion(gameId) }, { merge: true });
+    }
+    function addGameToLocalHistory(gameId) {
+      let history = JSON.parse(localStorage.getItem('gameHistory') || "[]");
+      history = history.filter(id => id !== gameId);
+      history.unshift(gameId);
+      while (history.length > 10) history.pop();
+      localStorage.setItem('gameHistory', JSON.stringify(history));
+    }
+    function getLocalHistory() {
+      return JSON.parse(localStorage.getItem('gameHistory') || "[]");
+    }
     function setButtonActive(btn, isActive, activeClass='bg-cyan-500/80') {
       btn.classList.toggle(activeClass, isActive);
     }
@@ -310,126 +424,165 @@
         `;
       }
     }
-
-    // -- Proxy Toggle Logic --
-    let proxySelected = "scram";
-    function updateProxyToggleUI() {
-      document.getElementById("proxyScramBtn").classList.toggle("bg-cyan-500", proxySelected === "scram");
-      document.getElementById("proxyScramBtn").classList.toggle("text-black", proxySelected === "scram");
-      document.getElementById("proxyScramBtn").classList.toggle("bg-white/10", proxySelected !== "scram");
-      document.getElementById("proxyScramBtn").classList.toggle("text-white", proxySelected !== "scram");
-
-      document.getElementById("proxyUvBtn").classList.toggle("bg-cyan-500", proxySelected === "uv");
-      document.getElementById("proxyUvBtn").classList.toggle("text-black", proxySelected === "uv");
-      document.getElementById("proxyUvBtn").classList.toggle("bg-white/10", proxySelected !== "uv");
-      document.getElementById("proxyUvBtn").classList.toggle("text-white", proxySelected !== "uv");
+    function showPreloader() {
+      document.getElementById('preloader').style.display = '';
     }
-
-    document.addEventListener("DOMContentLoaded", () => {
-      document.getElementById("proxyScramBtn").onclick = async () => {
-        proxySelected = "scram";
-        updateProxyToggleUI();
-        if(window.lethalProxy) await window.lethalProxy.setProxy("scram");
-        reloadFrameWithProxy();
-      };
-      document.getElementById("proxyUvBtn").onclick = async () => {
-        proxySelected = "uv";
-        updateProxyToggleUI();
-        if(window.lethalProxy) await window.lethalProxy.setProxy("uv");
-        reloadFrameWithProxy();
-      };
-      updateProxyToggleUI();
-    });
-
-    // -- Reload the iframe with proxy url --
-    async function reloadFrameWithProxy() {
-      if (!currentGame) return;
-      if (window.lethalProxy && window.lethalProxy.getProxied) {
-        const proxiedURL = await window.lethalProxy.getProxied(currentGame.url);
-        document.getElementById('gameFrameEmbed').src = proxiedURL;
-      } else {
-        document.getElementById('gameFrameEmbed').src = currentGame.url;
+    function hidePreloader() {
+      document.getElementById('preloader').style.display = 'none';
+    }
+    function renderGameHistory(gameIds, gamesData) {
+      const container = document.getElementById('gameHistory');
+      if (!Array.isArray(gameIds) || !gameIds.length) {
+        document.getElementById('gameHistoryContainer').classList.add('hidden');
+        return;
       }
+      document.getElementById('gameHistoryContainer').classList.remove('hidden');
+      container.innerHTML = gameIds
+        .filter(id => id !== currentGameId)
+        .map(id => {
+          const game = gamesData.find(g => String(g.id) === String(id));
+          if (!game) return '';
+          return `
+            <a href="play.html?id=${game.id}" class="flex items-center gap-4 bg-white/5 border border-white/10 rounded-xl p-3 hover:border-cyan-400/40 transition group shadow-sm">
+              <div class="relative w-20 h-16 flex-shrink-0 rounded-lg overflow-hidden">
+                <img src="${game.image}" alt="${game.title}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+              </div>
+              <div class="flex-1">
+                <div class="font-bold text-lg text-cyan-300">${game.title}</div>
+                <div class="text-sm text-white/70">${game.description}</div>
+                <div class="flex gap-2 mt-1 text-xs">
+                  <span class="bg-cyan-400/20 text-cyan-300 px-2 py-0.5 rounded">${game.category}</span>
+                  ${game.featured ? '<span class="bg-indigo-400/20 text-indigo-300 px-2 py-0.5 rounded">Featured</span>' : ''}
+                </div>
+              </div>
+              <button class="ml-auto px-5 py-2 rounded-lg bg-gradient-to-r from-cyan-400 to-indigo-500 text-black font-bold hover:scale-105 transition-transform">
+                Play
+              </button>
+            </a>
+          `;
+        }).join('');
     }
-
-    // -- LOGIN GUARD + MAIN LOGIC --
+    function requestFullScreen(element) {
+      if (element.requestFullscreen) element.requestFullscreen();
+      else if (element.webkitRequestFullscreen) element.webkitRequestFullscreen();
+      else if (element.msRequestFullscreen) element.msRequestFullscreen();
+      else if (element.mozRequestFullScreen) element.mozRequestFullScreen();
+    }
     document.addEventListener('DOMContentLoaded', async () => {
+      showPreloader();
       document.getElementById('gameFrameContainer').classList.add('hidden');
+      document.getElementById('gameInfoHolder').classList.add('hidden');
       document.getElementById('loginScreen').classList.remove('hidden');
-
-      // Firebase Auth State
       auth.onAuthStateChanged(async (user) => {
         renderUserSection(user);
-
         if (!user) {
+          hidePreloader();
           document.getElementById('loginScreen').classList.remove('hidden');
           document.getElementById('gameFrameContainer').classList.add('hidden');
+          document.getElementById('gameInfoHolder').classList.add('hidden');
           return;
         }
-
-        document.getElementById('loginScreen').classList.add('hidden');
-        document.getElementById('gameFrameContainer').classList.remove('hidden');
         await loadGamesData();
         currentGameId = getGameIdFromURL();
-        currentGame = gamesData.find(g => g.id == currentGameId || String(g.id) == currentGameId);
-        if (!currentGame) {
-          document.getElementById('gameFrameContainer').innerHTML = `<div class="text-center p-12 text-red-400">Game not found.</div>`;
+        window.currentGame = gamesData.find(g => g.id == currentGameId || String(g.id) == currentGameId);
+        if (!window.currentGame) {
+          hidePreloader();
+          document.getElementById('gameInfoHolder').innerHTML = `<div class="text-center p-12 text-red-400">Game not found.</div>`;
+          document.getElementById('gameInfoHolder').classList.remove('hidden');
           return;
         }
-
-        // Proxy logic: load proxied url
-        setTimeout(reloadFrameWithProxy, 250); // give lethalProxy time to load
-
-        document.getElementById('gameFrameTitle').textContent = currentGame.title;
-        document.getElementById('gameFrameDesc').textContent = currentGame.description;
-        document.getElementById('gameFrameTags').innerHTML = `
-          <span class="bg-cyan-400/20 text-cyan-300 px-2 py-0.5 rounded">${currentGame.category}</span>
-          ${currentGame.featured ? '<span class="bg-indigo-400/20 text-indigo-300 px-2 py-0.5 rounded">Featured</span>' : ''}
-        `;
-        document.getElementById('fullscreenBtn').onclick = () => {
-          const iframe = document.getElementById('gameFrameEmbed');
-          if (iframe.requestFullscreen) iframe.requestFullscreen();
-        };
-        let lists = await getUserGameLists(user.uid);
-        setButtonActive(document.getElementById('likeBtn'), lists.likedGames?.includes(currentGameId));
-        setButtonActive(document.getElementById('favBtn'), lists.favoriteGames?.includes(currentGameId), 'bg-pink-600/80');
-        setButtonActive(document.getElementById('playlistBtn'), lists.playlist?.includes(currentGameId), 'bg-yellow-400/80');
-
-        document.getElementById('likeBtn').onclick = async () => {
-          const isLiked = lists.likedGames?.includes(currentGameId);
-          await updateUserArray(user.uid, 'likedGames', currentGameId, !isLiked);
-          lists = await getUserGameLists(user.uid);
-          setButtonActive(document.getElementById('likeBtn'), lists.likedGames?.includes(currentGameId));
-        };
-        document.getElementById('favBtn').onclick = async () => {
-          const isFav = lists.favoriteGames?.includes(currentGameId);
-          await updateUserArray(user.uid, 'favoriteGames', currentGameId, !isFav);
-          lists = await getUserGameLists(user.uid);
-          setButtonActive(document.getElementById('favBtn'), lists.favoriteGames?.includes(currentGameId), 'bg-pink-600/80');
-        };
-        document.getElementById('dislikeBtn').onclick = async () => {
-          const isLiked = lists.likedGames?.includes(currentGameId);
-          if (isLiked) {
-            await updateUserArray(user.uid, 'likedGames', currentGameId, false);
+        document.getElementById('loginScreen').classList.add('hidden');
+        document.getElementById('gameInfoHolder').classList.remove('hidden');
+        document.getElementById('gameCoverImg').src = window.currentGame.image;
+        document.getElementById('gameFrameTitle').textContent = window.currentGame.title;
+        document.getElementById('gameFrameDesc').textContent = window.currentGame.description;
+        document.getElementById('gameCategoryTag').textContent = window.currentGame.category || '';
+        if (window.currentGame.featured) document.getElementById('gameFeaturedTag').classList.remove('hidden');
+        else document.getElementById('gameFeaturedTag').classList.add('hidden');
+        document.getElementById('bigPlayBtn').onclick = async () => {
+          showPreloader();
+          await updateGameHistory(user.uid, currentGameId);
+          addGameToLocalHistory(currentGameId);
+          document.getElementById('gameInfoHolder').classList.add('hidden');
+          document.getElementById('gameFrameContainer').classList.remove('hidden');
+          if (window.lethalProxy && window.lethalProxy.getProxied) {
+            const proxiedURL = await window.lethalProxy.getProxied(window.currentGame.url);
+            document.getElementById('gameFrameEmbed').src = proxiedURL;
+          } else {
+            document.getElementById('gameFrameEmbed').src = window.currentGame.url;
           }
-          alert('Game disliked!');
-          lists = await getUserGameLists(user.uid);
+          document.getElementById('gameFrameEmbed').onload = hidePreloader;
+          let lists = await getUserGameLists(user.uid);
           setButtonActive(document.getElementById('likeBtn'), lists.likedGames?.includes(currentGameId));
-        };
-        document.getElementById('shareBtn').onclick = () => {
-          const url = `${window.location.origin}/play.html?id=${currentGameId}`;
-          navigator.clipboard.writeText(url);
-          alert('Game link copied!');
-        };
-        document.getElementById('playlistBtn').onclick = async () => {
-          const inPlaylist = lists.playlist?.includes(currentGameId);
-          await updateUserArray(user.uid, 'playlist', currentGameId, !inPlaylist);
-          lists = await getUserGameLists(user.uid);
+          setButtonActive(document.getElementById('favBtn'), lists.favoriteGames?.includes(currentGameId), 'bg-pink-600/80');
           setButtonActive(document.getElementById('playlistBtn'), lists.playlist?.includes(currentGameId), 'bg-yellow-400/80');
+          document.getElementById('likeBtn').onclick = async () => {
+            const isLiked = lists.likedGames?.includes(currentGameId);
+            await updateUserArray(user.uid, 'likedGames', currentGameId, !isLiked);
+            lists = await getUserGameLists(user.uid);
+            setButtonActive(document.getElementById('likeBtn'), lists.likedGames?.includes(currentGameId));
+          };
+          document.getElementById('favBtn').onclick = async () => {
+            const isFav = lists.favoriteGames?.includes(currentGameId);
+            await updateUserArray(user.uid, 'favoriteGames', currentGameId, !isFav);
+            lists = await getUserGameLists(user.uid);
+            setButtonActive(document.getElementById('favBtn'), lists.favoriteGames?.includes(currentGameId), 'bg-pink-600/80');
+          };
+          document.getElementById('dislikeBtn').onclick = async () => {
+            const isLiked = lists.likedGames?.includes(currentGameId);
+            if (isLiked) {
+              await updateUserArray(user.uid, 'likedGames', currentGameId, false);
+            }
+            alert('Game disliked!');
+            lists = await getUserGameLists(user.uid);
+            setButtonActive(document.getElementById('likeBtn'), lists.likedGames?.includes(currentGameId));
+          };
+          document.getElementById('shareBtn').onclick = () => {
+            const url = `${window.location.origin}/play.html?id=${currentGameId}`;
+            navigator.clipboard.writeText(url);
+            alert('Game link copied!');
+          };
+          document.getElementById('playlistBtn').onclick = async () => {
+            const inPlaylist = lists.playlist?.includes(currentGameId);
+            await updateUserArray(user.uid, 'playlist', currentGameId, !inPlaylist);
+            lists = await getUserGameLists(user.uid);
+            setButtonActive(document.getElementById('playlistBtn'), lists.playlist?.includes(currentGameId), 'bg-yellow-400/80');
+          };
+          // Fullscreen buttons
+          document.getElementById('fullscreenBtn').onclick = (e) => {
+            e.preventDefault();
+            const iframe = document.getElementById('gameFrameEmbed');
+            requestFullScreen(iframe);
+          };
+          document.getElementById('fullscreenBtnBottom').onclick = (e) => {
+            e.preventDefault();
+            const iframe = document.getElementById('gameFrameEmbed');
+            requestFullScreen(iframe);
+          };
+          // Setup proxy toggle in iframe controls (after they exist!)
+          if(window.setupProxyToggleBtns) window.setupProxyToggleBtns();
         };
+        // Proxy toggle always applies to iframe
+        window.reloadFrameWithProxy = async function() {
+          if (!window.currentGame || !document.getElementById('gameFrameEmbed')) return;
+          if (window.lethalProxy && window.lethalProxy.getProxied) {
+            const proxiedURL = await window.lethalProxy.getProxied(window.currentGame.url);
+            document.getElementById('gameFrameEmbed').src = proxiedURL;
+          } else {
+            document.getElementById('gameFrameEmbed').src = window.currentGame.url;
+          }
+        };
+        let historyIds = [];
+        try {
+          const lists = await getUserGameLists(user.uid);
+          historyIds = (lists.history || []).slice().reverse();
+        } catch {
+          historyIds = getLocalHistory();
+        }
+        renderGameHistory(historyIds, gamesData);
+        hidePreloader();
       });
     });
-
   </script>
 </body>
 </html>
