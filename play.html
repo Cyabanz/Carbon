@@ -42,13 +42,6 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
     <link href="/css/boxicons.min.css" rel="stylesheet" />
     <style>
-      .scrollbar-hide::-webkit-scrollbar {
-        display: none;
-      }
-      .scrollbar-hide {
-        -ms-overflow-style: none;
-        scrollbar-width: none;
-      }
       .iframe-overlay-btn {
         transition: border-color 0.2s, background 0.2s;
       }
@@ -88,49 +81,27 @@
       </div>
     </main>
     <script type="module">
-      // --- lethal.mjs essentials ---
       import {
         makeURL,
         getProxied,
         setProxy,
         getProxy,
+        setTransport,
+        setWisp,
       } from "/lethal.mjs";
 
       // Fetch games.json and get game by ID from ?id= param
       async function fetchGamesData() {
-        const res = await fetch("games.json");
+        const res = await fetch("/games.json");
         if (!res.ok) throw new Error("Failed to load games.json");
         return await res.json();
       }
-
       function getGameIdFromURL() {
         const params = new URLSearchParams(window.location.search);
         return params.get("id");
       }
 
-      async function loadGameFrame() {
-        const gameId = getGameIdFromURL();
-        if (!gameId) return;
-        let game = null;
-        try {
-          const games = await fetchGamesData();
-          game = games.find(g => String(g.id) === String(gameId));
-        } catch (e) {
-          alert("Could not load games list.");
-          return;
-        }
-        if (!game) {
-          alert("Game not found.");
-          return;
-        }
-        const proxy = getProxy() || localStorage.getItem("proxy-backend") || "uv";
-        await setProxy(proxy);
-        const url = makeURL(game.url, "https://search.brave.com/search?q=%s");
-        const proxied = await getProxied(url);
-        document.getElementById("game-iframe").src = proxied;
-      }
-
-      // --- Proxy Toggle Button Logic ---
+      // Proxy toggle logic
       const proxyToggleBtn = document.getElementById("proxyToggleBtn");
       const proxyToggleIcon = document.getElementById("proxyToggleIcon");
       function updateProxyToggleUI(proxy) {
@@ -156,6 +127,39 @@
         loadGameFrame();
       });
 
+      // Loads the game via lethal.mjs proxy (like the browser tabs above)
+      async function loadGameFrame() {
+        const gameId = getGameIdFromURL();
+        if (!gameId) return;
+        let game = null;
+        try {
+          const games = await fetchGamesData();
+          game = games.find(g => String(g.id) === String(gameId));
+        } catch (e) {
+          alert("Could not load games list.");
+          return;
+        }
+        if (!game) {
+          alert("Game not found.");
+          return;
+        }
+        const proxy = getProxy() || localStorage.getItem("proxy-backend") || "uv";
+        // Lethal requires setProxy (and optionally setTransport/setWisp) before getProxied
+        await setProxy(proxy);
+        // Default transport/wisp setup (optional, for consistency)
+        let wisp = localStorage.getItem("wisp-server") || "wss://anura.pro/";
+        let transport = localStorage.getItem("proxy-transport");
+        if (wisp) setWisp(wisp);
+        if (transport) setTransport(transport);
+        else if (navigator.userAgent.indexOf("Firefox") > 0) setTransport("libcurl");
+        else setTransport("epoxy");
+        // Always use the proxy (UV or scram) via lethal.mjs
+        const url = makeURL(game.url, "https://search.brave.com/search?q=%s");
+        const proxied = await getProxied(url);
+        document.getElementById("game-iframe").src = proxied;
+      }
+
+      // Initial setup and load
       (async () => {
         const proxy = getProxy() || localStorage.getItem("proxy-backend") || "uv";
         updateProxyToggleUI(proxy);
