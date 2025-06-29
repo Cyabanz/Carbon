@@ -75,7 +75,7 @@
         <div class="flex-1">
           <h2 id="gameFrameTitle" class="text-2xl font-bold text-cyan-300 mb-2"></h2>
           <p id="gameFrameDesc" class="text-white/80 mb-2"></p>
-          <!-- STAR RATING SYSTEM -->
+          <!-- STAR RATING SYSTEM (ALWAYS SHOW) -->
           <div id="starRatingSection" class="my-4">
             <div id="starsContainer" class="flex gap-1 text-3xl"></div>
             <div class="text-sm mt-1 flex flex-wrap items-center gap-2 text-cyan-200">
@@ -88,13 +88,6 @@
               <div class="w-40 h-2 bg-slate-700 rounded overflow-hidden">
                 <div id="ratingPercentBar" class="h-2 bg-indigo-400 rounded transition-all duration-300" style="width:0%"></div>
               </div>
-            </div>
-          </div>
-          <!-- LIKE PERCENTAGE SYSTEM -->
-          <div id="likePercentContainer" class="my-2 flex items-center gap-2">
-            <span id="likePercentText" class="text-cyan-400 font-semibold"></span>
-            <div class="w-40 h-2 bg-slate-700 rounded overflow-hidden">
-              <div id="likePercentBar" class="h-2 bg-cyan-400 rounded transition-all duration-300" style="width:0%"></div>
             </div>
           </div>
         </div>
@@ -129,16 +122,18 @@
             <i class='bx bx-list-plus text-xl'></i>
           </button>
         </div>
-        <!-- STAR RATING SYSTEM UNDER IFRAME -->
-        <div class="absolute left-0 right-0 bottom-0 flex flex-col items-center bg-[#232445]/80 p-4 z-20">
-          <div id="starRatingSectionFrame" class="w-full max-w-xl mx-auto">
-            <div id="starsContainerFrame" class="flex gap-1 text-3xl justify-center"></div>
-            <div class="text-sm mt-1 flex flex-wrap justify-center items-center gap-2 text-cyan-200">
+      </div>
+      <div class="flex flex-col md:flex-row p-6 gap-6 items-start bg-[#232445]">
+        <div class="flex-1">
+          <!-- STAR RATING SYSTEM (ALWAYS SHOW UNDER IFRAME) -->
+          <div id="starRatingSectionFrame" class="max-w-xl my-4">
+            <div id="starsContainerFrame" class="flex gap-1 text-3xl"></div>
+            <div class="text-sm mt-1 flex flex-wrap items-center gap-2 text-cyan-200">
               <span id="starRatingSummaryFrame"></span>
               <span id="starRatingCountFrame"></span>
               <span id="starRatingErrorFrame" class="text-pink-400"></span>
             </div>
-            <div id="ratingPercentContainerFrame" class="flex items-center justify-center mt-2 gap-2">
+            <div id="ratingPercentContainerFrame" class="flex items-center mt-2 gap-2">
               <span id="ratingPercentTextFrame" class="text-indigo-400 font-semibold"></span>
               <div class="w-40 h-2 bg-slate-700 rounded overflow-hidden">
                 <div id="ratingPercentBarFrame" class="h-2 bg-indigo-400 rounded transition-all duration-300" style="width:0%"></div>
@@ -146,19 +141,9 @@
             </div>
           </div>
         </div>
-      </div>
-      <div class="flex flex-col md:flex-row p-6 gap-6 items-start bg-[#232445]">
-        <div class="flex-1"></div>
         <div class="flex flex-col gap-2 w-full md:w-auto">
           <button id="fullscreenBtnBottom" class="bg-gradient-to-r from-cyan-400 to-indigo-500 text-black font-bold px-6 py-2 rounded-lg hover:scale-105 transition-transform">Fullscreen</button>
           <a href="profile.html" class="bg-white/10 text-white px-6 py-2 rounded-lg hover:bg-cyan-400/20 transition text-center">View Profile</a>
-        </div>
-      </div>
-      <!-- LIKE PERCENTAGE SYSTEM UNDER IFRAME -->
-      <div class="flex justify-center items-center gap-2 pb-4 pt-2">
-        <span id="likePercentTextFrame" class="text-cyan-400 font-semibold"></span>
-        <div class="w-40 h-2 bg-slate-700 rounded overflow-hidden">
-          <div id="likePercentBarFrame" class="h-2 bg-cyan-400 rounded transition-all duration-300" style="width:0%"></div>
         </div>
       </div>
     </div>
@@ -498,60 +483,6 @@
       }
     }
 
-    // --- LIKE PERCENTAGE SYSTEM ---
-    let likeStats = { likes: 0, dislikes: 0, percent: 0, userCount: 0, likedCount: 0, likedPercent: 0 };
-
-    async function loadLikeStats(gameId) {
-      likeStats = { likes: 0, dislikes: 0, percent: 0, userCount: 0, likedCount: 0, likedPercent: 0 };
-      try {
-        // Get global like/dislike count for like/dislike percent (from /gameLikes)
-        const docRef = db.collection('gameLikes').doc(gameId);
-        const doc = await docRef.get();
-        if (doc.exists) {
-          const data = doc.data();
-          likeStats.likes = data.likes || 0;
-          likeStats.dislikes = data.dislikes || 0;
-        }
-        const total = likeStats.likes + likeStats.dislikes;
-        likeStats.percent = total > 0 ? Math.round((likeStats.likes / total) * 100) : 0;
-
-        // Get count of users who have this game in likedGames for "user liked percent"
-        const usersSnap = await db.collection('users').get();
-        let userCount = 0;
-        let likedCount = 0;
-        usersSnap.forEach(userDoc => {
-          userCount++;
-          const arr = userDoc.data().likedGames || [];
-          if (Array.isArray(arr) && arr.includes(gameId)) likedCount++;
-        });
-        likeStats.userCount = userCount;
-        likeStats.likedCount = likedCount;
-        likeStats.likedPercent = userCount > 0 ? Math.round((likedCount / userCount) * 100) : 0;
-      } catch {
-        // ignore
-      }
-      renderLikePercentUI();
-      renderLikePercentUI("Frame");
-    }
-
-    function renderLikePercentUI(target = "") {
-      // target: "" or "Frame"
-      const pre = target ? target : "";
-      const txt = document.getElementById('likePercentText' + pre);
-      const bar = document.getElementById('likePercentBar' + pre);
-      if (!txt || !bar) return;
-      if (likeStats.userCount === 0) {
-        txt.textContent = "No users yet";
-        bar.style.width = "0%";
-      } else if(likeStats.likedCount === 0) {
-        txt.textContent = "No one has liked this game yet";
-        bar.style.width = "0%";
-      } else {
-        txt.textContent = `${likeStats.likedPercent}% of users have liked this game (${likeStats.percent}% like/dislike ratio)`;
-        bar.style.width = `${likeStats.likedPercent}%`;
-      }
-    }
-
     document.addEventListener('DOMContentLoaded', async () => {
       showPreloader();
       document.getElementById('gameFrameContainer').classList.add('hidden');
@@ -585,7 +516,6 @@
         if (currentGame.featured) document.getElementById('gameFeaturedTag').classList.remove('hidden');
         else document.getElementById('gameFeaturedTag').classList.add('hidden');
         await loadStarRating(currentGameId);
-        await loadLikeStats(currentGameId);
         document.getElementById('bigPlayBtn').onclick = async () => {
           showPreloader();
           await updateGameHistory(user.uid, currentGameId);
@@ -604,7 +534,6 @@
             await updateUserArray(user.uid, 'likedGames', currentGameId, !isLiked);
             lists = await getUserGameLists(user.uid);
             setButtonActive(document.getElementById('likeBtn'), lists.likedGames?.includes(currentGameId));
-            await loadLikeStats(currentGameId);
           };
           document.getElementById('favBtn').onclick = async () => {
             const isFav = lists.favoriteGames?.includes(currentGameId);
@@ -620,7 +549,6 @@
             alert('Game disliked!');
             lists = await getUserGameLists(user.uid);
             setButtonActive(document.getElementById('likeBtn'), lists.likedGames?.includes(currentGameId));
-            await loadLikeStats(currentGameId);
           };
           document.getElementById('shareBtn').onclick = () => {
             const url = `${window.location.origin}/play.html?id=${currentGameId}`;
@@ -644,9 +572,8 @@
             const iframe = document.getElementById('gameFrameEmbed');
             requestFullScreen(iframe);
           };
-          // Show the star/like UI under the iframe, and update their values
+          // Always show the star/like UI under the iframe, and update their values
           renderStarRatingUI("Frame");
-          renderLikePercentUI("Frame");
         };
         let historyIds = [];
         try {
@@ -662,7 +589,6 @@
     auth.onAuthStateChanged(async (user) => {
       if (currentGameId) {
         await loadStarRating(currentGameId);
-        await loadLikeStats(currentGameId);
       }
     });
   </script>
