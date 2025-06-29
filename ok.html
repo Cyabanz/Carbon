@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>CARBON Game Proxy</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800&display=swap" rel="stylesheet">
+    <link href="/css/boxicons.min.css" rel="stylesheet"/>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      body { font-family: "Inter", sans-serif; }
+      .proxy-icon-btn {
+        width: 2.5rem; height: 2.5rem;
+        background: rgba(255,255,255,0.07);
+        border-radius: 9999px;
+        display: flex; align-items: center; justify-content: center;
+        transition: background 0.15s, box-shadow 0.15s;
+        cursor: pointer;
+        border: none;
+        outline: none;
+        color: #fff;
+        position: relative;
+      }
+      .proxy-icon-btn.active {
+        box-shadow: 0 0 0 2px #06b6d4;
+        background: rgba(6,182,212,0.09);
+      }
+      .proxy-dropdown {
+        min-width: 120px;
+        display: none;
+        position: absolute;
+        top: 44px; left: 0;
+        background: #26233a;
+        border: 2px solid #9ccfd8;
+        border-radius: 12px;
+        z-index: 1000;
+        box-shadow: 0 6px 18px 2px #0009;
+      }
+      .proxy-dropdown button {
+        width: 100%;
+        background: none;
+        border: none;
+        color: #e0def4;
+        font-size: 1rem;
+        padding: 0.75rem 1.5rem;
+        text-align: left;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 0.7em;
+        transition: background 0.15s;
+      }
+      .proxy-dropdown button:hover {
+        background: #403d52;
+        color: #9ccfd8;
+      }
+    </style>
+  </head>
+  <body class="bg-[#181b2a] text-white min-h-screen flex flex-col items-center justify-center">
+    <main class="max-w-2xl w-full rounded-xl shadow-xl bg-[#232445] mt-24">
+      <!-- Controls Bar -->
+      <div class="flex items-center justify-between px-6 pt-6">
+        <div class="relative">
+          <button id="proxy-toggle-btn" class="proxy-icon-btn" title="Switch Proxy">
+            <i id="proxy-toggle-icon" class="bx bx-cloud text-2xl"></i>
+          </button>
+          <div id="proxy-dropdown" class="proxy-dropdown">
+            <button data-proxy="uv"><i class="bx bx-cloud"></i>UV</button>
+            <button data-proxy="scram"><i class="bx bx-network-chart"></i>Scramjet</button>
+          </div>
+        </div>
+        <span class="text-lg font-bold tracking-tight">CARBON Game Proxy</span>
+        <div></div>
+      </div>
+      <!-- Game Frame -->
+      <div class="p-6">
+        <iframe id="game-iframe"
+          class="w-full min-h-[60vh] rounded-xl border-2 border-[#343654] bg-black"
+          frameborder="0"
+          allowfullscreen
+        ></iframe>
+      </div>
+      <div class="px-6 pb-6 flex justify-end">
+        <a href="index.html" class="bg-cyan-500 px-4 py-2 rounded-lg text-black font-bold hover:bg-cyan-400 transition">Back to Home</a>
+      </div>
+    </main>
+    <script type="module">
+      import { makeURL, getProxied, setProxy, getProxy } from "/lethal.mjs";
+
+      // Proxy Dropdown Logic
+      const proxyToggleBtn = document.getElementById("proxy-toggle-btn");
+      const proxyToggleIcon = document.getElementById("proxy-toggle-icon");
+      const proxyDropdown = document.getElementById("proxy-dropdown");
+      function getCurrentProxy() {
+        return localStorage.getItem("proxy-backend") || "uv";
+      }
+      function setCurrentProxy(proxy) {
+        localStorage.setItem("proxy-backend", proxy);
+        updateProxyToggleUI(proxy);
+      }
+      function updateProxyToggleUI(proxy) {
+        if (proxy === "scram") {
+          proxyToggleBtn.classList.add("active");
+          proxyToggleIcon.className = "bx bx-network-chart text-2xl";
+          proxyToggleIcon.style.color = "#f6c177";
+          proxyToggleBtn.title = "Scramjet";
+        } else {
+          proxyToggleBtn.classList.remove("active");
+          proxyToggleIcon.className = "bx bx-cloud text-2xl";
+          proxyToggleIcon.style.color = "#9ccfd8";
+          proxyToggleBtn.title = "UV";
+        }
+      }
+      proxyToggleBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        proxyDropdown.style.display =
+          proxyDropdown.style.display === "block" ? "none" : "block";
+      });
+      document.querySelectorAll("#proxy-dropdown [data-proxy]").forEach((btn) => {
+        btn.addEventListener("click", async (e) => {
+          const proxy = e.currentTarget.dataset.proxy;
+          await setProxy(proxy);
+          setCurrentProxy(proxy);
+          proxyDropdown.style.display = "none";
+          loadGame();
+        });
+      });
+      document.addEventListener("click", (e) => {
+        if (!proxyDropdown.contains(e.target) && e.target !== proxyToggleBtn) {
+          proxyDropdown.style.display = "none";
+        }
+      });
+      updateProxyToggleUI(getCurrentProxy());
+
+      // Game Load Logic
+      async function loadGame() {
+        const params = new URLSearchParams(window.location.search);
+        const url = params.get("url") ||
+          "https://www.crazygames.com/game/1v1-lol";
+        try {
+          let proxied = await getProxied(url);
+          document.getElementById("game-iframe").src = proxied;
+        } catch (e) {
+          document.getElementById("game-iframe").src = url;
+        }
+      }
+
+      // Proxy Setup
+      let backend = getCurrentProxy();
+      await setProxy(backend);
+
+      // Load
+      loadGame();
+    </script>
+  </body>
+</html>
