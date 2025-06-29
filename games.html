@@ -21,6 +21,11 @@
       from { transform: translateY(30px); opacity: 0; }
       to { transform: translateY(0); opacity: 1; }
     }
+    .tag-btn.active, .category-btn.active {
+      background-color: #22d3ee22;
+      color: #06b6d4 !important;
+      border-color: #06b6d4 !important;
+    }
   </style>
 </head>
 <body class="bg-gradient-to-br from-[#0f0f23] via-[#1a1a2e] to-[#16213e] min-h-screen text-white overflow-x-hidden relative font-[Inter]">
@@ -120,6 +125,9 @@
         </div>
       </div>
 
+      <!-- Tag Filter Area -->
+      <div id="tagFilterArea" class="mb-12 flex flex-wrap gap-2 justify-center"></div>
+
       <!-- Games Grid -->
       <div class="animate-[fadeInUp_1s_ease-out_0.8s_both]">
         <div class="flex justify-between items-center mb-8">
@@ -145,16 +153,30 @@
     let filteredGames = [];
     let currentFilter = 'all';
     let pinnedGameData = null;
+    let currentTag = null;
+    let allTags = [];
 
     async function fetchGames() {
       const response = await fetch('games.json');
       gamesData = await response.json();
       filteredGames = [...gamesData];
+      allTags = getAllTags(gamesData);
       renderFeaturedCarousel();
+      renderTagFilterArea();
       renderGamesGrid();
       updateGameCount();
     }
     document.addEventListener('DOMContentLoaded', fetchGames);
+
+    function getAllTags(games) {
+      // Get unique tags across all games
+      const tagSet = new Set();
+      games.forEach(game => {
+        if (game.tags && Array.isArray(game.tags))
+          game.tags.forEach(tag => tagSet.add(tag));
+      });
+      return Array.from(tagSet).sort();
+    }
 
     // --- Featured Carousel ---
     function renderFeaturedCarousel() {
@@ -204,6 +226,32 @@
     }
     setInterval(nextSlide, 5000);
 
+    // --- Tag Filter Area ---
+    function renderTagFilterArea() {
+      const tagArea = document.getElementById('tagFilterArea');
+      if (!allTags.length) {
+        tagArea.innerHTML = "";
+        return;
+      }
+      tagArea.innerHTML = `
+        <span class="text-white/70 font-semibold mr-3">Filter by tag:</span>
+        <button class="tag-btn px-3 py-1 rounded-full border border-white/20 text-white font-semibold transition-all duration-300 mr-1 ${!currentTag ? 'active' : ''}" onclick="clearTagFilter()">All</button>
+        ${allTags.map(tag => `
+          <button class="tag-btn px-3 py-1 rounded-full border border-white/20 text-cyan-300 font-semibold transition-all duration-300 mr-1 ${currentTag === tag ? 'active' : ''}" onclick="filterByTag('${tag}')">${tag}</button>
+        `).join('')}
+      `;
+    }
+    function clearTagFilter() {
+      currentTag = null;
+      document.querySelectorAll('.category-btn').forEach(btn => btn.classList.remove('active'));
+      currentFilter = 'all';
+      document.getElementById('searchInput').value = '';
+      filteredGames = [...gamesData];
+      renderGamesGrid();
+      updateGameCount();
+      renderTagFilterArea();
+    }
+
     // --- Games Grid ---
     function renderGamesGrid() {
       const grid = document.getElementById('gamesGrid');
@@ -225,9 +273,18 @@
               <h3 class="font-semibold text-white mb-1">${game.title}</h3>
               <p class="text-white/60 text-sm mb-3">${game.description}</p>
               <div class="flex items-center justify-between">
-                <span class="inline-block px-2 py-1 bg-gradient-to-r from-cyan-400/20 to-indigo-500/20 text-cyan-400 text-xs rounded-full border border-cyan-400/30">
-                  ${game.category}
-                </span>
+                <div class="flex flex-wrap gap-1">
+                  ${game.tags ? game.tags.map(tag => `
+                    <button type="button"
+                      class="tag-btn inline-block px-2 py-1 bg-gradient-to-r from-cyan-400/20 to-indigo-500/20 text-cyan-400 text-xs rounded-full border border-cyan-400/30 hover:bg-cyan-600/10 transition ${currentTag === tag ? 'active' : ''}"
+                      onclick="filterByTag('${tag}')"
+                      >
+                      ${tag}
+                    </button>
+                  `).join('') : `
+                    <span class="inline-block px-2 py-1 bg-gradient-to-r from-cyan-400/20 to-indigo-500/20 text-cyan-400 text-xs rounded-full border border-cyan-400/30">${game.category}</span>
+                  `}
+                </div>
                 <a href="play.html?id=${game.id}" class="bg-gradient-to-r from-cyan-400 to-indigo-500 text-black font-semibold px-4 py-2 rounded-lg hover:scale-105 transition-transform duration-300 text-sm">
                   Play Now
                 </a>
@@ -241,12 +298,19 @@
     // --- Search ---
     function searchGames() {
       const searchTerm = document.getElementById('searchInput').value.toLowerCase();
-      filteredGames = gamesData.filter(game => {
-        const matchesSearch = game.title.toLowerCase().includes(searchTerm) ||
-                              game.description.toLowerCase().includes(searchTerm);
-        const matchesCategory = currentFilter === 'all' || game.category === currentFilter;
-        return matchesSearch && matchesCategory;
-      });
+      if(currentTag) {
+        filteredGames = gamesData.filter(game =>
+          game.tags && game.tags.includes(currentTag) &&
+          (game.title.toLowerCase().includes(searchTerm) || game.description.toLowerCase().includes(searchTerm))
+        );
+      } else {
+        filteredGames = gamesData.filter(game => {
+          const matchesSearch = game.title.toLowerCase().includes(searchTerm) ||
+                                game.description.toLowerCase().includes(searchTerm);
+          const matchesCategory = currentFilter === 'all' || game.category === currentFilter;
+          return matchesSearch && matchesCategory;
+        });
+      }
       renderGamesGrid();
       updateGameCount();
     }
@@ -254,19 +318,30 @@
     // --- Filter ---
     function filterGames(category, event) {
       currentFilter = category;
-      const searchTerm = document.getElementById('searchInput').value.toLowerCase();
-      document.querySelectorAll('.category-btn').forEach(btn => {
-        btn.classList.remove('active');
-      });
+      currentTag = null;
+      document.querySelectorAll('.category-btn').forEach(btn => btn.classList.remove('active'));
       if (event) event.target.classList.add('active');
+      document.getElementById('searchInput').value = '';
       filteredGames = gamesData.filter(game => {
-        const matchesSearch = game.title.toLowerCase().includes(searchTerm) ||
-                              game.description.toLowerCase().includes(searchTerm);
         const matchesCategory = category === 'all' || game.category === category;
-        return matchesSearch && matchesCategory;
+        return matchesCategory;
       });
       renderGamesGrid();
       updateGameCount();
+      renderTagFilterArea();
+    }
+
+    // --- Tag Filtering ---
+    function filterByTag(tag) {
+      currentTag = tag;
+      document.querySelectorAll('.category-btn').forEach(btn => btn.classList.remove('active'));
+      document.getElementById('searchInput').value = '';
+      filteredGames = gamesData.filter(game =>
+        game.tags && game.tags.includes(tag)
+      );
+      renderGamesGrid();
+      updateGameCount();
+      renderTagFilterArea();
     }
 
     // --- Game Count ---
