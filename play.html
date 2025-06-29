@@ -83,6 +83,12 @@
               <span id="starRatingCount"></span>
               <span id="starRatingError" class="text-pink-400"></span>
             </div>
+            <div id="ratingPercentContainer" class="flex items-center mt-2 gap-2">
+              <span id="ratingPercentText" class="text-indigo-400 font-semibold"></span>
+              <div class="w-40 h-2 bg-slate-700 rounded overflow-hidden">
+                <div id="ratingPercentBar" class="h-2 bg-indigo-400 rounded transition-all duration-300" style="width:0%"></div>
+              </div>
+            </div>
           </div>
           <!-- LIKE PERCENTAGE SYSTEM -->
           <div id="likePercentContainer" class="my-2 flex items-center gap-2">
@@ -336,7 +342,8 @@
       count: 0,
       yourRating: 0,
       loading: false,
-      error: ""
+      error: "",
+      percent: 0 // percent of people who gave 4 or 5 stars
     };
 
     function renderStarRatingUI() {
@@ -372,6 +379,8 @@
       document.getElementById('starRatingCount').textContent =
         starRatingData.count === 1 ? "1 rating" : (starRatingData.count ? `${starRatingData.count} ratings` : "");
       document.getElementById('starRatingError').textContent = starRatingData.error || '';
+      // Render percent of high ratings
+      renderRatingPercentUI();
     }
 
     async function loadStarRating(gameId) {
@@ -380,21 +389,25 @@
       starRatingData.average = 0;
       starRatingData.count = 0;
       starRatingData.yourRating = 0;
+      starRatingData.percent = 0;
       try {
         const ratingsRef = db.collection("games").doc(gameId).collection("ratings");
         const snap = await ratingsRef.get();
         let total = 0, count = 0, your = 0, user = firebase.auth().currentUser;
+        let highCount = 0; // 4 or 5 stars
         snap.forEach(doc => {
           const d = doc.data();
           if (typeof d.rating === "number" && d.rating >= 1 && d.rating <= 5) {
             total += d.rating;
             count++;
+            if (d.rating >= 4) highCount++;
             if (user && doc.id === user.uid) your = d.rating;
           }
         });
         starRatingData.average = count ? total / count : 0;
         starRatingData.count = count;
         starRatingData.yourRating = your;
+        starRatingData.percent = count ? Math.round((highCount / count) * 100) : 0;
       } catch (e) {
         starRatingData.error = "Failed to load ratings.";
       }
@@ -437,12 +450,26 @@
       renderStarRatingUI();
     }
 
+    function renderRatingPercentUI() {
+      const txt = document.getElementById('ratingPercentText');
+      const bar = document.getElementById('ratingPercentBar');
+      if (!txt || !bar) return;
+      if (starRatingData.count === 0) {
+        txt.textContent = "Not enough ratings yet";
+        bar.style.width = "0%";
+      } else {
+        txt.textContent = `${starRatingData.percent}% of raters gave 4 or 5 stars`;
+        bar.style.width = `${starRatingData.percent}%`;
+      }
+    }
+
     // --- LIKE PERCENTAGE SYSTEM ---
-    let likeStats = { likes: 0, dislikes: 0, percent: 0 };
+    let likeStats = { likes: 0, dislikes: 0, percent: 0, userCount: 0, likedCount: 0, likedPercent: 0 };
 
     async function loadLikeStats(gameId) {
-      likeStats = { likes: 0, dislikes: 0, percent: 0 };
+      likeStats = { likes: 0, dislikes: 0, percent: 0, userCount: 0, likedCount: 0, likedPercent: 0 };
       try {
+        // Get global like/dislike count for like/dislike percent (from /gameLikes)
         const docRef = db.collection('gameLikes').doc(gameId);
         const doc = await docRef.get();
         if (doc.exists) {
@@ -452,6 +479,19 @@
         }
         const total = likeStats.likes + likeStats.dislikes;
         likeStats.percent = total > 0 ? Math.round((likeStats.likes / total) * 100) : 0;
+
+        // Get count of users who have this game in likedGames for "user liked percent"
+        const usersSnap = await db.collection('users').get();
+        let userCount = 0;
+        let likedCount = 0;
+        usersSnap.forEach(userDoc => {
+          userCount++;
+          const arr = userDoc.data().likedGames || [];
+          if (Array.isArray(arr) && arr.includes(gameId)) likedCount++;
+        });
+        likeStats.userCount = userCount;
+        likeStats.likedCount = likedCount;
+        likeStats.likedPercent = userCount > 0 ? Math.round((likedCount / userCount) * 100) : 0;
       } catch {
         // ignore
       }
@@ -462,13 +502,15 @@
       const txt = document.getElementById('likePercentText');
       const bar = document.getElementById('likePercentBar');
       if (!txt || !bar) return;
-      const t = likeStats.likes + likeStats.dislikes;
-      if (t === 0) {
-        txt.textContent = "No likes yet";
+      if (likeStats.userCount === 0) {
+        txt.textContent = "No users yet";
+        bar.style.width = "0%";
+      } else if(likeStats.likedCount === 0) {
+        txt.textContent = "No one has liked this game yet";
         bar.style.width = "0%";
       } else {
-        txt.textContent = `${likeStats.percent}% of people like this game`;
-        bar.style.width = `${likeStats.percent}%`;
+        txt.textContent = `${likeStats.likedPercent}% of users have liked this game (${likeStats.percent}% like/dislike ratio)`;
+        bar.style.width = `${likeStats.likedPercent}%`;
       }
     }
 
