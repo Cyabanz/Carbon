@@ -25,14 +25,14 @@
       0% { transform: rotate(0deg);}
       100% { transform: rotate(360deg);}
     }
-    .proxy-toggle-btn {
-      @apply px-4 py-1 rounded-lg text-sm font-bold transition;
+    .proxy-icon-btn {
+      @apply w-10 h-10 bg-white/10 hover:bg-cyan-400/80 text-white rounded-full flex items-center justify-center transition relative;
     }
-    .proxy-active {
-      @apply bg-cyan-500 text-black;
+    .proxy-active-outline {
+      box-shadow: 0 0 0 2px #06b6d4;
     }
-    .proxy-inactive {
-      @apply bg-white/10 text-white;
+    .proxy-tooltip {
+      @apply absolute left-1/2 -translate-x-1/2 top-full mt-2 px-3 py-1 z-50 text-xs rounded bg-black/80 text-white whitespace-nowrap pointer-events-none opacity-0 group-hover:opacity-100 transition;
     }
   </style>
 </head>
@@ -63,6 +63,15 @@
   </div>
 
   <main class="pt-28 max-w-4xl mx-auto px-4">
+    <!-- (Optional) Proxy Toggle Outside Frame 
+    <div id="proxyToggleContainer" class="flex justify-end mb-4 items-center gap-4">
+      <span class="text-white/60 text-sm">Proxy:</span>
+      <button id="proxyToggleBtnTop" class="proxy-icon-btn group" aria-pressed="true">
+        <i id="proxyIconTop" class='bx bx-transfer text-2xl'></i>
+        <span id="proxyTooltipTop" class="proxy-tooltip">Scramjet Proxy</span>
+      </button>
+    </div>
+    -->
     <div id="gameHistoryContainer" class="mb-8 hidden">
       <h2 class="text-xl font-bold mb-2 text-cyan-300">Recently Played</h2>
       <div id="gameHistory" class="grid gap-4"></div>
@@ -105,11 +114,11 @@
           <button id="dislikeBtn" class="w-10 h-10 bg-white/10 hover:bg-red-500/80 text-white rounded-full flex items-center justify-center transition" title="Dislike">
             <i class='bx bx-dislike text-xl'></i>
           </button>
-          <!-- Proxy Toggle in iframe controls -->
-          <div class="flex items-center space-x-1 ml-2">
-            <button id="proxyScramBtnIframe" class="proxy-toggle-btn proxy-active" aria-pressed="true" title="Scramjet Proxy">Scramjet</button>
-            <button id="proxyUvBtnIframe" class="proxy-toggle-btn proxy-inactive" aria-pressed="false" title="Ultraviolet Proxy">Ultraviolet</button>
-          </div>
+          <!-- Proxy Toggle as a single icon -->
+          <button id="proxyToggleBtn" class="proxy-icon-btn group" aria-pressed="true">
+            <i id="proxyIcon" class='bx bx-transfer text-2xl'></i>
+            <span id="proxyTooltip" class="proxy-tooltip">Scramjet Proxy</span>
+          </button>
           <button id="shareBtn" class="w-10 h-10 bg-white/10 hover:bg-indigo-500/80 text-white rounded-full flex items-center justify-center transition" title="Share">
             <i class='bx bx-share-alt text-xl'></i>
           </button>
@@ -270,75 +279,36 @@
       getProxied,
     };
 
-    // Proxy Toggle UI Logic
+    // Proxy Toggle (Icon) UI Logic
     function updateProxyToggleUI() {
-      const ids = [
-        "proxyScramBtn", "proxyUvBtn", // main toggle (if present)
-        "proxyScramBtnIframe", "proxyUvBtnIframe" // iframe controls
-      ];
-      ids.forEach(id => {
-        const scramBtn = document.getElementById("proxyScramBtnIframe");
-        const uvBtn = document.getElementById("proxyUvBtnIframe");
-        if (scramBtn) {
-          scramBtn.classList.toggle("proxy-active", proxyOption === "scram");
-          scramBtn.classList.toggle("proxy-inactive", proxyOption !== "scram");
-        }
-        if (uvBtn) {
-          uvBtn.classList.toggle("proxy-active", proxyOption === "uv");
-          uvBtn.classList.toggle("proxy-inactive", proxyOption !== "uv");
-        }
-        // Top toggles (if present)
-        const scramBtnMain = document.getElementById("proxyScramBtn");
-        const uvBtnMain = document.getElementById("proxyUvBtn");
-        if (scramBtnMain) {
-          scramBtnMain.classList.toggle("proxy-active", proxyOption === "scram");
-          scramBtnMain.classList.toggle("proxy-inactive", proxyOption !== "scram");
-        }
-        if (uvBtnMain) {
-          uvBtnMain.classList.toggle("proxy-active", proxyOption === "uv");
-          uvBtnMain.classList.toggle("proxy-inactive", proxyOption !== "uv");
-        }
-      });
+      const icon = document.getElementById("proxyIcon");
+      const tooltip = document.getElementById("proxyTooltip");
+      if (proxyOption === "scram") {
+        icon.className = "bx bx-transfer text-2xl";
+        icon.style.color = "#06b6d4";
+        document.getElementById("proxyToggleBtn").classList.add("proxy-active-outline");
+        tooltip.innerText = "Scramjet Proxy";
+      } else {
+        icon.className = "bx bx-shield-quarter text-2xl";
+        icon.style.color = "#a855f7";
+        document.getElementById("proxyToggleBtn").classList.remove("proxy-active-outline");
+        tooltip.innerText = "Ultraviolet Proxy";
+      }
     }
 
-    function setupProxyToggleBtns() {
-      const scramBtnIframe = document.getElementById("proxyScramBtnIframe");
-      const uvBtnIframe = document.getElementById("proxyUvBtnIframe");
-      if (scramBtnIframe && uvBtnIframe) {
-        scramBtnIframe.onclick = async () => {
-          proxyOption = "scram";
-          updateProxyToggleUI();
-          if(window.lethalProxy) await window.lethalProxy.setProxy("scram");
-          if(window.reloadFrameWithProxy) window.reloadFrameWithProxy();
-        };
-        uvBtnIframe.onclick = async () => {
-          proxyOption = "uv";
-          updateProxyToggleUI();
-          if(window.lethalProxy) await window.lethalProxy.setProxy("uv");
-          if(window.reloadFrameWithProxy) window.reloadFrameWithProxy();
-        };
-      }
-      // (optional) top toggles if you want both
-      const scramBtnMain = document.getElementById("proxyScramBtn");
-      const uvBtnMain = document.getElementById("proxyUvBtn");
-      if (scramBtnMain && uvBtnMain) {
-        scramBtnMain.onclick = async () => {
-          proxyOption = "scram";
-          updateProxyToggleUI();
-          if(window.lethalProxy) await window.lethalProxy.setProxy("scram");
-          if(window.reloadFrameWithProxy) window.reloadFrameWithProxy();
-        };
-        uvBtnMain.onclick = async () => {
-          proxyOption = "uv";
-          updateProxyToggleUI();
-          if(window.lethalProxy) await window.lethalProxy.setProxy("uv");
-          if(window.reloadFrameWithProxy) window.reloadFrameWithProxy();
-        };
-      }
+    function setupProxyToggleBtn() {
+      const proxyBtn = document.getElementById("proxyToggleBtn");
+      if (!proxyBtn) return;
+      proxyBtn.onclick = async () => {
+        proxyOption = proxyOption === "scram" ? "uv" : "scram";
+        updateProxyToggleUI();
+        if(window.lethalProxy) await window.lethalProxy.setProxy(proxyOption);
+        if(window.reloadFrameWithProxy) window.reloadFrameWithProxy();
+      };
       updateProxyToggleUI();
     }
 
-    window.setupProxyToggleBtns = setupProxyToggleBtns;
+    window.setupProxyToggleBtn = setupProxyToggleBtn;
     window.updateProxyToggleUI = updateProxyToggleUI;
   </script>
 
@@ -559,8 +529,8 @@
             const iframe = document.getElementById('gameFrameEmbed');
             requestFullScreen(iframe);
           };
-          // Setup proxy toggle in iframe controls (after they exist!)
-          if(window.setupProxyToggleBtns) window.setupProxyToggleBtns();
+          // Setup proxy toggle icon in iframe controls (after they exist!)
+          if(window.setupProxyToggleBtn) window.setupProxyToggleBtn();
         };
         // Proxy toggle always applies to iframe
         window.reloadFrameWithProxy = async function() {
