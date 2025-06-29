@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Your Profile - CARBON</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
+  <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+</head>
+<body class="bg-gradient-to-br from-[#0f0f23] via-[#1a1a2e] to-[#16213e] min-h-screen text-white font-[Inter]">
+
+  <!-- Navbar -->
+  <nav class="flex items-center justify-between px-8 py-4 bg-[#0f0f23cc] border-b border-white/10 backdrop-blur-md fixed top-0 left-0 right-0 z-50">
+    <a href="index.html" class="text-2xl font-extrabold bg-gradient-to-r from-cyan-400 to-indigo-500 bg-clip-text text-transparent tracking-tighter">CARBON</a>
+    <div class="flex items-center gap-4">
+      <div id="userSection"></div>
+    </div>
+  </nav>
+
+  <!-- LOGIN SCREEN -->
+  <div id="loginScreen" class="flex flex-col items-center justify-center h-screen w-full bg-gradient-to-br from-[#0f0f23] via-[#1a1a2e] to-[#16213e] fixed left-0 top-0 z-50">
+    <div class="bg-[#1a1a2e] rounded-2xl shadow-2xl p-12 border border-cyan-600/30 flex flex-col items-center">
+      <div class="text-3xl font-bold bg-gradient-to-r from-cyan-400 to-indigo-500 bg-clip-text text-transparent mb-6">Sign In to View Profile</div>
+      <button onclick="googleSignIn()" class="flex items-center gap-3 bg-cyan-500 hover:bg-cyan-400 text-black font-bold px-6 py-3 rounded-lg text-lg transition">
+        <i class='bx bxl-google text-2xl'></i> Sign in with Google
+      </button>
+      <div id="loginError" class="text-pink-400 mt-6 hidden"></div>
+    </div>
+  </div>
+
+  <main class="pt-28 max-w-5xl mx-auto px-4">
+    <div id="profileContent" class="hidden">
+      <div class="mb-12 text-center">
+        <img id="profilePhoto" class="w-20 h-20 rounded-full mx-auto mb-4 border-4 border-cyan-400 shadow" src="" alt="Profile Photo">
+        <div id="profileName" class="text-3xl font-extrabold text-cyan-300 mb-1"></div>
+        <div id="profileEmail" class="text-white/70"></div>
+        <button onclick="signOut()" class="mt-5 bg-white/10 px-4 py-2 rounded hover:bg-pink-600 text-white">Sign Out</button>
+      </div>
+
+      <!-- Recent Games Section -->
+      <div id="recentGamesContainer" class="mb-12">
+        <h2 class="text-2xl font-bold mb-4 bg-gradient-to-r from-yellow-300 to-cyan-400 bg-clip-text text-transparent">Recently Played</h2>
+        <div id="recentGamesList" class="grid gap-4"></div>
+      </div>
+
+      <div class="grid md:grid-cols-2 gap-12">
+        <!-- Favorite Games -->
+        <div>
+          <h2 class="text-2xl font-bold mb-4 bg-gradient-to-r from-pink-400 to-pink-600 bg-clip-text text-transparent">Favorite Games</h2>
+          <div id="favoriteGamesList" class="grid gap-4"></div>
+        </div>
+        <!-- Liked Games -->
+        <div>
+          <h2 class="text-2xl font-bold mb-4 bg-gradient-to-r from-cyan-400 to-indigo-500 bg-clip-text text-transparent">Liked Games</h2>
+          <div id="likedGamesList" class="grid gap-4"></div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    // FIREBASE INIT
+    const firebaseConfig = {
+      apiKey: "AIzaSyC4ilHYP1T-kdXbWPoHJHhD2aj0pNWmMec",
+      authDomain: "carbon-services.firebaseapp.com",
+      projectId: "carbon-services",
+      storageBucket: "carbon-services.firebasestorage.app",
+      messagingSenderId: "288385472070",
+      appId: "1:288385472070:web:c4be3ff186e248fc645c47",
+      measurementId: "G-Y2K1RQYE74"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+
+    function googleSignIn() {
+      const provider = new firebase.auth.GoogleAuthProvider();
+      auth.signInWithPopup(provider)
+        .catch((error) => {
+          document.getElementById('loginError').innerText = error.message;
+          document.getElementById('loginError').classList.remove('hidden');
+        });
+    }
+    function signOut() {
+      auth.signOut().then(() => location.reload());
+    }
+
+    let gamesData = [];
+    async function loadGamesData() {
+      const res = await fetch('js/games.json');
+      gamesData = await res.json();
+    }
+
+    async function getUserGameLists(uid) {
+      const doc = await db.collection('users').doc(uid).get();
+      return doc.exists ? doc.data() : { likedGames: [], favoriteGames: [], playlist: [], history: [] };
+    }
+
+    function renderUserSection(user) {
+      const section = document.getElementById('userSection');
+      if (!user) {
+        section.innerHTML = '';
+      } else {
+        section.innerHTML = `
+          <img src="${user.photoURL}" class="w-8 h-8 rounded-full inline mr-2" title="${user.displayName}">
+          <span class="mr-3">${user.displayName}</span>
+          <button onclick="signOut()" class="bg-white/10 px-3 py-1 rounded hover:bg-pink-600 text-white">Sign Out</button>
+        `;
+      }
+    }
+
+    function renderGamesList(listId, gameIds, label) {
+      const listEl = document.getElementById(listId);
+      if (!Array.isArray(gameIds) || gameIds.length === 0) {
+        listEl.innerHTML = `<div class="text-white/50 italic">No ${label} yet.</div>`;
+        return;
+      }
+      // Remove duplicates, preserve order
+      const seen = {};
+      const uniqueIds = [];
+      for (const id of gameIds) {
+        if (!seen[id]) {
+          seen[id] = true;
+          uniqueIds.push(id);
+        }
+      }
+      listEl.innerHTML = uniqueIds.map(id => {
+        const game = gamesData.find(g => String(g.id) === String(id));
+        if (!game) return '';
+        return `
+          <a href="play.html?id=${game.id}" class="flex items-center gap-4 bg-white/5 border border-white/10 rounded-xl p-3 hover:border-cyan-400/40 transition group shadow-sm">
+            <div class="relative w-20 h-16 flex-shrink-0 rounded-lg overflow-hidden">
+              <img src="${game.image}" alt="${game.title}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+            </div>
+            <div class="flex-1">
+              <div class="font-bold text-lg text-cyan-300">${game.title}</div>
+              <div class="text-sm text-white/70">${game.description}</div>
+              <div class="flex gap-2 mt-1 text-xs">
+                <span class="bg-cyan-400/20 text-cyan-300 px-2 py-0.5 rounded">${game.category}</span>
+                ${game.featured ? '<span class="bg-indigo-400/20 text-indigo-300 px-2 py-0.5 rounded">Featured</span>' : ''}
+              </div>
+            </div>
+            <button class="ml-auto px-5 py-2 rounded-lg bg-gradient-to-r from-cyan-400 to-indigo-500 text-black font-bold hover:scale-105 transition-transform">
+              Play
+            </button>
+          </a>
+        `;
+      }).join('');
+    }
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      document.getElementById('profileContent').classList.add('hidden');
+      document.getElementById('loginScreen').classList.remove('hidden');
+
+      await loadGamesData();
+
+      auth.onAuthStateChanged(async (user) => {
+        renderUserSection(user);
+
+        if (!user) {
+          document.getElementById('loginScreen').classList.remove('hidden');
+          document.getElementById('profileContent').classList.add('hidden');
+          return;
+        }
+
+        document.getElementById('loginScreen').classList.add('hidden');
+        document.getElementById('profileContent').classList.remove('hidden');
+
+        document.getElementById('profilePhoto').src = user.photoURL;
+        document.getElementById('profileName').textContent = user.displayName;
+        document.getElementById('profileEmail').textContent = user.email;
+
+        const lists = await getUserGameLists(user.uid);
+
+        // Game history (recently played) - reverse order (most recent first)
+        renderGamesList('recentGamesList', (lists.history || []).slice().reverse(), 'recent games');
+
+        renderGamesList('favoriteGamesList', lists.favoriteGames, 'favorite games');
+        renderGamesList('likedGamesList', lists.likedGames, 'liked games');
+      });
+    });
+  </script>
+</body>
+</html>
