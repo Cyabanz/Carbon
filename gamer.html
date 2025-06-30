@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en" x-data="gamesPage()" x-init="init()" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta charset="UTF-8">
+  <title>CARBON - Games</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
+  <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+  <style>
+    @keyframes float {
+      0%, 100% { transform: translateY(0px) rotate(0deg); }
+      33% { transform: translateY(-20px) rotate(120deg); }
+      66% { transform: translateY(10px) rotate(240deg); }
+    }
+    @keyframes slideDown {
+      from { transform: translateY(-100%); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+    @keyframes fadeInUp {
+      from { transform: translateY(30px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+    .category-badge, .category-carousel-btn.active, .category-btn.active {
+      background-color: #22d3ee22;
+      color: #06b6d4 !important;
+      border-color: #06b6d4 !important;
+    }
+    .category-carousel-btn {
+      transition: all 0.16s;
+      border-color: #06b6d433;
+      background: #1a1a2e;
+      color: #cbd5e1;
+    }
+    .category-carousel-btn:hover {
+      color: #06b6d4 !important;
+      background: #0ea5e933;
+    }
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    /* Mobile Menu Overlay */
+    .menu-fade-enter { opacity: 0; transform: translateY(-10px);}
+    .menu-fade-enter-active { opacity: 1; transform: translateY(0); transition: all 0.25s;}
+    .menu-fade-leave-active { opacity: 0; transform: translateY(-10px); transition: all 0.25s;}
+  </style>
+</head>
+<body class="bg-gradient-to-br from-[#0f0f23] via-[#1a1a2e] to-[#16213e] min-h-screen text-white overflow-x-hidden relative font-[Inter]">
+
+  <!-- Animated Blobs -->
+  <div class="pointer-events-none absolute rounded-full opacity-10 blur-3xl w-[300px] h-[300px] top-[10%] left-[10%] bg-gradient-to-br from-cyan-400 to-indigo-500 animate-[float_20s_infinite_ease-in-out]"></div>
+  <div class="pointer-events-none absolute rounded-full opacity-10 blur-3xl w-[250px] h-[250px] top-[60%] right-[10%] bg-gradient-to-br from-indigo-500 to-purple-500 animate-[float_20s_infinite_ease-in-out] delay-7000"></div>
+  <div class="pointer-events-none absolute rounded-full opacity-10 blur-3xl w-[200px] h-[200px] bottom-[20%] left-[20%] bg-gradient-to-br from-cyan-400 to-purple-500 animate-[float_20s_infinite_ease-in-out] delay-14000"></div>
+
+  <!-- Navbar -->
+  <nav class="fixed top-0 left-0 right-0 z-[1000] flex justify-between items-center px-8 py-4 bg-[#0f0f23cc] border-b border-white/10 backdrop-blur-md animate-[slideDown_0.5s_ease-out]">
+    <div class="navbar-brand text-2xl md:text-3xl font-extrabold bg-gradient-to-r from-cyan-400 to-indigo-500 bg-clip-text text-transparent tracking-tighter select-none">CARBON</div>
+    <div class="flex items-center gap-4">
+      <div x-show="pinnedGameData" id="pinnedGame" class="lg:flex items-center gap-3 bg-gradient-to-r from-cyan-400/10 to-indigo-500/10 border border-cyan-400/30 rounded-lg px-4 py-2 backdrop-blur-sm" x-transition>
+        <i class='bx bx-pin text-cyan-400 text-lg'></i>
+        <span class="text-sm font-semibold text-white/90" id="pinnedGameTitle" x-text="pinnedGameData ? pinnedGameData.title : 'No game pinned'">No game pinned</span>
+        <button @click="unpinGame()" class="text-white/60 hover:text-red-400 transition-colors ml-2">
+          <i class='bx bx-x text-sm'></i>
+        </button>
+      </div>
+      <!-- Hamburger Menu Icon -->
+      <div class="hamburger flex flex-col gap-1.5 cursor-pointer p-2 transition-transform duration-300 lg:hidden" @click="toggleMenu()">
+        <span class="block w-6 h-0.5 rounded bg-gradient-to-r from-cyan-400 to-indigo-500 transition-all duration-300"></span>
+        <span class="block w-6 h-0.5 rounded bg-gradient-to-r from-cyan-400 to-indigo-500 transition-all duration-300"></span>
+        <span class="block w-6 h-0.5 rounded bg-gradient-to-r from-cyan-400 to-indigo-500 transition-all duration-300"></span>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Mobile Menu Overlay -->
+  <div 
+    x-show="menuOpen"
+    x-transition:enter="menu-fade-enter"
+    x-transition:enter-active="menu-fade-enter-active"
+    x-transition:leave="menu-fade-leave-active"
+    class="fixed inset-0 z-[2000] flex flex-col bg-[#101024ee] backdrop-blur-md px-8 py-8 gap-6 lg:hidden"
+    style="display: none;"
+    @keydown.escape.window="closeMenu()"
+  >
+    <div class="flex items-center justify-between">
+      <div class="navbar-brand text-2xl font-extrabold bg-gradient-to-r from-cyan-400 to-indigo-500 bg-clip-text text-transparent tracking-tighter select-none">CARBON</div>
+      <button @click="closeMenu()" class="text-white/70 hover:text-red-400 text-2xl p-2">
+        <i class='bx bx-x'></i>
+      </button>
+    </div>
+    <div class="flex flex-col gap-4 mt-8">
+      <a href="#" @click="closeMenu()" class="text-lg font-semibold bg-gradient-to-r from-cyan-400 to-indigo-500 bg-clip-text text-transparent">Home</a>
+      <a href="#featured" @click="closeMenu()" class="text-lg font-semibold text-white/80 hover:text-cyan-400 transition">Featured</a>
+      <a href="#categories" @click="closeMenu()" class="text-lg font-semibold text-white/80 hover:text-cyan-400 transition">Categories</a>
+      <a href="#all" @click="closeMenu()" class="text-lg font-semibold text-white/80 hover:text-cyan-400 transition">All Games</a>
+    </div>
+    <div class="mt-auto flex gap-3 items-center">
+      <template x-if="pinnedGameData">
+        <div class="flex items-center gap-2 bg-gradient-to-r from-cyan-400/10 to-indigo-500/10 border border-cyan-400/30 rounded-lg px-4 py-2 backdrop-blur-sm">
+          <i class='bx bx-pin text-cyan-400'></i>
+          <span class="font-semibold" x-text="pinnedGameData.title"></span>
+          <button @click="unpinGame(); closeMenu()" class="ml-2 text-white/60 hover:text-red-400">
+            <i class='bx bx-x'></i>
+          </button>
+        </div>
+      </template>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <main class="pt-28 pb-8 px-4 relative z-10">
+    <div class="max-w-7xl mx-auto">
+      <!-- Header -->
+      <div class="text-center mb-12 animate-[fadeInUp_1s_ease-out]">
+        <h1 class="text-5xl md:text-6xl font-black bg-gradient-to-r from-cyan-400 via-indigo-500 to-purple-400 bg-clip-text text-transparent mb-4 tracking-tighter">
+          Games Collection
+        </h1>
+        <p class="text-white/70 text-lg max-w-2xl mx-auto">
+          Discover amazing games across all genres. Play instantly in your browser!
+        </p>
+      </div>
+
+      <!-- Search Bar -->
+      <div class="mb-8 animate-[fadeInUp_1s_ease-out_0.2s_both]">
+        <div class="relative max-w-2xl mx-auto">
+          <input 
+            type="text" 
+            id="searchInput"
+            placeholder="Search games..." 
+            class="w-full px-6 py-4 pl-14 bg-white/5 border border-white/10 rounded-2xl text-white placeholder-white/50 focus:outline-none focus:border-cyan-400/50 focus:bg-white/10 transition-all duration-300"
+            x-model="searchTerm"
+            @input="searchGames"
+          >
+          <i class='bx bx-search absolute left-5 top-1/2 -translate-y-1/2 text-white/50 text-xl'></i>
+        </div>
+      </div>
+
+      <!-- Categories -->
+      <div class="mb-12 animate-[fadeInUp_1s_ease-out_0.4s_both]">
+        <div class="flex flex-wrap justify-center gap-3" id="categoryButtons">
+          <template x-for="cat in ['all', ...allCategories]" :key="cat">
+            <button
+              :class="`category-btn px-6 py-3 rounded-full border border-white/20 text-white font-semibold transition-all duration-300 hover:border-cyan-400/50 ${currentFilter === cat ? 'active' : ''}`"
+              @click="filterGames(cat, $event)">
+              <template x-if="cat === 'all'">
+                <span>All Games</span>
+              </template>
+              <template x-if="cat !== 'all'">
+                <span x-text="cat.charAt(0).toUpperCase() + cat.slice(1)"></span>
+              </template>
+              <template x-if="cat !== 'all'">
+                <span class="ml-1 text-cyan-400/80" x-text="'(' + (categoryCounts[cat] || 0) + ')'"></span>
+              </template>
+            </button>
+          </template>
+        </div>
+      </div>
+
+      <!-- Featured Games Carousel -->
+      <div class="mb-16 animate-[fadeInUp_1s_ease-out_0.6s_both]" id="featured">
+        <h2 class="text-3xl font-bold mb-8 bg-gradient-to-r from-cyan-400 to-indigo-500 bg-clip-text text-transparent">
+          Featured Games
+        </h2>
+        <div class="relative">
+          <div class="overflow-hidden rounded-2xl">
+            <div id="featuredCarousel" class="flex transition-transform duration-500 ease-in-out"
+              :style="`transform: translateX(-${currentSlide * 100}%);`">
+              <template x-for="game in featuredGames" :key="game.id">
+                <div class="flex-shrink-0 w-full relative">
+                  <div class="bg-gradient-to-br from-white/10 to-white/5 rounded-2xl overflow-hidden border border-white/10">
+                    <div class="aspect-video relative overflow-hidden">
+                      <img :src="game.image" :alt="game.title" class="w-full h-full object-cover">
+                      <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+                      <div class="absolute bottom-6 left-6 right-6">
+                        <h3 class="text-2xl font-bold mb-2" x-text="game.title"></h3>
+                        <p class="text-white/80 mb-4" x-text="game.description"></p>
+                        <div class="flex gap-3">
+                          <a :href="`play.html?id=${game.id}`" class="bg-gradient-to-r from-cyan-400 to-indigo-500 text-black font-semibold px-6 py-2 rounded-lg hover:scale-105 transition-transform duration-300">
+                            Play Now
+                          </a>
+                          <button @click="pinGame(game.id)" class="bg-white/20 backdrop-blur-sm text-white font-semibold px-6 py-2 rounded-lg hover:bg-white/30 transition-all duration-300">
+                            <i class='bx bx-pin mr-2'></i>Pin
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </template>
+            </div>
+          </div>
+          <button @click="previousSlide()" class="absolute left-4 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-3 rounded-full transition-all duration-300 backdrop-blur-sm">
+            <i class='bx bx-chevron-left text-2xl'></i>
+          </button>
+          <button @click="nextSlide()" class="absolute right-4 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-3 rounded-full transition-all duration-300 backdrop-blur-sm">
+            <i class='bx bx-chevron-right text-2xl'></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Games Grid -->
+      <div class="animate-[fadeInUp_1s_ease-out_0.8s_both]" id="all">
+        <div class="flex justify-between items-center mb-8">
+          <h2 class="text-3xl font-bold bg-gradient-to-r from-cyan-400 to-indigo-500 bg-clip-text text-transparent">
+            All Games
+          </h2>
+          <div class="text-white/60" id="gameCount" x-text="`${filteredGames.length} games found`">
+            Loading games...
+          </div>
+        </div>
+        <div id="gamesGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          <template x-if="filteredGames.length === 0">
+            <div class="col-span-full text-center text-white/60 py-10">No games found.</div>
+          </template>
+          <template x-for="game in filteredGames" :key="game.id">
+            <div class="game-card bg-white/5 border border-white/10 rounded-2xl hover:border-cyan-400/30 transition-all duration-300 aspect-[4/3] relative group" :data-category="game.category" :data-title="game.title.toLowerCase()">
+              <div class="relative w-full h-full overflow-hidden rounded-2xl">
+                <img :src="game.image" :alt="game.title" class="w-full h-full object-cover">
+                <img :src="game.gif" :alt="`${game.title} gameplay`" class="absolute top-0 left-0 w-full h-full object-cover opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                <div class="absolute top-3 right-3 z-10">
+                  <button @click="pinGame(game.id)" class="bg-black/50 hover:bg-black/70 text-white p-2 rounded-full transition-all duration-300 backdrop-blur-sm">
+                    <i class='bx bx-pin text-sm'></i>
+                  </button>
+                </div>
+                <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/60 to-transparent p-4 translate-y-full group-hover:translate-y-0 transition-transform duration-300">
+                  <h3 class="font-semibold text-white mb-1" x-text="game.title"></h3>
+                  <p class="text-white/60 text-sm mb-3" x-text="game.description"></p>
+                  <div class="flex items-center justify-between">
+                    <button type="button"
+                      class="category-badge px-3 py-1 rounded-full text-cyan-300 border border-cyan-400/30 font-semibold text-xs transition hover:bg-cyan-600/10 hover:text-cyan-400"
+                      @click="filterGames(game.category, $event)">
+                      <span x-text="game.category.charAt(0).toUpperCase() + game.category.slice(1)"></span>
+                    </button>
+                    <a :href="`play.html?id=${game.id}`" class="bg-gradient-to-r from-cyan-400 to-indigo-500 text-black font-semibold px-4 py-2 rounded-lg hover:scale-105 transition-transform duration-300 text-sm">
+                      Play Now
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </template>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Categories Carousel at Bottom -->
+  <footer class="mt-20 px-1 pb-8" id="categories">
+    <div class="max-w-7xl mx-auto">
+      <h3 class="text-2xl font-bold mb-4 bg-gradient-to-r from-cyan-400 to-indigo-500 bg-clip-text text-transparent">
+        Browse Categories
+      </h3>
+      <div class="relative flex items-center">
+        <button id="catCarouselPrev" class="absolute z-10 left-0 h-12 w-8 flex items-center justify-center rounded-l-lg bg-black/50 hover:bg-black/80 text-white text-xl transition disabled:opacity-30" aria-label="Previous" style="top: 6px;"
+          @click="scrollCategories(-220)">
+          <i class='bx bx-chevron-left'></i>
+        </button>
+        <div id="categoriesCarousel" class="flex space-x-3 overflow-x-auto no-scrollbar px-10 py-1 scroll-smooth" style="scroll-behavior: smooth;">
+          <template x-for="cat in allCategories" :key="cat">
+            <button type="button"
+              class="category-carousel-btn px-6 py-2 mr-2 rounded-full border font-semibold border-cyan-400/20"
+              :class="{'active': currentFilter === cat}"
+              @click="filterGames(cat, $event)">
+              <i class='bx bx-category text-cyan-400 mr-1'></i>
+              <span x-text="cat.charAt(0).toUpperCase() + cat.slice(1)"></span>
+              <span class="ml-1 text-cyan-300/60" x-text="'(' + (categoryCounts[cat] || 0) + ')'"></span>
+            </button>
+          </template>
+        </div>
+        <button id="catCarouselNext" class="absolute z-10 right-0 h-12 w-8 flex items-center justify-center rounded-r-lg bg-black/50 hover:bg-black/80 text-white text-xl transition disabled:opacity-30" aria-label="Next" style="top: 6px;"
+          @click="scrollCategories(220)">
+          <i class='bx bx-chevron-right'></i>
+        </button>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    function gamesPage() {
+      return {
+        gamesData: [],
+        filteredGames: [],
+        featuredGames: [],
+        allCategories: [],
+        categoryCounts: {},
+        currentSlide: 0,
+        currentFilter: 'all',
+        searchTerm: '',
+        pinnedGameData: null,
+        carouselInterval: null,
+        menuOpen: false,
+        init() {
+          this.fetchGames();
+          this.setupNavbarScroll();
+          this.setupCarouselInterval();
+        },
+        async fetchGames() {
+          const response = await fetch('games.json');
+          this.gamesData = await response.json();
+          this.filteredGames = [...this.gamesData];
+          // Build unique categories and their counts
+          let catSet = new Set();
+          let counts = {};
+          this.gamesData.forEach(game => {
+            if (game.category) {
+              catSet.add(game.category);
+              counts[game.category] = (counts[game.category] || 0) + 1;
+            }
+          });
+          this.allCategories = Array.from(catSet).sort();
+          this.categoryCounts = counts;
+          this.featuredGames = this.gamesData.filter(game => game.featured);
+          if (this.currentSlide >= this.featuredGames.length) this.currentSlide = 0;
+        },
+        searchGames() {
+          const term = this.searchTerm.toLowerCase();
+          this.filteredGames = this.gamesData.filter(game => {
+            const matchesSearch = game.title.toLowerCase().includes(term) ||
+                                  game.description.toLowerCase().includes(term);
+            const matchesCategory = this.currentFilter === 'all' || game.category === this.currentFilter;
+            return matchesSearch && matchesCategory;
+          });
+        },
+        filterGames(category, event) {
+          this.currentFilter = category;
+          this.searchTerm = '';
+          this.filteredGames = this.gamesData.filter(game => category === 'all' || game.category === category);
+          // scroll carousel to active
+          this.$nextTick(() => {
+            if (category !== 'all') {
+              const carousel = document.getElementById('categoriesCarousel');
+              if (carousel) {
+                const btn = Array.from(carousel.children).find(b => b.textContent.trim().toLowerCase().startsWith(category.toLowerCase()));
+                if (btn) btn.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+              }
+            }
+          });
+        },
+        pinGame(gameId) {
+          const game = this.gamesData.find(g => g.id === gameId);
+          if (game) this.pinnedGameData = game;
+        },
+        unpinGame() {
+          this.pinnedGameData = null;
+        },
+        nextSlide() {
+          if (this.featuredGames.length === 0) return;
+          this.currentSlide = (this.currentSlide + 1) % this.featuredGames.length;
+        },
+        previousSlide() {
+          if (this.featuredGames.length === 0) return;
+          this.currentSlide = (this.currentSlide - 1 + this.featuredGames.length) % this.featuredGames.length;
+        },
+        setupCarouselInterval() {
+          if (this.carouselInterval) clearInterval(this.carouselInterval);
+          this.carouselInterval = setInterval(() => this.nextSlide(), 5000);
+        },
+        scrollCategories(px) {
+          const carousel = document.getElementById('categoriesCarousel');
+          if (carousel) carousel.scrollBy({ left: px, behavior: 'smooth' });
+        },
+        toggleMenu() {
+          this.menuOpen = !this.menuOpen;
+          if (this.menuOpen) {
+            document.body.classList.add("overflow-hidden");
+          } else {
+            document.body.classList.remove("overflow-hidden");
+          }
+        },
+        closeMenu() {
+          this.menuOpen = false;
+          document.body.classList.remove("overflow-hidden");
+        },
+        setupNavbarScroll() {
+          document.addEventListener('scroll', function() {
+            const navbar = document.querySelector('nav');
+            if (!navbar) return;
+            if (window.scrollY > 100) {
+              navbar.style.backgroundColor = 'rgba(15, 15, 35, 0.95)';
+            } else {
+              navbar.style.backgroundColor = 'rgba(15, 15, 35, 0.8)';
+            }
+          });
+        }
+      }
+    }
+  </script>
+</body>
+</html>
