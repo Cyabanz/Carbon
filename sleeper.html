@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="en" class="bg-gradient-to-br from-[#0f0f23] via-[#1a1a2e] to-[#16213e] min-h-screen text-white font-[Inter]">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Tab Cloaker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        .blur-effect {
+            backdrop-filter: blur(10px);
+            background-color: rgba(15, 15, 35, 0.7);
+        }
+        .cloak-btn {
+            transition: all 0.3s ease;
+        }
+        .cloak-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+<body class="min-h-screen" x-data="cloakerApp()" x-init="initFirebase(); loadSettings()">
+    <!-- Firebase Configuration -->
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyC4ilHYP1T-kdXbWPoHJHhD2aj0pNWmMec",
+            authDomain: "carbon-services.firebaseapp.com",
+            projectId: "carbon-services",
+            storageBucket: "carbon-services.appspot.com",
+            messagingSenderId: "288385472070",
+            appId: "1:288385472070:web:c4be3ff186e248fc645c47",
+            measurementId: "G-Y2K1RQYE74"
+        };
+    </script>
+
+    <div class="container mx-auto px-4 py-8">
+        <header class="mb-8 text-center">
+            <h1 class="text-4xl font-bold mb-2 bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-600">Advanced Tab Cloaker</h1>
+            <p class="text-gray-300">Protect your privacy with advanced tab cloaking techniques</p>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Main Cloaker Panel -->
+            <div class="lg:col-span-2 bg-gray-800 rounded-xl p-6 shadow-lg blur-effect">
+                <div class="mb-6">
+                    <h2 class="text-2xl font-semibold mb-4">Tab Cloaker</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <label class="block text-sm font-medium mb-1">Title</label>
+                            <input x-model="cloakSettings.title" type="text" class="w-full bg-gray-700 rounded-md px-3 py-2 border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-1">Favicon URL</label>
+                            <input x-model="cloakSettings.favicon" type="text" class="w-full bg-gray-700 rounded-md px-3 py-2 border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="https://example.com/favicon.ico">
+                        </div>
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium mb-1">URL to Display</label>
+                        <input x-model="cloakSettings.displayUrl" type="text" class="w-full bg-gray-700 rounded-md px-3 py-2 border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="https://classroom.google.com">
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium mb-1">Actual URL</label>
+                        <input x-model="cloakSettings.actualUrl" type="text" class="w-full bg-gray-700 rounded-md px-3 py-2 border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="https://your-site.com">
+                    </div>
+                    <div class="flex flex-wrap gap-3 mb-4">
+                        <label class="flex items-center space-x-2">
+                            <input type="checkbox" x-model="cloakSettings.autoAboutBlank" class="rounded bg-gray-700 border-gray-600 text-blue-500 focus:ring-blue-500">
+                            <span>Auto Open in About:Blank</span>
+                        </label>
+                        <label class="flex items-center space-x-2">
+                            <input type="checkbox" x-model="cloakSettings.autoBlob" class="rounded bg-gray-700 border-gray-600 text-blue-500 focus:ring-blue-500">
+                            <span>Auto Open in Blob</span>
+                        </label>
+                        <label class="flex items-center space-x-2">
+                            <input type="checkbox" x-model="cloakSettings.teacherPrevention" class="rounded bg-gray-700 border-gray-600 text-blue-500 focus:ring-blue-500">
+                            <span>Teacher Prevention</span>
+                        </label>
+                    </div>
+                    <div class="flex flex-wrap gap-3">
+                        <button @click="applyCloak()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-md cloak-btn font-medium">Apply Cloak</button>
+                        <button @click="openAboutBlank()" class="px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-md cloak-btn font-medium">About:Blank</button>
+                        <button @click="saveSettings()" class="px-4 py-2 bg-green-600 hover:bg-green-700 rounded-md cloak-btn font-medium">Save Settings</button>
+                        <button @click="resetSettings()" class="px-4 py-2 bg-gray-600 hover:bg-gray-700 rounded-md cloak-btn font-medium">Reset</button>
+                    </div>
+                </div>
+
+                <!-- Status Panel -->
+                <div class="bg-gray-900 rounded-lg p-4">
+                    <h3 class="text-lg font-medium mb-2">Current Status</h3>
+                    <div class="grid grid-cols-2 gap-2 text-sm">
+                        <div>Cloak Active: <span x-text="isCloaked ? 'Yes' : 'No'" :class="isCloaked ? 'text-green-400' : 'text-red-400'"></span></div>
+                        <div>Auto Save: <span x-text="cloakSettings.autoSave ? 'Enabled' : 'Disabled'" :class="cloakSettings.autoSave ? 'text-green-400' : 'text-red-400'"></span></div>
+                        <div>Teacher Prevention: <span x-text="cloakSettings.teacherPrevention ? 'Enabled' : 'Disabled'" :class="cloakSettings.teacherPrevention ? 'text-green-400' : 'text-red-400'"></span></div>
+                        <div>Auto About:Blank: <span x-text="cloakSettings.autoAboutBlank ? 'Enabled' : 'Disabled'" :class="cloakSettings.autoAboutBlank ? 'text-green-400' : 'text-red-400'"></span></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Presets & Panic Keys -->
+            <div class="space-y-6">
+                <!-- Preset Cloakers -->
+                <div class="bg-gray-800 rounded-xl p-6 shadow-lg blur-effect">
+                    <h2 class="text-2xl font-semibold mb-4">Preset Cloakers</h2>
+                    <div class="space-y-3">
+                        <template x-for="(preset, index) in presets" :key="index">
+                            <button 
+                                @click="loadPreset(preset)"
+                                class="w-full px-3 py-2 bg-gray-700 hover:bg-gray-600 rounded-md text-left text-sm cloak-btn"
+                            >
+                                <span x-text="preset.name"></span>
+                                <span class="float-right text-gray-400 text-xs" x-text="preset.displayUrl"></span>
+                            </button>
+                        </template>
+                    </div>
+                </div>
+
+                <!-- Panic Keys -->
+                <div class="bg-gray-800 rounded-xl p-6 shadow-lg blur-effect">
+                    <h2 class="text-2xl font-semibold mb-4">Panic Keys</h2>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium mb-1">Panic Key (A-Z)</label>
+                        <select x-model="cloakSettings.panicKey" class="w-full bg-gray-700 rounded-md px-3 py-2 border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <template x-for="char in 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('')">
+                                <option x-text="char" :value="char.toLowerCase()"></option>
+                            </template>
+                        </select>
+                    </div>
+                    <div class="flex items-center space-x-2 mb-4">
+                        <input type="checkbox" x-model="cloakSettings.panicEnabled" class="rounded bg-gray-700 border-gray-600 text-blue-500 focus:ring-blue-500">
+                        <span>Enable Panic Key</span>
+                    </div>
+                    <button @click="testPanicKey()" class="px-4 py-2 bg-red-600 hover:bg-red-700 rounded-md cloak-btn font-medium">Test Panic Key</button>
+                </div>
+
+                <!-- Custom Cloakers -->
+                <div class="bg-gray-800 rounded-xl p-6 shadow-lg blur-effect">
+                    <h2 class="text-2xl font-semibold mb-4">Custom Cloakers</h2>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium mb-1">Preset Name</label>
+                        <input x-model="newPreset.name" type="text" class="w-full bg-gray-700 rounded-md px-3 py-2 border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <button @click="saveCustomPreset()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 rounded-md cloak-btn font-medium w-full">Save Current as Custom</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('alpine:init', () => {
+            Alpine.data('cloakerApp', () => ({
+                isCloaked: false,
+                cloakSettings: {
+                    title: 'Google Classroom',
+                    favicon: 'https://ssl.gstatic.com/classroom/favicon.png',
+                    displayUrl: 'https://classroom.google.com',
+                    actualUrl: '',
+                    panicKey: 'p',
+                    panicEnabled: true,
+                    teacherPrevention: true,
+                    autoAboutBlank: false,
+                    autoBlob: false,
+                    autoSave: true
+                },
+                newPreset: {
+                    name: '',
+                    title: '',
+                    favicon: '',
+                    displayUrl: '',
+                    actualUrl: ''
+                },
+                presets: [
+                    {
+                        name: 'Google Classroom',
+                        title: 'Google Classroom',
+                        favicon: 'https://ssl.gstatic.com/classroom/favicon.png',
+                        displayUrl: 'https://classroom.google.com',
+                        actualUrl: ''
+                    },
+                    {
+                        name: 'Google Docs',
+                        title: 'Google Docs',
+                        favicon: 'https://ssl.gstatic.com/docs/favicon.ico',
+                        displayUrl: 'https://docs.google.com',
+                        actualUrl: ''
+                    },
+                    {
+                        name: 'Google Search',
+                        title: 'Google',
+                        favicon: 'https://www.google.com/favicon.ico',
+                        displayUrl: 'https://www.google.com',
+                        actualUrl: ''
+                    },
+                    {
+                        name: 'Wikipedia',
+                        title: 'Wikipedia',
+                        favicon: 'https://en.wikipedia.org/static/favicon/wikipedia.ico',
+                        displayUrl: 'https://en.wikipedia.org',
+                        actualUrl: ''
+                    }
+                ],
+                firebaseApp: null,
+                firebaseDb: null,
+
+                initFirebase() {
+                    try {
+                        this.firebaseApp = firebase.initializeApp(firebaseConfig);
+                        this.firebaseDb = firebase.database();
+                        console.log('Firebase initialized successfully');
+                    } catch (error) {
+                        console.error('Firebase initialization error:', error);
+                    }
+                },
+
+                loadSettings() {
+                    const savedSettings = localStorage.getItem('cloakSettings');
+                    if (savedSettings) {
+                        this.cloakSettings = JSON.parse(savedSettings);
+                    }
+
+                    // Load from Firebase if logged in
+                    if (this.firebaseDb) {
+                        const userId = this.getUserId();
+                        if (userId) {
+                            this.firebaseDb.ref('users/' + userId + '/settings').once('value').then((snapshot) => {
+                                const data = snapshot.val();
+                                if (data) {
+                                    this.cloakSettings = data;
+                                    if (this.cloakSettings.autoAboutBlank) {
+                                        setTimeout(() => this.openAboutBlank(), 1000);
+                                    }
+                                    if (this.cloakSettings.autoBlob) {
+                                        setTimeout(() => this.openBlob(), 1000);
+                                    }
+                                }
+                            });
+                        }
+                    }
+
+                    // Setup panic key listener
+                    if (this.cloakSettings.panicEnabled) {
+                        document.addEventListener('keydown', (e) => {
+                            if (e.key.toLowerCase() === this.cloakSettings.panicKey.toLowerCase()) {
+                                this.resetCloak();
+                                window.location.href = 'https://www.google.com';
+                            }
+                        });
+                    }
+                },
+
+                getUserId() {
+                    // In a real app, implement proper authentication
+                    return localStorage.getItem('userId') || 'anonymous';
+                },
+
+                saveSettings() {
+                    localStorage.setItem('cloakSettings', JSON.stringify(this.cloakSettings));
+                    
+                    if (this.firebaseDb) {
+                        const userId = this.getUserId();
+                        this.firebaseDb.ref('users/' + userId + '/settings').set(this.cloakSettings)
+                            .then(() => console.log('Settings saved to Firebase'))
+                            .catch(error => console.error('Firebase save error:', error));
+                    }
+                },
+
+                applyCloak() {
+                    if (!this.cloakSettings.actualUrl) {
+                        alert('Please enter an actual URL');
+                        return;
+                    }
+
+                    this.isCloaked = true;
+                    
+                    // Change title and favicon
+                    document.title = this.cloakSettings.title;
+                    const favicon = document.querySelector('link[rel="icon"]') || document.createElement('link');
+                    favicon.rel = 'icon';
+                    favicon.href = this.cloakSettings.favicon;
+                    document.head.appendChild(favicon);
+
+                    // Teacher prevention - disable right click and key combinations
+                    if (this.cloakSettings.teacherPrevention) {
+                        document.addEventListener('contextmenu', this.preventAction);
+                        document.addEventListener('keydown', this.preventDevTools);
+                    }
+
+                    // Open in about:blank or blob if enabled
+                    if (this.cloakSettings.autoAboutBlank) {
+                        this.openAboutBlank();
+                    } else if (this.cloakSettings.autoBlob) {
+                        this.openBlob();
+                    }
+
+                    // Auto-save if enabled
+                    if (this.cloakSettings.autoSave) {
+                        this.saveSettings();
+                    }
+                },
+
+                openAboutBlank() {
+                    if (!this.cloakSettings.actualUrl) {
+                        alert('Please enter an actual URL');
+                        return;
+                    }
+
+                    const aboutBlank = window.open('about:blank');
+                    const iframe = aboutBlank.document.createElement('iframe');
+                    iframe.style.position = 'fixed';
+                    iframe.style.top = '0';
+                    iframe.style.left = '0';
+                    iframe.style.width = '100%';
+                    iframe.style.height = '100%';
+                    iframe.style.border = 'none';
+                    iframe.src = this.cloakSettings.actualUrl;
+                    
+                    aboutBlank.document.title = this.cloakSettings.title;
+                    aboutBlank.document.body.style.margin = '0';
+                    aboutBlank.document.body.style.padding = '0';
+                    aboutBlank.document.body.appendChild(iframe);
+
+                    // Set favicon
+                    const favicon = aboutBlank.document.createElement('link');
+                    favicon.rel = 'icon';
+                    favicon.href = this.cloakSettings.favicon;
+                    aboutBlank.document.head.appendChild(favicon);
+                },
+
+                openBlob() {
+                    if (!this.cloakSettings.actualUrl) {
+                        alert('Please enter an actual URL');
+                        return;
+                    }
+
+                    const blobHtml = `
+                        <!DOCTYPE html>
+                        <html>
+                        <head>
+                            <title>${this.cloakSettings.title}</title>
+                            <link rel="icon" href="${this.cloakSettings.favicon}">
+                            <style>
+                                body, html { margin: 0; padding: 0; overflow: hidden; }
+                                iframe { width: 100%; height: 100%; border: none; }
+                            </style>
+                        </head>
+                        <body>
+                            <iframe src="${this.cloakSettings.actualUrl}"></iframe>
+                            <script>
+                                // Prevent right-click in blob
+                                document.addEventListener('contextmenu', e => e.preventDefault());
+                            <\/script>
+                        </body>
+                        </html>
+                    `;
+
+                    const blob = new Blob([blobHtml], { type: 'text/html' });
+                    const blobUrl = URL.createObjectURL(blob);
+                    window.open(blobUrl, '_blank');
+                },
+
+                resetCloak() {
+                    this.isCloaked = false;
+                    document.title = 'Advanced Tab Cloaker';
+                    document.querySelector('link[rel="icon"]').href = '';
+
+                    // Remove teacher prevention
+                    document.removeEventListener('contextmenu', this.preventAction);
+                    document.removeEventListener('keydown', this.preventDevTools);
+                },
+
+                preventAction(e) {
+                    e.preventDefault();
+                },
+
+                preventDevTools(e) {
+                    // Disable F12, Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+U
+                    if (e.key === 'F12' || 
+                        (e.ctrlKey && e.shiftKey && e.key === 'I') || 
+                        (e.ctrlKey && e.shiftKey && e.key === 'J') || 
+                        (e.ctrlKey && e.key === 'U')) {
+                        e.preventDefault();
+                    }
+                },
+
+                resetSettings() {
+                    if (confirm('Are you sure you want to reset all settings?')) {
+                        this.cloakSettings = {
+                            title: 'Google Classroom',
+                            favicon: 'https://ssl.gstatic.com/classroom/favicon.png',
+                            displayUrl: 'https://classroom.google.com',
+                            actualUrl: '',
+                            panicKey: 'p',
+                            panicEnabled: true,
+                            teacherPrevention: true,
+                            autoAboutBlank: false,
+                            autoBlob: false,
+                            autoSave: true
+                        };
+                        this.resetCloak();
+                        this.saveSettings();
+                    }
+                },
+
+                loadPreset(preset) {
+                    this.cloakSettings.title = preset.title;
+                    this.cloakSettings.favicon = preset.favicon;
+                    this.cloakSettings.displayUrl = preset.displayUrl;
+                    // Don't overwrite actualUrl if it's already set
+                    if (!this.cloakSettings.actualUrl) {
+                        this.cloakSettings.actualUrl = preset.actualUrl || '';
+                    }
+                },
+
+                saveCustomPreset() {
+                    if (!this.newPreset.name) {
+                        alert('Please enter a name for your preset');
+                        return;
+                    }
+
+                    const newPreset = {
+                        name: this.newPreset.name,
+                        title: this.cloakSettings.title,
+                        favicon: this.cloakSettings.favicon,
+                        displayUrl: this.cloakSettings.displayUrl,
+                        actualUrl: this.cloakSettings.actualUrl
+                    };
+
+                    this.presets.push(newPreset);
+                    this.newPreset.name = '';
+
+                    // Save to localStorage
+                    localStorage.setItem('customPresets', JSON.stringify(this.presets));
+
+                    // Save to Firebase if available
+                    if (this.firebaseDb) {
+                        const userId = this.getUserId();
+                        this.firebaseDb.ref('users/' + userId + '/presets').set(this.presets)
+                            .then(() => console.log('Presets saved to Firebase'))
+                            .catch(error => console.error('Firebase save error:', error));
+                    }
+                },
+
+                testPanicKey() {
+                    alert(`Press '${this.cloakSettings.panicKey.toUpperCase()}' to test the panic key. It will redirect to Google.`);
+                }
+            }));
+        });
+    </script>
+</body>
+</html>
