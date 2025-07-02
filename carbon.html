@@ -519,213 +519,213 @@
           </div>
         </div>
       </div>
-          </main>
+    </main>
 
-            <!-- JavaScript Logic -->
-      <script type="module">
-        // Import proxy functions
-        import { makeURL, getProxied, setProxy, setTransport, setWisp } from "/lethal.mjs";
+    <!-- JavaScript Logic -->
+    <script type="module">
+      // Import proxy functions
+      import { makeURL, getProxied, setProxy, setTransport, setWisp } from "/lethal.mjs";
 
-        // Global variables
-        let tabs = [];
-        let activeTab = null;
-        let tabIdCounter = 1;
-        let closedTabsSnapshot = [];
-        let verticalTabsMode = false;
-        let currentContextTabId = null;
-        let suggestionActive = -1;
-        let currentSuggestions = [];
-        let suggestionFetchController = null;
+      // Global variables
+      let tabs = [];
+      let activeTab = null;
+      let tabIdCounter = 1;
+      let closedTabsSnapshot = [];
+      let verticalTabsMode = false;
+      let currentContextTabId = null;
+      let suggestionActive = -1;
+      let currentSuggestions = [];
+      let suggestionFetchController = null;
 
-        // Search engines configuration
-        const engines = {
-          "https://www.google.com/search?q=%s": ["Google", "bxl-google"],
-          "https://search.brave.com/search?q=%s": ["Brave", "bxl-brave"], 
-          "https://duckduckgo.com/?q=%s": ["DuckDuckGo", "bx-shield"]
+      // Search engines configuration
+      const engines = {
+        "https://search.brave.com/search?q=%s": ["Brave", "bxl-brave"],
+        "https://duckduckgo.com/?q=%s": ["DuckDuckGo", "bx-shield"],
+        "https://www.google.com/search?q=%s": ["Google", "bxl-google"],
+      };
+
+      // DOM elements (will be initialized in init function)
+      let addressInput, suggestionBox, searchEngineBtn, searchEngineIcon, searchEngineDropdown;
+      let proxyToggleBtn, proxyToggleIcon, proxyDropdown;
+
+      // Initialize proxy settings
+      function initializeProxy() {
+        const backend = localStorage.getItem("proxy-backend") || "uv";
+        const wisp = localStorage.getItem("wisp-server") || "wss://anura.pro/";
+        const transport = localStorage.getItem("proxy-transport");
+        
+        setWisp(wisp);
+        setProxy(backend);
+        if (transport) setTransport(transport);
+        else if (navigator.userAgent.indexOf("Firefox") > 0) setTransport("libcurl");
+        else setTransport("epoxy");
+        
+        updateProxyToggleUI(backend);
+      }
+
+      // Search engine functions
+      function getCurrentSearchEngine() {
+        return localStorage.getItem("search-engine") || "https://www.google.com/search?q=%s";
+      }
+
+      function setCurrentSearchEngine(url) {
+        localStorage.setItem("search-engine", url);
+        updateSearchEngineDisplay();
+      }
+
+      function updateSearchEngineDisplay() {
+        const current = getCurrentSearchEngine();
+        const [name, icon] = engines[current] || ["Google", "bxl-google"];
+        searchEngineIcon.className = `bx ${icon} text-lg`;
+        searchEngineBtn.title = name;
+      }
+
+      // Proxy functions
+      function getCurrentProxy() {
+        return localStorage.getItem("proxy-backend") || "uv";
+      }
+
+      function setCurrentProxy(proxy) {
+        localStorage.setItem("proxy-backend", proxy);
+        updateProxyToggleUI(proxy);
+      }
+
+      function updateProxyToggleUI(proxy) {
+        if (proxy === "scram") {
+          proxyToggleIcon.className = "bx bx-network-chart text-lg";
+          proxyToggleBtn.title = "Scramjet";
+        } else {
+          proxyToggleIcon.className = "bx bx-shield text-lg";
+          proxyToggleBtn.title = "UV";
+        }
+      }
+
+      // Tab management functions
+      function addTab(url = "", title = "New Tab") {
+        const tab = {
+          id: "tab-" + tabIdCounter++,
+          title: title,
+          url: url,
+          history: url ? [url] : [],
+          pointer: url ? 0 : -1,
+          pinned: false,
+          locked: false,
+          color: "default",
+          customTitle: ""
         };
+        tabs.push(tab);
+        activeTab = tab.id;
+        renderTabs();
+        updateAddressBar(tab);
+        renderTabContent(tab);
+        return tab;
+      }
 
-        // DOM elements (will be initialized in init function)
-        let addressInput, suggestionBox, searchEngineBtn, searchEngineIcon, searchEngineDropdown;
-        let proxyToggleBtn, proxyToggleIcon, proxyDropdown;
-
-        // Initialize proxy settings
-        function initializeProxy() {
-          const backend = localStorage.getItem("proxy-backend") || "uv";
-          const wisp = localStorage.getItem("wisp-server") || "wss://anura.pro/";
-          const transport = localStorage.getItem("proxy-transport");
-          
-          setWisp(wisp);
-          setProxy(backend);
-          if (transport) setTransport(transport);
-          else if (navigator.userAgent.indexOf("Firefox") > 0) setTransport("libcurl");
-          else setTransport("epoxy");
-          
-          updateProxyToggleUI(backend);
-        }
-
-        // Search engine functions
-        function getCurrentSearchEngine() {
-          return localStorage.getItem("search-engine") || "https://www.google.com/search?q=%s";
-        }
-
-        function setCurrentSearchEngine(url) {
-          localStorage.setItem("search-engine", url);
-          updateSearchEngineDisplay();
-        }
-
-        function updateSearchEngineDisplay() {
-          const current = getCurrentSearchEngine();
-          const [name, icon] = engines[current] || ["Google", "bxl-google"];
-          searchEngineIcon.className = `bx ${icon} text-lg`;
-          searchEngineBtn.title = name;
-        }
-
-        // Proxy functions
-        function getCurrentProxy() {
-          return localStorage.getItem("proxy-backend") || "uv";
-        }
-
-        function setCurrentProxy(proxy) {
-          localStorage.setItem("proxy-backend", proxy);
-          updateProxyToggleUI(proxy);
-        }
-
-        function updateProxyToggleUI(proxy) {
-          if (proxy === "scram") {
-            proxyToggleIcon.className = "bx bx-network-chart text-lg";
-            proxyToggleBtn.title = "Scramjet";
+      function removeTab(tabId) {
+        const tab = getTabById(tabId);
+        if (!tab || tab.locked) return;
+        
+        takeTabsSnapshot();
+        const index = tabs.findIndex(t => t.id === tabId);
+        tabs.splice(index, 1);
+        
+        if (activeTab === tabId) {
+          if (tabs.length > 0) {
+            const newIndex = index >= tabs.length ? tabs.length - 1 : index;
+            setActiveTab(tabs[newIndex].id);
           } else {
-            proxyToggleIcon.className = "bx bx-shield text-lg";
-            proxyToggleBtn.title = "UV";
+            activeTab = null;
+            addTab();
           }
-        }
-
-        // Tab management functions
-        function addTab(url = "", title = "New Tab") {
-          const tab = {
-            id: "tab-" + tabIdCounter++,
-            title: title,
-            url: url,
-            history: url ? [url] : [],
-            pointer: url ? 0 : -1,
-            pinned: false,
-            locked: false,
-            color: "default",
-            customTitle: ""
-          };
-          tabs.push(tab);
-          activeTab = tab.id;
+        } else {
           renderTabs();
-          updateAddressBar(tab);
-          renderTabContent(tab);
-          return tab;
         }
+      }
 
-        function removeTab(tabId) {
-          const tab = getTabById(tabId);
-          if (!tab || tab.locked) return;
-          
-          takeTabsSnapshot();
-          const index = tabs.findIndex(t => t.id === tabId);
-          tabs.splice(index, 1);
-          
-          if (activeTab === tabId) {
-            if (tabs.length > 0) {
-              const newIndex = index >= tabs.length ? tabs.length - 1 : index;
-              setActiveTab(tabs[newIndex].id);
-            } else {
-              activeTab = null;
-              addTab();
-            }
-          } else {
-            renderTabs();
+      function getTabById(tabId) {
+        return tabs.find(t => t.id === tabId);
+      }
+
+      function getActiveTab() {
+        return getTabById(activeTab);
+      }
+
+      function setActiveTab(tabId) {
+        activeTab = tabId;
+        const tab = getTabById(tabId);
+        renderTabs();
+        updateAddressBar(tab);
+        renderTabContent(tab);
+      }
+
+      function duplicateTab(tabId) {
+        const tab = getTabById(tabId);
+        if (!tab) return;
+        
+        const newTab = addTab(tab.url, tab.title);
+        newTab.history = [...tab.history];
+        newTab.pointer = tab.pointer;
+        renderTabs();
+        setActiveTab(newTab.id);
+      }
+
+      function togglePinTab(tabId) {
+        const tab = getTabById(tabId);
+        if (!tab) return;
+        
+        tab.pinned = !tab.pinned;
+        // Sort tabs to put pinned ones first
+        tabs.sort((a, b) => {
+          if (a.pinned && !b.pinned) return -1;
+          if (!a.pinned && b.pinned) return 1;
+          return 0;
+        });
+        renderTabs();
+      }
+
+      function toggleTabLock(tabId) {
+        const tab = getTabById(tabId);
+        if (!tab) return;
+        
+        tab.locked = !tab.locked;
+        renderTabs();
+      }
+
+      function setTabColor(tabId, color) {
+        const tab = getTabById(tabId);
+        if (!tab) return;
+        
+        tab.color = color;
+        renderTabs();
+      }
+
+      function renameTab(tabId, customTitle) {
+        const tab = getTabById(tabId);
+        if (!tab) return;
+        
+        tab.customTitle = customTitle;
+        renderTabs();
+      }
+
+      function closeOtherTabs(keepTabId) {
+        const keepTab = getTabById(keepTabId);
+        if (!keepTab) return;
+        
+        takeTabsSnapshot();
+        tabs = [keepTab];
+        activeTab = keepTabId;
+        renderTabs();
+      }
+
+      function reloadAllTabs() {
+        tabs.forEach(tab => {
+          if (tab.history.length > 0) {
+            renderTabContent(tab);
           }
-        }
+        });
+      }
 
-        function getTabById(tabId) {
-          return tabs.find(t => t.id === tabId);
-        }
-
-        function getActiveTab() {
-          return getTabById(activeTab);
-        }
-
-        function setActiveTab(tabId) {
-          activeTab = tabId;
-          const tab = getTabById(tabId);
-          renderTabs();
-          updateAddressBar(tab);
-          renderTabContent(tab);
-        }
-
-        function duplicateTab(tabId) {
-          const tab = getTabById(tabId);
-          if (!tab) return;
-          
-          const newTab = addTab(tab.url, tab.title);
-          newTab.history = [...tab.history];
-          newTab.pointer = tab.pointer;
-          renderTabs();
-          setActiveTab(newTab.id);
-        }
-
-        function togglePinTab(tabId) {
-          const tab = getTabById(tabId);
-          if (!tab) return;
-          
-          tab.pinned = !tab.pinned;
-          // Sort tabs to put pinned ones first
-          tabs.sort((a, b) => {
-            if (a.pinned && !b.pinned) return -1;
-            if (!a.pinned && b.pinned) return 1;
-            return 0;
-          });
-          renderTabs();
-        }
-
-        function toggleTabLock(tabId) {
-          const tab = getTabById(tabId);
-          if (!tab) return;
-          
-          tab.locked = !tab.locked;
-          renderTabs();
-        }
-
-        function setTabColor(tabId, color) {
-          const tab = getTabById(tabId);
-          if (!tab) return;
-          
-          tab.color = color;
-          renderTabs();
-        }
-
-        function renameTab(tabId, customTitle) {
-          const tab = getTabById(tabId);
-          if (!tab) return;
-          
-          tab.customTitle = customTitle;
-          renderTabs();
-        }
-
-        function closeOtherTabs(keepTabId) {
-          const keepTab = getTabById(keepTabId);
-          if (!keepTab) return;
-          
-          takeTabsSnapshot();
-          tabs = [keepTab];
-          activeTab = keepTabId;
-          renderTabs();
-        }
-
-        function reloadAllTabs() {
-          tabs.forEach(tab => {
-            if (tab.history.length > 0) {
-              renderTabContent(tab);
-            }
-          });
-        }
-
-        // Tab rendering functions
+      // Tab rendering functions
       function renderTabs() {
         const tabsBar = document.getElementById("tabs-bar");
         const verticalTabsList = document.getElementById("vertical-tabs-list");
@@ -1343,39 +1343,39 @@
         });
       }
 
-             // Initialize everything
-       function init() {
-         // Initialize DOM elements
-         addressInput = document.getElementById("address-bar-input");
-         suggestionBox = document.getElementById("suggestion-box");
-         searchEngineBtn = document.getElementById("search-engine-btn");
-         searchEngineIcon = document.getElementById("search-engine-icon");
-         searchEngineDropdown = document.getElementById("search-engine-dropdown");
-         proxyToggleBtn = document.getElementById("proxy-toggle-btn");
-         proxyToggleIcon = document.getElementById("proxy-toggle-icon");
-         proxyDropdown = document.getElementById("proxy-dropdown");
-         
-         initializeProxy();
-         updateSearchEngineDisplay();
-         setupEventListeners();
-         
-         // Restore vertical tabs mode
-         const savedVerticalMode = localStorage.getItem("vertical-tabs-mode");
-         if (savedVerticalMode === "true") {
-           verticalTabsMode = true;
-           toggleVerticalTabs();
-         }
-         
-         // Create initial tab
-         if (tabs.length === 0) addTab();
-       }
+      // Initialize everything
+      function init() {
+        // Initialize DOM elements
+        addressInput = document.getElementById("address-bar-input");
+        suggestionBox = document.getElementById("suggestion-box");
+        searchEngineBtn = document.getElementById("search-engine-btn");
+        searchEngineIcon = document.getElementById("search-engine-icon");
+        searchEngineDropdown = document.getElementById("search-engine-dropdown");
+        proxyToggleBtn = document.getElementById("proxy-toggle-btn");
+        proxyToggleIcon = document.getElementById("proxy-toggle-icon");
+        proxyDropdown = document.getElementById("proxy-dropdown");
+        
+        initializeProxy();
+        updateSearchEngineDisplay();
+        setupEventListeners();
+        
+        // Restore vertical tabs mode
+        const savedVerticalMode = localStorage.getItem("vertical-tabs-mode");
+        if (savedVerticalMode === "true") {
+          verticalTabsMode = true;
+          toggleVerticalTabs();
+        }
+        
+        // Create initial tab
+        if (tabs.length === 0) addTab();
+      }
 
-       // Start the application when DOM is ready
-       if (document.readyState === 'loading') {
-         document.addEventListener('DOMContentLoaded', init);
-       } else {
-         init();
-       }
+      // Start the application when DOM is ready
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+      } else {
+        init();
+      }
     </script>
   </body>
 </html>
