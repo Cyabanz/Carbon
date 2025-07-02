@@ -210,6 +210,13 @@
                 <i class="bx bx-show text-lg"></i>
               </button>
               <button
+                id="tab-groups-toggle"
+                class="w-8 h-8 rounded-md bg-transparent hover:bg-highlight-med text-muted hover:text-text transition-all flex items-center justify-center"
+                title="Manage Tab Groups"
+              >
+                <i class="bx bx-collection text-lg"></i>
+              </button>
+              <button
                 id="tabs-layout-toggle"
                 class="w-8 h-8 rounded-md bg-transparent hover:bg-highlight-med text-muted hover:text-text transition-all flex items-center justify-center"
                 title="Show All Tabs"
@@ -509,6 +516,41 @@
             />
           </div>
           
+          <!-- Tab Group -->
+          <div class="mb-4">
+            <label class="block text-sm font-medium text-text mb-2">
+              <i class="bx bx-collection mr-1"></i>Tab Group
+            </label>
+            <div class="flex gap-2">
+              <select
+                id="tab-group-select"
+                class="flex-1 px-3 py-2 bg-highlight-med border border-overlay rounded-lg text-text focus:outline-none focus:border-foam focus:ring-1 focus:ring-foam"
+              >
+                <option value="">No Group</option>
+              </select>
+              <button
+                id="create-group-btn"
+                class="px-3 py-2 bg-foam hover:bg-foam/80 text-base rounded-lg transition-all"
+                title="Create New Group"
+              >
+                <i class="bx bx-plus"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- Tab Notes -->
+          <div class="mb-4">
+            <label class="block text-sm font-medium text-text mb-2">
+              <i class="bx bx-note mr-1"></i>Notes
+            </label>
+            <textarea
+              id="tab-notes-input"
+              placeholder="Add notes for this tab..."
+              rows="3"
+              class="w-full px-3 py-2 bg-highlight-med border border-overlay rounded-lg text-text placeholder-muted focus:outline-none focus:border-foam focus:ring-1 focus:ring-foam resize-none"
+            ></textarea>
+          </div>
+          
           <!-- Color Picker -->
           <div class="mb-5">
             <label class="block text-sm font-medium text-text mb-2">
@@ -565,6 +607,71 @@
               <i class="bx bx-x"></i>
               Close
             </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab Groups Management Modal -->
+      <div
+        id="tab-groups-modal-bg"
+        class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center opacity-0 pointer-events-none transition-opacity duration-300 z-50"
+      >
+        <div
+          id="tab-groups-modal"
+          class="bg-surface border border-highlight-med rounded-xl shadow-2xl max-w-lg w-[90vw] p-6 relative transform scale-95 opacity-0 transition-all duration-300"
+        >
+          <button
+            id="close-tab-groups-modal"
+            class="absolute top-3 right-3 text-muted hover:text-love transition-colors"
+          >
+            <i class="bx bx-x text-xl"></i>
+          </button>
+          
+          <h2 class="text-lg font-semibold mb-4 text-text flex items-center">
+            <i class="bx bx-collection mr-2 text-foam"></i>
+            Tab Groups
+          </h2>
+          
+          <!-- Create New Group -->
+          <div class="mb-6 p-4 bg-highlight-med rounded-lg">
+            <h3 class="text-sm font-medium text-text mb-3">Create New Group</h3>
+            <div class="flex gap-2 mb-3">
+              <input
+                id="new-group-name"
+                type="text"
+                placeholder="Group name..."
+                class="flex-1 px-3 py-2 bg-surface border border-overlay rounded-lg text-text placeholder-muted focus:outline-none focus:border-foam focus:ring-1 focus:ring-foam"
+              />
+              <select
+                id="new-group-color"
+                class="px-3 py-2 bg-surface border border-overlay rounded-lg text-text focus:outline-none focus:border-foam focus:ring-1 focus:ring-foam"
+              >
+                <option value="#3b82f6">Blue</option>
+                <option value="#ef4444">Red</option>
+                <option value="#22c55e">Green</option>
+                <option value="#eab308">Yellow</option>
+                <option value="#a855f7">Purple</option>
+                <option value="#ec4899">Pink</option>
+                <option value="#f97316">Orange</option>
+                <option value="#14b8a6">Teal</option>
+                <option value="#06b6d4">Cyan</option>
+                <option value="#6366f1">Indigo</option>
+              </select>
+            </div>
+            <button
+              id="create-new-group-btn"
+              class="w-full px-4 py-2 bg-foam hover:bg-foam/80 text-base rounded-lg font-medium transition-all"
+            >
+              <i class="bx bx-plus mr-2"></i>Create Group
+            </button>
+          </div>
+          
+          <!-- Existing Groups -->
+          <div class="mb-4">
+            <h3 class="text-sm font-medium text-text mb-3">Existing Groups</h3>
+            <div id="groups-list" class="space-y-2 max-h-64 overflow-y-auto">
+              <div class="text-center text-muted py-4">No groups created yet</div>
+            </div>
           </div>
         </div>
       </div>
@@ -702,6 +809,10 @@
       let tabIdCounter = 1;
       let closedTabsSnapshot = [];
       let verticalTabsMode = false;
+      
+      // --- Tab Groups Logic ---
+      let tabGroups = [];
+      let groupIdCounter = 1;
       function createTab(url = "") {
         const id = "tab-" + tabIdCounter++;
         return {
@@ -714,6 +825,8 @@
           locked: false,
           color: null,
           customTitle: null,
+          groupId: null,
+          notes: "",
         };
       }
       function renderTabs() {
@@ -783,6 +896,14 @@
           // Status indicators
           const statusContainer = document.createElement("div");
           statusContainer.className = "flex items-center gap-1 flex-shrink-0";
+          
+          // Notes indicator
+          if (tab.notes && tab.notes.trim()) {
+            const notesIcon = document.createElement("i");
+            notesIcon.className = "bx bx-note text-xs text-iris";
+            notesIcon.title = "Has notes";
+            statusContainer.appendChild(notesIcon);
+          }
           
           // Pin indicator
           if (tab.pinned) {
@@ -915,6 +1036,14 @@
           const statusContainer = document.createElement("div");
           statusContainer.className = "flex items-center gap-1 flex-shrink-0";
           
+          // Notes indicator
+          if (tab.notes && tab.notes.trim()) {
+            const notesIcon = document.createElement("i");
+            notesIcon.className = "bx bx-note text-xs text-iris";
+            notesIcon.title = "Has notes";
+            statusContainer.appendChild(notesIcon);
+          }
+          
           // Pin indicator
           if (tab.pinned) {
             const pinIcon = document.createElement("i");
@@ -1037,6 +1166,11 @@
         
         // Update modal elements with current tab data
         document.getElementById("tab-rename-input").value = tab.customTitle || "";
+        document.getElementById("tab-notes-input").value = tab.notes || "";
+        
+        // Update group selection
+        updateGroupSelect();
+        document.getElementById("tab-group-select").value = tab.groupId || "";
         
         // Update color selection
         document.querySelectorAll(".tab-color-btn").forEach(btn => {
@@ -1075,6 +1209,176 @@
         dialog.classList.add("scale-95", "opacity-0");
         dialog.classList.remove("scale-100", "opacity-100");
         currentContextTabId = null;
+      }
+      
+      // Tab Groups Management Functions
+      function createTabGroup(name, color) {
+        const group = {
+          id: "group-" + groupIdCounter++,
+          name: name.trim(),
+          color: color,
+        };
+        tabGroups.push(group);
+        saveTabGroups();
+        return group;
+      }
+      
+      function updateGroupSelect() {
+        const select = document.getElementById("tab-group-select");
+        select.innerHTML = '<option value="">No Group</option>';
+        tabGroups.forEach(group => {
+          const option = document.createElement("option");
+          option.value = group.id;
+          option.textContent = group.name;
+          option.style.color = group.color;
+          select.appendChild(option);
+        });
+      }
+      
+      function assignTabToGroup(tabId, groupId) {
+        const tab = tabs.find(t => t.id === tabId);
+        if (tab) {
+          tab.groupId = groupId || null;
+          renderTabs();
+          saveTabsData();
+        }
+      }
+      
+      function updateTabNotes(tabId, notes) {
+        const tab = tabs.find(t => t.id === tabId);
+        if (tab) {
+          tab.notes = notes;
+          saveTabsData();
+        }
+      }
+      
+      function deleteTabGroup(groupId) {
+        const groupIndex = tabGroups.findIndex(g => g.id === groupId);
+        if (groupIndex !== -1) {
+          tabs.forEach(tab => {
+            if (tab.groupId === groupId) {
+              tab.groupId = null;
+            }
+          });
+          tabGroups.splice(groupIndex, 1);
+          renderTabs();
+          saveTabGroups();
+          saveTabsData();
+        }
+      }
+      
+      function openTabGroupsModal() {
+        renderGroupsList();
+        const modal = document.getElementById("tab-groups-modal-bg");
+        const dialog = document.getElementById("tab-groups-modal");
+        modal.classList.remove("pointer-events-none", "opacity-0");
+        modal.classList.add("pointer-events-auto", "opacity-100");
+        dialog.classList.remove("scale-95", "opacity-0");
+        dialog.classList.add("scale-100", "opacity-100");
+      }
+      
+      function closeTabGroupsModal() {
+        const modal = document.getElementById("tab-groups-modal-bg");
+        const dialog = document.getElementById("tab-groups-modal");
+        modal.classList.add("pointer-events-none", "opacity-0");
+        modal.classList.remove("pointer-events-auto", "opacity-100");
+        dialog.classList.add("scale-95", "opacity-0");
+        dialog.classList.remove("scale-100", "opacity-100");
+      }
+      
+      function renderGroupsList() {
+        const groupsList = document.getElementById("groups-list");
+        groupsList.innerHTML = "";
+        
+        if (tabGroups.length === 0) {
+          groupsList.innerHTML = '<div class="text-center text-muted py-4">No groups created yet</div>';
+          return;
+        }
+        
+        tabGroups.forEach(group => {
+          const groupElement = document.createElement("div");
+          groupElement.className = "p-3 bg-highlight-med rounded-lg flex items-center justify-between";
+          
+          const leftContent = document.createElement("div");
+          leftContent.className = "flex items-center gap-3";
+          
+          const colorIndicator = document.createElement("div");
+          colorIndicator.className = "w-4 h-4 rounded-full flex-shrink-0";
+          colorIndicator.style.backgroundColor = group.color;
+          leftContent.appendChild(colorIndicator);
+          
+          const groupInfo = document.createElement("div");
+          groupInfo.className = "flex-1";
+          
+          const groupName = document.createElement("div");
+          groupName.className = "font-medium text-text";
+          groupName.textContent = group.name;
+          groupInfo.appendChild(groupName);
+          
+          const tabCount = tabs.filter(t => t.groupId === group.id).length;
+          const tabCountText = document.createElement("div");
+          tabCountText.className = "text-xs text-muted";
+          tabCountText.textContent = `${tabCount} tab${tabCount !== 1 ? 's' : ''}`;
+          groupInfo.appendChild(tabCountText);
+          
+          leftContent.appendChild(groupInfo);
+          
+          const rightContent = document.createElement("div");
+          rightContent.className = "flex items-center gap-1";
+          
+          const deleteBtn = document.createElement("button");
+          deleteBtn.className = "w-8 h-8 rounded flex items-center justify-center hover:bg-love/20 transition-colors";
+          deleteBtn.innerHTML = '<i class="bx bx-trash text-xs text-love"></i>';
+          deleteBtn.title = "Delete group";
+          deleteBtn.onclick = () => {
+            if (confirm(`Delete group "${group.name}"? Tabs will be ungrouped.`)) {
+              deleteTabGroup(group.id);
+              renderGroupsList();
+            }
+          };
+          rightContent.appendChild(deleteBtn);
+          
+          groupElement.appendChild(leftContent);
+          groupElement.appendChild(rightContent);
+          groupsList.appendChild(groupElement);
+        });
+      }
+      
+      // Data persistence functions
+      function saveTabGroups() {
+        localStorage.setItem("tab-groups", JSON.stringify(tabGroups));
+      }
+      
+      function loadTabGroups() {
+        const saved = localStorage.getItem("tab-groups");
+        if (saved) {
+          tabGroups = JSON.parse(saved);
+          groupIdCounter = Math.max(...tabGroups.map(g => parseInt(g.id.replace("group-", ""))), 0) + 1;
+        }
+      }
+      
+      function saveTabsData() {
+        localStorage.setItem("tabs-data", JSON.stringify(tabs));
+      }
+      
+      function loadTabsData() {
+        const saved = localStorage.getItem("tabs-data");
+        if (saved) {
+          try {
+            const savedTabs = JSON.parse(saved);
+            savedTabs.forEach(savedTab => {
+              if (savedTab.groupId || savedTab.notes) {
+                const existingTab = tabs.find(t => t.url === savedTab.url);
+                if (existingTab) {
+                  existingTab.groupId = savedTab.groupId;
+                  existingTab.notes = savedTab.notes;
+                }
+              }
+            });
+          } catch (e) {
+            console.warn("Failed to load tabs data:", e);
+          }
+        }
       }
       
       function duplicateTab(tabId) {
@@ -1496,6 +1800,32 @@
         }
       });
       
+      // Tab notes functionality
+      document.getElementById("tab-notes-input").addEventListener("input", function() {
+        if (currentContextTabId) {
+          updateTabNotes(currentContextTabId, this.value);
+        }
+      });
+      
+      // Tab group functionality
+      document.getElementById("tab-group-select").addEventListener("change", function() {
+        if (currentContextTabId) {
+          assignTabToGroup(currentContextTabId, this.value);
+        }
+      });
+      
+      document.getElementById("create-group-btn").addEventListener("click", function() {
+        const name = prompt("Enter group name:");
+        if (name && name.trim()) {
+          const group = createTabGroup(name, "#3b82f6");
+          updateGroupSelect();
+          if (currentContextTabId) {
+            document.getElementById("tab-group-select").value = group.id;
+            assignTabToGroup(currentContextTabId, group.id);
+          }
+        }
+      });
+      
       // Color picker functionality
       document.querySelectorAll(".tab-color-btn").forEach(btn => {
         btn.addEventListener("click", function() {
@@ -1539,6 +1869,23 @@
           closeTabContextMenu();
         }
       };
+      
+      // Tab Groups Modal event listeners
+      document.getElementById("close-tab-groups-modal").onclick = closeTabGroupsModal;
+      document.getElementById("tab-groups-modal-bg").onclick = function(e) {
+        if (e.target === this) closeTabGroupsModal();
+      };
+      
+      document.getElementById("create-new-group-btn").onclick = function() {
+        const name = document.getElementById("new-group-name").value.trim();
+        const color = document.getElementById("new-group-color").value;
+        
+        if (name) {
+          createTabGroup(name, color);
+          document.getElementById("new-group-name").value = "";
+          renderGroupsList();
+        }
+      };
       document
         .getElementById("new-tab-btn")
         .addEventListener("click", () => addTab());
@@ -1546,6 +1893,10 @@
       document
         .getElementById("hide-tab-bar-toggle")
         .addEventListener("click", toggleTabBarVisibility);
+        
+      document
+        .getElementById("tab-groups-toggle")
+        .addEventListener("click", openTabGroupsModal);
         
       document
         .getElementById("tabs-layout-toggle")
@@ -1680,6 +2031,9 @@
       });
 
       // -- INIT --
+      // Load saved data
+      loadTabGroups();
+      
       // Restore vertical tabs mode from localStorage
       const savedVerticalMode = localStorage.getItem("vertical-tabs-mode");
       if (savedVerticalMode === "true") {
@@ -1704,6 +2058,7 @@
       }
       
       if (tabs.length === 0) addTab();
+      else loadTabsData();
 
       // Initialize sortable for horizontal tabs
       const tabsContainer = document.getElementById("tabs-bar");
