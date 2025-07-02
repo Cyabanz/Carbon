@@ -1,55 +1,80 @@
 self.__uv$config = {
-    prefix: '/uv/service/',
-    bare: 'https://petezahgames.com/bare/',
-    encodeUrl: Ultraviolet.codec.xor.encode,
-    decodeUrl: Ultraviolet.codec.xor.decode,
-    handler: '/uv/uv.handler.js',
-    client: '/uv/uv.client.js',
-    bundle: '/uv/uv.bundle.js',
-    config: '/uv/uv.config.js',
-    sw: '/uv/uv.sw.js',
+  prefix: "/uv/",
+  encodeUrl: Ultraviolet.codec.plain.encode,
+  decodeUrl: Ultraviolet.codec.plain.decode,
+  handler: "https://cdn.jsdelivr.net/npm/@titaniumnetwork-dev/ultraviolet/dist/uv.handler.js",
+  client: "https://cdn.jsdelivr.net/npm/@titaniumnetwork-dev/ultraviolet/dist/uv.client.js",
+  bundle: "https://cdn.jsdelivr.net/npm/@titaniumnetwork-dev/ultraviolet/dist/uv.bundle.js",
+  config: "/uv.config.js",
+  sw: "https://cdn.jsdelivr.net/npm/@titaniumnetwork-dev/ultraviolet/dist/uv.sw.js"
 };
 
-(async () => {
-    // Wait for Ultraviolet's eval to be available
-    while (typeof __uv$eval === "undefined")
-        await new Promise((r) => setTimeout(r, 1));
+// Vencord injection for Discord.com via UV proxy
+(function vencordInjection() {
+  // Wait for UV eval to exist
+  function waitForEvalReady() {
+    return new Promise(resolve => {
+      if (typeof __uv$eval !== "undefined") return resolve();
+      const interval = setInterval(() => {
+        if (typeof __uv$eval !== "undefined") {
+          clearInterval(interval);
+          resolve();
+        }
+      }, 10);
+    });
+  }
 
-    // Only run in iframes
-    if (window.top === window) return;
+  // Only run in the proxied iframe, not the top frame
+  if (window.top === window) return;
 
-    // Optional: Check for localStorage flag to allow/deny injection
-    if (window.top.localStorage.getItem("shouldInject") == "false") {
-        return;
-    }
-
-    // Get the real destination URL from the proxied path
-    const decodedUrl = __uv$config.decodeUrl(
-        location.pathname.replace(__uv$config.prefix, "")
+  // Wait for __uv$eval, then execute
+  waitForEvalReady().then(() => {
+    // Decode the real target URL
+    const decodedUrl = self.__uv$config.decodeUrl(
+      location.pathname.replace(self.__uv$config.prefix, "")
     );
-    const currentHost = new URL(decodedUrl).host;
-
-    // Inject Vencord only for Discord
-    if (currentHost === "discord.com") {
-        __uv$eval(`
-            const cachedStorage = localStorage;
-            const loadVencord = async (url) => {
-                try {
-                    let el = document.createElement(url.endsWith('.js') ? 'script' : 'style');
-                    el.textContent = await (await fetch(url)).text();
-                    document.head.appendChild(el);
-                } catch (error) {}
-            };
-
-            loadVencord("https://raw.githubusercontent.com/Vencord/builds/refs/heads/main/browser.js");
-            loadVencord("https://raw.githubusercontent.com/Vencord/builds/refs/heads/main/browser.css");
-
-            window.onload = () => {
-                window.localStorage = cachedStorage;
-                this.localStorage = cachedStorage;
-                localStorage = cachedStorage;
-            };
-        `);
+    let currentHost = "";
+    try {
+      currentHost = new URL(decodedUrl).host;
+    } catch (e) {
+      // If not a valid URL, do not continue
+      return;
     }
-    // Optionally, you can add adblocker or other logic here as in your original code
+    // Only inject on Discord
+    if (currentHost === "discord.com") {
+      __uv$eval(`
+        (async () => {
+          // Fetch and inject Vencord
+          const cachedStorage = localStorage;
+          async function loadVencordResource(url) {
+            try {
+              let el;
+              if (url.endsWith(".js")) {
+                el = document.createElement('script');
+                el.type = "text/javascript";
+                el.textContent = await (await fetch(url)).text();
+              } else if (url.endsWith(".css")) {
+                el = document.createElement('style');
+                el.textContent = await (await fetch(url)).text();
+              } else {
+                return;
+              }
+              document.head.appendChild(el);
+            } catch (e) {
+              // Fail silently
+            }
+          }
+          await loadVencordResource("https://raw.githubusercontent.com/Vencord/builds/refs/heads/main/browser.js");
+          await loadVencordResource("https://raw.githubusercontent.com/Vencord/builds/refs/heads/main/browser.css");
+
+          // Restore localStorage after load for Vencord to work correctly
+          window.addEventListener("load", () => {
+            window.localStorage = cachedStorage;
+            this.localStorage = cachedStorage;
+            localStorage = cachedStorage;
+          });
+        })();
+      `);
+    }
+  });
 })();
