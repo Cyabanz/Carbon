@@ -203,6 +203,13 @@
                 <i class="bx bx-plus text-lg"></i>
               </button>
               <button
+                id="hide-tab-bar-toggle"
+                class="w-8 h-8 rounded-md bg-transparent hover:bg-highlight-med text-muted hover:text-text transition-all flex items-center justify-center"
+                title="Hide Tab Bar"
+              >
+                <i class="bx bx-show text-lg"></i>
+              </button>
+              <button
                 id="tabs-layout-toggle"
                 class="w-8 h-8 rounded-md bg-transparent hover:bg-highlight-med text-muted hover:text-text transition-all flex items-center justify-center"
                 title="Show All Tabs"
@@ -1210,6 +1217,26 @@
         renderTabs();
         localStorage.setItem("vertical-tabs-mode", verticalTabsMode);
       }
+      
+      let tabBarHidden = localStorage.getItem("tab-bar-hidden") === "true";
+      
+      function toggleTabBarVisibility() {
+        tabBarHidden = !tabBarHidden;
+        const tabsBar = document.getElementById("tabs-bar");
+        const toggleBtn = document.getElementById("hide-tab-bar-toggle");
+        
+        if (tabBarHidden) {
+          tabsBar.style.display = "none";
+          toggleBtn.innerHTML = '<i class="bx bx-hide text-lg"></i>';
+          toggleBtn.title = "Show Tab Bar";
+        } else {
+          tabsBar.style.display = "";
+          toggleBtn.innerHTML = '<i class="bx bx-show text-lg"></i>';
+          toggleBtn.title = "Hide Tab Bar";
+        }
+        
+        localStorage.setItem("tab-bar-hidden", tabBarHidden);
+      }
 
       const addressInput = document.getElementById("address-bar-input");
       const suggestionBox = document.getElementById("suggestion-box");
@@ -1515,6 +1542,10 @@
       document
         .getElementById("new-tab-btn")
         .addEventListener("click", () => addTab());
+      
+      document
+        .getElementById("hide-tab-bar-toggle")
+        .addEventListener("click", toggleTabBarVisibility);
         
       document
         .getElementById("tabs-layout-toggle")
@@ -1661,6 +1692,15 @@
         mainContent.classList.remove("collapsed");
         toggleBtn.innerHTML = '<i class="bx bx-sidebar text-lg rotate-180"></i>';
         toggleBtn.title = "Hide Vertical Tabs";
+      }
+      
+      // Restore tab bar visibility from localStorage
+      if (tabBarHidden) {
+        const tabsBar = document.getElementById("tabs-bar");
+        const toggleBtn = document.getElementById("hide-tab-bar-toggle");
+        tabsBar.style.display = "none";
+        toggleBtn.innerHTML = '<i class="bx bx-hide text-lg"></i>';
+        toggleBtn.title = "Show Tab Bar";
       }
       
       if (tabs.length === 0) addTab();
