@@ -59,30 +59,30 @@
         right: 0;
         top: 100%;
         z-index: 1200;
-        background: #1f1d2e; /* surface */
+        background: white;
         border-radius: 0 0 0.75rem 0.75rem;
-        border: 1px solid #26233a; /* overlay */
+        border: 1px solid #d1d5db;
         border-top: none;
         max-height: 220px;
         overflow-y: auto;
-        box-shadow: 0 6px 20px 2px #000a;
-        color: #e0def4; /* text */
-        font-size: 1rem;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        color: #374151;
+        font-size: 0.875rem;
         width: 100%;
       }
       .suggestion-item {
-        padding: 0.73rem 1.1rem;
+        padding: 0.75rem 1rem;
         cursor: pointer;
-        transition: background 0.16s;
-        border-bottom: 1px solid #26233a; /* overlay */
+        transition: background 0.15s;
+        border-bottom: 1px solid #f3f4f6;
       }
       .suggestion-item:last-child {
         border-bottom: none;
       }
       .suggestion-item:hover,
       .suggestion-item.active {
-        background: #26233a; /* overlay */
-        color: #9ccfd8; /* foam */
+        background: #f3f4f6;
+        color: #1f2937;
       }
       .scrollbar-hide::-webkit-scrollbar {
         display: none;
@@ -98,19 +98,19 @@
         font-size: 1rem;
       }
       
-      /* Modern vertical tabs styles */
+      /* Browser-style vertical tabs */
       .vertical-tabs-container {
         position: absolute;
         left: 0;
         top: 0;
         bottom: 0;
         width: 280px;
-        background: #1e293b;
-        border-right: 1px solid #475569;
+        background: white;
+        border-right: 1px solid #d1d5db;
         z-index: 100;
         transform: translateX(-100%);
         transition: transform 0.3s ease;
-        box-shadow: 2px 0 10px rgba(0, 0, 0, 0.3);
+        box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
       }
       
       .vertical-tabs-container.open {
@@ -126,304 +126,301 @@
         margin-left: 0;
       }
       
-      /* Custom scrollbar for vertical tabs */
+      /* Browser-style scrollbar */
       #vertical-tabs-list::-webkit-scrollbar {
         width: 6px;
       }
       
       #vertical-tabs-list::-webkit-scrollbar-track {
-        background: #334155;
+        background: #f9fafb;
       }
       
       #vertical-tabs-list::-webkit-scrollbar-thumb {
-        background: #64748b;
+        background: #d1d5db;
         border-radius: 3px;
       }
       
       #vertical-tabs-list::-webkit-scrollbar-thumb:hover {
-        background: #94a3b8;
+        background: #9ca3af;
       }
     </style>
   </head>
-  <body
-    class="font-inter bg-gradient-to-br from-base via-surface to-overlay min-h-screen text-text overflow-x-hidden"
-  >
-    <main class="flex flex-col items-center justify-center min-h-screen p-4">
-      <div class="w-full max-w-6xl mx-auto">
-        <!-- Main Container -->
-        <div
-          class="bg-surface/90 backdrop-blur-sm rounded-2xl shadow-2xl border border-overlay/50 overflow-hidden relative"
-        >
-          <!-- Vertical Tabs Container -->
+  <body class="font-inter bg-gray-100 min-h-screen text-gray-900 overflow-hidden">
+    <main class="flex flex-col h-screen">
+      <!-- Browser Window -->
+      <div class="flex-1 flex flex-col bg-white shadow-2xl border border-gray-300 rounded-t-lg overflow-hidden">
+        <!-- Browser Title Bar -->
+        <div class="bg-gray-50 border-b border-gray-200 px-4 py-2 flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <div class="flex gap-1.5">
+              <div class="w-3 h-3 bg-red-500 rounded-full"></div>
+              <div class="w-3 h-3 bg-yellow-500 rounded-full"></div>
+              <div class="w-3 h-3 bg-green-500 rounded-full"></div>
+            </div>
+            <span class="ml-4 text-sm font-medium text-gray-700">Carbon Browser</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <button class="p-1 hover:bg-gray-200 rounded">
+              <i class="bx bx-minus text-gray-600"></i>
+            </button>
+            <button class="p-1 hover:bg-gray-200 rounded">
+              <i class="bx bx-square text-gray-600"></i>
+            </button>
+            <button class="p-1 hover:bg-gray-200 rounded">
+              <i class="bx bx-x text-gray-600"></i>
+            </button>
+          </div>
+        </div>
+          <!-- Vertical Tabs Sidebar -->
           <div id="vertical-tabs-container" class="vertical-tabs-container">
-            <div class="p-4 border-b border-slate-600/50 bg-slate-800">
-              <h3 class="text-white font-semibold flex items-center gap-2">
-                <i class="bx bx-tab text-cyan-400"></i>
-                Tabs
+            <div class="p-4 border-b border-gray-200 bg-white">
+              <h3 class="text-gray-800 font-semibold flex items-center gap-2">
+                <i class="bx bx-tab text-blue-600"></i>
+                All Tabs
               </h3>
             </div>
-            <div id="vertical-tabs-list" class="overflow-y-auto flex-1 bg-slate-800"></div>
+            <div id="vertical-tabs-list" class="overflow-y-auto flex-1 bg-gray-50"></div>
           </div>
           <!-- Main Content Wrapper -->
           <div id="main-content-wrapper" class="content-with-vertical-tabs collapsed">
           
-          <!-- Tab Bar -->
-          <div class="bg-slate-800/90 border-b border-slate-600/50 flex items-center">
+          <!-- Browser Tab Bar -->
+          <div class="bg-gray-100 border-b border-gray-300 flex items-end">
+            <!-- Tabs Container -->
             <div
               id="tabs-bar"
-              class="flex items-center flex-1 overflow-x-auto scrollbar-hide min-h-[50px] px-3 gap-1"
+              class="flex items-end flex-1 overflow-x-auto scrollbar-hide px-2"
+              style="scrollbar-width: none; -ms-overflow-style: none;"
             ></div>
             
             <!-- Tab Controls -->
-            <div class="flex items-center gap-2 px-3 border-l border-slate-600/50">
-              <button
-                id="tabs-layout-toggle"
-                class="w-9 h-9 rounded-lg bg-slate-700 hover:bg-slate-600 text-gray-300 hover:text-white transition-all duration-200 flex items-center justify-center border border-slate-600"
-                title="Toggle Vertical Tabs"
-              >
-                <i class="bx bx-sidebar text-lg"></i>
-              </button>
+            <div class="flex items-center gap-1 px-2 pb-1">
               <button
                 id="new-tab-btn"
-                class="w-9 h-9 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white transition-all duration-200 flex items-center justify-center shadow-md"
+                class="w-8 h-8 rounded-md bg-transparent hover:bg-gray-200 text-gray-600 hover:text-gray-800 transition-all flex items-center justify-center"
                 title="New Tab (Ctrl+T)"
               >
                 <i class="bx bx-plus text-lg"></i>
               </button>
+              <button
+                id="tabs-layout-toggle"
+                class="w-8 h-8 rounded-md bg-transparent hover:bg-gray-200 text-gray-600 hover:text-gray-800 transition-all flex items-center justify-center"
+                title="Show All Tabs"
+              >
+                <i class="bx bx-menu text-lg"></i>
+              </button>
             </div>
           </div>
 
-          <!-- Header with Controls -->
-          <div class="bg-overlay/50 p-4 border-b border-highlight-med/30">
-            <div
-              class="flex flex-col lg:flex-row gap-4 items-center justify-between"
-            >
-              <!-- Proxy Toggle Icon Button Left -->
-              <div class="flex items-center gap-6">
-                <div class="relative">
-                  <button
-                    id="proxy-toggle-btn"
-                    class="w-12 h-12 rounded-xl bg-highlight-med hover:bg-highlight-high text-foam border-2 border-foam flex items-center justify-center text-2xl group transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-foam"
-                    title="Switch Proxy"
-                  >
-                    <i id="proxy-toggle-icon" class="bx bx-cloud text-2xl"></i>
-                  </button>
-                  <div
-                    id="proxy-dropdown"
-                    class="hidden dropdown-list absolute left-0 top-14 bg-overlay border-2 border-foam rounded-xl shadow-xl z-50 py-1"
-                  >
-                    <button
-                      data-proxy="uv"
-                      class="w-full flex items-center gap-2 px-4 py-3 text-text hover:bg-highlight-med transition-colors text-lg"
-                    >
-                      <i class="bx bx-cloud"></i>UV
-                    </button>
-                    <button
-                      data-proxy="scram"
-                      class="w-full flex items-center gap-2 px-4 py-3 text-text hover:bg-highlight-med transition-colors text-lg"
-                    >
-                      <i class="bx bx-network-chart"></i>Scramjet
-                    </button>
-                  </div>
-                </div>
-                <!-- Navigation Buttons -->
-                <div class="flex items-center gap-2">
-                  <button
-                    id="back-btn"
-                    class="w-10 h-10 rounded-xl border-foam border-2 bg-highlight-med hover:bg-highlight-high transition-colors duration-200 flex items-center justify-center group"
-                    title="Back"
-                  >
-                    <i
-                      class="bx bx-left-arrow-alt text-2xl border-foam text-subtle group-hover:text-text transition-colors"
-                    ></i>
-                  </button>
-                  <button
-                    id="forward-btn"
-                    class="w-10 h-10 rounded-xl bg-highlight-med border-foam border-2 hover:bg-highlight-high transition-colors duration-200 flex items-center justify-center group"
-                    title="Forward"
-                  >
-                    <i
-                      class="bx bx-right-arrow-alt text-2xl text-subtle group-hover:text-text transition-colors"
-                    ></i>
-                  </button>
-                  <button
-                    id="refresh-btn"
-                    class="border-foam border-2 w-10 h-10 rounded-xl bg-highlight-med hover:bg-highlight-high transition-colors duration-200 flex items-center justify-center group"
-                    title="Refresh"
-                  >
-                    <i
-                      class="bx bx-refresh text-2xl text-subtle group-hover:text-text transition-colors"
-                    ></i>
-                  </button>
-                  <button
-                    id="history-btn"
-                    class="w-10 h-10 rounded-xl bg-highlight-med border-foam border-2 hover:bg-highlight-high transition-colors duration-200 flex items-center justify-center group"
-                    title="Show History"
-                  >
-                    <i
-                      class="bx bx-history text-2xl text-subtle group-hover:text-text transition-colors"
-                    ></i>
-                  </button>
-                </div>
+          <!-- Browser Navigation Bar -->
+          <div class="bg-white border-b border-gray-200 px-4 py-3">
+            <div class="flex items-center gap-3">
+              <!-- Navigation Controls -->
+              <div class="flex items-center gap-1">
+                <button
+                  id="back-btn"
+                  class="w-8 h-8 rounded-md bg-transparent hover:bg-gray-100 text-gray-600 hover:text-gray-800 transition-all flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="Go back"
+                >
+                  <i class="bx bx-chevron-left text-lg"></i>
+                </button>
+                <button
+                  id="forward-btn"
+                  class="w-8 h-8 rounded-md bg-transparent hover:bg-gray-100 text-gray-600 hover:text-gray-800 transition-all flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="Go forward"
+                >
+                  <i class="bx bx-chevron-right text-lg"></i>
+                </button>
+                <button
+                  id="refresh-btn"
+                  class="w-8 h-8 rounded-md bg-transparent hover:bg-gray-100 text-gray-600 hover:text-gray-800 transition-all flex items-center justify-center"
+                  title="Reload"
+                >
+                  <i class="bx bx-refresh text-lg"></i>
+                </button>
               </div>
 
               <!-- Address Bar -->
-              <form id="address-bar-form" class="w-full relative">
-                <input
-                  id="address-bar-input"
-                  type="text"
-                  spellcheck="false"
-                  autocomplete="off"
-                  placeholder="Search the web freely"
-                  class="w-full h-12 bg-highlight-med border-2 border-foam text-text rounded-xl px-6 py-4 text-lg placeholder-muted focus:outline-none focus:border-foam"
-                />
-
+              <form id="address-bar-form" class="flex-1 relative max-w-2xl">
+                <div class="relative">
+                  <i class="bx bx-lock-alt absolute left-3 top-1/2 transform -translate-y-1/2 text-green-600 text-sm"></i>
+                  <input
+                    id="address-bar-input"
+                    type="text"
+                    spellcheck="false"
+                    autocomplete="off"
+                    placeholder="Search or enter website URL"
+                    class="w-full h-10 pl-9 pr-12 bg-gray-50 border border-gray-300 text-gray-900 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                  <button type="submit" class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                    <i class="bx bx-search text-sm"></i>
+                  </button>
+                </div>
                 <div id="suggestion-box" class="suggestion-box hidden"></div>
               </form>
 
-              <!-- Search Engine Icon Button Right -->
-              <div class="flex items-center gap-6">
-                <!-- 3-Dots Menu -->
-
+              <!-- Browser Controls -->
+              <div class="flex items-center gap-1">
+                <!-- Search Engine Selector -->
                 <div class="relative">
                   <button
                     id="search-engine-btn"
-                    class="w-12 h-12 rounded-xl border-foam border-2 bg-highlight-med hover:bg-highlight-high text-foam flex items-center justify-center text-2xl group transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-foam"
-                    title="Switch Search"
+                    class="w-8 h-8 rounded-md bg-transparent hover:bg-gray-100 text-gray-600 hover:text-gray-800 transition-all flex items-center justify-center"
+                    title="Search Engine"
                   >
-                    <i
-                      id="search-engine-icon"
-                      class="bx bxl-brave text-2xl"
-                    ></i>
+                    <i id="search-engine-icon" class="bx bxl-google text-lg"></i>
                   </button>
                   <div
                     id="search-engine-dropdown"
-                    class="hidden dropdown-list absolute right-0 top-14 bg-overlay border-2 border-foam rounded-xl shadow-xl z-50 py-1"
+                    class="hidden absolute right-0 top-10 bg-white border border-gray-200 rounded-lg shadow-lg z-50 py-1 min-w-40"
                   >
                     <button
-                      data-engine="https://search.brave.com/search?q=%s"
-                      class="w-full flex border-foam border-2 items-center gap-2 px-4 py-3 text-text hover:bg-highlight-med transition-colors text-lg"
+                      data-engine="https://www.google.com/search?q=%s"
+                      class="w-full flex items-center gap-2 px-3 py-2 text-gray-700 hover:bg-gray-50 transition-colors text-sm"
                     >
-                      <i class="bx bxl-brave"></i>Brave
+                      <i class="bx bxl-google text-blue-600"></i>Google
+                    </button>
+                    <button
+                      data-engine="https://search.brave.com/search?q=%s"
+                      class="w-full flex items-center gap-2 px-3 py-2 text-gray-700 hover:bg-gray-50 transition-colors text-sm"
+                    >
+                      <i class="bx bxl-brave text-orange-600"></i>Brave
                     </button>
                     <button
                       data-engine="https://duckduckgo.com/?q=%s"
-                      class="w-full flex items-center gap-2 px-4 py-3 text-text hover:bg-highlight-med transition-colors text-lg"
+                      class="w-full flex items-center gap-2 px-3 py-2 text-gray-700 hover:bg-gray-50 transition-colors text-sm"
                     >
-                      <i class="bx bxl-duckduckgo"></i>DuckDuckGo
-                    </button>
-                    <button
-                      data-engine="https://www.google.com/search?q=%s"
-                      class="w-full flex items-center gap-2 px-4 py-3 text-text hover:bg-highlight-med transition-colors text-lg"
-                    >
-                      <i class="bx bxl-google"></i>Google
+                      <i class="bx bxl-duckduckgo text-red-600"></i>DuckDuckGo
                     </button>
                     <button
                       data-engine="https://www.bing.com/search?q=%s"
-                      class="w-full flex items-center gap-2 px-4 py-3 text-text hover:bg-highlight-med transition-colors text-lg"
+                      class="w-full flex items-center gap-2 px-3 py-2 text-gray-700 hover:bg-gray-50 transition-colors text-sm"
                     >
-                      <i class="bx bxl-microsoft"></i>Bing
-                    </button>
-                    <button
-                      data-engine="https://search.yahoo.com/search?p=%s"
-                      class="w-full flex items-center gap-2 px-4 py-3 text-text hover:bg-highlight-med transition-colors text-lg"
-                    >
-                      <i class="bx bxl-yahoo"></i>Yahoo
-                    </button>
-                    <button
-                      data-engine="https://www.ecosia.org/search?q=%s"
-                      class="w-full flex items-center gap-2 px-4 py-3 text-text hover:bg-highlight-med transition-colors text-lg"
-                    >
-                      <i class="bx bxl-leaf"></i>Ecosia
+                      <i class="bx bxl-microsoft text-blue-600"></i>Bing
                     </button>
                   </div>
                 </div>
+
+                <!-- Proxy Toggle -->
+                <div class="relative">
+                  <button
+                    id="proxy-toggle-btn"
+                    class="w-8 h-8 rounded-md bg-transparent hover:bg-gray-100 text-gray-600 hover:text-gray-800 transition-all flex items-center justify-center"
+                    title="Proxy Settings"
+                  >
+                    <i id="proxy-toggle-icon" class="bx bx-shield text-lg"></i>
+                  </button>
+                  <div
+                    id="proxy-dropdown"
+                    class="hidden absolute right-0 top-10 bg-white border border-gray-200 rounded-lg shadow-lg z-50 py-1 min-w-36"
+                  >
+                    <button
+                      data-proxy="uv"
+                      class="w-full flex items-center gap-2 px-3 py-2 text-gray-700 hover:bg-gray-50 transition-colors text-sm"
+                    >
+                      <i class="bx bx-cloud text-blue-600"></i>UV
+                    </button>
+                    <button
+                      data-proxy="scram"
+                      class="w-full flex items-center gap-2 px-3 py-2 text-gray-700 hover:bg-gray-50 transition-colors text-sm"
+                    >
+                      <i class="bx bx-network-chart text-green-600"></i>Scramjet
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Browser Menu -->
                 <div class="relative">
                   <button
                     id="menu-btn"
-                    class="w-12 border-foam border-2 h-12 rounded-xl bg-highlight-med hover:bg-highlight-high transition-colors duration-200 flex items-center justify-center group"
-                    title="Menu"
+                    class="w-8 h-8 rounded-md bg-transparent hover:bg-gray-100 text-gray-600 hover:text-gray-800 transition-all flex items-center justify-center"
+                    title="Customize and control Carbon"
                   >
-                    <i
-                      class="bx bx-dots-horizontal-rounded text-2xl text-subtle group-hover:text-text transition-colors"
-                    ></i>
+                    <i class="bx bx-dots-vertical-rounded text-lg"></i>
                   </button>
                   <div
                     id="dropdown-menu"
-                    class="hidden dropdown-list absolute right-0 top-14 bg-slate-800 border border-slate-600 rounded-xl shadow-xl z-50 py-2 min-w-56"
+                    class="hidden absolute right-0 top-10 bg-white border border-gray-200 rounded-lg shadow-lg z-50 py-2 min-w-64"
                   >
-                    <!-- Server Settings -->
-                    <div class="px-3 py-1 text-xs font-medium text-gray-400 uppercase tracking-wide border-b border-slate-600/50 mb-2">
-                      Server
-                    </div>
-                    <button
-                      id="wisp-btn"
-                      class="w-full flex items-center gap-3 px-4 py-2.5 text-white hover:bg-slate-700 transition-colors text-sm"
-                    >
-                      <i class="bx bx-server text-gray-400"></i>
-                      <span>Configure Wisp Server</span>
-                    </button>
-                    
                     <!-- Tab Management -->
-                    <div class="px-3 py-1 text-xs font-medium text-gray-400 uppercase tracking-wide border-b border-slate-600/50 mb-2 mt-3">
+                    <div class="px-3 py-1 text-xs font-medium text-gray-500 uppercase tracking-wide border-b border-gray-100 mb-2">
                       Tab Management
                     </div>
                     <button
                       id="duplicate-active-tab-btn"
-                      class="w-full flex items-center gap-3 px-4 py-2.5 text-white hover:bg-slate-700 transition-colors text-sm"
+                      class="w-full flex items-center gap-3 px-3 py-2 text-gray-700 hover:bg-gray-50 transition-colors text-sm"
                     >
-                      <i class="bx bx-copy text-cyan-400"></i>
-                      <span>Duplicate Active Tab</span>
+                      <i class="bx bx-copy text-blue-600"></i>
+                      <span>Duplicate Tab</span>
                       <span class="ml-auto text-xs text-gray-500">Ctrl+Shift+D</span>
                     </button>
                     <button
                       id="close-other-tabs-btn"
-                      class="w-full flex items-center gap-3 px-4 py-2.5 text-white hover:bg-slate-700 transition-colors text-sm"
+                      class="w-full flex items-center gap-3 px-3 py-2 text-gray-700 hover:bg-gray-50 transition-colors text-sm"
                     >
-                      <i class="bx bx-x-circle text-red-400"></i>
+                      <i class="bx bx-x-circle text-red-600"></i>
                       <span>Close Other Tabs</span>
                       <span class="ml-auto text-xs text-gray-500">Ctrl+Shift+O</span>
                     </button>
                     <button
                       id="close-all-tabs-btn"
-                      class="w-full flex items-center gap-3 px-4 py-2.5 text-white hover:bg-slate-700 transition-colors text-sm"
+                      class="w-full flex items-center gap-3 px-3 py-2 text-gray-700 hover:bg-gray-50 transition-colors text-sm"
                     >
-                      <i class="bx bx-x text-red-400"></i>
+                      <i class="bx bx-x text-red-600"></i>
                       <span>Close All Tabs</span>
                     </button>
                     <button
-                      id="restore-tabs-btn"
-                      class="w-full flex items-center gap-3 px-4 py-2.5 text-white hover:bg-slate-700 transition-colors text-sm"
-                    >
-                      <i class="bx bx-history text-green-400"></i>
-                      <span>Restore Tabs</span>
-                    </button>
-                    <button
                       id="reload-all-tabs-btn"
-                      class="w-full flex items-center gap-3 px-4 py-2.5 text-white hover:bg-slate-700 transition-colors text-sm"
+                      class="w-full flex items-center gap-3 px-3 py-2 text-gray-700 hover:bg-gray-50 transition-colors text-sm"
                     >
-                      <i class="bx bx-refresh text-blue-400"></i>
+                      <i class="bx bx-refresh text-green-600"></i>
                       <span>Reload All Tabs</span>
                       <span class="ml-auto text-xs text-gray-500">Ctrl+Shift+R</span>
                     </button>
                     <button
                       id="unpin-all-tabs-btn"
-                      class="w-full flex items-center gap-3 px-4 py-2.5 text-white hover:bg-slate-700 transition-colors text-sm"
+                      class="w-full flex items-center gap-3 px-3 py-2 text-gray-700 hover:bg-gray-50 transition-colors text-sm"
                     >
-                      <i class="bx bx-pin text-blue-400"></i>
+                      <i class="bx bx-pin text-blue-600"></i>
                       <span>Unpin All Tabs</span>
                     </button>
-                    
-                    <!-- History -->
-                    <div class="px-3 py-1 text-xs font-medium text-gray-400 uppercase tracking-wide border-b border-slate-600/50 mb-2 mt-3">
-                      History
+
+                    <!-- History & Tools -->
+                    <div class="px-3 py-1 text-xs font-medium text-gray-500 uppercase tracking-wide border-b border-gray-100 mb-2 mt-3">
+                      History & Tools
                     </div>
                     <button
-                      id="clear-history-btn"
-                      class="w-full flex items-center gap-3 px-4 py-2.5 text-white hover:bg-slate-700 transition-colors text-sm"
+                      id="history-btn"
+                      class="w-full flex items-center gap-3 px-3 py-2 text-gray-700 hover:bg-gray-50 transition-colors text-sm"
                     >
-                      <i class="bx bx-trash text-red-400"></i>
+                      <i class="bx bx-history text-purple-600"></i>
+                      <span>Show History</span>
+                    </button>
+                    <button
+                      id="clear-history-btn"
+                      class="w-full flex items-center gap-3 px-3 py-2 text-gray-700 hover:bg-gray-50 transition-colors text-sm"
+                    >
+                      <i class="bx bx-trash text-red-600"></i>
                       <span>Clear History</span>
+                    </button>
+                    <button
+                      id="restore-tabs-btn"
+                      class="w-full flex items-center gap-3 px-3 py-2 text-gray-700 hover:bg-gray-50 transition-colors text-sm"
+                    >
+                      <i class="bx bx-history text-green-600"></i>
+                      <span>Restore Tabs</span>
+                    </button>
+
+                    <!-- Settings -->
+                    <div class="px-3 py-1 text-xs font-medium text-gray-500 uppercase tracking-wide border-b border-gray-100 mb-2 mt-3">
+                      Settings
+                    </div>
+                    <button
+                      id="wisp-btn"
+                      class="w-full flex items-center gap-3 px-3 py-2 text-gray-700 hover:bg-gray-50 transition-colors text-sm"
+                    >
+                      <i class="bx bx-server text-gray-600"></i>
+                      <span>Configure Wisp Server</span>
                     </button>
                   </div>
                 </div>
@@ -432,99 +429,98 @@
           </div>
 
           <!-- Content Area -->
-          <div class="bg-black border-t border-highlight-med/30">
+          <div class="flex-1 bg-white">
             <iframe
               id="proxy-iframe"
-              title="Proxy Frame"
-              class="w-full h-[70vh] border-0"
+              title="Browser Content"
+              class="w-full h-full border-0 bg-white"
             ></iframe>
           </div>
           
-          </div> <!-- End Main Content Wrapper -->
-        </div>
-      </div>
+      </div> <!-- End Main Content Wrapper -->
+    </div> <!-- End Browser Window -->
 
       <!-- History Modal -->
       <div
         id="history-modal-bg"
-        class="fixed border-foam border-2 inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center opacity-0 pointer-events-none transition-opacity duration-300 z-50"
+        class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center opacity-0 pointer-events-none transition-opacity duration-300 z-50"
       >
         <div
           id="history-modal"
-          class="bg-overlay border border-highlight-med rounded-2xl shadow-2xl max-w-md w-[90vw] p-6 relative transform scale-95 opacity-0 transition-all duration-300"
+          class="bg-white border border-gray-200 rounded-xl shadow-2xl max-w-md w-[90vw] p-6 relative transform scale-95 opacity-0 transition-all duration-300"
         >
           <button
             id="close-history-modal"
-            class="absolute top-4 right-4 text-muted hover:text-love transition-colors"
+            class="absolute top-4 right-4 text-gray-400 hover:text-red-500 transition-colors"
           >
-            <i class="bx bx-x text-2xl"></i>
+            <i class="bx bx-x text-xl"></i>
           </button>
-          <h2 class="text-xl font-bold mb-6 text-text flex items-center">
-            <i class="bx bx-history mr-3 text-foam"></i>
+          <h2 class="text-lg font-semibold mb-4 text-gray-900 flex items-center">
+            <i class="bx bx-history mr-2 text-blue-600"></i>
             Tab History
           </h2>
           <div
             id="modal-history-list"
-            class="max-h-80 overflow-y-auto space-y-2 text-subtle scrollbar-thin scrollbar-thumb-foam scrollbar-track-highlight-med"
-          >          </div>
+            class="max-h-80 overflow-y-auto space-y-1 text-gray-700"
+          ></div>
         </div>
       </div>
 
       <!-- Tab Context Menu Modal -->
       <div
         id="tab-context-menu-bg"
-        class="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center opacity-0 pointer-events-none transition-opacity duration-300 z-50"
+        class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center opacity-0 pointer-events-none transition-opacity duration-300 z-50"
       >
         <div
           id="tab-context-menu"
-          class="bg-slate-800 border border-slate-600 rounded-xl shadow-2xl max-w-sm w-[90vw] p-6 relative transform scale-95 opacity-0 transition-all duration-300"
+          class="bg-white border border-gray-200 rounded-xl shadow-2xl max-w-sm w-[90vw] p-6 relative transform scale-95 opacity-0 transition-all duration-300"
         >
           <button
             id="close-tab-context-menu"
-            class="absolute top-3 right-3 text-gray-400 hover:text-red-400 transition-colors"
+            class="absolute top-3 right-3 text-gray-400 hover:text-red-500 transition-colors"
           >
             <i class="bx bx-x text-xl"></i>
           </button>
           
-          <h2 class="text-lg font-semibold mb-4 text-white flex items-center">
-            <i class="bx bx-cog mr-2 text-cyan-400"></i>
+          <h2 class="text-lg font-semibold mb-4 text-gray-900 flex items-center">
+            <i class="bx bx-cog mr-2 text-blue-600"></i>
             Tab Settings
           </h2>
           
           <!-- Rename Tab -->
           <div class="mb-4">
-            <label class="block text-sm font-medium text-gray-300 mb-2">
+            <label class="block text-sm font-medium text-gray-700 mb-2">
               <i class="bx bx-edit mr-1"></i>Custom Title
             </label>
             <input
               id="tab-rename-input"
               type="text"
               placeholder="Enter custom title..."
-              class="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400"
+              class="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-gray-900 placeholder-gray-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
             />
           </div>
           
           <!-- Color Picker -->
           <div class="mb-5">
-            <label class="block text-sm font-medium text-gray-300 mb-2">
+            <label class="block text-sm font-medium text-gray-700 mb-2">
               <i class="bx bx-palette mr-1"></i>Tab Color
             </label>
             <div class="grid grid-cols-8 gap-2">
-              <button class="tab-color-btn w-7 h-7 rounded-full border-2 border-transparent hover:border-white transition-all bg-gradient-to-br from-gray-300 to-gray-500" 
+              <button class="tab-color-btn w-7 h-7 rounded-full border-2 border-gray-300 hover:border-gray-500 transition-all bg-gray-100 flex items-center justify-center" 
                       data-color="none" title="No Color">
-                <i class="bx bx-x text-xs text-white"></i>
+                <i class="bx bx-x text-xs text-gray-600"></i>
               </button>
-              <button class="tab-color-btn w-7 h-7 rounded-full bg-red-500 border-2 border-transparent hover:border-white hover:scale-110 transition-all" data-color="#ef4444" title="Red"></button>
-              <button class="tab-color-btn w-7 h-7 rounded-full bg-blue-500 border-2 border-transparent hover:border-white hover:scale-110 transition-all" data-color="#3b82f6" title="Blue"></button>
-              <button class="tab-color-btn w-7 h-7 rounded-full bg-green-500 border-2 border-transparent hover:border-white hover:scale-110 transition-all" data-color="#22c55e" title="Green"></button>
-              <button class="tab-color-btn w-7 h-7 rounded-full bg-yellow-500 border-2 border-transparent hover:border-white hover:scale-110 transition-all" data-color="#eab308" title="Yellow"></button>
-              <button class="tab-color-btn w-7 h-7 rounded-full bg-purple-500 border-2 border-transparent hover:border-white hover:scale-110 transition-all" data-color="#a855f7" title="Purple"></button>
-              <button class="tab-color-btn w-7 h-7 rounded-full bg-pink-500 border-2 border-transparent hover:border-white hover:scale-110 transition-all" data-color="#ec4899" title="Pink"></button>
-              <button class="tab-color-btn w-7 h-7 rounded-full bg-orange-500 border-2 border-transparent hover:border-white hover:scale-110 transition-all" data-color="#f97316" title="Orange"></button>
-              <button class="tab-color-btn w-7 h-7 rounded-full bg-teal-500 border-2 border-transparent hover:border-white hover:scale-110 transition-all" data-color="#14b8a6" title="Teal"></button>
-              <button class="tab-color-btn w-7 h-7 rounded-full bg-cyan-500 border-2 border-transparent hover:border-white hover:scale-110 transition-all" data-color="#06b6d4" title="Cyan"></button>
-              <button class="tab-color-btn w-7 h-7 rounded-full bg-indigo-500 border-2 border-transparent hover:border-white hover:scale-110 transition-all" data-color="#6366f1" title="Indigo"></button>
-              <button class="tab-color-btn w-7 h-7 rounded-full bg-rose-500 border-2 border-transparent hover:border-white hover:scale-110 transition-all" data-color="#f43f5e" title="Rose"></button>
+              <button class="tab-color-btn w-7 h-7 rounded-full bg-red-500 border-2 border-transparent hover:border-gray-400 hover:scale-110 transition-all" data-color="#ef4444" title="Red"></button>
+              <button class="tab-color-btn w-7 h-7 rounded-full bg-blue-500 border-2 border-transparent hover:border-gray-400 hover:scale-110 transition-all" data-color="#3b82f6" title="Blue"></button>
+              <button class="tab-color-btn w-7 h-7 rounded-full bg-green-500 border-2 border-transparent hover:border-gray-400 hover:scale-110 transition-all" data-color="#22c55e" title="Green"></button>
+              <button class="tab-color-btn w-7 h-7 rounded-full bg-yellow-500 border-2 border-transparent hover:border-gray-400 hover:scale-110 transition-all" data-color="#eab308" title="Yellow"></button>
+              <button class="tab-color-btn w-7 h-7 rounded-full bg-purple-500 border-2 border-transparent hover:border-gray-400 hover:scale-110 transition-all" data-color="#a855f7" title="Purple"></button>
+              <button class="tab-color-btn w-7 h-7 rounded-full bg-pink-500 border-2 border-transparent hover:border-gray-400 hover:scale-110 transition-all" data-color="#ec4899" title="Pink"></button>
+              <button class="tab-color-btn w-7 h-7 rounded-full bg-orange-500 border-2 border-transparent hover:border-gray-400 hover:scale-110 transition-all" data-color="#f97316" title="Orange"></button>
+              <button class="tab-color-btn w-7 h-7 rounded-full bg-teal-500 border-2 border-transparent hover:border-gray-400 hover:scale-110 transition-all" data-color="#14b8a6" title="Teal"></button>
+              <button class="tab-color-btn w-7 h-7 rounded-full bg-cyan-500 border-2 border-transparent hover:border-gray-400 hover:scale-110 transition-all" data-color="#06b6d4" title="Cyan"></button>
+              <button class="tab-color-btn w-7 h-7 rounded-full bg-indigo-500 border-2 border-transparent hover:border-gray-400 hover:scale-110 transition-all" data-color="#6366f1" title="Indigo"></button>
+              <button class="tab-color-btn w-7 h-7 rounded-full bg-rose-500 border-2 border-transparent hover:border-gray-400 hover:scale-110 transition-all" data-color="#f43f5e" title="Rose"></button>
             </div>
           </div>
           
@@ -532,16 +528,16 @@
           <div class="grid grid-cols-2 gap-3 mb-5">
             <button
               id="tab-lock-toggle"
-              class="flex items-center justify-center gap-2 py-3 px-4 bg-slate-700 hover:bg-slate-600 border border-slate-600 rounded-lg transition-all text-sm font-medium text-white"
+              class="flex items-center justify-center gap-2 py-3 px-4 bg-gray-50 hover:bg-gray-100 border border-gray-300 rounded-lg transition-all text-sm font-medium text-gray-700"
             >
-              <i class="bx bx-lock-alt text-yellow-400"></i>
+              <i class="bx bx-lock-alt text-yellow-600"></i>
               <span>Lock</span>
             </button>
             <button
               id="tab-pin-toggle"
-              class="flex items-center justify-center gap-2 py-3 px-4 bg-slate-700 hover:bg-slate-600 border border-slate-600 rounded-lg transition-all text-sm font-medium text-white"
+              class="flex items-center justify-center gap-2 py-3 px-4 bg-gray-50 hover:bg-gray-100 border border-gray-300 rounded-lg transition-all text-sm font-medium text-gray-700"
             >
-              <i class="bx bx-pin text-blue-400"></i>
+              <i class="bx bx-pin text-blue-600"></i>
               <span>Pin</span>
             </button>
           </div>
@@ -550,7 +546,7 @@
           <div class="grid grid-cols-2 gap-3">
             <button
               id="tab-duplicate-btn"
-              class="flex items-center justify-center gap-2 py-3 px-4 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg font-medium transition-all"
+              class="flex items-center justify-center gap-2 py-3 px-4 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-medium transition-all"
             >
               <i class="bx bx-copy"></i>
               Duplicate
@@ -735,28 +731,29 @@
         sortedTabs.forEach((tab, idx) => {
           const tabElement = document.createElement("div");
           
-          // Clean modern tab styling
+          // Browser-style tab styling
           const isActive = tab.id === activeTab;
-          const baseClasses = "relative flex items-center px-4 py-2 mx-1 rounded-t-lg cursor-pointer select-none transition-all duration-200 group border-b-2 min-w-0 max-w-64";
           
-          let tabClasses = baseClasses;
-          if (isActive) {
-            tabClasses += " bg-white/10 text-white border-cyan-400 shadow-lg";
-          } else {
-            tabClasses += " bg-white/5 text-gray-300 border-transparent hover:bg-white/8 hover:text-white";
+          // Base tab styling with browser-like trapezoid shape
+          tabElement.className = `
+            relative flex items-center px-4 py-2 mx-0.5 cursor-pointer select-none transition-all duration-200 group 
+            min-w-32 max-w-64 h-9 rounded-t-lg border-r border-gray-300
+            ${isActive 
+              ? 'bg-white text-gray-900 border-b border-white z-10 shadow-sm' 
+              : 'bg-gray-200 text-gray-700 hover:bg-gray-300 border-b border-gray-300'
+            }
+          `;
+          
+          // Apply color theming for active tabs
+          if (tab.color && isActive) {
+            tabElement.style.borderTop = `2px solid ${tab.color}`;
           }
           
+          // Pinned tab styling
           if (tab.pinned) {
-            tabClasses += " ring-2 ring-blue-400/30";
-          }
-          
-          tabElement.className = tabClasses;
-          
-          // Apply color theming
-          if (tab.color) {
-            tabElement.style.borderBottomColor = tab.color;
+            tabElement.style.background = isActive ? '#f8fafc' : '#e2e8f0';
             if (isActive) {
-              tabElement.style.boxShadow = `0 0 20px ${tab.color}40`;
+              tabElement.style.borderTop = '2px solid #3b82f6';
             }
           }
           
@@ -765,52 +762,55 @@
           const content = document.createElement("div");
           content.className = "flex items-center w-full min-w-0 gap-2";
           
-          // Status icons container
-          const iconsContainer = document.createElement("div");
-          iconsContainer.className = "flex items-center gap-1 flex-shrink-0";
-          
-          // Color indicator
+          // Favicon placeholder
+          const favicon = document.createElement("div");
+          favicon.className = "w-4 h-4 flex-shrink-0 rounded-sm bg-gray-400 flex items-center justify-center";
           if (tab.color) {
-            const colorDot = document.createElement("div");
-            colorDot.className = "w-2 h-2 rounded-full flex-shrink-0";
-            colorDot.style.backgroundColor = tab.color;
-            iconsContainer.appendChild(colorDot);
+            favicon.style.backgroundColor = tab.color;
+            favicon.innerHTML = '<div class="w-2 h-2 bg-white rounded-full"></div>';
+          } else {
+            favicon.innerHTML = '<i class="bx bx-world text-xs text-white"></i>';
           }
+          content.appendChild(favicon);
           
-          // Pin icon
+          // Status indicators
+          const statusContainer = document.createElement("div");
+          statusContainer.className = "flex items-center gap-1 flex-shrink-0";
+          
+          // Pin indicator
           if (tab.pinned) {
             const pinIcon = document.createElement("i");
-            pinIcon.className = "bx bx-pin text-sm text-blue-400";
-            iconsContainer.appendChild(pinIcon);
+            pinIcon.className = "bx bx-pin text-xs text-blue-600";
+            statusContainer.appendChild(pinIcon);
           }
           
-          // Lock icon
+          // Lock indicator  
           if (tab.locked) {
             const lockIcon = document.createElement("i");
-            lockIcon.className = "bx bx-lock-alt text-sm text-yellow-400";
-            iconsContainer.appendChild(lockIcon);
+            lockIcon.className = "bx bx-lock-alt text-xs text-yellow-600";
+            statusContainer.appendChild(lockIcon);
           }
           
-          if (iconsContainer.children.length > 0) {
-            content.appendChild(iconsContainer);
+          if (statusContainer.children.length > 0) {
+            content.appendChild(statusContainer);
           }
           
-          // Title
+          // Tab title
           const title = document.createElement("span");
           const displayTitle = tab.customTitle || tab.title || "New Tab";
-          title.textContent = displayTitle.length > 20 ? displayTitle.slice(0, 17) + "..." : displayTitle;
-          title.className = "flex-1 truncate text-sm font-medium min-w-0";
+          title.textContent = displayTitle.length > 24 ? displayTitle.slice(0, 21) + "..." : displayTitle;
+          title.className = "flex-1 truncate text-sm font-normal min-w-0";
           content.appendChild(title);
           
-          // Actions container
+          // Tab actions (only show on hover)
           const actionsContainer = document.createElement("div");
-          actionsContainer.className = "flex items-center gap-1 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity";
+          actionsContainer.className = "flex items-center gap-0.5 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity";
           
           // Options button
           const optionsBtn = document.createElement("button");
-          optionsBtn.className = "w-6 h-6 rounded-md flex items-center justify-center hover:bg-white/20 transition-colors";
-          optionsBtn.innerHTML = '<i class="bx bx-dots-horizontal-rounded text-sm"></i>';
-          optionsBtn.title = "Tab Options";
+          optionsBtn.className = "w-5 h-5 rounded flex items-center justify-center hover:bg-gray-400/20 transition-colors";
+          optionsBtn.innerHTML = '<i class="bx bx-dots-horizontal-rounded text-xs"></i>';
+          optionsBtn.title = "Tab options";
           optionsBtn.onclick = (e) => {
             e.stopPropagation();
             openTabContextMenu(tab.id);
@@ -819,9 +819,9 @@
           
           // Close button
           const closeBtn = document.createElement("button");
-          closeBtn.className = "w-6 h-6 rounded-md flex items-center justify-center hover:bg-red-500/20 transition-colors";
-          closeBtn.innerHTML = '<i class="bx bx-x text-sm"></i>';
-          closeBtn.title = tab.locked ? "Tab is locked" : "Close Tab";
+          closeBtn.className = "w-5 h-5 rounded flex items-center justify-center hover:bg-red-500/20 transition-colors";
+          closeBtn.innerHTML = '<i class="bx bx-x text-xs"></i>';
+          closeBtn.title = tab.locked ? "Tab is locked" : "Close tab";
           
           if (tab.locked) {
             closeBtn.className += " opacity-50 cursor-not-allowed";
@@ -836,6 +836,7 @@
           content.appendChild(actionsContainer);
           tabElement.appendChild(content);
           
+          // Tab interactions
           tabElement.onclick = () => setActiveTab(tab.id);
           tabElement.oncontextmenu = (e) => {
             e.preventDefault();
@@ -860,80 +861,87 @@
         sortedTabs.forEach((tab) => {
           const tabElement = document.createElement("button");
           
-          // Clean modern vertical tab styling
+          // Browser-style vertical tab styling
           const isActive = tab.id === activeTab;
-          let tabClasses = "w-full p-3 text-left transition-all duration-200 border-l-4 hover:bg-white/5 group flex items-center justify-between";
           
-          if (isActive) {
-            tabClasses += " bg-white/10 text-white border-cyan-400";
-          } else {
-            tabClasses += " text-gray-300 border-transparent hover:text-white";
-          }
+          tabElement.className = `
+            w-full p-3 text-left transition-all duration-200 border-l-4 group flex items-center justify-between
+            ${isActive 
+              ? 'bg-blue-50 text-gray-900 border-blue-500' 
+              : 'text-gray-700 border-transparent hover:bg-gray-100 hover:text-gray-900'
+            }
+          `;
           
-          if (tab.pinned) {
-            tabClasses += " ring-2 ring-blue-400/20";
-          }
-          
-          tabElement.className = tabClasses;
           tabElement.setAttribute("data-tab-id", tab.id);
           
           // Apply color theming
           if (tab.color) {
             tabElement.style.borderLeftColor = tab.color;
             if (isActive) {
-              tabElement.style.backgroundColor = `${tab.color}20`;
+              tabElement.style.backgroundColor = `${tab.color}15`;
+            }
+          }
+          
+          // Pinned tab styling
+          if (tab.pinned) {
+            tabElement.style.backgroundColor = isActive ? '#dbeafe' : '#f1f5f9';
+            if (!tab.color) {
+              tabElement.style.borderLeftColor = '#3b82f6';
             }
           }
           
           const leftContent = document.createElement("div");
           leftContent.className = "flex items-center gap-2 flex-1 min-w-0";
           
-          // Status indicators
-          const iconsContainer = document.createElement("div");
-          iconsContainer.className = "flex items-center gap-1 flex-shrink-0";
-          
-          // Color indicator
+          // Favicon placeholder
+          const favicon = document.createElement("div");
+          favicon.className = "w-4 h-4 flex-shrink-0 rounded-sm bg-gray-400 flex items-center justify-center";
           if (tab.color) {
-            const colorDot = document.createElement("div");
-            colorDot.className = "w-2 h-2 rounded-full flex-shrink-0";
-            colorDot.style.backgroundColor = tab.color;
-            iconsContainer.appendChild(colorDot);
+            favicon.style.backgroundColor = tab.color;
+            favicon.innerHTML = '<div class="w-2 h-2 bg-white rounded-full"></div>';
+          } else {
+            favicon.innerHTML = '<i class="bx bx-world text-xs text-white"></i>';
           }
+          leftContent.appendChild(favicon);
           
-          // Pin icon
+          // Status indicators
+          const statusContainer = document.createElement("div");
+          statusContainer.className = "flex items-center gap-1 flex-shrink-0";
+          
+          // Pin indicator
           if (tab.pinned) {
             const pinIcon = document.createElement("i");
-            pinIcon.className = "bx bx-pin text-sm text-blue-400";
-            iconsContainer.appendChild(pinIcon);
+            pinIcon.className = "bx bx-pin text-xs text-blue-600";
+            statusContainer.appendChild(pinIcon);
           }
           
-          // Lock icon
+          // Lock indicator
           if (tab.locked) {
             const lockIcon = document.createElement("i");
-            lockIcon.className = "bx bx-lock-alt text-sm text-yellow-400";
-            iconsContainer.appendChild(lockIcon);
+            lockIcon.className = "bx bx-lock-alt text-xs text-yellow-600";
+            statusContainer.appendChild(lockIcon);
           }
           
-          if (iconsContainer.children.length > 0) {
-            leftContent.appendChild(iconsContainer);
+          if (statusContainer.children.length > 0) {
+            leftContent.appendChild(statusContainer);
           }
           
-          // Title
+          // Tab title
           const title = document.createElement("span");
           const displayTitle = tab.customTitle || tab.title || "New Tab";
-          title.textContent = displayTitle.length > 25 ? displayTitle.slice(0, 22) + "..." : displayTitle;
-          title.className = "truncate text-sm font-medium min-w-0";
+          title.textContent = displayTitle.length > 28 ? displayTitle.slice(0, 25) + "..." : displayTitle;
+          title.className = "truncate text-sm font-normal min-w-0";
           leftContent.appendChild(title);
           
-          // Actions container
+          // Tab actions
           const rightContent = document.createElement("div");
           rightContent.className = "flex items-center gap-1 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity";
           
           // Options button
           const optionsBtn = document.createElement("button");
-          optionsBtn.className = "w-6 h-6 rounded-md flex items-center justify-center hover:bg-white/20 transition-colors";
-          optionsBtn.innerHTML = '<i class="bx bx-dots-horizontal-rounded text-sm"></i>';
-          optionsBtn.title = "Tab Options";
+          optionsBtn.className = "w-5 h-5 rounded flex items-center justify-center hover:bg-gray-400/20 transition-colors";
+          optionsBtn.innerHTML = '<i class="bx bx-dots-horizontal-rounded text-xs"></i>';
+          optionsBtn.title = "Tab options";
           optionsBtn.onclick = (e) => {
             e.stopPropagation();
             openTabContextMenu(tab.id);
@@ -942,9 +950,9 @@
           
           // Close button
           const closeBtn = document.createElement("button");
-          closeBtn.className = "w-6 h-6 rounded-md flex items-center justify-center hover:bg-red-500/20 transition-colors";
-          closeBtn.innerHTML = '<i class="bx bx-x text-sm"></i>';
-          closeBtn.title = tab.locked ? "Tab is locked" : "Close Tab";
+          closeBtn.className = "w-5 h-5 rounded flex items-center justify-center hover:bg-red-500/20 transition-colors";
+          closeBtn.innerHTML = '<i class="bx bx-x text-xs"></i>';
+          closeBtn.title = tab.locked ? "Tab is locked" : "Close tab";
           
           if (tab.locked) {
             closeBtn.className += " opacity-50 cursor-not-allowed";
@@ -1025,9 +1033,9 @@
         
         // Update color selection
         document.querySelectorAll(".tab-color-btn").forEach(btn => {
-          btn.classList.remove("border-text");
+          btn.classList.remove("border-gray-800");
           if ((btn.dataset.color === "none" && !tab.color) || btn.dataset.color === tab.color) {
-            btn.classList.add("border-text");
+            btn.classList.add("border-gray-800");
           }
         });
         
@@ -1469,9 +1477,9 @@
             setTabColor(currentContextTabId, color);
           }
           
-          // Update visual selection
-          document.querySelectorAll(".tab-color-btn").forEach(b => b.classList.remove("border-text"));
-          this.classList.add("border-text");
+                  // Update visual selection
+        document.querySelectorAll(".tab-color-btn").forEach(b => b.classList.remove("border-gray-800"));
+        this.classList.add("border-gray-800");
         });
       });
       
