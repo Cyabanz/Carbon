@@ -1,0 +1,719 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CARBON</title>
+    <script defer async>
+      function setConfig() {
+        tailwind.config = {
+          theme: {
+            extend: {
+              fontFamily: {
+                display: ["Switzer", "Helvetica", "sans-serif"],
+                inter: ["Inter", "sans-serif"],
+              },
+              colors: {
+                base: "#191724",
+                surface: "#1f1d2e",
+                overlay: "#26233a",
+                muted: "#6e6a86",
+                subtle: "#908caa",
+                text: "#e0def4",
+                love: "#eb6f92",
+                gold: "#f6c177",
+                rose: "#ebbcba",
+                pine: "#31748f",
+                foam: "#9ccfd8",
+                iris: "#c4a7e7",
+                "highlight-low": "#21202e",
+                "highlight-med": "#403d52",
+                "highlight-high": "#524f67",
+              },
+            },
+          },
+        };
+      }
+    </script>
+
+    <link rel="preconnect" href="https://unpkg.com" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://cdn.tailwindcss.com" />
+    <script
+      defer
+      async
+      src="https://cdn.tailwindcss.com"
+      onload="setConfig()"
+    ></script>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/boxicons/2.1.4/css/boxicons.min.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+
+    <style>
+      .suggestion-box {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 100%;
+        z-index: 1200;
+        background: #1f1d2e; /* surface */
+        border-radius: 0 0 0.75rem 0.75rem;
+        border: 1px solid #26233a; /* overlay */
+        border-top: none;
+        max-height: 220px;
+        overflow-y: auto;
+        box-shadow: 0 6px 20px 2px #000a;
+        color: #e0def4; /* text */
+        font-size: 1rem;
+        width: 100%;
+      }
+      .suggestion-item {
+        padding: 0.73rem 1.1rem;
+        cursor: pointer;
+        transition: background 0.16s;
+        border-bottom: 1px solid #26233a; /* overlay */
+      }
+      .suggestion-item:last-child {
+        border-bottom: none;
+      }
+      .suggestion-item:hover,
+      .suggestion-item.active {
+        background: #26233a; /* overlay */
+        color: #9ccfd8; /* foam */
+      }
+      .scrollbar-hide::-webkit-scrollbar {
+        display: none;
+      }
+      .scrollbar-hide {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+      }
+      .dropdown-list {
+        min-width: 160px;
+      }
+      .dropdown-list button {
+        font-size: 1rem;
+      }
+      
+      /* Tab styles */
+      .tab-item {
+        position: relative;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 1rem;
+        background: #403d52;
+        border: 1px solid #524f67;
+        border-radius: 0.5rem 0.5rem 0 0;
+        cursor: pointer;
+        transition: all 0.2s;
+        min-width: 180px;
+        max-width: 220px;
+      }
+      
+      .tab-item.active {
+        background: #1f1d2e;
+        border-bottom-color: #1f1d2e;
+      }
+      
+      .tab-item.pinned {
+        background: #31748f;
+        min-width: 40px;
+        max-width: 40px;
+        padding: 0.5rem;
+        justify-content: center;
+      }
+      
+      .tab-item.pinned .tab-title {
+        display: none;
+      }
+      
+      .tab-close-btn {
+        opacity: 0;
+        transition: opacity 0.2s;
+      }
+      
+      .tab-item:hover .tab-close-btn {
+        opacity: 1;
+      }
+      
+      .tab-item.pinned .tab-close-btn {
+        display: none;
+      }
+      
+      .tab-pin-btn {
+        opacity: 0;
+        transition: opacity 0.2s;
+      }
+      
+      .tab-item:hover .tab-pin-btn {
+        opacity: 1;
+      }
+      
+      /* Vertical tabs */
+      .vertical-tabs .tab-item {
+        border-radius: 0.5rem 0 0 0.5rem;
+        border-right: none;
+        min-width: unset;
+        max-width: unset;
+        width: 100%;
+        margin-bottom: 2px;
+      }
+      
+      .vertical-tabs .tab-item.active {
+        border-right-color: #1f1d2e;
+      }
+      
+      .vertical-tabs .tab-item.pinned {
+        width: 100%;
+        max-width: unset;
+        justify-content: flex-start;
+        padding: 0.5rem 1rem;
+      }
+      
+      .vertical-tabs .tab-item.pinned .tab-title {
+        display: block;
+      }
+    </style>
+  </head>
+  <body
+    class="font-inter bg-gradient-to-br from-base via-surface to-overlay min-h-screen text-text overflow-x-hidden"
+  >
+    <main class="flex flex-col items-center justify-center min-h-screen p-4">
+      <div class="w-full max-w-6xl mx-auto">
+        <!-- Main Container -->
+        <div
+          id="main-container"
+          class="bg-surface/90 backdrop-blur-sm rounded-2xl shadow-2xl border border-overlay/50 overflow-hidden flex"
+        >
+          <!-- Vertical Tab Sidebar (hidden by default) -->
+          <div
+            id="vertical-tab-sidebar"
+            class="hidden bg-overlay/80 border-r border-highlight-med/50 w-64 flex-shrink-0"
+          >
+            <div class="p-2">
+              <div class="flex items-center justify-between mb-4">
+                <h3 class="text-sm font-semibold text-muted uppercase tracking-wide">Tabs</h3>
+                <button
+                  id="new-tab-btn-vertical"
+                  class="w-6 h-6 rounded bg-transparent hover:bg-highlight-med text-muted hover:text-text font-bold text-sm transition-all duration-200 flex items-center justify-center"
+                  title="New Tab (Ctrl+T)"
+                >
+                  +
+                </button>
+              </div>
+              <div
+                id="vertical-tabs-container"
+                class="vertical-tabs space-y-1 max-h-96 overflow-y-auto scrollbar-hide"
+              ></div>
+            </div>
+          </div>
+
+          <!-- Main Content Area -->
+          <div class="flex-1 flex flex-col">
+            <!-- Horizontal Tab Bar -->
+            <div
+              id="horizontal-tab-bar"
+              class="bg-overlay/80 border-b border-highlight-med/50 flex items-center"
+            >
+              <!-- Tab Layout Toggle -->
+              <button
+                id="tab-layout-toggle"
+                class="flex-shrink-0 w-8 h-8 rounded bg-transparent hover:bg-highlight-med text-muted hover:text-text transition-all duration-200 flex items-center justify-center mx-2"
+                title="Switch to Vertical Tabs"
+              >
+                <i id="tab-layout-icon" class="bx bx-layout text-lg"></i>
+              </button>
+              
+              <div
+                id="tabs-bar"
+                class="flex items-end flex-1 overflow-x-auto scrollbar-hide min-h-[40px] px-2 pt-2 gap-1"
+              ></div>
+              <button
+                id="new-tab-btn"
+                class="flex-shrink-0 w-8 h-8 rounded-full bg-transparent hover:bg-highlight-med text-muted hover:text-text font-bold text-xl transition-all duration-200 flex items-center justify-center mx-2 mb-1"
+                title="New Tab (Ctrl+T)"
+              >
+                +
+              </button>
+            </div>
+
+            <!-- Header with Controls -->
+            <div class="bg-overlay/50 p-4 border-b border-highlight-med/30">
+              <div
+                class="flex flex-col lg:flex-row gap-4 items-center justify-between"
+              >
+                <!-- Proxy Toggle Icon Button Left -->
+                <div class="flex items-center gap-6">
+                  <div class="relative">
+                    <button
+                      id="proxy-toggle-btn"
+                      class="w-12 h-12 rounded-xl bg-highlight-med hover:bg-highlight-high text-foam border-2 border-foam flex items-center justify-center text-2xl group transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-foam"
+                      title="Switch Proxy"
+                    >
+                      <i id="proxy-toggle-icon" class="bx bx-cloud text-2xl"></i>
+                    </button>
+                    <div
+                      id="proxy-dropdown"
+                      class="hidden dropdown-list absolute left-0 top-14 bg-overlay border-2 border-foam rounded-xl shadow-xl z-50 py-1"
+                    >
+                      <button
+                        data-proxy="uv"
+                        class="w-full flex items-center gap-2 px-4 py-3 text-text hover:bg-highlight-med transition-colors text-lg"
+                      >
+                        <i class="bx bx-cloud"></i>UV
+                      </button>
+                      <button
+                        data-proxy="scram"
+                        class="w-full flex items-center gap-2 px-4 py-3 text-text hover:bg-highlight-med transition-colors text-lg"
+                      >
+                        <i class="bx bx-network-chart"></i>Scramjet
+                      </button>
+                    </div>
+                  </div>
+                  <!-- Navigation Buttons -->
+                  <div class="flex items-center gap-2">
+                    <button
+                      id="back-btn"
+                      class="w-10 h-10 rounded-xl border-foam border-2 bg-highlight-med hover:bg-highlight-high transition-colors duration-200 flex items-center justify-center group"
+                      title="Back"
+                    >
+                      <i
+                        class="bx bx-left-arrow-alt text-2xl border-foam text-subtle group-hover:text-text transition-colors"
+                      ></i>
+                    </button>
+                    <button
+                      id="forward-btn"
+                      class="w-10 h-10 rounded-xl bg-highlight-med border-foam border-2 hover:bg-highlight-high transition-colors duration-200 flex items-center justify-center group"
+                      title="Forward"
+                    >
+                      <i
+                        class="bx bx-right-arrow-alt text-2xl text-subtle group-hover:text-text transition-colors"
+                      ></i>
+                    </button>
+                    <button
+                      id="refresh-btn"
+                      class="border-foam border-2 w-10 h-10 rounded-xl bg-highlight-med hover:bg-highlight-high transition-colors duration-200 flex items-center justify-center group"
+                      title="Refresh"
+                    >
+                      <i
+                        class="bx bx-refresh text-2xl text-subtle group-hover:text-text transition-colors"
+                      ></i>
+                    </button>
+                    <button
+                      id="history-btn"
+                      class="w-10 h-10 rounded-xl bg-highlight-med border-foam border-2 hover:bg-highlight-high transition-colors duration-200 flex items-center justify-center group"
+                      title="Show History"
+                    >
+                      <i
+                        class="bx bx-history text-2xl text-subtle group-hover:text-text transition-colors"
+                      ></i>
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Address Bar -->
+                <form id="address-bar-form" class="w-full relative">
+                  <input
+                    id="address-bar-input"
+                    type="text"
+                    spellcheck="false"
+                    autocomplete="off"
+                    placeholder="Search the web freely"
+                    class="w-full h-12 bg-highlight-med border-2 border-foam text-text rounded-xl px-6 py-4 text-lg placeholder-muted focus:outline-none focus:border-foam"
+                  />
+
+                  <div id="suggestion-box" class="suggestion-box hidden"></div>
+                </form>
+
+                <!-- Search Engine Icon Button Right -->
+                <div class="flex items-center gap-6">
+                  <!-- Search Engine Dropdown -->
+                  <div class="relative">
+                    <button
+                      id="search-engine-btn"
+                      class="w-12 h-12 rounded-xl border-foam border-2 bg-highlight-med hover:bg-highlight-high text-foam flex items-center justify-center text-2xl group transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-foam"
+                      title="Switch Search"
+                    >
+                      <i
+                        id="search-engine-icon"
+                        class="bx bxl-brave text-2xl"
+                      ></i>
+                    </button>
+                    <div
+                      id="search-engine-dropdown"
+                      class="hidden dropdown-list absolute right-0 top-14 bg-overlay border-2 border-foam rounded-xl shadow-xl z-50 py-1"
+                    >
+                      <button
+                        data-engine="https://search.brave.com/search?q=%s"
+                        class="w-full flex border-foam border-2 items-center gap-2 px-4 py-3 text-text hover:bg-highlight-med transition-colors text-lg"
+                      >
+                        <i class="bx bxl-brave"></i>Brave
+                      </button>
+                      <button
+                        data-engine="https://duckduckgo.com/?q=%s"
+                        class="w-full flex items-center gap-2 px-4 py-3 text-text hover:bg-highlight-med transition-colors text-lg"
+                      >
+                        <i class="bx bxl-duckduckgo"></i>DuckDuckGo
+                      </button>
+                      <button
+                        data-engine="https://www.google.com/search?q=%s"
+                        class="w-full flex items-center gap-2 px-4 py-3 text-text hover:bg-highlight-med transition-colors text-lg"
+                      >
+                        <i class="bx bxl-google"></i>Google
+                      </button>
+                      <button
+                        data-engine="https://www.bing.com/search?q=%s"
+                        class="w-full flex items-center gap-2 px-4 py-3 text-text hover:bg-highlight-med transition-colors text-lg"
+                      >
+                        <i class="bx bxl-microsoft"></i>Bing
+                      </button>
+                      <button
+                        data-engine="https://search.yahoo.com/search?p=%s"
+                        class="w-full flex items-center gap-2 px-4 py-3 text-text hover:bg-highlight-med transition-colors text-lg"
+                      >
+                        <i class="bx bxl-yahoo"></i>Yahoo
+                      </button>
+                      <button
+                        data-engine="https://www.ecosia.org/search?q=%s"
+                        class="w-full flex items-center gap-2 px-4 py-3 text-text hover:bg-highlight-med transition-colors text-lg"
+                      >
+                        <i class="bx bxl-leaf"></i>Ecosia
+                      </button>
+                    </div>
+                  </div>
+                  
+                  <!-- Menu Dropdown -->
+                  <div class="relative">
+                    <button
+                      id="menu-btn"
+                      class="w-12 border-foam border-2 h-12 rounded-xl bg-highlight-med hover:bg-highlight-high transition-colors duration-200 flex items-center justify-center group"
+                      title="Menu"
+                    >
+                      <i
+                        class="bx bx-dots-horizontal-rounded text-2xl text-subtle group-hover:text-text transition-colors"
+                      ></i>
+                    </button>
+                    <div
+                      id="dropdown-menu"
+                      class="hidden dropdown-list absolute right-0 top-14 bg-overlay border-2 border-foam rounded-xl shadow-xl z-50 py-1"
+                    >
+                      <button
+                        id="wisp-btn"
+                        class="w-full text-left px-4 py-2 text-text hover:bg-highlight-med transition-colors text-sm"
+                      >
+                        select Wisp server
+                      </button>
+                      <button
+                        id="clear-history-btn"
+                        class="w-full text-left px-4 py-2 text-text hover:bg-highlight-med transition-colors text-sm"
+                      >
+                        Clear History
+                      </button>
+                      <button
+                        id="close-all-tabs-btn"
+                        class="w-full text-left px-4 py-2 text-text hover:bg-highlight-med transition-colors text-sm"
+                      >
+                        Close All Tabs
+                      </button>
+                      <button
+                        id="restore-tabs-btn"
+                        class="w-full text-left px-4 py-2 text-text hover:bg-highlight-med transition-colors text-sm"
+                      >
+                        Restore Tabs
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Content Area -->
+            <div class="bg-black border-t border-highlight-med/30 flex-1">
+              <iframe
+                id="proxy-iframe"
+                title="Proxy Frame"
+                class="w-full h-[70vh] border-0"
+              ></iframe>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- History Modal -->
+      <div
+        id="history-modal-bg"
+        class="fixed border-foam border-2 inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center opacity-0 pointer-events-none transition-opacity duration-300 z-50"
+      >
+        <div
+          id="history-modal"
+          class="bg-overlay border border-highlight-med rounded-2xl shadow-2xl max-w-md w-[90vw] p-6 relative transform scale-95 opacity-0 transition-all duration-300"
+        >
+          <button
+            id="close-history-modal"
+            class="absolute top-4 right-4 text-muted hover:text-love transition-colors"
+          >
+            <i class="bx bx-x text-2xl"></i>
+          </button>
+          <h2 class="text-xl font-bold mb-6 text-text flex items-center">
+            <i class="bx bx-history mr-3 text-foam"></i>
+            Tab History
+          </h2>
+          <div
+            id="modal-history-list"
+            class="max-h-80 overflow-y-auto space-y-2 text-subtle scrollbar-thin scrollbar-thumb-foam scrollbar-track-highlight-med"
+          ></div>
+        </div>
+      </div>
+    </main>
+
+    <script>
+      // Tab Management System
+      class TabManager {
+        constructor() {
+          this.tabs = [];
+          this.activeTabId = null;
+          this.nextTabId = 1;
+          this.isVerticalLayout = false;
+          this.init();
+        }
+
+        init() {
+          this.setupEventListeners();
+          this.createNewTab('New Tab', 'about:blank');
+        }
+
+        setupEventListeners() {
+          // Tab layout toggle
+          document.getElementById('tab-layout-toggle').addEventListener('click', () => {
+            this.toggleTabLayout();
+          });
+
+          // New tab buttons
+          document.getElementById('new-tab-btn').addEventListener('click', () => {
+            this.createNewTab('New Tab', 'about:blank');
+          });
+
+          document.getElementById('new-tab-btn-vertical').addEventListener('click', () => {
+            this.createNewTab('New Tab', 'about:blank');
+          });
+
+          // Keyboard shortcuts
+          document.addEventListener('keydown', (e) => {
+            if (e.ctrlKey && e.key === 't') {
+              e.preventDefault();
+              this.createNewTab('New Tab', 'about:blank');
+            }
+            if (e.ctrlKey && e.key === 'w') {
+              e.preventDefault();
+              if (this.tabs.length > 1) {
+                this.closeTab(this.activeTabId);
+              }
+            }
+          });
+        }
+
+        toggleTabLayout() {
+          this.isVerticalLayout = !this.isVerticalLayout;
+          const sidebar = document.getElementById('vertical-tab-sidebar');
+          const horizontalBar = document.getElementById('horizontal-tab-bar');
+          const icon = document.getElementById('tab-layout-icon');
+
+          if (this.isVerticalLayout) {
+            sidebar.classList.remove('hidden');
+            horizontalBar.classList.add('hidden');
+            icon.className = 'bx bx-columns text-lg';
+            icon.parentElement.title = 'Switch to Horizontal Tabs';
+          } else {
+            sidebar.classList.add('hidden');
+            horizontalBar.classList.remove('hidden');
+            icon.className = 'bx bx-layout text-lg';
+            icon.parentElement.title = 'Switch to Vertical Tabs';
+          }
+
+          this.renderTabs();
+        }
+
+        createNewTab(title, url) {
+          const tab = {
+            id: this.nextTabId++,
+            title: title,
+            url: url,
+            isPinned: false,
+            favicon: 'bx bx-globe'
+          };
+
+          this.tabs.push(tab);
+          this.activeTabId = tab.id;
+          this.renderTabs();
+          return tab;
+        }
+
+        closeTab(tabId) {
+          const tabIndex = this.tabs.findIndex(t => t.id === tabId);
+          if (tabIndex === -1) return;
+
+          this.tabs.splice(tabIndex, 1);
+
+          if (this.activeTabId === tabId) {
+            if (this.tabs.length > 0) {
+              const newActiveIndex = tabIndex >= this.tabs.length ? this.tabs.length - 1 : tabIndex;
+              this.activeTabId = this.tabs[newActiveIndex].id;
+            } else {
+              this.activeTabId = null;
+            }
+          }
+
+          this.renderTabs();
+        }
+
+        togglePinTab(tabId) {
+          const tab = this.tabs.find(t => t.id === tabId);
+          if (tab) {
+            tab.isPinned = !tab.isPinned;
+            // Move pinned tabs to the beginning
+            this.tabs.sort((a, b) => {
+              if (a.isPinned && !b.isPinned) return -1;
+              if (!a.isPinned && b.isPinned) return 1;
+              return 0;
+            });
+            this.renderTabs();
+          }
+        }
+
+        switchToTab(tabId) {
+          this.activeTabId = tabId;
+          this.renderTabs();
+        }
+
+        renderTabs() {
+          const horizontalContainer = document.getElementById('tabs-bar');
+          const verticalContainer = document.getElementById('vertical-tabs-container');
+          
+          const container = this.isVerticalLayout ? verticalContainer : horizontalContainer;
+          container.innerHTML = '';
+
+          this.tabs.forEach(tab => {
+            const tabElement = this.createTabElement(tab);
+            container.appendChild(tabElement);
+          });
+        }
+
+        createTabElement(tab) {
+          const tabDiv = document.createElement('div');
+          tabDiv.className = `tab-item ${tab.id === this.activeTabId ? 'active' : ''} ${tab.isPinned ? 'pinned' : ''}`;
+          tabDiv.setAttribute('data-tab-id', tab.id);
+
+          const favicon = document.createElement('i');
+          favicon.className = `${tab.favicon} text-sm text-foam`;
+
+          const title = document.createElement('span');
+          title.className = 'tab-title text-sm text-text truncate';
+          title.textContent = tab.title;
+
+          const pinBtn = document.createElement('button');
+          pinBtn.className = 'tab-pin-btn text-xs text-muted hover:text-gold transition-colors';
+          pinBtn.innerHTML = `<i class="bx ${tab.isPinned ? 'bxs-pin' : 'bx-pin'} text-xs"></i>`;
+          pinBtn.title = tab.isPinned ? 'Unpin Tab' : 'Pin Tab';
+
+          const closeBtn = document.createElement('button');
+          closeBtn.className = 'tab-close-btn text-xs text-muted hover:text-love transition-colors';
+          closeBtn.innerHTML = '<i class="bx bx-x text-sm"></i>';
+          closeBtn.title = 'Close Tab';
+
+          // Event listeners
+          tabDiv.addEventListener('click', (e) => {
+            if (e.target === closeBtn || e.target.closest('.tab-close-btn')) return;
+            if (e.target === pinBtn || e.target.closest('.tab-pin-btn')) return;
+            this.switchToTab(tab.id);
+          });
+
+          pinBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.togglePinTab(tab.id);
+          });
+
+          closeBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (this.tabs.length > 1) {
+              this.closeTab(tab.id);
+            }
+          });
+
+          tabDiv.appendChild(favicon);
+          if (!tab.isPinned || this.isVerticalLayout) {
+            tabDiv.appendChild(title);
+          }
+          if (!tab.isPinned) {
+            tabDiv.appendChild(pinBtn);
+            tabDiv.appendChild(closeBtn);
+          }
+
+          return tabDiv;
+        }
+
+        updateTabTitle(tabId, title) {
+          const tab = this.tabs.find(t => t.id === tabId);
+          if (tab) {
+            tab.title = title;
+            this.renderTabs();
+          }
+        }
+
+        updateTabFavicon(tabId, favicon) {
+          const tab = this.tabs.find(t => t.id === tabId);
+          if (tab) {
+            tab.favicon = favicon;
+            this.renderTabs();
+          }
+        }
+      }
+
+      // Initialize tab manager
+      const tabManager = new TabManager();
+
+      // Add some demo tabs
+      setTimeout(() => {
+        tabManager.createNewTab('GitHub', 'https://github.com');
+        tabManager.createNewTab('Stack Overflow', 'https://stackoverflow.com');
+        tabManager.togglePinTab(2); // Pin the GitHub tab
+      }, 500);
+
+      // Original dropdown functionality
+      function setupDropdowns() {
+        const dropdowns = [
+          { btn: 'proxy-toggle-btn', menu: 'proxy-dropdown' },
+          { btn: 'search-engine-btn', menu: 'search-engine-dropdown' },
+          { btn: 'menu-btn', menu: 'dropdown-menu' }
+        ];
+
+        dropdowns.forEach(({ btn, menu }) => {
+          const button = document.getElementById(btn);
+          const dropdown = document.getElementById(menu);
+
+          button.addEventListener('click', (e) => {
+            e.stopPropagation();
+            // Close all other dropdowns
+            dropdowns.forEach(({ menu: otherMenu }) => {
+              if (otherMenu !== menu) {
+                document.getElementById(otherMenu).classList.add('hidden');
+              }
+            });
+            dropdown.classList.toggle('hidden');
+          });
+        });
+
+        document.addEventListener('click', () => {
+          dropdowns.forEach(({ menu }) => {
+            document.getElementById(menu).classList.add('hidden');
+          });
+        });
+      }
+
+      setupDropdowns();
+    </script>
+  </body>
+</html>
