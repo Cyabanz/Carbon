@@ -747,6 +747,13 @@
       }
       ${tab.pinned ? "border-pine" : ""}
     `;
+          let backgroundStyle = "";
+          if (tab.color) {
+            backgroundStyle = `background: linear-gradient(135deg, ${tab.color}20, ${tab.color}10);`;
+          } else if (tab.pinned) {
+            backgroundStyle = "background: linear-gradient(135deg, #31748f20, #31748f10);";
+          }
+          
           tabElement.style.cssText = `
       height: 36px;
       min-width: ${tab.pinned ? "120px" : "180px"};
@@ -755,12 +762,21 @@
       clip-path: polygon(8px 0%, calc(100% - 8px) 0%, 100% 100%, 0% 100%);
       padding: 0 20px 0 16px;
       z-index: ${tab.id === activeTab ? "10" : "1"};
-      ${tab.pinned ? "background: linear-gradient(135deg, #31748f20, #31748f10);" : ""}
+      ${backgroundStyle}
+      ${tab.color ? `border-left: 3px solid ${tab.color};` : ""}
     `;
           tabElement.setAttribute("data-tab-id", tab.id);
           
           const content = document.createElement("div");
           content.className = "flex items-center w-full h-full";
+          
+          // Color indicator dot
+          if (tab.color) {
+            const colorDot = document.createElement("div");
+            colorDot.className = "w-2 h-2 rounded-full mr-1 flex-shrink-0";
+            colorDot.style.backgroundColor = tab.color;
+            content.appendChild(colorDot);
+          }
           
           // Pin icon
           if (tab.pinned) {
@@ -769,41 +785,54 @@
             content.appendChild(pinIcon);
           }
           
+          // Lock icon
+          if (tab.locked) {
+            const lockIcon = document.createElement("i");
+            lockIcon.className = "bx bx-lock-alt text-xs text-gold mr-1";
+            content.appendChild(lockIcon);
+          }
+          
           const title = document.createElement("span");
-          const maxLength = tab.pinned ? 12 : 18;
-          title.textContent = tab.title.length > maxLength ? tab.title.slice(0, maxLength - 3) + "..." : tab.title;
+          const maxLength = tab.pinned ? 10 : 16;
+          const displayTitle = tab.customTitle || tab.title;
+          title.textContent = displayTitle.length > maxLength ? displayTitle.slice(0, maxLength - 3) + "..." : displayTitle;
           title.className = "flex-1 truncate text-sm font-medium";
           content.appendChild(title);
           
-          // Pin/Unpin button
-          const pinBtn = document.createElement("button");
-          pinBtn.className = "ml-1 w-4 h-4 rounded-full flex items-center justify-center hover:bg-white/20 transition-all duration-200 opacity-0 group-hover:opacity-100";
-          pinBtn.innerHTML = tab.pinned ? '<i class="bx bx-pin text-xs"></i>' : '<i class="bx bx-pin text-xs"></i>';
-          pinBtn.title = tab.pinned ? "Unpin Tab" : "Pin Tab";
-          pinBtn.onclick = (e) => {
+          // Options button
+          const optionsBtn = document.createElement("button");
+          optionsBtn.className = "ml-1 w-4 h-4 rounded-full flex items-center justify-center hover:bg-white/20 transition-all duration-200 opacity-0 group-hover:opacity-100";
+          optionsBtn.innerHTML = '<i class="bx bx-dots-horizontal-rounded text-xs"></i>';
+          optionsBtn.title = "Tab Options";
+          optionsBtn.onclick = (e) => {
             e.stopPropagation();
-            togglePinTab(tab.id);
+            openTabContextMenu(tab.id);
           };
-          content.appendChild(pinBtn);
+          content.appendChild(optionsBtn);
           
           const closeBtn = document.createElement("button");
           closeBtn.className = "ml-1 w-4 h-4 rounded-full flex items-center justify-center hover:bg-white/20 transition-all duration-200 opacity-0 group-hover:opacity-100";
           closeBtn.innerHTML = "&times;";
-          closeBtn.title = "Close Tab (Ctrl+W)";
+          closeBtn.title = tab.locked ? "Tab is locked" : "Close Tab (Ctrl+W)";
           closeBtn.style.fontSize = "12px";
-          closeBtn.onclick = (e) => {
-            e.stopPropagation();
-            removeTab(tab.id);
-          };
+          if (tab.locked) {
+            closeBtn.style.opacity = "0.3";
+            closeBtn.style.cursor = "not-allowed";
+          } else {
+            closeBtn.onclick = (e) => {
+              e.stopPropagation();
+              removeTab(tab.id);
+            };
+          }
           content.appendChild(closeBtn);
           
           tabElement.appendChild(content);
           tabElement.onclick = () => setActiveTab(tab.id);
           
-          // Add context menu for pin/unpin
+          // Add context menu
           tabElement.oncontextmenu = (e) => {
             e.preventDefault();
-            togglePinTab(tab.id);
+            openTabContextMenu(tab.id);
           };
           
           tabsBar.appendChild(tabElement);
@@ -826,11 +855,25 @@
           tabElement.className = `vertical-tab ${tab.id === activeTab ? 'active' : ''} ${tab.pinned ? 'pinned' : ''}`;
           tabElement.setAttribute("data-tab-id", tab.id);
           
+          // Apply color styling
+          if (tab.color) {
+            tabElement.style.background = `linear-gradient(135deg, ${tab.color}20, ${tab.color}10)`;
+            tabElement.style.borderLeft = `3px solid ${tab.color}`;
+          }
+          
           const content = document.createElement("div");
           content.className = "flex items-center justify-between w-full";
           
           const leftContent = document.createElement("div");
           leftContent.className = "flex items-center flex-1 min-w-0";
+          
+          // Color indicator dot
+          if (tab.color) {
+            const colorDot = document.createElement("div");
+            colorDot.className = "w-2 h-2 rounded-full mr-2 flex-shrink-0";
+            colorDot.style.backgroundColor = tab.color;
+            leftContent.appendChild(colorDot);
+          }
           
           if (tab.pinned) {
             const pinIcon = document.createElement("i");
@@ -838,8 +881,16 @@
             leftContent.appendChild(pinIcon);
           }
           
+          // Lock icon
+          if (tab.locked) {
+            const lockIcon = document.createElement("i");
+            lockIcon.className = "bx bx-lock-alt text-xs text-gold mr-2";
+            leftContent.appendChild(lockIcon);
+          }
+          
           const title = document.createElement("span");
-          title.textContent = tab.title.length > 20 ? tab.title.slice(0, 17) + "..." : tab.title;
+          const displayTitle = tab.customTitle || tab.title;
+          title.textContent = displayTitle.length > 18 ? displayTitle.slice(0, 15) + "..." : displayTitle;
           title.className = "truncate text-sm";
           leftContent.appendChild(title);
           
@@ -848,27 +899,32 @@
           const rightContent = document.createElement("div");
           rightContent.className = "flex items-center gap-1";
           
-          // Pin button
-          const pinBtn = document.createElement("button");
-          pinBtn.className = "w-5 h-5 rounded flex items-center justify-center hover:bg-white/20 transition-all duration-200 opacity-60 hover:opacity-100";
-          pinBtn.innerHTML = '<i class="bx bx-pin text-xs"></i>';
-          pinBtn.title = tab.pinned ? "Unpin Tab" : "Pin Tab";
-          pinBtn.onclick = (e) => {
+          // Options button
+          const optionsBtn = document.createElement("button");
+          optionsBtn.className = "w-5 h-5 rounded flex items-center justify-center hover:bg-white/20 transition-all duration-200 opacity-60 hover:opacity-100";
+          optionsBtn.innerHTML = '<i class="bx bx-dots-horizontal-rounded text-xs"></i>';
+          optionsBtn.title = "Tab Options";
+          optionsBtn.onclick = (e) => {
             e.stopPropagation();
-            togglePinTab(tab.id);
+            openTabContextMenu(tab.id);
           };
-          rightContent.appendChild(pinBtn);
+          rightContent.appendChild(optionsBtn);
           
           // Close button
           const closeBtn = document.createElement("button");
           closeBtn.className = "w-5 h-5 rounded flex items-center justify-center hover:bg-white/20 transition-all duration-200 opacity-60 hover:opacity-100";
           closeBtn.innerHTML = "&times;";
-          closeBtn.title = "Close Tab";
+          closeBtn.title = tab.locked ? "Tab is locked" : "Close Tab";
           closeBtn.style.fontSize = "12px";
-          closeBtn.onclick = (e) => {
-            e.stopPropagation();
-            removeTab(tab.id);
-          };
+          if (tab.locked) {
+            closeBtn.style.opacity = "0.3";
+            closeBtn.style.cursor = "not-allowed";
+          } else {
+            closeBtn.onclick = (e) => {
+              e.stopPropagation();
+              removeTab(tab.id);
+            };
+          }
           rightContent.appendChild(closeBtn);
           
           content.appendChild(rightContent);
@@ -876,10 +932,10 @@
           
           tabElement.onclick = () => setActiveTab(tab.id);
           
-          // Add context menu for pin/unpin
+          // Add context menu
           tabElement.oncontextmenu = (e) => {
             e.preventDefault();
-            togglePinTab(tab.id);
+            openTabContextMenu(tab.id);
           };
           
           verticalTabsList.appendChild(tabElement);
@@ -929,7 +985,124 @@
         tabs.push(tab);
         setActiveTab(tab.id);
       }
+      // Enhanced tab management functions
+      let currentContextTabId = null;
+      
+      function openTabContextMenu(tabId) {
+        currentContextTabId = tabId;
+        const tab = tabs.find(t => t.id === tabId);
+        if (!tab) return;
+        
+        // Update modal elements with current tab data
+        document.getElementById("tab-rename-input").value = tab.customTitle || "";
+        
+        // Update color selection
+        document.querySelectorAll(".tab-color-btn").forEach(btn => {
+          btn.classList.remove("border-text");
+          if ((btn.dataset.color === "none" && !tab.color) || btn.dataset.color === tab.color) {
+            btn.classList.add("border-text");
+          }
+        });
+        
+        // Update lock and pin button states
+        const lockBtn = document.getElementById("tab-lock-toggle");
+        const pinBtn = document.getElementById("tab-pin-toggle");
+        
+        lockBtn.innerHTML = tab.locked 
+          ? '<i class="bx bx-lock-open-alt"></i><span>Unlock Tab</span>' 
+          : '<i class="bx bx-lock-alt"></i><span>Lock Tab</span>';
+          
+        pinBtn.innerHTML = tab.pinned 
+          ? '<i class="bx bx-pin"></i><span>Unpin Tab</span>' 
+          : '<i class="bx bx-pin"></i><span>Pin Tab</span>';
+        
+        // Show modal
+        const modal = document.getElementById("tab-context-menu-bg");
+        const dialog = document.getElementById("tab-context-menu");
+        modal.classList.remove("pointer-events-none", "opacity-0");
+        modal.classList.add("pointer-events-auto", "opacity-100");
+        dialog.classList.remove("scale-95", "opacity-0");
+        dialog.classList.add("scale-100", "opacity-100");
+      }
+      
+      function closeTabContextMenu() {
+        const modal = document.getElementById("tab-context-menu-bg");
+        const dialog = document.getElementById("tab-context-menu");
+        modal.classList.add("pointer-events-none", "opacity-0");
+        modal.classList.remove("pointer-events-auto", "opacity-100");
+        dialog.classList.add("scale-95", "opacity-0");
+        dialog.classList.remove("scale-100", "opacity-100");
+        currentContextTabId = null;
+      }
+      
+      function duplicateTab(tabId) {
+        const sourceTab = tabs.find(t => t.id === tabId);
+        if (!sourceTab) return;
+        
+        const newTab = {
+          ...sourceTab,
+          id: "tab-" + tabIdCounter++,
+          pinned: false, // Don't copy pinned state
+          locked: false, // Don't copy locked state
+        };
+        
+        tabs.push(newTab);
+        setActiveTab(newTab.id);
+        renderTabs();
+      }
+      
+      function renameTab(tabId, newTitle) {
+        const tab = tabs.find(t => t.id === tabId);
+        if (tab) {
+          tab.customTitle = newTitle.trim() || null;
+          renderTabs();
+        }
+      }
+      
+      function setTabColor(tabId, color) {
+        const tab = tabs.find(t => t.id === tabId);
+        if (tab) {
+          tab.color = color === "none" ? null : color;
+          renderTabs();
+        }
+      }
+      
+      function toggleTabLock(tabId) {
+        const tab = tabs.find(t => t.id === tabId);
+        if (tab) {
+          tab.locked = !tab.locked;
+          renderTabs();
+        }
+      }
+      
+      function closeOtherTabs(keepTabId) {
+        const tabToKeep = tabs.find(t => t.id === keepTabId);
+        if (!tabToKeep) return;
+        
+        takeTabsSnapshot();
+        tabs = [tabToKeep];
+        activeTab = keepTabId;
+        renderTabs();
+      }
+      
+      function reloadAllTabs() {
+        tabs.forEach(tab => {
+          if (tab.history[tab.pointer]) {
+            // Force reload by re-rendering content
+            if (tab.id === activeTab) {
+              renderTabContent(tab);
+            }
+          }
+        });
+      }
+
       function removeTab(tabId) {
+        const tab = tabs.find((t) => t.id === tabId);
+        if (tab && tab.locked) {
+          alert("This tab is locked and cannot be closed.");
+          return;
+        }
+        
         const idx = tabs.findIndex((t) => t.id === tabId);
         if (idx !== -1) {
           takeTabsSnapshot();
@@ -955,7 +1128,10 @@
         tab.history.push(url);
         tab.pointer = tab.history.length - 1;
         tab.url = url;
-        tab.title = url ? url : "New Tab";
+        // Only update title if no custom title is set
+        if (!tab.customTitle) {
+          tab.title = url ? url : "New Tab";
+        }
       }
       function getActiveTab() {
         return tabs.find((t) => t.id === activeTab);
@@ -1214,6 +1390,83 @@
         tabs.forEach(tab => tab.pinned = false);
         renderTabs();
         dropdown.classList.add("hidden");
+      };
+      
+      // Enhanced tab management event listeners
+      document.getElementById("close-other-tabs-btn").onclick = function () {
+        if (activeTab) {
+          closeOtherTabs(activeTab);
+        }
+        dropdown.classList.add("hidden");
+      };
+      
+      document.getElementById("reload-all-tabs-btn").onclick = function () {
+        reloadAllTabs();
+        dropdown.classList.add("hidden");
+      };
+      
+      document.getElementById("duplicate-active-tab-btn").onclick = function () {
+        if (activeTab) {
+          duplicateTab(activeTab);
+        }
+        dropdown.classList.add("hidden");
+      };
+      
+      // Tab context menu event listeners
+      document.getElementById("close-tab-context-menu").onclick = closeTabContextMenu;
+      document.getElementById("tab-context-menu-bg").onclick = function(e) {
+        if (e.target === this) closeTabContextMenu();
+      };
+      
+      // Tab rename functionality
+      document.getElementById("tab-rename-input").addEventListener("input", function() {
+        if (currentContextTabId) {
+          renameTab(currentContextTabId, this.value);
+        }
+      });
+      
+      // Color picker functionality
+      document.querySelectorAll(".tab-color-btn").forEach(btn => {
+        btn.addEventListener("click", function() {
+          const color = this.dataset.color;
+          if (currentContextTabId) {
+            setTabColor(currentContextTabId, color);
+          }
+          
+          // Update visual selection
+          document.querySelectorAll(".tab-color-btn").forEach(b => b.classList.remove("border-text"));
+          this.classList.add("border-text");
+        });
+      });
+      
+      // Toggle buttons
+      document.getElementById("tab-lock-toggle").onclick = function() {
+        if (currentContextTabId) {
+          toggleTabLock(currentContextTabId);
+          openTabContextMenu(currentContextTabId); // Refresh button state
+        }
+      };
+      
+      document.getElementById("tab-pin-toggle").onclick = function() {
+        if (currentContextTabId) {
+          togglePinTab(currentContextTabId);
+          openTabContextMenu(currentContextTabId); // Refresh button state
+        }
+      };
+      
+      // Action buttons
+      document.getElementById("tab-duplicate-btn").onclick = function() {
+        if (currentContextTabId) {
+          duplicateTab(currentContextTabId);
+          closeTabContextMenu();
+        }
+      };
+      
+      document.getElementById("tab-close-btn").onclick = function() {
+        if (currentContextTabId) {
+          removeTab(currentContextTabId);
+          closeTabContextMenu();
+        }
       };
       document
         .getElementById("new-tab-btn")
