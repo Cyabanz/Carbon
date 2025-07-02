@@ -98,87 +98,50 @@
         font-size: 1rem;
       }
       
-      /* Vertical tabs styles */
+      /* Modern vertical tabs styles */
       .vertical-tabs-container {
         position: absolute;
         left: 0;
         top: 0;
         bottom: 0;
-        width: 250px;
-        background: #1f1d2e;
-        border-right: 1px solid #26233a;
+        width: 280px;
+        background: #1e293b;
+        border-right: 1px solid #475569;
         z-index: 100;
         transform: translateX(-100%);
         transition: transform 0.3s ease;
+        box-shadow: 2px 0 10px rgba(0, 0, 0, 0.3);
       }
       
       .vertical-tabs-container.open {
         transform: translateX(0);
       }
       
-      .vertical-tab {
-        width: 100%;
-        padding: 12px 16px;
-        border: none;
-        background: transparent;
-        color: #908caa;
-        cursor: pointer;
-        transition: all 0.2s;
-        border-bottom: 1px solid #26233a;
-        text-align: left;
-        position: relative;
-      }
-      
-      .vertical-tab:hover {
-        background: #26233a;
-        color: #e0def4;
-      }
-      
-      .vertical-tab.active {
-        background: #403d52;
-        color: #e0def4;
-        border-left: 3px solid #9ccfd8;
-      }
-      
-      .vertical-tab.pinned {
-        background: linear-gradient(135deg, #31748f20, #31748f10);
-        border-left: 3px solid #31748f;
-        position: relative;
-      }
-      
-      .vertical-tab.pinned.active {
-        background: linear-gradient(135deg, #31748f40, #31748f20);
-        border-left: 3px solid #31748f;
-      }
-      
-      .vertical-tab.pinned::before {
-        content: "";
-        position: absolute;
-        top: 6px;
-        right: 6px;
-        width: 6px;
-        height: 6px;
-        background: #31748f;
-        border-radius: 50%;
-        opacity: 0.6;
-      }
-      
-      .pin-icon {
-        position: absolute;
-        right: 8px;
-        top: 50%;
-        transform: translateY(-50%);
-        font-size: 12px;
-        opacity: 0.6;
-      }
-      
       .content-with-vertical-tabs {
-        margin-left: 250px;
+        margin-left: 280px;
         transition: margin-left 0.3s ease;
       }
       
       .content-with-vertical-tabs.collapsed {
         margin-left: 0;
+      }
+      
+      /* Custom scrollbar for vertical tabs */
+      #vertical-tabs-list::-webkit-scrollbar {
+        width: 6px;
+      }
+      
+      #vertical-tabs-list::-webkit-scrollbar-track {
+        background: #334155;
+      }
+      
+      #vertical-tabs-list::-webkit-scrollbar-thumb {
+        background: #64748b;
+        border-radius: 3px;
+      }
+      
+      #vertical-tabs-list::-webkit-scrollbar-thumb:hover {
+        background: #94a3b8;
       }
     </style>
   </head>
@@ -193,36 +156,41 @@
         >
           <!-- Vertical Tabs Container -->
           <div id="vertical-tabs-container" class="vertical-tabs-container">
-            <div class="p-4 border-b border-highlight-med/50">
-              <h3 class="text-text font-semibold">Tabs</h3>
+            <div class="p-4 border-b border-slate-600/50 bg-slate-800">
+              <h3 class="text-white font-semibold flex items-center gap-2">
+                <i class="bx bx-tab text-cyan-400"></i>
+                Tabs
+              </h3>
             </div>
-            <div id="vertical-tabs-list" class="overflow-y-auto flex-1"></div>
+            <div id="vertical-tabs-list" class="overflow-y-auto flex-1 bg-slate-800"></div>
           </div>
           <!-- Main Content Wrapper -->
           <div id="main-content-wrapper" class="content-with-vertical-tabs collapsed">
           
           <!-- Tab Bar -->
-          <div
-            class="bg-overlay/80 border-b border-highlight-med/50 flex items-end"
-          >
+          <div class="bg-slate-800/90 border-b border-slate-600/50 flex items-center">
             <div
               id="tabs-bar"
-              class="flex items-end flex-1 overflow-x-auto scrollbar-hide min-h-[40px] px-2 pt-2"
+              class="flex items-center flex-1 overflow-x-auto scrollbar-hide min-h-[50px] px-3 gap-1"
             ></div>
-            <button
-              id="tabs-layout-toggle"
-              class="flex-shrink-0 w-8 h-8 rounded-full bg-transparent hover:bg-highlight-med text-muted hover:text-text transition-all duration-200 flex items-center justify-center mx-1 mb-1"
-              title="Toggle Vertical Tabs"
-            >
-              <i class="bx bx-sidebar text-lg"></i>
-            </button>
-            <button
-              id="new-tab-btn"
-              class="flex-shrink-0 w-8 h-8 rounded-full bg-transparent hover:bg-highlight-med text-muted hover:text-text font-bold text-xl transition-all duration-200 flex items-center justify-center mx-1 mb-1"
-              title="New Tab (Ctrl+T)"
-            >
-              +
-            </button>
+            
+            <!-- Tab Controls -->
+            <div class="flex items-center gap-2 px-3 border-l border-slate-600/50">
+              <button
+                id="tabs-layout-toggle"
+                class="w-9 h-9 rounded-lg bg-slate-700 hover:bg-slate-600 text-gray-300 hover:text-white transition-all duration-200 flex items-center justify-center border border-slate-600"
+                title="Toggle Vertical Tabs"
+              >
+                <i class="bx bx-sidebar text-lg"></i>
+              </button>
+              <button
+                id="new-tab-btn"
+                class="w-9 h-9 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white transition-all duration-200 flex items-center justify-center shadow-md"
+                title="New Tab (Ctrl+T)"
+              >
+                <i class="bx bx-plus text-lg"></i>
+              </button>
+            </div>
           </div>
 
           <!-- Header with Controls -->
@@ -382,55 +350,80 @@
                   </button>
                   <div
                     id="dropdown-menu"
-                    class="hidden dropdown-list absolute right-0 top-14 bg-overlay border-2 border-foam rounded-xl shadow-xl z-50 py-1"
+                    class="hidden dropdown-list absolute right-0 top-14 bg-slate-800 border border-slate-600 rounded-xl shadow-xl z-50 py-2 min-w-56"
                   >
+                    <!-- Server Settings -->
+                    <div class="px-3 py-1 text-xs font-medium text-gray-400 uppercase tracking-wide border-b border-slate-600/50 mb-2">
+                      Server
+                    </div>
                     <button
                       id="wisp-btn"
-                      class="w-full text-left px-4 py-2 text-text hover:bg-highlight-med transition-colors text-sm"
+                      class="w-full flex items-center gap-3 px-4 py-2.5 text-white hover:bg-slate-700 transition-colors text-sm"
                     >
-                      select Wisp server
+                      <i class="bx bx-server text-gray-400"></i>
+                      <span>Configure Wisp Server</span>
                     </button>
+                    
+                    <!-- Tab Management -->
+                    <div class="px-3 py-1 text-xs font-medium text-gray-400 uppercase tracking-wide border-b border-slate-600/50 mb-2 mt-3">
+                      Tab Management
+                    </div>
                     <button
-                      id="clear-history-btn"
-                      class="w-full text-left px-4 py-2 text-text hover:bg-highlight-med transition-colors text-sm"
+                      id="duplicate-active-tab-btn"
+                      class="w-full flex items-center gap-3 px-4 py-2.5 text-white hover:bg-slate-700 transition-colors text-sm"
                     >
-                      Clear History
-                    </button>
-                    <button
-                      id="close-all-tabs-btn"
-                      class="w-full text-left px-4 py-2 text-text hover:bg-highlight-med transition-colors text-sm"
-                    >
-                      Close All Tabs
-                    </button>
-                    <button
-                      id="restore-tabs-btn"
-                      class="w-full text-left px-4 py-2 text-text hover:bg-highlight-med transition-colors text-sm"
-                    >
-                      Restore Tabs
-                    </button>
-                    <button
-                      id="unpin-all-tabs-btn"
-                      class="w-full text-left px-4 py-2 text-text hover:bg-highlight-med transition-colors text-sm"
-                    >
-                      Unpin All Tabs
+                      <i class="bx bx-copy text-cyan-400"></i>
+                      <span>Duplicate Active Tab</span>
+                      <span class="ml-auto text-xs text-gray-500">Ctrl+Shift+D</span>
                     </button>
                     <button
                       id="close-other-tabs-btn"
-                      class="w-full text-left px-4 py-2 text-text hover:bg-highlight-med transition-colors text-sm"
+                      class="w-full flex items-center gap-3 px-4 py-2.5 text-white hover:bg-slate-700 transition-colors text-sm"
                     >
-                      Close Other Tabs
+                      <i class="bx bx-x-circle text-red-400"></i>
+                      <span>Close Other Tabs</span>
+                      <span class="ml-auto text-xs text-gray-500">Ctrl+Shift+O</span>
+                    </button>
+                    <button
+                      id="close-all-tabs-btn"
+                      class="w-full flex items-center gap-3 px-4 py-2.5 text-white hover:bg-slate-700 transition-colors text-sm"
+                    >
+                      <i class="bx bx-x text-red-400"></i>
+                      <span>Close All Tabs</span>
+                    </button>
+                    <button
+                      id="restore-tabs-btn"
+                      class="w-full flex items-center gap-3 px-4 py-2.5 text-white hover:bg-slate-700 transition-colors text-sm"
+                    >
+                      <i class="bx bx-history text-green-400"></i>
+                      <span>Restore Tabs</span>
                     </button>
                     <button
                       id="reload-all-tabs-btn"
-                      class="w-full flex items-center gap-2 px-4 py-2 text-text hover:bg-highlight-med transition-colors text-sm"
+                      class="w-full flex items-center gap-3 px-4 py-2.5 text-white hover:bg-slate-700 transition-colors text-sm"
                     >
-                      <i class="bx bx-refresh"></i>Reload All Tabs
+                      <i class="bx bx-refresh text-blue-400"></i>
+                      <span>Reload All Tabs</span>
+                      <span class="ml-auto text-xs text-gray-500">Ctrl+Shift+R</span>
                     </button>
                     <button
-                      id="duplicate-active-tab-btn"
-                      class="w-full flex items-center gap-2 px-4 py-2 text-text hover:bg-highlight-med transition-colors text-sm"
+                      id="unpin-all-tabs-btn"
+                      class="w-full flex items-center gap-3 px-4 py-2.5 text-white hover:bg-slate-700 transition-colors text-sm"
                     >
-                      <i class="bx bx-copy"></i>Duplicate Active Tab
+                      <i class="bx bx-pin text-blue-400"></i>
+                      <span>Unpin All Tabs</span>
+                    </button>
+                    
+                    <!-- History -->
+                    <div class="px-3 py-1 text-xs font-medium text-gray-400 uppercase tracking-wide border-b border-slate-600/50 mb-2 mt-3">
+                      History
+                    </div>
+                    <button
+                      id="clear-history-btn"
+                      class="w-full flex items-center gap-3 px-4 py-2.5 text-white hover:bg-slate-700 transition-colors text-sm"
+                    >
+                      <i class="bx bx-trash text-red-400"></i>
+                      <span>Clear History</span>
                     </button>
                   </div>
                 </div>
@@ -480,88 +473,91 @@
       <!-- Tab Context Menu Modal -->
       <div
         id="tab-context-menu-bg"
-        class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center opacity-0 pointer-events-none transition-opacity duration-300 z-50"
+        class="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center opacity-0 pointer-events-none transition-opacity duration-300 z-50"
       >
         <div
           id="tab-context-menu"
-          class="bg-overlay border border-highlight-med rounded-2xl shadow-2xl max-w-md w-[90vw] p-6 relative transform scale-95 opacity-0 transition-all duration-300"
+          class="bg-slate-800 border border-slate-600 rounded-xl shadow-2xl max-w-sm w-[90vw] p-6 relative transform scale-95 opacity-0 transition-all duration-300"
         >
           <button
             id="close-tab-context-menu"
-            class="absolute top-4 right-4 text-muted hover:text-love transition-colors"
+            class="absolute top-3 right-3 text-gray-400 hover:text-red-400 transition-colors"
           >
-            <i class="bx bx-x text-2xl"></i>
+            <i class="bx bx-x text-xl"></i>
           </button>
-          <h2 class="text-xl font-bold mb-6 text-text flex items-center">
-            <i class="bx bx-cog mr-3 text-foam"></i>
-            Tab Options
+          
+          <h2 class="text-lg font-semibold mb-4 text-white flex items-center">
+            <i class="bx bx-cog mr-2 text-cyan-400"></i>
+            Tab Settings
           </h2>
           
           <!-- Rename Tab -->
           <div class="mb-4">
-            <label class="block text-sm font-medium text-text mb-2">
-              <i class="bx bx-edit mr-2"></i>Custom Title
+            <label class="block text-sm font-medium text-gray-300 mb-2">
+              <i class="bx bx-edit mr-1"></i>Custom Title
             </label>
             <input
               id="tab-rename-input"
               type="text"
-              placeholder="Enter custom tab title..."
-              class="w-full p-3 bg-highlight-med border border-foam/50 rounded-lg text-text placeholder-muted focus:outline-none focus:border-foam"
+              placeholder="Enter custom title..."
+              class="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400"
             />
           </div>
           
           <!-- Color Picker -->
-          <div class="mb-4">
-            <label class="block text-sm font-medium text-text mb-2">
-              <i class="bx bx-palette mr-2"></i>Tab Color
+          <div class="mb-5">
+            <label class="block text-sm font-medium text-gray-300 mb-2">
+              <i class="bx bx-palette mr-1"></i>Tab Color
             </label>
-            <div class="grid grid-cols-6 gap-2">
-              <button class="tab-color-btn w-8 h-8 rounded-full border-2 border-transparent hover:border-text transition-all" 
-                      data-color="none" style="background: linear-gradient(45deg, #ccc 25%, transparent 25%), linear-gradient(-45deg, #ccc 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #ccc 75%), linear-gradient(-45deg, transparent 75%, #ccc 75%); background-size: 8px 8px; background-position: 0 0, 0 4px, 4px -4px, -4px 0px;" title="No Color"></button>
-              <button class="tab-color-btn w-8 h-8 rounded-full bg-red-500 border-2 border-transparent hover:border-text transition-all" data-color="#ef4444" title="Red"></button>
-              <button class="tab-color-btn w-8 h-8 rounded-full bg-blue-500 border-2 border-transparent hover:border-text transition-all" data-color="#3b82f6" title="Blue"></button>
-              <button class="tab-color-btn w-8 h-8 rounded-full bg-green-500 border-2 border-transparent hover:border-text transition-all" data-color="#22c55e" title="Green"></button>
-              <button class="tab-color-btn w-8 h-8 rounded-full bg-yellow-500 border-2 border-transparent hover:border-text transition-all" data-color="#eab308" title="Yellow"></button>
-              <button class="tab-color-btn w-8 h-8 rounded-full bg-purple-500 border-2 border-transparent hover:border-text transition-all" data-color="#a855f7" title="Purple"></button>
-              <button class="tab-color-btn w-8 h-8 rounded-full bg-pink-500 border-2 border-transparent hover:border-text transition-all" data-color="#ec4899" title="Pink"></button>
-              <button class="tab-color-btn w-8 h-8 rounded-full bg-orange-500 border-2 border-transparent hover:border-text transition-all" data-color="#f97316" title="Orange"></button>
-              <button class="tab-color-btn w-8 h-8 rounded-full bg-teal-500 border-2 border-transparent hover:border-text transition-all" data-color="#14b8a6" title="Teal"></button>
-              <button class="tab-color-btn w-8 h-8 rounded-full bg-cyan-500 border-2 border-transparent hover:border-text transition-all" data-color="#06b6d4" title="Cyan"></button>
-              <button class="tab-color-btn w-8 h-8 rounded-full bg-indigo-500 border-2 border-transparent hover:border-text transition-all" data-color="#6366f1" title="Indigo"></button>
-              <button class="tab-color-btn w-8 h-8 rounded-full bg-rose-500 border-2 border-transparent hover:border-text transition-all" data-color="#f43f5e" title="Rose"></button>
+            <div class="grid grid-cols-8 gap-2">
+              <button class="tab-color-btn w-7 h-7 rounded-full border-2 border-transparent hover:border-white transition-all bg-gradient-to-br from-gray-300 to-gray-500" 
+                      data-color="none" title="No Color">
+                <i class="bx bx-x text-xs text-white"></i>
+              </button>
+              <button class="tab-color-btn w-7 h-7 rounded-full bg-red-500 border-2 border-transparent hover:border-white hover:scale-110 transition-all" data-color="#ef4444" title="Red"></button>
+              <button class="tab-color-btn w-7 h-7 rounded-full bg-blue-500 border-2 border-transparent hover:border-white hover:scale-110 transition-all" data-color="#3b82f6" title="Blue"></button>
+              <button class="tab-color-btn w-7 h-7 rounded-full bg-green-500 border-2 border-transparent hover:border-white hover:scale-110 transition-all" data-color="#22c55e" title="Green"></button>
+              <button class="tab-color-btn w-7 h-7 rounded-full bg-yellow-500 border-2 border-transparent hover:border-white hover:scale-110 transition-all" data-color="#eab308" title="Yellow"></button>
+              <button class="tab-color-btn w-7 h-7 rounded-full bg-purple-500 border-2 border-transparent hover:border-white hover:scale-110 transition-all" data-color="#a855f7" title="Purple"></button>
+              <button class="tab-color-btn w-7 h-7 rounded-full bg-pink-500 border-2 border-transparent hover:border-white hover:scale-110 transition-all" data-color="#ec4899" title="Pink"></button>
+              <button class="tab-color-btn w-7 h-7 rounded-full bg-orange-500 border-2 border-transparent hover:border-white hover:scale-110 transition-all" data-color="#f97316" title="Orange"></button>
+              <button class="tab-color-btn w-7 h-7 rounded-full bg-teal-500 border-2 border-transparent hover:border-white hover:scale-110 transition-all" data-color="#14b8a6" title="Teal"></button>
+              <button class="tab-color-btn w-7 h-7 rounded-full bg-cyan-500 border-2 border-transparent hover:border-white hover:scale-110 transition-all" data-color="#06b6d4" title="Cyan"></button>
+              <button class="tab-color-btn w-7 h-7 rounded-full bg-indigo-500 border-2 border-transparent hover:border-white hover:scale-110 transition-all" data-color="#6366f1" title="Indigo"></button>
+              <button class="tab-color-btn w-7 h-7 rounded-full bg-rose-500 border-2 border-transparent hover:border-white hover:scale-110 transition-all" data-color="#f43f5e" title="Rose"></button>
             </div>
           </div>
           
-          <!-- Lock/Pin Options -->
-          <div class="flex gap-3 mb-6">
+          <!-- Toggle Options -->
+          <div class="grid grid-cols-2 gap-3 mb-5">
             <button
               id="tab-lock-toggle"
-              class="flex-1 flex items-center justify-center gap-2 p-3 bg-highlight-med hover:bg-highlight-high border border-foam/50 rounded-lg transition-all"
+              class="flex items-center justify-center gap-2 py-3 px-4 bg-slate-700 hover:bg-slate-600 border border-slate-600 rounded-lg transition-all text-sm font-medium text-white"
             >
-              <i class="bx bx-lock-alt"></i>
-              <span>Toggle Lock</span>
+              <i class="bx bx-lock-alt text-yellow-400"></i>
+              <span>Lock</span>
             </button>
             <button
               id="tab-pin-toggle"
-              class="flex-1 flex items-center justify-center gap-2 p-3 bg-highlight-med hover:bg-highlight-high border border-foam/50 rounded-lg transition-all"
+              class="flex items-center justify-center gap-2 py-3 px-4 bg-slate-700 hover:bg-slate-600 border border-slate-600 rounded-lg transition-all text-sm font-medium text-white"
             >
-              <i class="bx bx-pin"></i>
-              <span>Toggle Pin</span>
+              <i class="bx bx-pin text-blue-400"></i>
+              <span>Pin</span>
             </button>
           </div>
           
           <!-- Action Buttons -->
-          <div class="flex gap-3">
+          <div class="grid grid-cols-2 gap-3">
             <button
               id="tab-duplicate-btn"
-              class="flex-1 flex items-center justify-center gap-2 p-3 bg-foam hover:bg-foam/80 text-base rounded-lg font-medium transition-all"
+              class="flex items-center justify-center gap-2 py-3 px-4 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg font-medium transition-all"
             >
               <i class="bx bx-copy"></i>
               Duplicate
             </button>
             <button
               id="tab-close-btn"
-              class="flex-1 flex items-center justify-center gap-2 p-3 bg-love hover:bg-love/80 text-white rounded-lg font-medium transition-all"
+              class="flex items-center justify-center gap-2 py-3 px-4 bg-red-600 hover:bg-red-500 text-white rounded-lg font-medium transition-all"
             >
               <i class="bx bx-x"></i>
               Close
@@ -738,98 +734,109 @@
         
         sortedTabs.forEach((tab, idx) => {
           const tabElement = document.createElement("div");
-          tabElement.className = `
-      relative flex items-center cursor-pointer select-none transition-all duration-200 group
-      ${
-        tab.id === activeTab
-          ? "bg-highlight-med text-text border-t-2 border-foam"
-          : "bg-overlay/50 text-subtle hover:bg-highlight-med/70 hover:text-text border-t-2 border-transparent"
-      }
-      ${tab.pinned ? "border-pine" : ""}
-    `;
-          let backgroundStyle = "";
-          if (tab.color) {
-            backgroundStyle = `background: linear-gradient(135deg, ${tab.color}20, ${tab.color}10);`;
-          } else if (tab.pinned) {
-            backgroundStyle = "background: linear-gradient(135deg, #31748f20, #31748f10);";
+          
+          // Clean modern tab styling
+          const isActive = tab.id === activeTab;
+          const baseClasses = "relative flex items-center px-4 py-2 mx-1 rounded-t-lg cursor-pointer select-none transition-all duration-200 group border-b-2 min-w-0 max-w-64";
+          
+          let tabClasses = baseClasses;
+          if (isActive) {
+            tabClasses += " bg-white/10 text-white border-cyan-400 shadow-lg";
+          } else {
+            tabClasses += " bg-white/5 text-gray-300 border-transparent hover:bg-white/8 hover:text-white";
           }
           
-          tabElement.style.cssText = `
-      height: 36px;
-      min-width: ${tab.pinned ? "120px" : "180px"};
-      max-width: ${tab.pinned ? "160px" : "240px"};
-      margin-right: -8px;
-      clip-path: polygon(8px 0%, calc(100% - 8px) 0%, 100% 100%, 0% 100%);
-      padding: 0 20px 0 16px;
-      z-index: ${tab.id === activeTab ? "10" : "1"};
-      ${backgroundStyle}
-      ${tab.color ? `border-left: 3px solid ${tab.color};` : ""}
-    `;
+          if (tab.pinned) {
+            tabClasses += " ring-2 ring-blue-400/30";
+          }
+          
+          tabElement.className = tabClasses;
+          
+          // Apply color theming
+          if (tab.color) {
+            tabElement.style.borderBottomColor = tab.color;
+            if (isActive) {
+              tabElement.style.boxShadow = `0 0 20px ${tab.color}40`;
+            }
+          }
+          
           tabElement.setAttribute("data-tab-id", tab.id);
           
           const content = document.createElement("div");
-          content.className = "flex items-center w-full h-full";
+          content.className = "flex items-center w-full min-w-0 gap-2";
           
-          // Color indicator dot
+          // Status icons container
+          const iconsContainer = document.createElement("div");
+          iconsContainer.className = "flex items-center gap-1 flex-shrink-0";
+          
+          // Color indicator
           if (tab.color) {
             const colorDot = document.createElement("div");
-            colorDot.className = "w-2 h-2 rounded-full mr-1 flex-shrink-0";
+            colorDot.className = "w-2 h-2 rounded-full flex-shrink-0";
             colorDot.style.backgroundColor = tab.color;
-            content.appendChild(colorDot);
+            iconsContainer.appendChild(colorDot);
           }
           
           // Pin icon
           if (tab.pinned) {
             const pinIcon = document.createElement("i");
-            pinIcon.className = "bx bx-pin text-xs text-pine mr-1";
-            content.appendChild(pinIcon);
+            pinIcon.className = "bx bx-pin text-sm text-blue-400";
+            iconsContainer.appendChild(pinIcon);
           }
           
           // Lock icon
           if (tab.locked) {
             const lockIcon = document.createElement("i");
-            lockIcon.className = "bx bx-lock-alt text-xs text-gold mr-1";
-            content.appendChild(lockIcon);
+            lockIcon.className = "bx bx-lock-alt text-sm text-yellow-400";
+            iconsContainer.appendChild(lockIcon);
           }
           
+          if (iconsContainer.children.length > 0) {
+            content.appendChild(iconsContainer);
+          }
+          
+          // Title
           const title = document.createElement("span");
-          const maxLength = tab.pinned ? 10 : 16;
-          const displayTitle = tab.customTitle || tab.title;
-          title.textContent = displayTitle.length > maxLength ? displayTitle.slice(0, maxLength - 3) + "..." : displayTitle;
-          title.className = "flex-1 truncate text-sm font-medium";
+          const displayTitle = tab.customTitle || tab.title || "New Tab";
+          title.textContent = displayTitle.length > 20 ? displayTitle.slice(0, 17) + "..." : displayTitle;
+          title.className = "flex-1 truncate text-sm font-medium min-w-0";
           content.appendChild(title);
+          
+          // Actions container
+          const actionsContainer = document.createElement("div");
+          actionsContainer.className = "flex items-center gap-1 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity";
           
           // Options button
           const optionsBtn = document.createElement("button");
-          optionsBtn.className = "ml-1 w-4 h-4 rounded-full flex items-center justify-center hover:bg-white/20 transition-all duration-200 opacity-0 group-hover:opacity-100";
-          optionsBtn.innerHTML = '<i class="bx bx-dots-horizontal-rounded text-xs"></i>';
+          optionsBtn.className = "w-6 h-6 rounded-md flex items-center justify-center hover:bg-white/20 transition-colors";
+          optionsBtn.innerHTML = '<i class="bx bx-dots-horizontal-rounded text-sm"></i>';
           optionsBtn.title = "Tab Options";
           optionsBtn.onclick = (e) => {
             e.stopPropagation();
             openTabContextMenu(tab.id);
           };
-          content.appendChild(optionsBtn);
+          actionsContainer.appendChild(optionsBtn);
           
+          // Close button
           const closeBtn = document.createElement("button");
-          closeBtn.className = "ml-1 w-4 h-4 rounded-full flex items-center justify-center hover:bg-white/20 transition-all duration-200 opacity-0 group-hover:opacity-100";
-          closeBtn.innerHTML = "&times;";
-          closeBtn.title = tab.locked ? "Tab is locked" : "Close Tab (Ctrl+W)";
-          closeBtn.style.fontSize = "12px";
+          closeBtn.className = "w-6 h-6 rounded-md flex items-center justify-center hover:bg-red-500/20 transition-colors";
+          closeBtn.innerHTML = '<i class="bx bx-x text-sm"></i>';
+          closeBtn.title = tab.locked ? "Tab is locked" : "Close Tab";
+          
           if (tab.locked) {
-            closeBtn.style.opacity = "0.3";
-            closeBtn.style.cursor = "not-allowed";
+            closeBtn.className += " opacity-50 cursor-not-allowed";
           } else {
             closeBtn.onclick = (e) => {
               e.stopPropagation();
               removeTab(tab.id);
             };
           }
-          content.appendChild(closeBtn);
+          actionsContainer.appendChild(closeBtn);
           
+          content.appendChild(actionsContainer);
           tabElement.appendChild(content);
-          tabElement.onclick = () => setActiveTab(tab.id);
           
-          // Add context menu
+          tabElement.onclick = () => setActiveTab(tab.id);
           tabElement.oncontextmenu = (e) => {
             e.preventDefault();
             openTabContextMenu(tab.id);
@@ -852,57 +859,80 @@
         
         sortedTabs.forEach((tab) => {
           const tabElement = document.createElement("button");
-          tabElement.className = `vertical-tab ${tab.id === activeTab ? 'active' : ''} ${tab.pinned ? 'pinned' : ''}`;
-          tabElement.setAttribute("data-tab-id", tab.id);
           
-          // Apply color styling
-          if (tab.color) {
-            tabElement.style.background = `linear-gradient(135deg, ${tab.color}20, ${tab.color}10)`;
-            tabElement.style.borderLeft = `3px solid ${tab.color}`;
-          }
+          // Clean modern vertical tab styling
+          const isActive = tab.id === activeTab;
+          let tabClasses = "w-full p-3 text-left transition-all duration-200 border-l-4 hover:bg-white/5 group flex items-center justify-between";
           
-          const content = document.createElement("div");
-          content.className = "flex items-center justify-between w-full";
-          
-          const leftContent = document.createElement("div");
-          leftContent.className = "flex items-center flex-1 min-w-0";
-          
-          // Color indicator dot
-          if (tab.color) {
-            const colorDot = document.createElement("div");
-            colorDot.className = "w-2 h-2 rounded-full mr-2 flex-shrink-0";
-            colorDot.style.backgroundColor = tab.color;
-            leftContent.appendChild(colorDot);
+          if (isActive) {
+            tabClasses += " bg-white/10 text-white border-cyan-400";
+          } else {
+            tabClasses += " text-gray-300 border-transparent hover:text-white";
           }
           
           if (tab.pinned) {
+            tabClasses += " ring-2 ring-blue-400/20";
+          }
+          
+          tabElement.className = tabClasses;
+          tabElement.setAttribute("data-tab-id", tab.id);
+          
+          // Apply color theming
+          if (tab.color) {
+            tabElement.style.borderLeftColor = tab.color;
+            if (isActive) {
+              tabElement.style.backgroundColor = `${tab.color}20`;
+            }
+          }
+          
+          const leftContent = document.createElement("div");
+          leftContent.className = "flex items-center gap-2 flex-1 min-w-0";
+          
+          // Status indicators
+          const iconsContainer = document.createElement("div");
+          iconsContainer.className = "flex items-center gap-1 flex-shrink-0";
+          
+          // Color indicator
+          if (tab.color) {
+            const colorDot = document.createElement("div");
+            colorDot.className = "w-2 h-2 rounded-full flex-shrink-0";
+            colorDot.style.backgroundColor = tab.color;
+            iconsContainer.appendChild(colorDot);
+          }
+          
+          // Pin icon
+          if (tab.pinned) {
             const pinIcon = document.createElement("i");
-            pinIcon.className = "bx bx-pin text-xs text-pine mr-2";
-            leftContent.appendChild(pinIcon);
+            pinIcon.className = "bx bx-pin text-sm text-blue-400";
+            iconsContainer.appendChild(pinIcon);
           }
           
           // Lock icon
           if (tab.locked) {
             const lockIcon = document.createElement("i");
-            lockIcon.className = "bx bx-lock-alt text-xs text-gold mr-2";
-            leftContent.appendChild(lockIcon);
+            lockIcon.className = "bx bx-lock-alt text-sm text-yellow-400";
+            iconsContainer.appendChild(lockIcon);
           }
           
+          if (iconsContainer.children.length > 0) {
+            leftContent.appendChild(iconsContainer);
+          }
+          
+          // Title
           const title = document.createElement("span");
-          const displayTitle = tab.customTitle || tab.title;
-          title.textContent = displayTitle.length > 18 ? displayTitle.slice(0, 15) + "..." : displayTitle;
-          title.className = "truncate text-sm";
+          const displayTitle = tab.customTitle || tab.title || "New Tab";
+          title.textContent = displayTitle.length > 25 ? displayTitle.slice(0, 22) + "..." : displayTitle;
+          title.className = "truncate text-sm font-medium min-w-0";
           leftContent.appendChild(title);
           
-          content.appendChild(leftContent);
-          
+          // Actions container
           const rightContent = document.createElement("div");
-          rightContent.className = "flex items-center gap-1";
+          rightContent.className = "flex items-center gap-1 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity";
           
           // Options button
           const optionsBtn = document.createElement("button");
-          optionsBtn.className = "w-5 h-5 rounded flex items-center justify-center hover:bg-white/20 transition-all duration-200 opacity-60 hover:opacity-100";
-          optionsBtn.innerHTML = '<i class="bx bx-dots-horizontal-rounded text-xs"></i>';
+          optionsBtn.className = "w-6 h-6 rounded-md flex items-center justify-center hover:bg-white/20 transition-colors";
+          optionsBtn.innerHTML = '<i class="bx bx-dots-horizontal-rounded text-sm"></i>';
           optionsBtn.title = "Tab Options";
           optionsBtn.onclick = (e) => {
             e.stopPropagation();
@@ -912,13 +942,12 @@
           
           // Close button
           const closeBtn = document.createElement("button");
-          closeBtn.className = "w-5 h-5 rounded flex items-center justify-center hover:bg-white/20 transition-all duration-200 opacity-60 hover:opacity-100";
-          closeBtn.innerHTML = "&times;";
+          closeBtn.className = "w-6 h-6 rounded-md flex items-center justify-center hover:bg-red-500/20 transition-colors";
+          closeBtn.innerHTML = '<i class="bx bx-x text-sm"></i>';
           closeBtn.title = tab.locked ? "Tab is locked" : "Close Tab";
-          closeBtn.style.fontSize = "12px";
+          
           if (tab.locked) {
-            closeBtn.style.opacity = "0.3";
-            closeBtn.style.cursor = "not-allowed";
+            closeBtn.className += " opacity-50 cursor-not-allowed";
           } else {
             closeBtn.onclick = (e) => {
               e.stopPropagation();
@@ -927,12 +956,10 @@
           }
           rightContent.appendChild(closeBtn);
           
-          content.appendChild(rightContent);
-          tabElement.appendChild(content);
+          tabElement.appendChild(leftContent);
+          tabElement.appendChild(rightContent);
           
           tabElement.onclick = () => setActiveTab(tab.id);
-          
-          // Add context menu
           tabElement.oncontextmenu = (e) => {
             e.preventDefault();
             openTabContextMenu(tab.id);
@@ -1079,6 +1106,13 @@
         const tabToKeep = tabs.find(t => t.id === keepTabId);
         if (!tabToKeep) return;
         
+        // Check for locked tabs
+        const lockedTabs = tabs.filter(t => t.id !== keepTabId && t.locked);
+        if (lockedTabs.length > 0) {
+          alert(`Cannot close ${lockedTabs.length} locked tab(s). Unlock them first.`);
+          return;
+        }
+        
         takeTabsSnapshot();
         tabs = [tabToKeep];
         activeTab = keepTabId;
@@ -1086,14 +1120,16 @@
       }
       
       function reloadAllTabs() {
-        tabs.forEach(tab => {
-          if (tab.history[tab.pointer]) {
-            // Force reload by re-rendering content
-            if (tab.id === activeTab) {
-              renderTabContent(tab);
-            }
+        const iframe = document.getElementById("proxy-iframe");
+        // Reload current active tab
+        if (activeTab) {
+          const tab = getActiveTab();
+          if (tab && tab.history[tab.pointer]) {
+            renderTabContent(tab);
           }
-        });
+        }
+        // Note: We can only reload the currently visible tab since we have one iframe
+        alert(`Reloaded active tab. Switch to other tabs to reload them individually.`);
       }
 
       function removeTab(tabId) {
@@ -1581,6 +1617,46 @@
         if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === "p") {
           e.preventDefault();
           if (activeTab) togglePinTab(activeTab);
+        }
+        if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === "d") {
+          e.preventDefault();
+          if (activeTab) duplicateTab(activeTab);
+        }
+        if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === "l") {
+          e.preventDefault();
+          if (activeTab) toggleTabLock(activeTab);
+        }
+        if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === "o") {
+          e.preventDefault();
+          if (activeTab) closeOtherTabs(activeTab);
+        }
+        if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === "r") {
+          e.preventDefault();
+          reloadAllTabs();
+        }
+        if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+          e.preventDefault();
+          if (activeTab) openTabContextMenu(activeTab);
+        }
+        if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === "d") {
+          e.preventDefault();
+          if (activeTab) duplicateTab(activeTab);
+        }
+        if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === "l") {
+          e.preventDefault();
+          if (activeTab) toggleTabLock(activeTab);
+        }
+        if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === "o") {
+          e.preventDefault();
+          if (activeTab) closeOtherTabs(activeTab);
+        }
+        if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === "r") {
+          e.preventDefault();
+          reloadAllTabs();
+        }
+        if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+          e.preventDefault();
+          if (activeTab) openTabContextMenu(activeTab);
         }
       });
 
