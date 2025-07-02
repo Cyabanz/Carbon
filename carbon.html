@@ -325,11 +325,13 @@
             </div>
           </div>
           <!-- Content Area -->
-          <div class="bg-black border-t border-highlight-med/30">
+          <div class="flex-1 bg-gradient-to-br from-base to-surface relative overflow-hidden min-h-0">
+            <div class="absolute inset-0 bg-gradient-to-br from-foam/5 via-transparent to-iris/5"></div>
             <iframe
               id="proxy-iframe"
-              title="Proxy Frame"
-              class="w-full h-[70vh] border-0"
+              title="Browser Content"
+              class="w-full h-full border-0 bg-transparent relative z-10"
+              style="min-height: 0; height: 100%; width: 100%;"
             ></iframe>
           </div>
         </div>
@@ -359,8 +361,1023 @@
           ></div>
         </div>
       </div>
+
+      <!-- Tab Context Menu -->
+      <div
+        id="tab-context-menu-bg"
+        class="fixed inset-0 bg-black/70 backdrop-blur-md flex items-center justify-center opacity-0 pointer-events-none transition-all duration-300 z-50"
+      >
+        <div
+          id="tab-context-menu"
+          class="modal-modern rounded-2xl max-w-md w-[90vw] p-8 relative transform scale-95 opacity-0 transition-all duration-300"
+        >
+          <button
+            id="close-tab-context-menu"
+            class="absolute top-6 right-6 w-8 h-8 bg-love/10 hover:bg-love/20 text-love rounded-lg flex items-center justify-center transition-all"
+          >
+            <i class="bx bx-x text-lg"></i>
+          </button>
+          
+          <div class="flex items-center gap-4 mb-8">
+            <div class="w-12 h-12 bg-gradient-to-br from-pine to-foam rounded-xl flex items-center justify-center">
+              <i class="bx bx-server text-xl text-white"></i>
+            </div>
+            <h2 class="text-xl font-bold text-text">Tab Context Menu</h2>
+          </div>
+          
+          <div class="mb-6">
+            <label class="block text-sm font-semibold text-text mb-3">
+              Custom Title
+            </label>
+            <input
+              id="tab-rename-input"
+              type="text"
+              placeholder="Enter custom title..."
+              class="w-full px-4 py-3 bg-highlight-med/60 border border-overlay/30 rounded-xl text-text placeholder-muted focus:outline-none focus:border-foam/50 focus:ring-2 focus:ring-foam/20 transition-all font-medium"
+            />
+          </div>
+          
+          <!-- Color Picker -->
+          <div class="mb-6">
+            <label class="block text-sm font-semibold text-text mb-3 flex items-center gap-2">
+              <i class="bx bx-palette text-iris"></i>Tab Color
+            </label>
+            <div class="flex gap-3 flex-wrap">
+              <button class="tab-color-btn w-8 h-8 rounded-lg bg-foam border-2 border-transparent hover:border-overlay transition-all" data-color="foam"></button>
+              <button class="tab-color-btn w-8 h-8 rounded-lg bg-love border-2 border-transparent hover:border-overlay transition-all" data-color="love"></button>
+              <button class="tab-color-btn w-8 h-8 rounded-lg bg-gold border-2 border-transparent hover:border-overlay transition-all" data-color="gold"></button>
+              <button class="tab-color-btn w-8 h-8 rounded-lg bg-pine border-2 border-transparent hover:border-overlay transition-all" data-color="pine"></button>
+              <button class="tab-color-btn w-8 h-8 rounded-lg bg-iris border-2 border-transparent hover:border-overlay transition-all" data-color="iris"></button>
+              <button class="tab-color-btn w-8 h-8 rounded-lg bg-rose border-2 border-transparent hover:border-overlay transition-all" data-color="rose"></button>
+            </div>
+          </div>
+          
+          <!-- Toggle Options -->
+          <div class="mb-6 space-y-3">
+            <button
+              id="tab-pin-toggle"
+              class="w-full flex items-center justify-between p-3 bg-highlight-med/40 hover:bg-highlight-med/60 rounded-xl transition-all group"
+            >
+              <span class="flex items-center gap-3 text-text font-medium">
+                <div class="w-8 h-8 bg-gold/10 rounded-lg flex items-center justify-center group-hover:bg-gold/20 transition-all">
+                  <i class="bx bx-pin text-gold"></i>
+                </div>
+                Pin Tab
+              </span>
+              <div class="w-6 h-6 bg-surface rounded-full flex items-center justify-center">
+                <i id="pin-toggle-icon" class="bx bx-check text-sm text-foam hidden"></i>
+              </div>
+            </button>
+            
+            <button
+              id="tab-lock-toggle"
+              class="w-full flex items-center justify-between p-3 bg-highlight-med/40 hover:bg-highlight-med/60 rounded-xl transition-all group"
+            >
+              <span class="flex items-center gap-3 text-text font-medium">
+                <div class="w-8 h-8 bg-love/10 rounded-lg flex items-center justify-center group-hover:bg-love/20 transition-all">
+                  <i class="bx bx-lock text-love"></i>
+                </div>
+                Lock Tab
+              </span>
+              <div class="w-6 h-6 bg-surface rounded-full flex items-center justify-center">
+                <i id="lock-toggle-icon" class="bx bx-check text-sm text-foam hidden"></i>
+              </div>
+            </button>
+          </div>
+          
+          <!-- Action Buttons -->
+          <div class="space-y-3">
+            <button
+              id="tab-duplicate-btn"
+              class="modern-button w-full flex items-center gap-3 p-3 bg-foam/10 hover:bg-foam/20 text-foam rounded-xl transition-all font-medium"
+            >
+              <div class="w-8 h-8 bg-foam/20 rounded-lg flex items-center justify-center">
+                <i class="bx bx-copy"></i>
+              </div>
+              Duplicate Tab
+            </button>
+            
+            <button
+              id="tab-close-btn"
+              class="modern-button w-full flex items-center gap-3 p-3 bg-love/10 hover:bg-love/20 text-love rounded-xl transition-all font-medium"
+            >
+              <div class="w-8 h-8 bg-love/20 rounded-lg flex items-center justify-center">
+                <i class="bx bx-x"></i>
+              </div>
+              Close Tab
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Wisp Server Configuration Modal -->
+      <div
+        id="wisp-modal-bg"
+        class="fixed inset-0 bg-black/70 backdrop-blur-md flex items-center justify-center opacity-0 pointer-events-none transition-all duration-300 z-50"
+      >
+        <div
+          id="wisp-modal"
+          class="modal-modern rounded-2xl max-w-md w-[90vw] p-8 relative transform scale-95 opacity-0 transition-all duration-300"
+        >
+          <button
+            id="close-wisp-modal"
+            class="absolute top-6 right-6 w-8 h-8 bg-love/10 hover:bg-love/20 text-love rounded-lg flex items-center justify-center transition-all"
+          >
+            <i class="bx bx-x text-lg"></i>
+          </button>
+          
+          <div class="flex items-center gap-4 mb-8">
+            <div class="w-12 h-12 bg-gradient-to-br from-pine to-foam rounded-xl flex items-center justify-center">
+              <i class="bx bx-server text-xl text-white"></i>
+            </div>
+            <h2 class="text-xl font-bold text-text">Wisp Server Configuration</h2>
+          </div>
+          
+          <div class="mb-6">
+            <label class="block text-sm font-semibold text-text mb-3">
+              Wisp Server URL
+            </label>
+            <input
+              id="wisp-server-input"
+              type="text"
+              placeholder="wss://anura.pro/"
+              class="w-full px-4 py-3 bg-highlight-med/60 border border-overlay/30 rounded-xl text-text placeholder-muted focus:outline-none focus:border-foam/50 focus:ring-2 focus:ring-foam/20 transition-all font-medium"
+            />
+          </div>
+          
+          <div class="flex gap-3">
+            <button
+              id="save-wisp-btn"
+              class="modern-button flex-1 bg-foam hover:bg-foam/80 text-base px-6 py-3 rounded-xl font-semibold transition-all"
+            >
+              Save Configuration
+            </button>
+            <button
+              id="cancel-wisp-btn"
+              class="modern-button flex-1 bg-highlight-med hover:bg-highlight-high text-text px-6 py-3 rounded-xl font-semibold transition-all"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      </div>
     </main>
-    <!-- Main Script: Enable module for full ES6 and import support -->
-    <script type="module" defer src="carbon.js"></script>
+
+    <!-- JavaScript Logic -->
+    <script type="module">
+      // Import proxy functions
+      import { makeURL, getProxied, setProxy, setTransport, setWisp } from "/lethal.mjs";
+
+      // Global variables
+      let tabs = [];
+      let activeTab = null;
+      let tabIdCounter = 1;
+      let closedTabsSnapshot = [];
+      let verticalTabsMode = false;
+      let currentContextTabId = null;
+      let suggestionActive = -1;
+      let currentSuggestions = [];
+      let suggestionFetchController = null;
+
+      // Search engines configuration
+      const engines = {
+        "https://search.brave.com/search?q=%s": ["Brave", "bxl-brave"],
+        "https://duckduckgo.com/?q=%s": ["DuckDuckGo", "bx-shield"],
+        "https://www.google.com/search?q=%s": ["Google", "bxl-google"],
+      };
+
+      // DOM elements (will be initialized in init function)
+      let addressInput, suggestionBox, searchEngineBtn, searchEngineIcon, searchEngineDropdown;
+      let proxyToggleBtn, proxyToggleIcon, proxyDropdown;
+
+      // Initialize proxy settings
+      function initializeProxy() {
+        const backend = localStorage.getItem("proxy-backend") || "uv";
+        const wisp = localStorage.getItem("wisp-server") || "wss://anura.pro/";
+        const transport = localStorage.getItem("proxy-transport");
+        
+        setWisp(wisp);
+        setProxy(backend);
+        if (transport) setTransport(transport);
+        else if (navigator.userAgent.indexOf("Firefox") > 0) setTransport("libcurl");
+        else setTransport("epoxy");
+        
+        updateProxyToggleUI(backend);
+      }
+
+      // Search engine functions
+      function getCurrentSearchEngine() {
+        return localStorage.getItem("search-engine") || "https://www.google.com/search?q=%s";
+      }
+
+      function setCurrentSearchEngine(url) {
+        localStorage.setItem("search-engine", url);
+        updateSearchEngineDisplay();
+      }
+
+      function updateSearchEngineDisplay() {
+        const current = getCurrentSearchEngine();
+        const [name, icon] = engines[current] || ["Google", "bxl-google"];
+        searchEngineIcon.className = `bx ${icon} text-lg`;
+        searchEngineBtn.title = name;
+      }
+
+      // Proxy functions
+      function getCurrentProxy() {
+        return localStorage.getItem("proxy-backend") || "uv";
+      }
+
+      function setCurrentProxy(proxy) {
+        localStorage.setItem("proxy-backend", proxy);
+        updateProxyToggleUI(proxy);
+      }
+
+      function updateProxyToggleUI(proxy) {
+        if (proxy === "scram") {
+          proxyToggleIcon.className = "bx bx-network-chart text-lg";
+          proxyToggleBtn.title = "Scramjet";
+        } else {
+          proxyToggleIcon.className = "bx bx-shield text-lg";
+          proxyToggleBtn.title = "UV";
+        }
+      }
+
+      // Tab management functions
+      function addTab(url = "", title = "New Tab") {
+        const tab = {
+          id: "tab-" + tabIdCounter++,
+          title: title,
+          url: url,
+          history: url ? [url] : [],
+          pointer: url ? 0 : -1,
+          pinned: false,
+          locked: false,
+          color: "default",
+          customTitle: ""
+        };
+        tabs.push(tab);
+        activeTab = tab.id;
+        renderTabs();
+        updateAddressBar(tab);
+        renderTabContent(tab);
+        return tab;
+      }
+
+      function removeTab(tabId) {
+        const tab = getTabById(tabId);
+        if (!tab || tab.locked) return;
+        
+        takeTabsSnapshot();
+        const index = tabs.findIndex(t => t.id === tabId);
+        tabs.splice(index, 1);
+        
+        if (activeTab === tabId) {
+          if (tabs.length > 0) {
+            const newIndex = index >= tabs.length ? tabs.length - 1 : index;
+            setActiveTab(tabs[newIndex].id);
+          } else {
+            activeTab = null;
+            addTab();
+          }
+        } else {
+          renderTabs();
+        }
+      }
+
+      function getTabById(tabId) {
+        return tabs.find(t => t.id === tabId);
+      }
+
+      function getActiveTab() {
+        return getTabById(activeTab);
+      }
+
+      function setActiveTab(tabId) {
+        activeTab = tabId;
+        const tab = getTabById(tabId);
+        renderTabs();
+        updateAddressBar(tab);
+        renderTabContent(tab);
+      }
+
+      function duplicateTab(tabId) {
+        const tab = getTabById(tabId);
+        if (!tab) return;
+        
+        const newTab = addTab(tab.url, tab.title);
+        newTab.history = [...tab.history];
+        newTab.pointer = tab.pointer;
+        renderTabs();
+        setActiveTab(newTab.id);
+      }
+
+      function togglePinTab(tabId) {
+        const tab = getTabById(tabId);
+        if (!tab) return;
+        
+        tab.pinned = !tab.pinned;
+        // Sort tabs to put pinned ones first
+        tabs.sort((a, b) => {
+          if (a.pinned && !b.pinned) return -1;
+          if (!a.pinned && b.pinned) return 1;
+          return 0;
+        });
+        renderTabs();
+      }
+
+      function toggleTabLock(tabId) {
+        const tab = getTabById(tabId);
+        if (!tab) return;
+        
+        tab.locked = !tab.locked;
+        renderTabs();
+      }
+
+      function setTabColor(tabId, color) {
+        const tab = getTabById(tabId);
+        if (!tab) return;
+        
+        tab.color = color;
+        renderTabs();
+      }
+
+      function renameTab(tabId, customTitle) {
+        const tab = getTabById(tabId);
+        if (!tab) return;
+        
+        tab.customTitle = customTitle;
+        renderTabs();
+      }
+
+      function closeOtherTabs(keepTabId) {
+        const keepTab = getTabById(keepTabId);
+        if (!keepTab) return;
+        
+        takeTabsSnapshot();
+        tabs = [keepTab];
+        activeTab = keepTabId;
+        renderTabs();
+      }
+
+      function reloadAllTabs() {
+        tabs.forEach(tab => {
+          if (tab.history.length > 0) {
+            renderTabContent(tab);
+          }
+        });
+      }
+
+      // Tab rendering functions
+      function renderTabs() {
+        const tabsBar = document.getElementById("tabs-bar");
+        const verticalTabsList = document.getElementById("vertical-tabs-list");
+        
+        tabsBar.innerHTML = "";
+        verticalTabsList.innerHTML = "";
+        
+        tabs.forEach(tab => {
+          // Horizontal tab
+          const horizontalTab = createTabElement(tab, false);
+          tabsBar.appendChild(horizontalTab);
+          
+          // Vertical tab
+          const verticalTab = createTabElement(tab, true);
+          verticalTabsList.appendChild(verticalTab);
+        });
+        
+        updateNavigationButtons();
+      }
+
+      function createTabElement(tab, isVertical = false) {
+        const tabEl = document.createElement("div");
+        tabEl.className = `tab-item ${tab.id === activeTab ? "active" : ""} ${tab.pinned ? "pinned" : ""} ${isVertical ? "vertical" : "horizontal"}`;
+        tabEl.dataset.tabId = tab.id;
+        
+        const displayTitle = tab.customTitle || tab.title || "New Tab";
+        const colorClass = getTabColorClass(tab.color);
+        
+        if (isVertical) {
+          tabEl.className += " p-3 rounded-xl hover:bg-highlight-med/50 cursor-pointer transition-all flex items-center gap-3 mb-2";
+          tabEl.innerHTML = `
+            <div class="w-8 h-8 ${colorClass} rounded-lg flex items-center justify-center flex-shrink-0">
+              <i class="bx bx-globe text-sm"></i>
+            </div>
+            <div class="flex-1 min-w-0">
+              <div class="text-sm font-medium text-text truncate">${displayTitle}</div>
+              <div class="text-xs text-muted truncate">${tab.url || "New Tab"}</div>
+            </div>
+            ${!tab.pinned ? `<button class="tab-close-btn w-6 h-6 rounded-lg hover:bg-love/20 text-muted hover:text-love transition-all flex items-center justify-center"><i class="bx bx-x text-sm"></i></button>` : ""}
+          `;
+        } else {
+          tabEl.className += " flex items-center gap-2 px-3 py-2 rounded-t-xl border-t-2 border-transparent hover:bg-highlight-med/30 cursor-pointer transition-all min-w-0 max-w-xs";
+          if (tab.id === activeTab) {
+            tabEl.className += " bg-surface/80 border-foam";
+          }
+          
+          tabEl.innerHTML = `
+            <div class="w-5 h-5 ${colorClass} rounded flex items-center justify-center flex-shrink-0">
+              <i class="bx bx-globe text-xs"></i>
+            </div>
+            ${!tab.pinned ? `<span class="text-sm font-medium text-text truncate flex-1 min-w-0">${displayTitle}</span>` : ""}
+            ${tab.pinned ? '<i class="bx bx-pin text-xs text-gold"></i>' : ""}
+            ${tab.locked ? '<i class="bx bx-lock text-xs text-love"></i>' : ""}
+            ${!tab.pinned ? `<button class="tab-close-btn w-4 h-4 rounded hover:bg-love/20 text-muted hover:text-love transition-all flex items-center justify-center"><i class="bx bx-x text-xs"></i></button>` : ""}
+          `;
+        }
+        
+        // Event listeners
+        tabEl.addEventListener("click", (e) => {
+          if (e.target.closest(".tab-close-btn")) return;
+          setActiveTab(tab.id);
+        });
+        
+        tabEl.addEventListener("contextmenu", (e) => {
+          e.preventDefault();
+          openTabContextMenu(tab.id);
+        });
+        
+        const closeBtn = tabEl.querySelector(".tab-close-btn");
+        if (closeBtn) {
+          closeBtn.addEventListener("click", (e) => {
+            e.stopPropagation();
+            removeTab(tab.id);
+          });
+        }
+        
+        return tabEl;
+      }
+
+      function getTabColorClass(color) {
+        const colorMap = {
+          foam: "bg-foam/20 text-foam",
+          love: "bg-love/20 text-love", 
+          gold: "bg-gold/20 text-gold",
+          pine: "bg-pine/20 text-pine",
+          iris: "bg-iris/20 text-iris",
+          rose: "bg-rose/20 text-rose",
+          default: "bg-surface/60 text-muted"
+        };
+        return colorMap[color] || colorMap.default;
+      }
+
+      // Navigation functions
+      function updateAddressBar(tab) {
+        if (tab && tab.history[tab.pointer]) {
+          addressInput.value = tab.history[tab.pointer];
+        } else {
+          addressInput.value = "";
+        }
+      }
+
+      function updateNavigationButtons() {
+        const tab = getActiveTab();
+        const backBtn = document.getElementById("back-btn");
+        const forwardBtn = document.getElementById("forward-btn");
+        
+        backBtn.disabled = !tab || tab.pointer <= 0;
+        forwardBtn.disabled = !tab || tab.pointer >= tab.history.length - 1;
+      }
+
+      function updateTabHistory(tab, url) {
+        if (tab.pointer < tab.history.length - 1) {
+          tab.history = tab.history.slice(0, tab.pointer + 1);
+        }
+        tab.history.push(url);
+        tab.pointer = tab.history.length - 1;
+        tab.url = url;
+        tab.title = url;
+        renderTabs();
+      }
+
+      async function renderTabContent(tab) {
+        const iframe = document.getElementById("proxy-iframe");
+        if (!tab || typeof tab.pointer !== "number" || tab.pointer < 0 || !tab.history[tab.pointer]) {
+          iframe.src = "";
+          return;
+        }
+        
+        let url = tab.history[tab.pointer];
+        let search = getCurrentSearchEngine();
+        
+        try {
+          let urlToLoad = makeURL(url, search);
+          iframe.src = await getProxied(urlToLoad);
+        } catch (e) {
+          console.error("Error loading content:", e);
+          iframe.src = "";
+        }
+      }
+
+      // Suggestion functions
+      function updateSuggestionBoxActive() {
+        Array.from(suggestionBox.children).forEach((el, i) => {
+          if (i === suggestionActive) el.classList.add("active");
+          else el.classList.remove("active");
+        });
+        
+        if (suggestionActive !== -1) {
+          const el = suggestionBox.children[suggestionActive];
+          if (el) el.scrollIntoView({ block: "nearest" });
+          addressInput.value = currentSuggestions[suggestionActive];
+        }
+      }
+
+      function selectSuggestion(idx) {
+        if (idx < 0 || idx >= currentSuggestions.length) return;
+        addressInput.value = currentSuggestions[idx];
+        suggestionBox.classList.add("hidden");
+        suggestionActive = -1;
+      }
+
+      // Modal functions
+      function openTabContextMenu(tabId) {
+        currentContextTabId = tabId;
+        const tab = getTabById(tabId);
+        if (!tab) return;
+        
+        // Update modal content
+        document.getElementById("tab-rename-input").value = tab.customTitle || "";
+        
+        // Update color selection
+        document.querySelectorAll(".tab-color-btn").forEach(btn => {
+          btn.classList.remove("border-overlay");
+          if (btn.dataset.color === tab.color) {
+            btn.classList.add("border-overlay");
+          }
+        });
+        
+        // Update toggle states
+        const pinIcon = document.getElementById("pin-toggle-icon");
+        const lockIcon = document.getElementById("lock-toggle-icon");
+        
+        pinIcon.classList.toggle("hidden", !tab.pinned);
+        lockIcon.classList.toggle("hidden", !tab.locked);
+        
+        // Show modal
+        const modalBg = document.getElementById("tab-context-menu-bg");
+        const modal = document.getElementById("tab-context-menu");
+        
+        modalBg.classList.remove("pointer-events-none", "opacity-0");
+        modalBg.classList.add("pointer-events-auto", "opacity-100");
+        modal.classList.remove("scale-95", "opacity-0");
+        modal.classList.add("scale-100", "opacity-100");
+      }
+
+      function closeTabContextMenu() {
+        const modalBg = document.getElementById("tab-context-menu-bg");
+        const modal = document.getElementById("tab-context-menu");
+        
+        modalBg.classList.add("pointer-events-none", "opacity-0");
+        modalBg.classList.remove("pointer-events-auto", "opacity-100");
+        modal.classList.add("scale-95", "opacity-0");
+        modal.classList.remove("scale-100", "opacity-100");
+        
+        currentContextTabId = null;
+      }
+
+      function openHistoryModal() {
+        renderModalHistoryList();
+        const modalBg = document.getElementById("history-modal-bg");
+        const modal = document.getElementById("history-modal");
+        
+        modalBg.classList.remove("pointer-events-none", "opacity-0");
+        modalBg.classList.add("pointer-events-auto", "opacity-100");
+        modal.classList.remove("scale-95", "opacity-0");
+        modal.classList.add("scale-100", "opacity-100");
+      }
+
+      function closeHistoryModal() {
+        const modalBg = document.getElementById("history-modal-bg");
+        const modal = document.getElementById("history-modal");
+        
+        modalBg.classList.add("pointer-events-none", "opacity-0");
+        modalBg.classList.remove("pointer-events-auto", "opacity-100");
+        modal.classList.add("scale-95", "opacity-0");
+        modal.classList.remove("scale-100", "opacity-100");
+      }
+
+      function renderModalHistoryList() {
+        const tab = getActiveTab();
+        const modalHistoryList = document.getElementById("modal-history-list");
+        modalHistoryList.innerHTML = "";
+        
+        if (!tab || !tab.history.length) {
+          modalHistoryList.innerHTML = "<div class='text-subtle italic text-center py-8'>No history for this tab.</div>";
+          return;
+        }
+        
+        tab.history.forEach((url, idx) => {
+          const row = document.createElement("div");
+          row.className = `flex items-center justify-between p-4 rounded-xl hover:bg-highlight-med/50 cursor-pointer transition-all ${idx === tab.pointer ? "bg-foam/10 border border-foam/30" : ""}`;
+          
+          row.innerHTML = `
+            <span class="flex-1 ${idx === tab.pointer ? "text-foam font-semibold" : "text-text"} truncate">${url}</span>
+            ${tab.history.length > 1 ? `<button class="ml-3 w-6 h-6 rounded-lg hover:bg-love/20 text-muted hover:text-love transition-all flex items-center justify-center remove-history-btn"><i class="bx bx-x text-sm"></i></button>` : ""}
+          `;
+          
+          row.addEventListener("click", (e) => {
+            if (e.target.closest(".remove-history-btn")) {
+              e.stopPropagation();
+              tab.history.splice(idx, 1);
+              if (tab.pointer >= tab.history.length) tab.pointer = tab.history.length - 1;
+              renderModalHistoryList();
+              return;
+            }
+            
+            tab.pointer = idx;
+            updateAddressBar(tab);
+            renderTabContent(tab);
+            closeHistoryModal();
+          });
+          
+          modalHistoryList.appendChild(row);
+        });
+      }
+
+      function toggleVerticalTabs() {
+        verticalTabsMode = !verticalTabsMode;
+        localStorage.setItem("vertical-tabs-mode", verticalTabsMode);
+        
+        const verticalContainer = document.getElementById("vertical-tabs-container");
+        const mainContent = document.getElementById("main-content-wrapper");
+        const toggleBtn = document.getElementById("tabs-layout-toggle");
+        
+        if (verticalTabsMode) {
+          verticalContainer.classList.add("open");
+          mainContent.classList.add("with-sidebar");
+          toggleBtn.innerHTML = '<i class="bx bx-sidebar text-lg rotate-180"></i>';
+          toggleBtn.title = "Hide Vertical Tabs";
+        } else {
+          verticalContainer.classList.remove("open");
+          mainContent.classList.remove("with-sidebar");
+          toggleBtn.innerHTML = '<i class="bx bx-grid-alt text-lg"></i>';
+          toggleBtn.title = "Show All Tabs";
+        }
+      }
+
+      function takeTabsSnapshot() {
+        closedTabsSnapshot = JSON.parse(JSON.stringify(tabs));
+        localStorage.setItem("last-tabs", JSON.stringify(closedTabsSnapshot));
+      }
+
+      function restoreTabsFromSnapshot() {
+        let fromLS = localStorage.getItem("last-tabs");
+        let snapshot = closedTabsSnapshot.length ? closedTabsSnapshot : (fromLS ? JSON.parse(fromLS) : []);
+        
+        if (!snapshot.length) return;
+        
+        tabs = snapshot.map(tab => ({
+          ...tab,
+          id: "tab-" + tabIdCounter++,
+          pinned: tab.pinned || false
+        }));
+        
+        activeTab = tabs.length ? tabs[0].id : null;
+        renderTabs();
+        setActiveTab(activeTab);
+        closedTabsSnapshot = [];
+        localStorage.removeItem("last-tabs");
+      }
+
+      // Event listeners
+      function setupEventListeners() {
+        // Address bar form submission
+        document.getElementById("address-bar-form").addEventListener("submit", async (event) => {
+          event.preventDefault();
+          suggestionBox.classList.add("hidden");
+          suggestionActive = -1;
+          
+          const tab = getActiveTab();
+          if (!tab) return;
+          
+          let url = addressInput.value.trim();
+          if (!url) return;
+          
+          updateTabHistory(tab, url);
+          renderTabs();
+          renderTabContent(tab);
+        });
+
+        // Address bar input for suggestions
+        addressInput.addEventListener("input", async function (e) {
+          const val = addressInput.value.trim();
+          if (!val || val.startsWith("http")) {
+            suggestionBox.classList.add("hidden");
+            suggestionBox.innerHTML = "";
+            currentSuggestions = [];
+            suggestionActive = -1;
+            return;
+          }
+
+          const apiUrl = `https://corsproxy.io/?url=${encodeURIComponent(`https://duckduckgo.com/ac/?q=${encodeURIComponent(val)}&type=list`)}`;
+          if (suggestionFetchController) suggestionFetchController.abort();
+          suggestionFetchController = new AbortController();
+          
+          try {
+            const resp = await fetch(apiUrl, { signal: suggestionFetchController.signal });
+            if (!resp.ok) throw new Error();
+            
+            const data = await resp.json();
+            let suggestionsData;
+            if (data.contents) {
+              suggestionsData = typeof data.contents === "string" ? JSON.parse(data.contents) : data.contents;
+            } else {
+              suggestionsData = data;
+            }
+            
+            currentSuggestions = (suggestionsData[1] || []).filter(Boolean);
+            if (currentSuggestions.length === 0) {
+              suggestionBox.classList.add("hidden");
+              return;
+            }
+            
+            suggestionBox.innerHTML = currentSuggestions.map((s, i) => 
+              `<div class="suggestion-item${i === suggestionActive ? " active" : ""}" data-idx="${i}">${s.replace(/</g, "&lt;")}</div>`
+            ).join("");
+            
+            suggestionBox.classList.remove("hidden");
+            suggestionActive = -1;
+          } catch (err) {
+            suggestionBox.classList.add("hidden");
+            currentSuggestions = [];
+            suggestionActive = -1;
+          }
+        });
+
+        // Address bar keyboard navigation
+        addressInput.addEventListener("keydown", function (e) {
+          if (!currentSuggestions.length || suggestionBox.classList.contains("hidden")) return;
+          
+          if (e.key === "ArrowDown") {
+            e.preventDefault();
+            suggestionActive = (suggestionActive + 1) % currentSuggestions.length;
+            updateSuggestionBoxActive();
+          } else if (e.key === "ArrowUp") {
+            e.preventDefault();
+            suggestionActive = (suggestionActive - 1 + currentSuggestions.length) % currentSuggestions.length;
+            updateSuggestionBoxActive();
+          } else if (e.key === "Enter") {
+            if (suggestionActive !== -1) {
+              e.preventDefault();
+              selectSuggestion(suggestionActive);
+            }
+            suggestionBox.classList.add("hidden");
+          } else if (e.key === "Escape") {
+            suggestionBox.classList.add("hidden");
+            suggestionActive = -1;
+          }
+        });
+
+        // Suggestion box click
+        suggestionBox.addEventListener("mousedown", function (e) {
+          const target = e.target.closest(".suggestion-item");
+          if (target) {
+            const idx = parseInt(target.dataset.idx);
+            selectSuggestion(idx);
+            setTimeout(() => {
+              document.getElementById("address-bar-form").dispatchEvent(new Event("submit"));
+            }, 0);
+          }
+        });
+
+        // Navigation buttons
+        document.getElementById("back-btn").onclick = function () {
+          const tab = getActiveTab();
+          if (!tab || tab.pointer <= 0) return;
+          tab.pointer--;
+          updateAddressBar(tab);
+          renderTabContent(tab);
+          updateNavigationButtons();
+        };
+
+        document.getElementById("forward-btn").onclick = function () {
+          const tab = getActiveTab();
+          if (!tab || tab.pointer >= tab.history.length - 1) return;
+          tab.pointer++;
+          updateAddressBar(tab);
+          renderTabContent(tab);
+          updateNavigationButtons();
+        };
+
+        document.getElementById("refresh-btn").onclick = function () {
+          const tab = getActiveTab();
+          if (!tab || typeof tab.pointer !== "number" || tab.pointer < 0) return;
+          renderTabContent(tab);
+        };
+
+        // Search engine dropdown
+        searchEngineBtn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          searchEngineDropdown.classList.toggle("hidden");
+        });
+
+        document.querySelectorAll("#search-engine-dropdown [data-engine]").forEach(btn => {
+          btn.addEventListener("click", (e) => {
+            const engine = e.currentTarget.dataset.engine;
+            setCurrentSearchEngine(engine);
+            searchEngineDropdown.classList.add("hidden");
+          });
+        });
+
+        // Proxy dropdown
+        proxyToggleBtn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          proxyDropdown.classList.toggle("hidden");
+        });
+
+        document.querySelectorAll("#proxy-dropdown [data-proxy]").forEach(btn => {
+          btn.addEventListener("click", async (e) => {
+            const proxy = e.currentTarget.dataset.proxy;
+            await setProxy(proxy);
+            setCurrentProxy(proxy);
+            proxyDropdown.classList.add("hidden");
+            const tab = getActiveTab();
+            if (tab) renderTabContent(tab);
+          });
+        });
+
+        // Menu dropdown
+        const menuBtn = document.getElementById("menu-btn");
+        const dropdown = document.getElementById("dropdown-menu");
+        
+        menuBtn.onclick = (e) => {
+          dropdown.classList.toggle("hidden");
+          e.stopPropagation();
+        };
+
+        // Menu actions
+        document.getElementById("duplicate-active-tab-btn").onclick = function () {
+          if (activeTab) duplicateTab(activeTab);
+          dropdown.classList.add("hidden");
+        };
+
+        document.getElementById("close-other-tabs-btn").onclick = function () {
+          if (activeTab) closeOtherTabs(activeTab);
+          dropdown.classList.add("hidden");
+        };
+
+        document.getElementById("reload-all-tabs-btn").onclick = function () {
+          reloadAllTabs();
+          dropdown.classList.add("hidden");
+        };
+
+        document.getElementById("history-btn").onclick = function () {
+          openHistoryModal();
+          dropdown.classList.add("hidden");
+        };
+
+        document.getElementById("clear-history-btn").onclick = function () {
+          const tab = getActiveTab();
+          if (!tab) return;
+          tab.history = [];
+          tab.pointer = -1;
+          tab.url = "New Tab";
+          tab.title = "New Tab";
+          updateAddressBar(tab);
+          renderTabContent(tab);
+          dropdown.classList.add("hidden");
+        };
+
+        // Tab controls
+        document.getElementById("new-tab-btn").addEventListener("click", () => addTab());
+        document.getElementById("tabs-layout-toggle").addEventListener("click", toggleVerticalTabs);
+
+        // Modal controls
+        document.getElementById("close-history-modal").onclick = closeHistoryModal;
+        document.getElementById("history-modal-bg").onclick = function(e) {
+          if (e.target === this) closeHistoryModal();
+        };
+
+        document.getElementById("close-tab-context-menu").onclick = closeTabContextMenu;
+        document.getElementById("tab-context-menu-bg").onclick = function(e) {
+          if (e.target === this) closeTabContextMenu();
+        };
+
+        // Tab context menu controls
+        document.getElementById("tab-rename-input").addEventListener("input", function() {
+          if (currentContextTabId) {
+            renameTab(currentContextTabId, this.value);
+          }
+        });
+
+        document.querySelectorAll(".tab-color-btn").forEach(btn => {
+          btn.addEventListener("click", function() {
+            const color = this.dataset.color;
+            if (currentContextTabId) {
+              setTabColor(currentContextTabId, color);
+            }
+            document.querySelectorAll(".tab-color-btn").forEach(b => b.classList.remove("border-overlay"));
+            this.classList.add("border-overlay");
+          });
+        });
+
+        document.getElementById("tab-pin-toggle").onclick = function() {
+          if (currentContextTabId) {
+            togglePinTab(currentContextTabId);
+            openTabContextMenu(currentContextTabId);
+          }
+        };
+
+        document.getElementById("tab-lock-toggle").onclick = function() {
+          if (currentContextTabId) {
+            toggleTabLock(currentContextTabId);
+            openTabContextMenu(currentContextTabId);
+          }
+        };
+
+        document.getElementById("tab-duplicate-btn").onclick = function() {
+          if (currentContextTabId) {
+            duplicateTab(currentContextTabId);
+            closeTabContextMenu();
+          }
+        };
+
+        document.getElementById("tab-close-btn").onclick = function() {
+          if (currentContextTabId) {
+            removeTab(currentContextTabId);
+            closeTabContextMenu();
+          }
+        };
+
+        // Click outside to close dropdowns
+        document.addEventListener("click", function (e) {
+          if (!suggestionBox.contains(e.target) && e.target !== addressInput) {
+            suggestionBox.classList.add("hidden");
+            suggestionActive = -1;
+          }
+          if (!proxyDropdown.contains(e.target) && e.target !== proxyToggleBtn) {
+            proxyDropdown.classList.add("hidden");
+          }
+          if (!searchEngineDropdown.contains(e.target) && e.target !== searchEngineBtn) {
+            searchEngineDropdown.classList.add("hidden");
+          }
+          if (!dropdown.contains(e.target) && e.target !== menuBtn) {
+            dropdown.classList.add("hidden");
+          }
+        });
+
+        // Keyboard shortcuts
+        document.addEventListener("keydown", (e) => {
+          if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === "t") {
+            e.preventDefault();
+            addTab();
+          }
+          if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === "w") {
+            e.preventDefault();
+            if (activeTab && tabs.length > 1) removeTab(activeTab);
+          }
+          if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key === "Tab") {
+            e.preventDefault();
+            const idx = tabs.findIndex(t => t.id === activeTab);
+            if (tabs.length > 1 && idx !== -1) setActiveTab(tabs[(idx + 1) % tabs.length].id);
+          }
+          if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === "Tab") {
+            e.preventDefault();
+            const idx = tabs.findIndex(t => t.id === activeTab);
+            if (tabs.length > 1 && idx !== -1) setActiveTab(tabs[(idx - 1 + tabs.length) % tabs.length].id);
+          }
+          if (e.altKey && !e.shiftKey && e.key === "ArrowLeft") document.getElementById("back-btn").click();
+          if (e.altKey && !e.shiftKey && e.key === "ArrowRight") document.getElementById("forward-btn").click();
+          if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === "e") {
+            e.preventDefault();
+            toggleVerticalTabs();
+          }
+        });
+      }
+
+      // Initialize everything
+      function init() {
+        // Initialize DOM elements
+        addressInput = document.getElementById("address-bar-input");
+        suggestionBox = document.getElementById("suggestion-box");
+        searchEngineBtn = document.getElementById("search-engine-btn");
+        searchEngineIcon = document.getElementById("search-engine-icon");
+        searchEngineDropdown = document.getElementById("search-engine-dropdown");
+        proxyToggleBtn = document.getElementById("proxy-toggle-btn");
+        proxyToggleIcon = document.getElementById("proxy-toggle-icon");
+        proxyDropdown = document.getElementById("proxy-dropdown");
+        
+        initializeProxy();
+        updateSearchEngineDisplay();
+        setupEventListeners();
+        
+        // Restore vertical tabs mode
+        const savedVerticalMode = localStorage.getItem("vertical-tabs-mode");
+        if (savedVerticalMode === "true") {
+          verticalTabsMode = true;
+          toggleVerticalTabs();
+        }
+        
+        // Create initial tab
+        if (tabs.length === 0) addTab();
+      }
+
+      // Start the application when DOM is ready
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+      } else {
+        init();
+      }
+    </script>
   </body>
 </html>
