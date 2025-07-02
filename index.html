@@ -414,6 +414,24 @@
                     >
                       Unpin All Tabs
                     </button>
+                    <button
+                      id="close-other-tabs-btn"
+                      class="w-full text-left px-4 py-2 text-text hover:bg-highlight-med transition-colors text-sm"
+                    >
+                      Close Other Tabs
+                    </button>
+                    <button
+                      id="reload-all-tabs-btn"
+                      class="w-full flex items-center gap-2 px-4 py-2 text-text hover:bg-highlight-med transition-colors text-sm"
+                    >
+                      <i class="bx bx-refresh"></i>Reload All Tabs
+                    </button>
+                    <button
+                      id="duplicate-active-tab-btn"
+                      class="w-full flex items-center gap-2 px-4 py-2 text-text hover:bg-highlight-med transition-colors text-sm"
+                    >
+                      <i class="bx bx-copy"></i>Duplicate Active Tab
+                    </button>
                   </div>
                 </div>
               </div>
@@ -455,7 +473,100 @@
           <div
             id="modal-history-list"
             class="max-h-80 overflow-y-auto space-y-2 text-subtle scrollbar-thin scrollbar-thumb-foam scrollbar-track-highlight-med"
-          ></div>
+          >          </div>
+        </div>
+      </div>
+
+      <!-- Tab Context Menu Modal -->
+      <div
+        id="tab-context-menu-bg"
+        class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center opacity-0 pointer-events-none transition-opacity duration-300 z-50"
+      >
+        <div
+          id="tab-context-menu"
+          class="bg-overlay border border-highlight-med rounded-2xl shadow-2xl max-w-md w-[90vw] p-6 relative transform scale-95 opacity-0 transition-all duration-300"
+        >
+          <button
+            id="close-tab-context-menu"
+            class="absolute top-4 right-4 text-muted hover:text-love transition-colors"
+          >
+            <i class="bx bx-x text-2xl"></i>
+          </button>
+          <h2 class="text-xl font-bold mb-6 text-text flex items-center">
+            <i class="bx bx-cog mr-3 text-foam"></i>
+            Tab Options
+          </h2>
+          
+          <!-- Rename Tab -->
+          <div class="mb-4">
+            <label class="block text-sm font-medium text-text mb-2">
+              <i class="bx bx-edit mr-2"></i>Custom Title
+            </label>
+            <input
+              id="tab-rename-input"
+              type="text"
+              placeholder="Enter custom tab title..."
+              class="w-full p-3 bg-highlight-med border border-foam/50 rounded-lg text-text placeholder-muted focus:outline-none focus:border-foam"
+            />
+          </div>
+          
+          <!-- Color Picker -->
+          <div class="mb-4">
+            <label class="block text-sm font-medium text-text mb-2">
+              <i class="bx bx-palette mr-2"></i>Tab Color
+            </label>
+            <div class="grid grid-cols-6 gap-2">
+              <button class="tab-color-btn w-8 h-8 rounded-full border-2 border-transparent hover:border-text transition-all" 
+                      data-color="none" style="background: linear-gradient(45deg, #ccc 25%, transparent 25%), linear-gradient(-45deg, #ccc 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #ccc 75%), linear-gradient(-45deg, transparent 75%, #ccc 75%); background-size: 8px 8px; background-position: 0 0, 0 4px, 4px -4px, -4px 0px;" title="No Color"></button>
+              <button class="tab-color-btn w-8 h-8 rounded-full bg-red-500 border-2 border-transparent hover:border-text transition-all" data-color="#ef4444" title="Red"></button>
+              <button class="tab-color-btn w-8 h-8 rounded-full bg-blue-500 border-2 border-transparent hover:border-text transition-all" data-color="#3b82f6" title="Blue"></button>
+              <button class="tab-color-btn w-8 h-8 rounded-full bg-green-500 border-2 border-transparent hover:border-text transition-all" data-color="#22c55e" title="Green"></button>
+              <button class="tab-color-btn w-8 h-8 rounded-full bg-yellow-500 border-2 border-transparent hover:border-text transition-all" data-color="#eab308" title="Yellow"></button>
+              <button class="tab-color-btn w-8 h-8 rounded-full bg-purple-500 border-2 border-transparent hover:border-text transition-all" data-color="#a855f7" title="Purple"></button>
+              <button class="tab-color-btn w-8 h-8 rounded-full bg-pink-500 border-2 border-transparent hover:border-text transition-all" data-color="#ec4899" title="Pink"></button>
+              <button class="tab-color-btn w-8 h-8 rounded-full bg-orange-500 border-2 border-transparent hover:border-text transition-all" data-color="#f97316" title="Orange"></button>
+              <button class="tab-color-btn w-8 h-8 rounded-full bg-teal-500 border-2 border-transparent hover:border-text transition-all" data-color="#14b8a6" title="Teal"></button>
+              <button class="tab-color-btn w-8 h-8 rounded-full bg-cyan-500 border-2 border-transparent hover:border-text transition-all" data-color="#06b6d4" title="Cyan"></button>
+              <button class="tab-color-btn w-8 h-8 rounded-full bg-indigo-500 border-2 border-transparent hover:border-text transition-all" data-color="#6366f1" title="Indigo"></button>
+              <button class="tab-color-btn w-8 h-8 rounded-full bg-rose-500 border-2 border-transparent hover:border-text transition-all" data-color="#f43f5e" title="Rose"></button>
+            </div>
+          </div>
+          
+          <!-- Lock/Pin Options -->
+          <div class="flex gap-3 mb-6">
+            <button
+              id="tab-lock-toggle"
+              class="flex-1 flex items-center justify-center gap-2 p-3 bg-highlight-med hover:bg-highlight-high border border-foam/50 rounded-lg transition-all"
+            >
+              <i class="bx bx-lock-alt"></i>
+              <span>Toggle Lock</span>
+            </button>
+            <button
+              id="tab-pin-toggle"
+              class="flex-1 flex items-center justify-center gap-2 p-3 bg-highlight-med hover:bg-highlight-high border border-foam/50 rounded-lg transition-all"
+            >
+              <i class="bx bx-pin"></i>
+              <span>Toggle Pin</span>
+            </button>
+          </div>
+          
+          <!-- Action Buttons -->
+          <div class="flex gap-3">
+            <button
+              id="tab-duplicate-btn"
+              class="flex-1 flex items-center justify-center gap-2 p-3 bg-foam hover:bg-foam/80 text-base rounded-lg font-medium transition-all"
+            >
+              <i class="bx bx-copy"></i>
+              Duplicate
+            </button>
+            <button
+              id="tab-close-btn"
+              class="flex-1 flex items-center justify-center gap-2 p-3 bg-love hover:bg-love/80 text-white rounded-lg font-medium transition-all"
+            >
+              <i class="bx bx-x"></i>
+              Close
+            </button>
+          </div>
         </div>
       </div>
     </main>
@@ -601,6 +712,9 @@
           history: url ? [url] : [],
           pointer: url ? 0 : -1,
           pinned: false,
+          locked: false,
+          color: null,
+          customTitle: null,
         };
       }
       function renderTabs() {
