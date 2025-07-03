@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>CARBON - Games</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
+  <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+  <style>
+    @keyframes float {
+      0%, 100% { transform: translateY(0px) rotate(0deg); }
+      33% { transform: translateY(-20px) rotate(120deg); }
+      66% { transform: translateY(10px) rotate(240deg); }
+    }
+    @keyframes slideDown {
+      from { transform: translateY(-100%); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+    @keyframes fadeInUp {
+      from { transform: translateY(30px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+    .category-badge, .category-carousel-btn.active, .category-btn.active {
+      background-color: #22d3ee22;
+      color: #06b6d4 !important;
+      border-color: #06b6d4 !important;
+    }
+    .category-carousel-btn {
+      transition: all 0.16s;
+      border-color: #06b6d433;
+      background: #1a1a2e;
+      color: #cbd5e1;
+    }
+    .category-carousel-btn:hover {
+      color: #06b6d4 !important;
+      background: #0ea5e933;
+    }
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    .autocomplete-dropdown {
+      max-height: 200px;
+      overflow-y: auto;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+    }
+    .autocomplete-item {
+      transition: all 0.2s ease;
+    }
+    .autocomplete-item:hover, .autocomplete-item.highlighted {
+      background: rgba(6, 182, 212, 0.2);
+      color: #06b6d4;
+    }
+    .gotd-badge {
+      background: linear-gradient(45deg, #fbbf24, #f59e0b);
+      animation: pulse 2s infinite;
+    }
+    .continue-card {
+      background: linear-gradient(135deg, rgba(34, 211, 238, 0.1) 0%, rgba(147, 51, 234, 0.1) 100%);
+      border: 1px solid rgba(34, 211, 238, 0.3);
+    }
+    .activity-item {
+      animation: slideInFromRight 0.5s ease-out;
+    }
+    @keyframes slideInFromRight {
+      from { transform: translateX(100%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+  </style>
+  <!-- Firebase SDKs -->
+  <script type="module">
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+    import { getFirestore, doc, setDoc, getDoc, updateDoc, arrayUnion, collection, getDocs, query, orderBy } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+    import { getAuth, signInAnonymously, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+
+    // Firebase config for production
+    const firebaseConfig = {
+      apiKey: "AIzaSyC4ilHYP1T-kdXbWPoHJHhD2aj0pNWmMec",
+      authDomain: "carbon-services.firebaseapp.com",
+      projectId: "carbon-services",
+      storageBucket: "carbon-services.appspot.com",
+      messagingSenderId: "288385472070",
+      appId: "1:288385472070:web:c4be3ff186e248fc645c47",
+      measurementId: "G-Y2K1RQYE74"
+    };
+
+    window.firebaseApp = initializeApp(firebaseConfig);
+    window.db = getFirestore(window.firebaseApp);
+    window.auth = getAuth(window.firebaseApp);
+
+    // --- All App State
+    let gamesData = [];
+    let currentSlide = 0;
+    let filteredGames = [];
+    let currentFilter = 'all';
+    let pinnedGameData = null;
+    let allCategories = [];
+    let categoryCounts = {};
+    let carouselScrollPos = 0;
+    let currentUser = null;
+    let autocompleteData = [];
+    let autocompleteIndex = -1;
+    let gameOfTheDay = null;
+    let dailyPicks = [];
+    let userProgress = {};
+
+    // --- Fetch games from Firestore
+    async function fetchGames() {
+      try {
+        const gamesQuery = query(collection(window.db, 'games'), orderBy('title'));
+        const querySnapshot = await getDocs(gamesQuery);
+        const games = [];
+        querySnapshot.forEach((docSnap) => {
+          const game = { ...docSnap.data(), id: docSnap.id };
+          games.push(game);
+        });
+        return games;
+      } catch (error) {
+        console.error('[Firestore] Failed to fetch games:', error);
+        throw error;
+      }
+    }
+
+    async function initializeGames() {
+      try {
+        document.getElementById('gamesGrid').innerHTML = `<div class="col-span-full text-center text-white/60 py-10">Loading games from Firestore...</div>`;
+        gamesData = await fetchGames();
+        filteredGames = [...gamesData];
+        let catSet = new Set();
+        let counts = {};
+        gamesData.forEach(game => {
+          if (game.category) {
+            catSet.add(game.category);
+            counts[game.category] = (counts[game.category] || 0) + 1;
+          }
+        });
+        allCategories = Array.from(catSet).sort();
+        categoryCounts = counts;
+        renderCategoryButtons();
+        renderFeaturedCarousel();
+        renderGamesGrid();
+        updateGameCount();
+        renderCategoriesCarousel();
+        setupAutocomplete();
+      } catch (error) {
+        document.getElementById('gamesGrid').innerHTML = `<div class="col-span-full text-center text-red-400 py-10">Failed to load games from Firestore.</div>`;
+      }
+    }
+
+    // --- Authentication ---
+    async function setupAuth() {
+      onAuthStateChanged(window.auth, async (user) => {
+        if (user) {
+          currentUser = user;
+          document.getElementById('signInBtn').classList.add('hidden');
+          document.getElementById('userProfile').classList.remove('hidden');
+          document.getElementById('userName').textContent = user.isAnonymous ? 'Guest' : user.displayName || 'User';
+          document.getElementById('userAvatar').src = user.photoURL || 'https://via.placeholder.com/32x32/06b6d4/ffffff?text=U';
+          document.getElementById('activityIndicator').classList.remove('hidden');
+          await loadUserProgress();
+          await loadPinnedGames();
+        } else {
+          currentUser = null;
+          document.getElementById('signInBtn').classList.remove('hidden');
+          document.getElementById('userProfile').classList.add('hidden');
+          document.getElementById('activityIndicator').classList.add('hidden');
+        }
+      });
+    }
+    window.signInUser = async () => {
+      try {
+        await signInAnonymously(window.auth);
+      } catch (error) {
+        console.error('Sign in failed:', error);
+      }
+    };
+    window.signOutUser = async () => {
+      try {
+        await window.auth.signOut();
+      } catch (error) {
+        console.error('Sign out failed:', error);
+      }
+    };
+
+    // --- Autocomplete ---
+    function setupAutocomplete() {
+      autocompleteData = gamesData.map(game => ({
+        title: game.title,
+        id: game.id,
+        category: game.category,
+        description: game.description
+      }));
+    }
+    window.handleSearchInput = () => {
+      const input = document.getElementById('searchInput');
+      const query = input.value.toLowerCase().trim();
+      if (query.length > 0) {
+        const matches = autocompleteData.filter(game => 
+          game.title.toLowerCase().includes(query) ||
+          game.category.toLowerCase().includes(query) ||
+          game.description.toLowerCase().includes(query)
+        ).slice(0, 5);
+        showAutocompleteResults(matches, query);
+      } else {
+        hideAutocomplete();
+      }
+      searchGames();
+    };
+    function showAutocompleteResults(matches, query) {
+      const dropdown = document.getElementById('autocompleteDropdown');
+      const results = document.getElementById('autocompleteResults');
+      if (matches.length === 0) {
+        hideAutocomplete();
+        return;
+      }
+      results.innerHTML = matches.map((game, index) => `
+        <div class="autocomplete-item p-3 rounded-lg cursor-pointer ${index === autocompleteIndex ? 'highlighted' : ''}" 
+             onclick="selectAutocompleteItem('${game.title.replace(/'/g, "\\'")}')"
+             data-index="${index}">
+          <div class="flex items-center gap-3">
+            <i class='bx bx-game text-cyan-400'></i>
+            <div>
+              <div class="font-semibold text-white">${highlightText(game.title, query)}</div>
+              <div class="text-sm text-white/60">${game.category} • ${highlightText(game.description, query)}</div>
+            </div>
+          </div>
+        </div>
+      `).join('');
+      dropdown.classList.remove('hidden');
+    }
+    function highlightText(text, query) {
+      const regex = new RegExp(`(${query})`, 'gi');
+      return text.replace(regex, '<span class="text-cyan-400 font-semibold">$1</span>');
+    }
+    window.handleSearchKeydown = (event) => {
+      const dropdown = document.getElementById('autocompleteDropdown');
+      const items = dropdown.querySelectorAll('.autocomplete-item');
+      if (dropdown.classList.contains('hidden')) return;
+      switch (event.key) {
+        case 'ArrowDown':
+          event.preventDefault();
+          autocompleteIndex = (autocompleteIndex + 1) % items.length;
+          updateAutocompleteHighlight();
+          break;
+        case 'ArrowUp':
+          event.preventDefault();
+          autocompleteIndex = (autocompleteIndex - 1 + items.length) % items.length;
+          updateAutocompleteHighlight();
+          break;
+        case 'Enter':
+          event.preventDefault();
+          if (autocompleteIndex >= 0 && items[autocompleteIndex]) {
+            const title = items[autocompleteIndex].querySelector('.font-semibold').textContent;
+            selectAutocompleteItem(title);
+          }
+          break;
+        case 'Escape':
+          hideAutocomplete();
+          break;
+      }
+    };
+    function updateAutocompleteHighlight() {
+      const items = document.querySelectorAll('.autocomplete-item');
+      items.forEach((item, index) => {
+        if (index === autocompleteIndex) {
+          item.classList.add('highlighted');
+        } else {
+          item.classList.remove('highlighted');
+        }
+      });
+    }
+    window.selectAutocompleteItem = (title) => {
+      document.getElementById('searchInput').value = title;
+      hideAutocomplete();
+      searchGames();
+    };
+    window.showAutocomplete = () => {
+      const input = document.getElementById('searchInput');
+      if (input.value.trim().length > 0) {
+        handleSearchInput();
+      }
+    };
+    window.hideAutocomplete = () => {
+      setTimeout(() => {
+        document.getElementById('autocompleteDropdown').classList.add('hidden');
+        autocompleteIndex = -1;
+      }, 200);
+    };
+
+    // --- Daily Content ---
+    async function generateDailyContent() {
+      const today = new Date().toDateString();
+      try {
+        const dailyDoc = await getDoc(doc(window.db, 'daily-content', today));
+        if (dailyDoc.exists()) {
+          const data = dailyDoc.data();
+          gameOfTheDay = data.gameOfTheDay;
+          dailyPicks = data.dailyPicks;
+        } else {
+          gameOfTheDay = gamesData[Math.floor(Math.random() * gamesData.length)];
+          dailyPicks = getRandomGames(4);
+          await setDoc(doc(window.db, 'daily-content', today), {
+            gameOfTheDay,
+            dailyPicks,
+            date: today
+          });
+        }
+        renderGameOfTheDay();
+        renderDailyPicks();
+      } catch (error) {
+        gameOfTheDay = gamesData[Math.floor(Math.random() * gamesData.length)];
+        dailyPicks = getRandomGames(4);
+        renderGameOfTheDay();
+        renderDailyPicks();
+      }
+    }
+    function getRandomGames(count) {
+      const shuffled = [...gamesData].sort(() => 0.5 - Math.random());
+      return shuffled.slice(0, count);
+    }
+    function renderGameOfTheDay() {
+      const card = document.getElementById('gameOfTheDayCard');
+      if (!gameOfTheDay) return;
+      card.innerHTML = `
+        <div class="flex items-center gap-6">
+          <img src="${gameOfTheDay.image}" alt="${gameOfTheDay.title}" class="w-24 h-24 rounded-xl object-cover">
+          <div class="flex-1">
+            <h3 class="text-xl font-bold text-white mb-2">${gameOfTheDay.title}</h3>
+            <p class="text-white/70 mb-4">${gameOfTheDay.description}</p>
+            <div class="flex gap-3">
+              <a href="play.html?id=${gameOfTheDay.id}" class="bg-gradient-to-r from-amber-400 to-orange-500 text-black font-semibold px-6 py-2 rounded-lg hover:scale-105 transition-transform duration-300">
+                Play Game of the Day
+              </a>
+              <button onclick="pinGame('${gameOfTheDay.id}')" class="bg-white/20 backdrop-blur-sm text-white font-semibold px-4 py-2 rounded-lg hover:bg-white/30 transition-all duration-300">
+                <i class='bx bx-pin'></i>
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+    function renderDailyPicks() {
+      const grid = document.getElementById('dailyPicksGrid');
+      grid.innerHTML = dailyPicks.map(game => `
+        <div class="bg-white/5 border border-white/10 rounded-xl hover:border-cyan-400/30 transition-all duration-300 overflow-hidden group cursor-pointer" onclick="window.location.href='play.html?id=${game.id}';">
+          <img src="${game.image}" alt="${game.title}" class="w-full h-32 object-cover group-hover:scale-110 transition-transform duration-300">
+          <div class="p-4">
+            <h4 class="font-semibold text-white mb-1">${game.title}</h4>
+            <p class="text-white/60 text-sm">${game.category}</p>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // --- User Progress and Continue Playing ---
+    async function loadUserProgress() {
+      if (!currentUser) return;
+      try {
+        const progressDoc = await getDoc(doc(window.db, 'user-progress', currentUser.uid));
+        if (progressDoc.exists()) {
+          userProgress = progressDoc.data();
+          renderContinuePlaying();
+        }
+      } catch (error) {
+        console.error('Failed to load user progress:', error);
+      }
+    }
+    function renderContinuePlaying() {
+      const section = document.getElementById('continuePlayingSection');
+      const card = document.getElementById('continuePlayingCard');
+      if (!userProgress.lastPlayed) {
+        section.classList.add('hidden');
+        return;
+      }
+      const lastGame = gamesData.find(g => g.id === userProgress.lastPlayed.gameId);
+      if (!lastGame) {
+        section.classList.add('hidden');
+        return;
+      }
+      section.classList.remove('hidden');
+      card.innerHTML = `
+        <div class="flex items-center gap-6">
+          <img src="${lastGame.image}" alt="${lastGame.title}" class="w-20 h-20 rounded-xl object-cover">
+          <div class="flex-1">
+            <h3 class="text-lg font-bold text-white mb-1">${lastGame.title}</h3>
+            <p class="text-white/60 text-sm mb-2">Last played ${new Date(userProgress.lastPlayed.timestamp).toLocaleDateString()}</p>
+            <div class="w-full bg-white/10 rounded-full h-2 mb-3">
+              <div class="bg-gradient-to-r from-cyan-400 to-indigo-500 h-2 rounded-full" style="width: ${userProgress.lastPlayed.progress || 0}%"></div>
+            </div>
+            <a href="play.html?id=${lastGame.id}" class="bg-gradient-to-r from-cyan-400 to-indigo-500 text-black font-semibold px-4 py-2 rounded-lg hover:scale-105 transition-transform duration-300 text-sm">
+              Continue Playing
+            </a>
+          </div>
+        </div>
+      `;
+      card.onclick = () => {
+        window.location.href = `play.html?id=${lastGame.id}`;
+      };
+    }
+
+    // --- Random Game ---
+    window.playRandomGame = () => {
+      const randomGame = gamesData[Math.floor(Math.random() * gamesData.length)];
+      window.location.href = `play.html?id=${randomGame.id}`;
+    };
+
+    // --- Pinned Games ---
+    async function loadPinnedGames() {
+      if (!currentUser) return;
+      try {
+        const pinnedDoc = await getDoc(doc(window.db, 'user-pins', currentUser.uid));
+        if (pinnedDoc.exists()) {
+          const pinnedGameId = pinnedDoc.data().gameId;
+          if (pinnedGameId) {
+            const game = gamesData.find(g => g.id === pinnedGameId);
+            if (game) {
+              pinnedGameData = game;
+              document.getElementById('pinnedGame').classList.remove('hidden');
+              document.getElementById('pinnedGameTitle').textContent = game.title;
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Failed to load pinned games:', error);
+      }
+    }
+    window.pinGame = async (gameId) => {
+      const game = gamesData.find(g => g.id === gameId);
+      if (!game || !currentUser) return;
+      try {
+        await setDoc(doc(window.db, 'user-pins', currentUser.uid), {
+          gameId: gameId,
+          timestamp: Date.now()
+        });
+        pinnedGameData = game;
+        document.getElementById('pinnedGame').classList.remove('hidden');
+        document.getElementById('pinnedGameTitle').textContent = game.title;
+      } catch (error) {
+        console.error('Failed to pin game:', error);
+      }
+    };
+    window.unpinGame = async () => {
+      if (!currentUser) return;
+      try {
+        await setDoc(doc(window.db, 'user-pins', currentUser.uid), {
+          gameId: null,
+          timestamp: Date.now()
+        });
+        pinnedGameData = null;
+        document.getElementById('pinnedGame').classList.add('hidden');
+      } catch (error) {
+        console.error('Failed to unpin game:', error);
+      }
+    };
+
+    // --- Games Grid and UI ---
+    function renderGamesGrid() {
+      const grid = document.getElementById('gamesGrid');
+      if (filteredGames.length === 0) {
+        grid.innerHTML = '<div class="col-span-full text-center text-white/60 py-10">No games found.</div>';
+        return;
+      }
+      grid.innerHTML = filteredGames.map(game => `
+        <div class="game-card bg-white/5 border border-white/10 rounded-2xl hover:border-cyan-400/30 transition-all duration-300 aspect-[4/3] relative group" data-category="${game.category}" data-title="${game.title.toLowerCase()}">
+          <div class="relative w-full h-full overflow-hidden rounded-2xl">
+            <img src="${game.image}" alt="${game.title}" class="w-full h-full object-cover">
+            <img src="${game.gif || game.image}" alt="${game.title} gameplay" class="absolute top-0 left-0 w-full h-full object-cover opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+            <div class="absolute top-3 right-3 z-10 flex gap-2">
+              <button onclick="pinGame('${game.id}')" class="bg-black/50 hover:bg-black/70 text-white p-2 rounded-full transition-all duration-300 backdrop-blur-sm">
+                <i class='bx bx-pin text-sm'></i>
+              </button>
+              ${gameOfTheDay && gameOfTheDay.id === game.id ? '<div class="gotd-badge px-2 py-1 rounded-full text-black font-bold text-xs">GOTD</div>' : ''}
+            </div>
+            <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/60 to-transparent p-4 translate-y-full group-hover:translate-y-0 transition-transform duration-300">
+              <h3 class="font-semibold text-white mb-1">${game.title}</h3>
+              <p class="text-white/60 text-sm mb-3">${game.description}</p>
+              <div class="flex items-center justify-between">
+                <button type="button"
+                  class="category-badge px-3 py-1 rounded-full text-cyan-300 border border-cyan-400/30 font-semibold text-xs transition hover:bg-cyan-600/10 hover:text-cyan-400"
+                  onclick="filterGames('${game.category}', event)">
+                  ${game.category.charAt(0).toUpperCase() + game.category.slice(1)}
+                </button>
+                <a href="play.html?id=${game.id}" class="bg-gradient-to-r from-cyan-400 to-indigo-500 text-black font-semibold px-4 py-2 rounded-lg hover:scale-105 transition-transform duration-300 text-sm">
+                  Play Now
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      `).join('');
+    }
+    function renderCategoryButtons() {
+      const btns = document.getElementById('categoryButtons');
+      btns.innerHTML = `
+        <button class="category-btn active px-6 py-3 rounded-full border border-white/20 text-white font-semibold transition-all duration-300 hover:border-cyan-400/50" onclick="filterGames('all', event)">
+          All Games
+        </button>
+        ${allCategories.map(cat => `
+          <button class="category-btn px-6 py-3 rounded-full border border-white/20 text-white font-semibold transition-all duration-300 hover:border-cyan-400/50"
+            onclick="filterGames('${cat}', event)">
+            ${cat.charAt(0).toUpperCase() + cat.slice(1)} <span class="ml-1 text-cyan-400/80">(${categoryCounts[cat]})</span>
+          </button>
+        `).join('')}
+      `;
+    }
+    function renderFeaturedCarousel() {
+      const carousel = document.getElementById('featuredCarousel');
+      const featuredGames = gamesData.filter(game => game.featured);
+      carousel.innerHTML = featuredGames.map(game => `
+        <div class="flex-shrink-0 w-full relative">
+          <div class="bg-gradient-to-br from-white/10 to-white/5 rounded-2xl overflow-hidden border border-white/10">
+            <div class="aspect-video relative overflow-hidden">
+              <img src="${game.image}" alt="${game.title}" class="w-full h-full object-cover">
+              <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+              <div class="absolute bottom-6 left-6 right-6">
+                <h3 class="text-2xl font-bold mb-2">${game.title}</h3>
+                <p class="text-white/80 mb-4">${game.description}</p>
+                <div class="flex gap-3">
+                  <a href="play.html?id=${game.id}" class="bg-gradient-to-r from-cyan-400 to-indigo-500 text-black font-semibold px-6 py-2 rounded-lg hover:scale-105 transition-transform duration-300">
+                    Play Now
+                  </a>
+                  <button onclick="pinGame('${game.id}')" class="bg-white/20 backdrop-blur-sm text-white font-semibold px-6 py-2 rounded-lg hover:bg-white/30 transition-all duration-300">
+                    <i class='bx bx-pin mr-2'></i>Pin
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      `).join('');
+      updateCarousel();
+    }
+    function nextSlide() {
+      const featuredGames = gamesData.filter(game => game.featured);
+      if (featuredGames.length === 0) return;
+      currentSlide = (currentSlide + 1) % featuredGames.length;
+      updateCarousel();
+    }
+    function previousSlide() {
+      const featuredGames = gamesData.filter(game => game.featured);
+      if (featuredGames.length === 0) return;
+      currentSlide = (currentSlide - 1 + featuredGames.length) % featuredGames.length;
+      updateCarousel();
+    }
+    function updateCarousel() {
+      const featuredGames = gamesData.filter(game => game.featured);
+      const carousel = document.getElementById('featuredCarousel');
+      carousel.style.transform = `translateX(-${currentSlide * 100}%)`;
+    }
+    function searchGames() {
+      const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+      filteredGames = gamesData.filter(game => {
+        const matchesSearch = game.title.toLowerCase().includes(searchTerm) ||
+                              game.description.toLowerCase().includes(searchTerm) ||
+                              (game.tags && game.tags.some(tag => tag.toLowerCase().includes(searchTerm)));
+        const matchesCategory = currentFilter === 'all' || game.category === currentFilter;
+        return matchesSearch && matchesCategory;
+      });
+      renderGamesGrid();
+      updateGameCount();
+    }
+    window.filterGames = (category, event) => {
+      currentFilter = category;
+      document.querySelectorAll('.category-btn').forEach(btn => btn.classList.remove('active'));
+      if (event && event.target.classList.contains('category-btn')) {
+        event.target.classList.add('active');
+      } else {
+        let btns = document.querySelectorAll('.category-btn, .category-carousel-btn, .category-badge');
+        btns.forEach(btn => {
+          if (btn.textContent.trim().toLowerCase().startsWith(category.toLowerCase())) {
+            btn.classList.add('active');
+          } else {
+            btn.classList.remove('active');
+          }
+        });
+      }
+      document.getElementById('searchInput').value = '';
+      filteredGames = gamesData.filter(game => category === 'all' || game.category === category);
+      renderGamesGrid();
+      updateGameCount();
+      renderCategoriesCarousel();
+    };
+    function updateGameCount() {
+      document.getElementById('gameCount').textContent = `${filteredGames.length} games found`;
+    }
+    function renderCategoriesCarousel() {
+      const carousel = document.getElementById('categoriesCarousel');
+      carousel.innerHTML = allCategories.map(cat => `
+        <button type="button"
+          class="category-carousel-btn px-6 py-2 mr-2 rounded-full border font-semibold border-cyan-400/20 ${currentFilter === cat ? 'active' : ''}"
+          onclick="filterGames('${cat}', event)">
+          <i class='bx bx-category text-cyan-400 mr-1'></i>
+          ${cat.charAt(0).toUpperCase() + cat.slice(1)}
+          <span class="ml-1 text-cyan-300/60">(${categoryCounts[cat]})</span>
+        </button>
+      `).join('');
+    }
+    window.toggleMenu = () => {
+      console.log('Mobile menu toggled');
+    };
+
+    // --- Document Ready ---
+    document.addEventListener('DOMContentLoaded', async () => {
+      await setupAuth();
+      await initializeGames();
+      await generateDailyContent();
+      setInterval(nextSlide, 5000);
+      // Categories carousel scroll
+      const carousel = document.getElementById('categoriesCarousel');
+      document.getElementById('catCarouselPrev').onclick = () => {
+        carousel.scrollBy({left: -220, behavior: 'smooth'});
+      };
+      document.getElementById('catCarouselNext').onclick = () => {
+        carousel.scrollBy({left: 220, behavior: 'smooth'});
+      };
+    });
+
+    document.addEventListener('scroll', function() {
+      const navbar = document.querySelector('nav');
+      if (window.scrollY > 100) {
+        navbar.style.backgroundColor = 'rgba(15, 15, 35, 0.95)';
+      } else {
+        navbar.style.backgroundColor = 'rgba(15, 15, 35, 0.8)';
+      }
+    });
+
+    window.nextSlide = nextSlide;
+    window.previousSlide = previousSlide;
+  </script>
+</body>
+</html>
