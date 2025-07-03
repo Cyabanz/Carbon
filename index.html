@@ -550,7 +550,7 @@
               class="w-full px-3 py-2 bg-highlight-med border border-overlay rounded-lg text-text placeholder-muted focus:outline-none focus:border-foam focus:ring-1 focus:ring-foam resize-none"
             ></textarea>
           </div>
-
+          
           <!-- Color Picker -->
           <div class="mb-5">
             <label class="block text-sm font-medium text-text mb-2">
@@ -841,406 +841,279 @@
         const tabsBar = document.getElementById("tabs-bar");
         tabsBar.innerHTML = "";
         
-        // Group tabs by their groupId
-        const groupedTabs = {};
-        const ungroupedTabs = [];
-        
-        tabs.forEach(tab => {
-          if (tab.groupId) {
-            if (!groupedTabs[tab.groupId]) {
-              groupedTabs[tab.groupId] = [];
-            }
-            groupedTabs[tab.groupId].push(tab);
-          } else {
-            ungroupedTabs.push(tab);
-          }
-        });
-        
-        // Sort ungrouped tabs: pinned first, then regular
-        const sortedUngroupedTabs = ungroupedTabs.sort((a, b) => {
+        // Sort tabs: pinned first, then regular
+        const sortedTabs = [...tabs].sort((a, b) => {
           if (a.pinned && !b.pinned) return -1;
           if (!a.pinned && b.pinned) return 1;
           return 0;
         });
         
-        // Render ungrouped tabs first
-        sortedUngroupedTabs.forEach(tab => {
-          renderSingleTab(tab, tabsBar);
-        });
-        
-        // Render grouped tabs
-        Object.keys(groupedTabs).forEach(groupId => {
-          const group = tabGroups.find(g => g.id === groupId);
-          if (!group) return;
+        sortedTabs.forEach((tab, idx) => {
+          const tabElement = document.createElement("div");
           
-          // Create group header
-          const groupHeader = document.createElement("div");
-          groupHeader.className = "flex items-center px-2 py-1 mx-1 text-xs font-medium cursor-pointer select-none hover:bg-highlight-med/50 rounded transition-colors";
-          groupHeader.style.borderLeft = `3px solid ${group.color}`;
-          groupHeader.style.backgroundColor = `${group.color}15`;
+          // Browser-style tab styling
+          const isActive = tab.id === activeTab;
           
-          const groupTitle = document.createElement("span");
-          groupTitle.textContent = group.name;
-          groupTitle.className = "flex-1 text-text";
-          groupHeader.appendChild(groupTitle);
+          // Base tab styling with browser-like trapezoid shape
+          tabElement.className = `
+            relative flex items-center px-4 py-2 mx-0.5 cursor-pointer select-none transition-all duration-200 group 
+            min-w-32 max-w-64 h-9 rounded-t-lg border-r border-highlight-med
+            ${isActive 
+              ? 'bg-surface text-text border-b border-highlight-med z-10 shadow-sm' 
+              : 'bg-highlight-med text-subtle hover:bg-highlight-med/90 border-b border-highlight-med'
+            }
+          `;
           
-          const collapseBtn = document.createElement("i");
-          collapseBtn.className = `bx ${group.collapsed ? 'bx-chevron-right' : 'bx-chevron-down'} text-muted`;
-          groupHeader.appendChild(collapseBtn);
-          
-          groupHeader.onclick = () => toggleGroupCollapse(groupId);
-          tabsBar.appendChild(groupHeader);
-          
-          // Render tabs in group (if not collapsed)
-          if (!group.collapsed) {
-            const sortedGroupTabs = groupedTabs[groupId].sort((a, b) => {
-              if (a.pinned && !b.pinned) return -1;
-              if (!a.pinned && b.pinned) return 1;
-              return 0;
-            });
-            
-            sortedGroupTabs.forEach(tab => {
-              renderSingleTab(tab, tabsBar, group);
-            });
+          // Apply color theming for active tabs
+          if (tab.color && isActive) {
+            tabElement.style.borderTop = `2px solid ${tab.color}`;
           }
-        });
-      }
-      
-      function renderSingleTab(tab, container, group = null) {
-        const tabElement = document.createElement("div");
-        
-        // Browser-style tab styling
-        const isActive = tab.id === activeTab;
-        
-        // Base tab styling with browser-like trapezoid shape
-        tabElement.className = `
-          relative flex items-center px-4 py-2 mx-0.5 cursor-pointer select-none transition-all duration-200 group 
-          min-w-32 max-w-64 h-9 rounded-t-lg border-r border-highlight-med
-          ${isActive 
-            ? 'bg-surface text-text border-b border-highlight-med z-10 shadow-sm' 
-            : 'bg-highlight-med text-subtle hover:bg-highlight-med/90 border-b border-highlight-med'
+          
+          // Pinned tab styling
+          if (tab.pinned) {
+            tabElement.style.background = isActive ? '#f8fafc' : '#e2e8f0';
+            if (isActive) {
+              tabElement.style.borderTop = '2px solid #3b82f6';
+            }
           }
-        `;
-        
-        // Apply group color theming
-        if (group && isActive) {
-          tabElement.style.borderTop = `2px solid ${group.color}`;
-          tabElement.style.backgroundColor = `${group.color}10`;
-        } else if (tab.color && isActive) {
-          tabElement.style.borderTop = `2px solid ${tab.color}`;
-        }
-        
-        // Pinned tab styling
-        if (tab.pinned) {
-          tabElement.style.background = isActive ? '#f8fafc' : '#e2e8f0';
-          if (isActive) {
-            tabElement.style.borderTop = '2px solid #3b82f6';
+          
+          tabElement.setAttribute("data-tab-id", tab.id);
+          
+          const content = document.createElement("div");
+          content.className = "flex items-center w-full min-w-0 gap-2";
+          
+          // Favicon placeholder
+          const favicon = document.createElement("div");
+          favicon.className = "w-4 h-4 flex-shrink-0 rounded-sm bg-gray-400 flex items-center justify-center";
+          if (tab.color) {
+            favicon.style.backgroundColor = tab.color;
+            favicon.innerHTML = '<div class="w-2 h-2 bg-text rounded-full"></div>';
+          } else {
+            favicon.innerHTML = '<i class="bx bx-world text-xs text-text"></i>';
           }
-        }
-        
-        tabElement.setAttribute("data-tab-id", tab.id);
-        
-        const content = document.createElement("div");
-        content.className = "flex items-center w-full min-w-0 gap-2";
-        
-        // Favicon placeholder
-        const favicon = document.createElement("div");
-        favicon.className = "w-4 h-4 flex-shrink-0 rounded-sm bg-gray-400 flex items-center justify-center";
-        if (group) {
-          favicon.style.backgroundColor = group.color;
-          favicon.innerHTML = '<div class="w-2 h-2 bg-text rounded-full"></div>';
-        } else if (tab.color) {
-          favicon.style.backgroundColor = tab.color;
-          favicon.innerHTML = '<div class="w-2 h-2 bg-text rounded-full"></div>';
-        } else {
-          favicon.innerHTML = '<i class="bx bx-world text-xs text-text"></i>';
-        }
-        content.appendChild(favicon);
-        
-        // Status indicators
-        const statusContainer = document.createElement("div");
-        statusContainer.className = "flex items-center gap-1 flex-shrink-0";
-        
-        // Notes indicator
-        if (tab.notes && tab.notes.trim()) {
-          const notesIcon = document.createElement("i");
-          notesIcon.className = "bx bx-note text-xs text-iris";
-          notesIcon.title = "Has notes";
-          statusContainer.appendChild(notesIcon);
-        }
-        
-        // Pin indicator
-        if (tab.pinned) {
-          const pinIcon = document.createElement("i");
-          pinIcon.className = "bx bx-pin text-xs text-foam";
-          statusContainer.appendChild(pinIcon);
-        }
-        
-        // Lock indicator  
-        if (tab.locked) {
-          const lockIcon = document.createElement("i");
-          lockIcon.className = "bx bx-lock-alt text-xs text-gold";
-          statusContainer.appendChild(lockIcon);
-        }
-        
-        if (statusContainer.children.length > 0) {
-          content.appendChild(statusContainer);
-        }
-        
-        // Tab title
-        const title = document.createElement("span");
-        const displayTitle = tab.customTitle || tab.title || "New Tab";
-        title.textContent = displayTitle.length > 24 ? displayTitle.slice(0, 21) + "..." : displayTitle;
-        title.className = "flex-1 truncate text-sm font-normal min-w-0";
-        content.appendChild(title);
-        
-        // Tab actions (only show on hover)
-        const actionsContainer = document.createElement("div");
-        actionsContainer.className = "flex items-center gap-0.5 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity";
-        
-        // Options button
-        const optionsBtn = document.createElement("button");
-        optionsBtn.className = "w-5 h-5 rounded flex items-center justify-center hover:bg-highlight-med/20 transition-colors";
-        optionsBtn.innerHTML = '<i class="bx bx-dots-horizontal-rounded text-xs"></i>';
-        optionsBtn.title = "Tab options";
-        optionsBtn.onclick = (e) => {
-          e.stopPropagation();
-          openTabContextMenu(tab.id);
-        };
-        actionsContainer.appendChild(optionsBtn);
-        
-        // Close button
-        const closeBtn = document.createElement("button");
-        closeBtn.className = "w-5 h-5 rounded flex items-center justify-center hover:bg-love/20 transition-colors";
-        closeBtn.innerHTML = '<i class="bx bx-x text-xs"></i>';
-        closeBtn.title = tab.locked ? "Tab is locked" : "Close tab";
-        
-        if (tab.locked) {
-          closeBtn.className += " opacity-50 cursor-not-allowed";
-        } else {
-          closeBtn.onclick = (e) => {
+          content.appendChild(favicon);
+          
+          // Status indicators
+          const statusContainer = document.createElement("div");
+          statusContainer.className = "flex items-center gap-1 flex-shrink-0";
+          
+          // Notes indicator
+          if (tab.notes && tab.notes.trim()) {
+            const notesIcon = document.createElement("i");
+            notesIcon.className = "bx bx-note text-xs text-iris";
+            notesIcon.title = "Has notes";
+            statusContainer.appendChild(notesIcon);
+          }
+          
+          // Pin indicator
+          if (tab.pinned) {
+            const pinIcon = document.createElement("i");
+            pinIcon.className = "bx bx-pin text-xs text-foam";
+            statusContainer.appendChild(pinIcon);
+          }
+          
+          // Lock indicator  
+          if (tab.locked) {
+            const lockIcon = document.createElement("i");
+            lockIcon.className = "bx bx-lock-alt text-xs text-gold";
+            statusContainer.appendChild(lockIcon);
+          }
+          
+          if (statusContainer.children.length > 0) {
+            content.appendChild(statusContainer);
+          }
+          
+          // Tab title
+          const title = document.createElement("span");
+          const displayTitle = tab.customTitle || tab.title || "New Tab";
+          title.textContent = displayTitle.length > 24 ? displayTitle.slice(0, 21) + "..." : displayTitle;
+          title.className = "flex-1 truncate text-sm font-normal min-w-0";
+          content.appendChild(title);
+          
+          // Tab actions (only show on hover)
+          const actionsContainer = document.createElement("div");
+          actionsContainer.className = "flex items-center gap-0.5 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity";
+          
+          // Options button
+          const optionsBtn = document.createElement("button");
+          optionsBtn.className = "w-5 h-5 rounded flex items-center justify-center hover:bg-highlight-med/20 transition-colors";
+          optionsBtn.innerHTML = '<i class="bx bx-dots-horizontal-rounded text-xs"></i>';
+          optionsBtn.title = "Tab options";
+          optionsBtn.onclick = (e) => {
             e.stopPropagation();
-            removeTab(tab.id);
+            openTabContextMenu(tab.id);
           };
-        }
-        actionsContainer.appendChild(closeBtn);
-        
-        content.appendChild(actionsContainer);
-        tabElement.appendChild(content);
-        
-        // Tab interactions
-        tabElement.onclick = () => setActiveTab(tab.id);
-        tabElement.oncontextmenu = (e) => {
-          e.preventDefault();
-          openTabContextMenu(tab.id);
-        };
-        
-        container.appendChild(tabElement);
+          actionsContainer.appendChild(optionsBtn);
+          
+          // Close button
+          const closeBtn = document.createElement("button");
+          closeBtn.className = "w-5 h-5 rounded flex items-center justify-center hover:bg-love/20 transition-colors";
+          closeBtn.innerHTML = '<i class="bx bx-x text-xs"></i>';
+          closeBtn.title = tab.locked ? "Tab is locked" : "Close tab";
+          
+          if (tab.locked) {
+            closeBtn.className += " opacity-50 cursor-not-allowed";
+          } else {
+            closeBtn.onclick = (e) => {
+              e.stopPropagation();
+              removeTab(tab.id);
+            };
+          }
+          actionsContainer.appendChild(closeBtn);
+          
+          content.appendChild(actionsContainer);
+          tabElement.appendChild(content);
+          
+          // Tab interactions
+          tabElement.onclick = () => setActiveTab(tab.id);
+          tabElement.oncontextmenu = (e) => {
+            e.preventDefault();
+            openTabContextMenu(tab.id);
+          };
+          
+          tabsBar.appendChild(tabElement);
+        });
       }
       
       function renderVerticalTabs() {
         const verticalTabsList = document.getElementById("vertical-tabs-list");
         verticalTabsList.innerHTML = "";
         
-        // Group tabs by their groupId
-        const groupedTabs = {};
-        const ungroupedTabs = [];
-        
-        tabs.forEach(tab => {
-          if (tab.groupId) {
-            if (!groupedTabs[tab.groupId]) {
-              groupedTabs[tab.groupId] = [];
-            }
-            groupedTabs[tab.groupId].push(tab);
-          } else {
-            ungroupedTabs.push(tab);
-          }
-        });
-        
-        // Sort ungrouped tabs: pinned first, then regular
-        const sortedUngroupedTabs = ungroupedTabs.sort((a, b) => {
+        // Sort tabs: pinned first, then regular
+        const sortedTabs = [...tabs].sort((a, b) => {
           if (a.pinned && !b.pinned) return -1;
           if (!a.pinned && b.pinned) return 1;
           return 0;
         });
         
-        // Render ungrouped tabs first
-        sortedUngroupedTabs.forEach(tab => {
-          renderSingleVerticalTab(tab, verticalTabsList);
-        });
-        
-        // Render grouped tabs
-        Object.keys(groupedTabs).forEach(groupId => {
-          const group = tabGroups.find(g => g.id === groupId);
-          if (!group) return;
+        sortedTabs.forEach((tab) => {
+          const tabElement = document.createElement("button");
           
-          // Create group header
-          const groupHeader = document.createElement("div");
-          groupHeader.className = "flex items-center p-3 mx-2 text-sm font-medium cursor-pointer select-none hover:bg-highlight-med/50 rounded transition-colors border-l-4";
-          groupHeader.style.borderLeftColor = group.color;
-          groupHeader.style.backgroundColor = `${group.color}15`;
+          // Browser-style vertical tab styling
+          const isActive = tab.id === activeTab;
           
-          const groupTitle = document.createElement("span");
-          groupTitle.textContent = group.name;
-          groupTitle.className = "flex-1 text-text";
-          groupHeader.appendChild(groupTitle);
+          tabElement.className = `
+            w-full p-3 text-left transition-all duration-200 border-l-4 group flex items-center justify-between
+            ${isActive 
+              ? 'bg-highlight-med text-text border-foam' 
+              : 'text-subtle border-transparent hover:bg-highlight-med hover:text-text'
+            }
+          `;
           
-          const collapseBtn = document.createElement("i");
-          collapseBtn.className = `bx ${group.collapsed ? 'bx-chevron-right' : 'bx-chevron-down'} text-muted`;
-          groupHeader.appendChild(collapseBtn);
+          tabElement.setAttribute("data-tab-id", tab.id);
           
-          groupHeader.onclick = () => toggleGroupCollapse(groupId);
-          verticalTabsList.appendChild(groupHeader);
-          
-          // Render tabs in group (if not collapsed)
-          if (!group.collapsed) {
-            const sortedGroupTabs = groupedTabs[groupId].sort((a, b) => {
-              if (a.pinned && !b.pinned) return -1;
-              if (!a.pinned && b.pinned) return 1;
-              return 0;
-            });
-            
-            sortedGroupTabs.forEach(tab => {
-              renderSingleVerticalTab(tab, verticalTabsList, group);
-            });
+          // Apply color theming
+          if (tab.color) {
+            tabElement.style.borderLeftColor = tab.color;
+            if (isActive) {
+              tabElement.style.backgroundColor = `${tab.color}15`;
+            }
           }
+          
+          // Pinned tab styling
+          if (tab.pinned) {
+            tabElement.style.backgroundColor = isActive ? '#dbeafe' : '#f1f5f9';
+            if (!tab.color) {
+              tabElement.style.borderLeftColor = '#3b82f6';
+            }
+          }
+          
+          const leftContent = document.createElement("div");
+          leftContent.className = "flex items-center gap-2 flex-1 min-w-0";
+          
+          // Favicon placeholder
+          const favicon = document.createElement("div");
+          favicon.className = "w-4 h-4 flex-shrink-0 rounded-sm bg-gray-400 flex items-center justify-center";
+          if (tab.color) {
+            favicon.style.backgroundColor = tab.color;
+            favicon.innerHTML = '<div class="w-2 h-2 bg-text rounded-full"></div>';
+          } else {
+            favicon.innerHTML = '<i class="bx bx-world text-xs text-text"></i>';
+          }
+          leftContent.appendChild(favicon);
+          
+          // Status indicators
+          const statusContainer = document.createElement("div");
+          statusContainer.className = "flex items-center gap-1 flex-shrink-0";
+          
+          // Notes indicator
+          if (tab.notes && tab.notes.trim()) {
+            const notesIcon = document.createElement("i");
+            notesIcon.className = "bx bx-note text-xs text-iris";
+            notesIcon.title = "Has notes";
+            statusContainer.appendChild(notesIcon);
+          }
+          
+          // Pin indicator
+          if (tab.pinned) {
+            const pinIcon = document.createElement("i");
+            pinIcon.className = "bx bx-pin text-xs text-foam";
+            statusContainer.appendChild(pinIcon);
+          }
+          
+          // Lock indicator
+          if (tab.locked) {
+            const lockIcon = document.createElement("i");
+            lockIcon.className = "bx bx-lock-alt text-xs text-gold";
+            statusContainer.appendChild(lockIcon);
+          }
+          
+          if (statusContainer.children.length > 0) {
+            leftContent.appendChild(statusContainer);
+          }
+          
+          // Tab title
+          const title = document.createElement("span");
+          const displayTitle = tab.customTitle || tab.title || "New Tab";
+          title.textContent = displayTitle.length > 28 ? displayTitle.slice(0, 25) + "..." : displayTitle;
+          title.className = "truncate text-sm font-normal min-w-0";
+          leftContent.appendChild(title);
+          
+          // Tab actions
+          const rightContent = document.createElement("div");
+          rightContent.className = "flex items-center gap-1 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity";
+          
+          // Options button
+          const optionsBtn = document.createElement("button");
+          optionsBtn.className = "w-5 h-5 rounded flex items-center justify-center hover:bg-highlight-med/20 transition-colors";
+          optionsBtn.innerHTML = '<i class="bx bx-dots-horizontal-rounded text-xs"></i>';
+          optionsBtn.title = "Tab options";
+          optionsBtn.onclick = (e) => {
+            e.stopPropagation();
+            openTabContextMenu(tab.id);
+          };
+          rightContent.appendChild(optionsBtn);
+          
+          // Close button
+          const closeBtn = document.createElement("button");
+          closeBtn.className = "w-5 h-5 rounded flex items-center justify-center hover:bg-love/20 transition-colors";
+          closeBtn.innerHTML = '<i class="bx bx-x text-xs"></i>';
+          closeBtn.title = tab.locked ? "Tab is locked" : "Close tab";
+          
+          if (tab.locked) {
+            closeBtn.className += " opacity-50 cursor-not-allowed";
+          } else {
+            closeBtn.onclick = (e) => {
+              e.stopPropagation();
+              removeTab(tab.id);
+            };
+          }
+          rightContent.appendChild(closeBtn);
+          
+          tabElement.appendChild(leftContent);
+          tabElement.appendChild(rightContent);
+          
+          tabElement.onclick = () => setActiveTab(tab.id);
+          tabElement.oncontextmenu = (e) => {
+            e.preventDefault();
+            openTabContextMenu(tab.id);
+          };
+          
+          verticalTabsList.appendChild(tabElement);
         });
         
         // Clear horizontal tabs
         document.getElementById("tabs-bar").innerHTML = "";
-      }
-      
-            function renderSingleVerticalTab(tab, container, group = null) {
-        const tabElement = document.createElement("button");
-        
-        // Browser-style vertical tab styling
-        const isActive = tab.id === activeTab;
-        
-        tabElement.className = `
-          w-full p-3 text-left transition-all duration-200 border-l-4 group flex items-center justify-between
-          ${isActive 
-            ? 'bg-highlight-med text-text border-foam' 
-            : 'text-subtle border-transparent hover:bg-highlight-med hover:text-text'
-          }
-        `;
-        
-        tabElement.setAttribute("data-tab-id", tab.id);
-        
-        // Apply group color theming
-        if (group && isActive) {
-          tabElement.style.borderLeftColor = group.color;
-          tabElement.style.backgroundColor = `${group.color}15`;
-        } else if (tab.color) {
-          tabElement.style.borderLeftColor = tab.color;
-          if (isActive) {
-            tabElement.style.backgroundColor = `${tab.color}15`;
-          }
-        }
-        
-        // Pinned tab styling
-        if (tab.pinned) {
-          tabElement.style.backgroundColor = isActive ? '#dbeafe' : '#f1f5f9';
-          if (!group && !tab.color) {
-            tabElement.style.borderLeftColor = '#3b82f6';
-          }
-        }
-        
-        const leftContent = document.createElement("div");
-        leftContent.className = "flex items-center gap-2 flex-1 min-w-0";
-        
-        // Favicon placeholder
-        const favicon = document.createElement("div");
-        favicon.className = "w-4 h-4 flex-shrink-0 rounded-sm bg-gray-400 flex items-center justify-center";
-        if (group) {
-          favicon.style.backgroundColor = group.color;
-          favicon.innerHTML = '<div class="w-2 h-2 bg-text rounded-full"></div>';
-        } else if (tab.color) {
-          favicon.style.backgroundColor = tab.color;
-          favicon.innerHTML = '<div class="w-2 h-2 bg-text rounded-full"></div>';
-        } else {
-          favicon.innerHTML = '<i class="bx bx-world text-xs text-text"></i>';
-        }
-        leftContent.appendChild(favicon);
-        
-        // Status indicators
-        const statusContainer = document.createElement("div");
-        statusContainer.className = "flex items-center gap-1 flex-shrink-0";
-        
-        // Notes indicator
-        if (tab.notes && tab.notes.trim()) {
-          const notesIcon = document.createElement("i");
-          notesIcon.className = "bx bx-note text-xs text-iris";
-          notesIcon.title = "Has notes";
-          statusContainer.appendChild(notesIcon);
-        }
-        
-        // Pin indicator
-        if (tab.pinned) {
-          const pinIcon = document.createElement("i");
-          pinIcon.className = "bx bx-pin text-xs text-foam";
-          statusContainer.appendChild(pinIcon);
-        }
-        
-        // Lock indicator
-        if (tab.locked) {
-          const lockIcon = document.createElement("i");
-          lockIcon.className = "bx bx-lock-alt text-xs text-gold";
-          statusContainer.appendChild(lockIcon);
-        }
-        
-        if (statusContainer.children.length > 0) {
-          leftContent.appendChild(statusContainer);
-        }
-        
-        // Tab title
-        const title = document.createElement("span");
-        const displayTitle = tab.customTitle || tab.title || "New Tab";
-        title.textContent = displayTitle.length > 28 ? displayTitle.slice(0, 25) + "..." : displayTitle;
-        title.className = "truncate text-sm font-normal min-w-0";
-        leftContent.appendChild(title);
-        
-        // Tab actions
-        const rightContent = document.createElement("div");
-        rightContent.className = "flex items-center gap-1 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity";
-        
-        // Options button
-        const optionsBtn = document.createElement("button");
-        optionsBtn.className = "w-5 h-5 rounded flex items-center justify-center hover:bg-highlight-med/20 transition-colors";
-        optionsBtn.innerHTML = '<i class="bx bx-dots-horizontal-rounded text-xs"></i>';
-        optionsBtn.title = "Tab options";
-        optionsBtn.onclick = (e) => {
-          e.stopPropagation();
-          openTabContextMenu(tab.id);
-        };
-        rightContent.appendChild(optionsBtn);
-        
-        // Close button
-        const closeBtn = document.createElement("button");
-        closeBtn.className = "w-5 h-5 rounded flex items-center justify-center hover:bg-love/20 transition-colors";
-        closeBtn.innerHTML = '<i class="bx bx-x text-xs"></i>';
-        closeBtn.title = tab.locked ? "Tab is locked" : "Close tab";
-        
-        if (tab.locked) {
-          closeBtn.className += " opacity-50 cursor-not-allowed";
-        } else {
-          closeBtn.onclick = (e) => {
-            e.stopPropagation();
-            removeTab(tab.id);
-          };
-        }
-        rightContent.appendChild(closeBtn);
-        
-        tabElement.appendChild(leftContent);
-        tabElement.appendChild(rightContent);
-        
-        tabElement.onclick = () => setActiveTab(tab.id);
-        tabElement.oncontextmenu = (e) => {
-          e.preventDefault();
-          openTabContextMenu(tab.id);
-        };
-        
-        container.appendChild(tabElement);
-      }
       }
       function updateAddressBar(tab) {
         document.getElementById("address-bar-input").value =
@@ -1344,7 +1217,6 @@
           id: "group-" + groupIdCounter++,
           name: name.trim(),
           color: color,
-          collapsed: false,
         };
         tabGroups.push(group);
         saveTabGroups();
@@ -1383,7 +1255,6 @@
       function deleteTabGroup(groupId) {
         const groupIndex = tabGroups.findIndex(g => g.id === groupId);
         if (groupIndex !== -1) {
-          // Remove group from all tabs
           tabs.forEach(tab => {
             if (tab.groupId === groupId) {
               tab.groupId = null;
@@ -1393,24 +1264,6 @@
           renderTabs();
           saveTabGroups();
           saveTabsData();
-        }
-      }
-      
-      function renameTabGroup(groupId, newName) {
-        const group = tabGroups.find(g => g.id === groupId);
-        if (group && newName.trim()) {
-          group.name = newName.trim();
-          saveTabGroups();
-          renderTabs();
-        }
-      }
-      
-      function toggleGroupCollapse(groupId) {
-        const group = tabGroups.find(g => g.id === groupId);
-        if (group) {
-          group.collapsed = !group.collapsed;
-          saveTabGroups();
-          renderTabs();
         }
       }
       
@@ -1472,19 +1325,6 @@
           
           const rightContent = document.createElement("div");
           rightContent.className = "flex items-center gap-1";
-          
-          const editBtn = document.createElement("button");
-          editBtn.className = "w-8 h-8 rounded flex items-center justify-center hover:bg-highlight-high transition-colors";
-          editBtn.innerHTML = '<i class="bx bx-edit text-xs"></i>';
-          editBtn.title = "Rename group";
-          editBtn.onclick = () => {
-            const newName = prompt("Enter new group name:", group.name);
-            if (newName && newName.trim() !== group.name) {
-              renameTabGroup(group.id, newName);
-              renderGroupsList();
-            }
-          };
-          rightContent.appendChild(editBtn);
           
           const deleteBtn = document.createElement("button");
           deleteBtn.className = "w-8 h-8 rounded flex items-center justify-center hover:bg-love/20 transition-colors";
