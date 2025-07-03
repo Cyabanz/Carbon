@@ -60,6 +60,17 @@
           <div id="likedGamesList" class="grid gap-4"></div>
         </div>
       </div>
+
+      <!-- User Activity Feed Section -->
+      <div id="activityFeedSection" class="mb-12 animate-[fadeInUp_1s_ease-out_0.7s_both]">
+        <h2 class="text-2xl font-bold mb-6 bg-gradient-to-r from-cyan-400 to-indigo-500 bg-clip-text text-transparent flex items-center gap-3">
+          <i class='bx bx-activity text-green-400'></i>
+          Your Activity
+        </h2>
+        <div id="activityFeed" class="bg-white/5 border border-white/10 rounded-2xl p-6 max-h-64 overflow-y-auto">
+          <!-- Activity feed items will be populated by JavaScript -->
+        </div>
+      </div>
     </div>
   </main>
 
@@ -153,35 +164,109 @@
       }).join('');
     }
 
+    // --- Activity Feed Logic for Profile Page ---
+    function getActivityDescription(activity) {
+      const gameTitle = activity.data && activity.data.gameId ? 
+        (gamesData.find(g => g.id === String(activity.data.gameId))?.title || 'Unknown Game') : '';
+      switch (activity.action) {
+        case 'play':
+          return `Started playing ${gameTitle}`;
+        case 'continue':
+          return `Continued playing ${gameTitle}`;
+        case 'random-play':
+          return `Played random game: ${gameTitle}`;
+        case 'search':
+          return `Searched for "${activity.data.query}"`;
+        case 'pin':
+          return `Pinned ${gameTitle}`;
+        case 'unpin':
+          return `Unpinned ${gameTitle}`;
+        case 'page-view':
+          return `Visited ${activity.data.page} page`;
+        default:
+          return 'Unknown activity';
+      }
+    }
+    function getActivityIcon(action) {
+      switch (action) {
+        case 'play':
+        case 'continue':
+        case 'random-play':
+          return 'bx-play-circle';
+        case 'search':
+          return 'bx-search';
+        case 'pin':
+          return 'bx-pin';
+        case 'unpin':
+          return 'bx-pin';
+        case 'page-view':
+          return 'bx-globe';
+        default:
+          return 'bx-activity';
+      }
+    }
+    function getTimeAgo(timestamp) {
+      const now = Date.now();
+      const diff = now - timestamp;
+      const minutes = Math.floor(diff / 60000);
+      const hours = Math.floor(diff / 3600000);
+      const days = Math.floor(diff / 86400000);
+      if (days > 0) return `${days}d ago`;
+      if (hours > 0) return `${hours}h ago`;
+      if (minutes > 0) return `${minutes}m ago`;
+      return 'Just now';
+    }
+    function renderActivityFeed(activities) {
+      const feed = document.getElementById('activityFeed');
+      if (!activities || activities.length === 0) {
+        feed.innerHTML = '<p class="text-white/60 text-center">No recent activity</p>';
+        return;
+      }
+      feed.innerHTML = activities.map(activity => {
+        const timeAgo = getTimeAgo(activity.timestamp);
+        const description = getActivityDescription(activity);
+        return `
+          <div class="activity-item flex items-center gap-3 py-2 border-b border-white/10 last:border-0">
+            <i class='bx ${getActivityIcon(activity.action)} text-cyan-400'></i>
+            <div class="flex-1">
+              <p class="text-white/90 text-sm">${description}</p>
+              <p class="text-white/50 text-xs">${timeAgo}</p>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+    async function loadActivityFeed(uid) {
+      const doc = await db.collection('user-activity').doc(uid).get();
+      if (doc.exists) {
+        const activities = doc.data().activities || [];
+        renderActivityFeed(activities.slice(-10).reverse());
+      } else {
+        renderActivityFeed([]);
+      }
+    }
+
     document.addEventListener('DOMContentLoaded', async () => {
       document.getElementById('profileContent').classList.add('hidden');
       document.getElementById('loginScreen').classList.remove('hidden');
-
       await loadGamesData();
-
       auth.onAuthStateChanged(async (user) => {
         renderUserSection(user);
-
         if (!user) {
           document.getElementById('loginScreen').classList.remove('hidden');
           document.getElementById('profileContent').classList.add('hidden');
           return;
         }
-
         document.getElementById('loginScreen').classList.add('hidden');
         document.getElementById('profileContent').classList.remove('hidden');
-
         document.getElementById('profilePhoto').src = user.photoURL;
         document.getElementById('profileName').textContent = user.displayName;
         document.getElementById('profileEmail').textContent = user.email;
-
         const lists = await getUserGameLists(user.uid);
-
-        // Game history (recently played) - reverse order (most recent first)
         renderGamesList('recentGamesList', (lists.history || []).slice().reverse(), 'recent games');
-
         renderGamesList('favoriteGamesList', lists.favoriteGames, 'favorite games');
         renderGamesList('likedGamesList', lists.likedGames, 'liked games');
+        await loadActivityFeed(user.uid);
       });
     });
   </script>
