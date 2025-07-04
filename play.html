@@ -695,18 +695,239 @@
       await db.collection('games').doc(game.id).collection('comments').doc(commentId).update({reported: true});
       alert('Reported!');
     }
-    function renderCommentsList(comments) {
-      const badge = document.querySelector('.comment-count-badge');
-      if (badge) badge.textContent = comments.length;
-      let filtered = comments;
-      if (commentStarFilter) filtered = filtered.filter(c => c.stars === commentStarFilter);
-      if (commentSort === 'oldest') filtered = [...filtered].reverse();
-      const list = document.querySelector('.comments-list');
-      list.innerHTML = '';
-      if (!filtered.length) {
-        list.innerHTML = `<div style="color:#888b9a;padding:1.4em;text-align:center;">No comments yet. Be the first to comment!</div>`;
+    // Fixed comment rendering function
+function renderCommentsList(comments) {
+  const badge = document.querySelector('.comment-count-badge');
+  if (badge) badge.textContent = comments.length;
+  
+  let filtered = comments;
+  if (commentStarFilter) filtered = filtered.filter(c => c.stars === commentStarFilter);
+  if (commentSort === 'oldest') filtered = [...filtered].reverse();
+  
+  const list = document.querySelector('.comments-list');
+  list.innerHTML = '';
+  
+  if (!filtered.length) {
+    list.innerHTML = `<div style="color:#888b9a;padding:1.4em;text-align:center;">No comments yet. Be the first to comment!</div>`;
+    return;
+  }
+  
+  filtered.forEach(comment => {
+    const div = document.createElement('div');
+    div.className = 'comment';
+    
+    if(comment.deleted) {
+      div.textContent = 'This comment was removed by a moderator.';
+      list.appendChild(div);
+      return;
+    }
+    
+    let starsHtml = '';
+    if (typeof comment.stars === 'number' && comment.stars > 0) {
+      for (let i=1; i<=5; i++) {
+        starsHtml += `<span class="star"${i <= comment.stars ? ' style="color:#ffd600;"' : ' style="color:#888;"'}>&#9733;</span>`;
+      }
+    }
+    
+    // Fixed: Safely handle user data with proper null checks
+    const userUid = comment.user && comment.user.uid ? comment.user.uid : '';
+    const userName = comment.user && comment.user.name ? comment.user.name : 'Unknown';
+    const userPhoto = comment.user && comment.user.photo ? comment.user.photo : '';
+    const userBadge = comment.user && comment.user.badge ? comment.user.badge : '';
+    
+    let userLink = `/public-profile.html?uid=${userUid}`;
+    let badge = '';
+    if (userBadge) badge = `<span class="user-badge">${userBadge}</span>`;
+    
+    // Generate fallback avatar URL safely
+    const avatarUrl = userPhoto || `https://ui-avatars.com/api/?name=${encodeURIComponent(userName)}`;
+    
+    div.innerHTML = `
+      <a href="${userLink}" target="_blank">
+        <img class="comment-avatar" src="${escapeHTML(avatarUrl)}" alt="">
+      </a>
+      <div class="comment-main">
+        <span class="comment-user">
+          <a href="${userLink}" target="_blank">${escapeHTML(userName)}</a> ${badge}
+        </span>
+        <span class="comment-date">${comment.createdAt && comment.createdAt.toDate ? escapeHTML(comment.createdAt.toDate().toLocaleString()) : ''}</span>
+        <div class="stars">${starsHtml}</div>
+        <div class="comment-text">${escapeHTML(comment.text || '')}</div>
+        <div class="comment-actions">
+          <button class="reply-btn" data-comment="${comment.id}"><i class='bx bx-reply'></i> Reply</button>
+          <button class="show-replies-btn" data-comment="${comment.id}">Show replies</button>
+          <button class="report-btn" data-comment="${comment.id}">Report</button>
+        </div>
+        <div class="emoji-picker-bar">
+          ${Object.keys(comment.reactions||{}).map(emoji => {
+            const userList = comment.reactions[emoji] || [];
+            const active = currentUser && userList.includes(currentUser.uid);
+            return `<button class="reaction-btn${active ? ' reacted' : ''}" data-emoji="${emoji}" data-comment="${comment.id}">${emoji} <span>${userList.length}</span></button>`;
+          }).join('')}
+          <button class="reaction-btn add-reaction-btn" data-comment="${comment.id}" title="Add Emoji Reaction">➕</button>
+        </div>
+        <div class="replies-container" id="replies-${comment.id}"></div>
+      </div>
+    `;
+    list.appendChild(div);
+  });
+  
+  document.querySelectorAll('.report-btn').forEach(btn => {
+    btn.onclick = () => {
+      reportComment(btn.dataset.comment);
+      btn.disabled = true; 
+      btn.textContent = "Reported!";
+    };
+  });
+  
+  bindEmojiAndReplyEvents(comments);
+}
+
+// Fixed: Enhanced escapeHTML function with null checks
+function escapeHTML(str) {
+  if (typeof str !== "string" || str === null || str === undefined) return "";
+  return str.replace(/[<>&"'`]/g, c => ({
+    '<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;',"'":'&#39;','`':'&#96;'
+  })[c]);
+}
+
+// Fixed: Enhanced postComment function with better error handling
+async function postComment(text) {
+  if (!currentUser) return;
+  if (!game) return;
+  
+  // Ensure text is a string
+  const commentText = String(text || '').trim();
+  if (!commentText) throw new Error("Comment text cannot be empty.");
+  
+  if (containsBadWord(commentText)) throw new Error("Inappropriate language detected.");
+  if (isSpam(commentText)) throw new Error("Please wait before posting again or avoid duplicate comments.");
+  
+  // Safely get user data
+  const userData = {
+    uid: currentUser.uid || '',
+    name: currentUser.displayName || 'Unknown User',
+    photo: currentUser.photoURL || '',
+    badge: "" // Optionally assign badge here
+  };
+  
+  await db.collection('games').doc(game.id).collection('comments').add({
+    text: escapeHTML(commentText),
+    stars: commentStarRating,
+    user: userData,
+    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+    likes: [],
+    deleted: false,
+    reactions: {} // Initialize reactions object
+  });
+  
+  lastCommentText = commentText;
+  lastCommentTimestamp = Date.now();
+  lastCommentTime = Date.now();
+  commentStarRating = 0;
+  renderCommentStarPicker();
+  updateCommentPostBtn();
+}
+
+// Fixed: Enhanced showRepliesForComment function
+function showRepliesForComment(commentId, force = false) {
+  const repliesDiv = document.getElementById('replies-' + commentId);
+  if (!repliesDiv) return;
+  if (repliesDiv.dataset.loaded === "true" && !force) return;
+  
+  repliesDiv.dataset.loaded = "true";
+  
+  const repliesQ = db.collection('games').doc(game.id).collection('comments').doc(commentId).collection('replies').orderBy('createdAt', 'asc');
+  
+  repliesQ.onSnapshot(snap => {
+    let html = "";
+    snap.forEach(doc => {
+      const reply = doc.data();
+      if (reply.deleted) {
+        html += `<div class="reply" style="color:#888;">[deleted]</div>`;
         return;
       }
+      
+      // Fixed: Safely handle reply user data
+      const replyUserUid = reply.user && reply.user.uid ? reply.user.uid : '';
+      const replyUserName = reply.user && reply.user.name ? reply.user.name : 'Unknown';
+      const replyUserPhoto = reply.user && reply.user.photo ? reply.user.photo : '';
+      const replyText = reply.text || '';
+      
+      let userLink = `/public-profile.html?uid=${replyUserUid}`;
+      const avatarUrl = replyUserPhoto || `https://ui-avatars.com/api/?name=${encodeURIComponent(replyUserName)}`;
+      
+      html += `
+        <div class="reply">
+          <a href="${userLink}" target="_blank">
+            <img class="comment-avatar" src="${escapeHTML(avatarUrl)}" alt="">
+          </a>
+          <span class="comment-user"><a href="${userLink}" target="_blank">${escapeHTML(replyUserName)}</a></span>
+          <span class="comment-date">${reply.createdAt && reply.createdAt.toDate ? escapeHTML(reply.createdAt.toDate().toLocaleString()) : ''}</span>
+          <div class="comment-text">${escapeHTML(replyText)}</div>
+        </div>
+      `;
+    });
+    
+    const existingForm = repliesDiv.querySelector('.reply-form');
+    repliesDiv.innerHTML = (existingForm ? existingForm.outerHTML : "") + html;
+  });
+}
+
+// Fixed: Enhanced reply form submission
+function showReplyForm(commentId) {
+  const repliesDiv = document.getElementById('replies-' + commentId);
+  if (!repliesDiv) return;
+  if (repliesDiv.querySelector('.reply-form')) return;
+  
+  repliesDiv.innerHTML = replyFormHTML(commentId) + repliesDiv.innerHTML;
+  
+  const input = repliesDiv.querySelector('.reply-input');
+  const btn = repliesDiv.querySelector('.reply-post-btn');
+  
+  input.oninput = () => btn.disabled = input.value.trim().length === 0;
+  
+  repliesDiv.querySelector('.reply-form').onsubmit = async function(e) {
+    e.preventDefault();
+    const text = String(input.value || '').trim();
+    if (!text) return;
+    
+    if (containsBadWord(text)) {
+      repliesDiv.querySelector('.reply-error').textContent = "Please avoid inappropriate language.";
+      return;
+    }
+    
+    if (isSpam(text)) {
+      repliesDiv.querySelector('.reply-error').textContent = "Please wait before posting again or avoid duplicate replies.";
+      return;
+    }
+    
+    btn.disabled = true;
+    try {
+      // Safely get current user data
+      const userData = {
+        uid: currentUser.uid || '',
+        name: currentUser.displayName || 'Unknown User',
+        photo: currentUser.photoURL || ''
+      };
+      
+      await db.collection('games').doc(game.id).collection('comments').doc(commentId).collection('replies').add({
+        text: escapeHTML(text),
+        user: userData,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        deleted: false
+      });
+      
+      input.value = '';
+      repliesDiv.querySelector('.reply-error').textContent = '';
+      showRepliesForComment(commentId, true);
+      
+    } catch (err) {
+      repliesDiv.querySelector('.reply-error').textContent = err.message || "Failed to post reply.";
+    }
+    btn.disabled = false;
+  };
+}
       filtered.forEach(comment => {
         const div = document.createElement('div');
         div.className = 'comment';
