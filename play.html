@@ -10,8 +10,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-  <!-- Discord Reactions API (hypothetical, for example) -->
-  <script src="https://cdn.jsdelivr.net/npm/emoji-picker-element@^1/index.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
   <style>
     .loader {
       border: 8px solid #16213e;
@@ -39,6 +38,17 @@
     .reaction-btn.active { font-weight: bold; background: #06b6d422; color: #06b6d4; }
     .comment-reply {background: #232445; border-radius: 8px; padding: 12px; margin-top: 8px;}
     .comment-rating {display:inline-block;}
+    .comment-image-thumb { display: inline-block; margin-right: 6px; margin-bottom: 6px; border-radius: 8px; border: 2px solid #222; max-width: 100px; max-height: 100px; object-fit: cover;}
+    .comment-image-thumb:hover { opacity:0.8;}
+    .comment-image-row { margin-top: 8px;}
+    .comment-image-upload-label {display:inline-flex;align-items:center;gap:4px;cursor:pointer;background:#0ea5e9;color:white;border-radius:6px;padding:3px 10px;font-size:13px;font-weight:600;}
+    .comment-image-upload-label:hover { background: #38bdf8;}
+    .comment-image-upload-clear {display:inline-block; color:#f43f5e; margin-left:8px; cursor:pointer;}
+    .comment-upload-preview { display:inline-block; margin-top:5px;}
+    .comment-upload-preview img { max-width:80px; max-height:80px; border-radius:6px; border:2px solid #232445; margin-right:4px;}
+    .comment-image-enlarge-modal { position:fixed; left:0; top:0; right:0; bottom:0; background:rgba(10,20,30,0.8); z-index:20000; display:flex; align-items:center; justify-content:center; }
+    .comment-image-enlarge-modal img { max-width:95vw; max-height:90vh; border-radius:16px; box-shadow:0 0 24px #000a;}
+    .comment-image-enlarge-modal-close { position:absolute;top:24px;right:36px; color:white; font-size:2rem;cursor:pointer;}
   </style>
 </head>
 <body class="bg-gradient-to-br from-[#0f0f23] via-[#1a1a2e] to-[#16213e] min-h-screen text-white font-[Inter]">
@@ -93,6 +103,13 @@
               <textarea id="newCommentInput" rows="2" maxlength="500" placeholder="Write your comment..." class="w-full bg-[#181b2a] text-white px-4 py-3 rounded-lg focus:outline-none border border-cyan-600/30 resize-none"></textarea>
               <div class="flex items-center gap-3 mt-2">
                 <span id="commentRatingStars" class="flex gap-1 text-2xl"></span>
+                <!-- Image upload -->
+                <label class="comment-image-upload-label" for="commentImageInput">
+                  <i class='bx bx-image-add'></i> Image
+                  <input type="file" id="commentImageInput" accept="image/png,image/jpeg,image/gif,image/webp" multiple style="display:none"/>
+                  <span id="commentImageUploadClear" class="comment-image-upload-clear hidden" title="Remove images">&times;</span>
+                </label>
+                <div class="comment-upload-preview" id="commentImagePreview"></div>
                 <button id="postCommentBtn" class="bg-cyan-500 hover:bg-cyan-400 text-black font-bold px-6 py-2 rounded-lg transition disabled:bg-gray-600" disabled>Post</button>
               </div>
             </div>
@@ -119,6 +136,11 @@
         <h2 class="text-2xl font-bold mb-4 text-cyan-400" id="tagGamesListTitle"></h2>
         <div id="tagGamesListBody" class="space-y-2"></div>
       </div>
+    </div>
+    <!-- Image enlarge modal -->
+    <div id="commentImageEnlargeModal" class="comment-image-enlarge-modal" style="display:none;">
+      <span class="comment-image-enlarge-modal-close" onclick="closeCommentImageEnlargeModal()">&times;</span>
+      <img id="commentImageEnlargeImg" src="" alt="Enlarged image"/>
     </div>
   </main>
 
@@ -205,7 +227,7 @@
       apiKey: "AIzaSyC4ilHYP1T-kdXbWPoHJHhD2aj0pNWmMec",
       authDomain: "carbon-services.firebaseapp.com",
       projectId: "carbon-services",
-      storageBucket: "carbon-services.firebasestorage.app",
+      storageBucket: "carbon-services.appspot.com",
       messagingSenderId: "288385472070",
       appId: "1:288385472070:web:c4be3ff186e248fc645c47",
       measurementId: "G-Y2K1RQYE74"
@@ -213,6 +235,7 @@
     firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
     const db = firebase.firestore();
+    const storage = firebase.storage();
 
     function googleSignIn() {
       const provider = new firebase.auth.GoogleAuthProvider();
@@ -572,6 +595,7 @@
     // --- Comment Section ---
     let commentsListener = null;
     let commentRatingStarsSelected = 0;
+    let commentImageFiles = [];
     // Render rating stars for comment input
     function renderCommentRatingStars() {
       const c = document.getElementById('commentRatingStars');
@@ -608,6 +632,44 @@
       if (e.target && e.target.id === "newCommentInput") checkCommentInput();
     });
 
+    // --- Image upload for comments ---
+    function previewCommentImageFiles() {
+      const preview = document.getElementById('commentImagePreview');
+      preview.innerHTML = '';
+      if (commentImageFiles && commentImageFiles.length) {
+        commentImageFiles.forEach((file, idx) => {
+          const reader = new FileReader();
+          reader.onload = function(ev) {
+            const img = document.createElement('img');
+            img.src = ev.target.result;
+            img.className = 'comment-image-thumb';
+            img.title = file.name;
+            img.onclick = function() {
+              enlargeCommentImage(ev.target.result);
+            }
+            preview.appendChild(img);
+          };
+          reader.readAsDataURL(file);
+        });
+        document.getElementById('commentImageUploadClear').classList.remove('hidden');
+      } else {
+        document.getElementById('commentImageUploadClear').classList.add('hidden');
+      }
+    }
+    document.addEventListener('DOMContentLoaded', () => {
+      const imageInput = document.getElementById('commentImageInput');
+      const clearBtn = document.getElementById('commentImageUploadClear');
+      imageInput.addEventListener('change', (e) => {
+        commentImageFiles = Array.from(e.target.files).slice(0, 3); // max 3 images
+        previewCommentImageFiles();
+      });
+      clearBtn.addEventListener('click', () => {
+        commentImageFiles = [];
+        imageInput.value = '';
+        previewCommentImageFiles();
+      });
+    });
+
     // Discord-style reactions
     const reactionTypes = ["👍", "😂", "😮", "🎉", "❤️", "👎"];
     // ---- COMMENT POST ----
@@ -617,6 +679,18 @@
         if (!user) return;
         let val = document.getElementById('newCommentInput').value.trim();
         if (!val || !commentRatingStarsSelected) return;
+        // Upload images if any
+        let imageURLs = [];
+        if (commentImageFiles && commentImageFiles.length) {
+          for (let i = 0; i < commentImageFiles.length; i++) {
+            const file = commentImageFiles[i];
+            const name = `${user.uid}_${Date.now()}_${i}_${Math.random().toString(36).substr(2,6)}.${file.name.split('.').pop()}`;
+            const ref = storage.ref(`comments/${currentGameId}/${name}`);
+            await ref.put(file);
+            const url = await ref.getDownloadURL();
+            imageURLs.push(url);
+          }
+        }
         await db.collection("games").doc(currentGameId).collection("comments").add({
           userId: user.uid,
           userName: user.displayName,
@@ -625,11 +699,15 @@
           rating: commentRatingStarsSelected,
           createdAt: firebase.firestore.FieldValue.serverTimestamp(),
           reactions: {},
-          replyTo: null
+          replyTo: null,
+          images: imageURLs
         });
         document.getElementById('newCommentInput').value = '';
         commentRatingStarsSelected = 0;
         renderCommentRatingStars();
+        commentImageFiles = [];
+        document.getElementById('commentImageInput').value = '';
+        previewCommentImageFiles();
         checkCommentInput();
       };
       renderCommentRatingStars();
@@ -664,6 +742,24 @@
           list.innerHTML = items.join('') || '<div class="text-cyan-300 py-12 text-center">No comments yet.</div>';
         });
     }
+    function renderCommentImages(urls) {
+      if (!urls || !urls.length) return '';
+      return `<div class="comment-image-row">` + urls.map(url => 
+        `<img src="${url}" class="comment-image-thumb" onclick="enlargeCommentImage('${url}')" loading="lazy" alt="comment image"/>`
+      ).join('') + `</div>`;
+    }
+    window.enlargeCommentImage = function(url) {
+      const modal = document.getElementById('commentImageEnlargeModal');
+      const img = document.getElementById('commentImageEnlargeImg');
+      img.src = url;
+      modal.style.display = 'flex';
+    }
+    window.closeCommentImageEnlargeModal = function() {
+      const modal = document.getElementById('commentImageEnlargeModal');
+      const img = document.getElementById('commentImageEnlargeImg');
+      img.src = '';
+      modal.style.display = 'none';
+    };
     async function renderComment(id, c, gameId, allDocs) {
       // Replies
       let replies = allDocs.filter(d => d.data().replyTo === id);
@@ -682,9 +778,13 @@
       }).join('');
       // Comment rating stars
       let commentRating = '';
-      for (let i = 1; i <= 5; i++) {
-        commentRating += `<span class="text-2xl comment-rating ${i<=c.rating?'text-yellow-400':'text-slate-600'}">★</span>`;
+      if(typeof c.rating === "number" && c.rating > 0){
+        for (let i = 1; i <= 5; i++) {
+          commentRating += `<span class="text-2xl comment-rating ${i<=c.rating?'text-yellow-400':'text-slate-600'}">★</span>`;
+        }
       }
+      // Images
+      let imagesHTML = renderCommentImages(c.images);
       // XSS-safe comment
       return `
       <div class="flex gap-3 items-start rounded-lg bg-[#181b2a] px-4 py-3">
@@ -696,7 +796,8 @@
             <span class="ml-2">${commentRating}</span>
           </div>
           <div class="comment-content mt-1 mb-2 text-white/90 text-base">${sanitize(c.text)}</div>
-          <div class="flex items-center gap-2">
+          ${imagesHTML}
+          <div class="flex items-center gap-2 mt-1">
             <span class="flex items-center gap-1">${reactionsHTML}</span>
             <button class="text-xs text-cyan-300 hover:text-cyan-400 ml-2 reply-btn" data-comment="${id}">Reply</button>
           </div>
@@ -757,7 +858,8 @@
           rating: null,
           createdAt: firebase.firestore.FieldValue.serverTimestamp(),
           reactions: {},
-          replyTo: parentId
+          replyTo: parentId,
+          images: []
         });
         let area = e.target.closest('.reply-area');
         if (area) area.innerHTML = '';
