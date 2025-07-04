@@ -10,7 +10,6 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
   <style>
     .loader {
       border: 8px solid #16213e;
@@ -33,23 +32,58 @@
     .suggested-scrollbar::-webkit-scrollbar {width: 6px;}
     .suggested-scrollbar::-webkit-scrollbar-thumb {background: #232445; border-radius: 3px;}
     .suggested-scrollbar::-webkit-scrollbar-track {background: transparent;}
-    .comment-content {word-break: break-word;}
-    .reaction-btn { cursor:pointer; }
-    .reaction-btn.active { font-weight: bold; background: #06b6d422; color: #06b6d4; }
-    .comment-reply {background: #232445; border-radius: 8px; padding: 12px; margin-top: 8px;}
-    .comment-rating {display:inline-block;}
-    .comment-image-thumb { display: inline-block; margin-right: 6px; margin-bottom: 6px; border-radius: 8px; border: 2px solid #222; max-width: 100px; max-height: 100px; object-fit: cover;}
-    .comment-image-thumb:hover { opacity:0.8;}
-    .comment-image-row { margin-top: 8px;}
-    .comment-image-upload-label {display:inline-flex;align-items:center;gap:4px;cursor:pointer;background:#0ea5e9;color:white;border-radius:6px;padding:3px 10px;font-size:13px;font-weight:600;}
-    .comment-image-upload-label:hover { background: #38bdf8;}
-    .comment-image-upload-clear {display:inline-block; color:#f43f5e; margin-left:8px; cursor:pointer;}
-    .comment-upload-preview { display:inline-block; margin-top:5px;}
-    .comment-upload-preview img { max-width:80px; max-height:80px; border-radius:6px; border:2px solid #232445; margin-right:4px;}
-    .comment-image-enlarge-modal { position:fixed; left:0; top:0; right:0; bottom:0; background:rgba(10,20,30,0.8); z-index:20000; display:flex; align-items:center; justify-content:center; }
-    .comment-image-enlarge-modal img { max-width:95vw; max-height:90vh; border-radius:16px; box-shadow:0 0 24px #000a;}
-    .comment-image-enlarge-modal-close { position:absolute;top:24px;right:36px; color:white; font-size:2rem;cursor:pointer;}
+    .star.filled { color: #ffd600; }
+    .star.disabled { cursor: not-allowed; }
+    .comment-rating-stars .star { font-size: 1.4em; cursor: pointer; }
+    .comment-rating-stars .star.disabled { color: #888; cursor: not-allowed; }
+    .comment-rating-stars .star.filled { color: #ffd600; }
+    .comment-form-info { color: #aaa; font-size: 1em; margin: 10px 0; }
+    .comment-count-badge {
+      background: #06b6d4;
+      color: #fff;
+      font-size: 0.9em;
+      padding: 2px 7px;
+      border-radius: 10px;
+      margin-left: 4px;
+      vertical-align: middle;
+      font-weight: 600;
+    }
+    .star-label { min-width: 36px; display: inline-block; text-align: right; margin-right: 6px; }
+    .histogram-bar-bg { background: #232445; border-radius: 6px; width: 120px; height: 12px; display: inline-block; vertical-align: middle; margin: 0 7px; }
+    .histogram-bar-fill { background: #ffd600; border-radius: 6px; height: 12px; transition: width .3s; }
+    .histogram-count { min-width: 18px; display: inline-block; text-align: left; margin-left: 4px; }
+    .histogram-toggle-btn { background: #232445; color: #ffd600; border: 1px solid #ffd600; border-radius: 6px; padding: 2px 10px; font-size: 0.95em; margin: 8px 0; cursor: pointer; }
+    .rating-histogram { margin: 12px 0 6px 0; }
+    .comment { background: #232445; border-radius: 14px; margin-bottom: 12px; padding: 14px 14px 10px 14px; display: flex; flex-direction: row; gap: 12px; }
+    .comment-avatar { width: 38px; height: 38px; border-radius: 50%; object-fit: cover; margin-right: 12px; }
+    .comment-main { flex: 1; }
+    .comment-user { font-weight: 600; color: #ffd600; }
+    .comment-date { color: #aaa; font-size: 0.89em; margin-left: 8px;}
+    .comment-actions button, .reply-btn, .show-replies-btn, .report-btn { background: none; border: none; color: #06b6d4; cursor: pointer; font-size: 1em; margin-right: 10px; }
+    .comment-actions button:disabled, .report-btn:disabled { color: #888; cursor: not-allowed; }
+    .emoji-picker-bar { margin-top: 6px; }
+    .reaction-btn { background: #232445; border-radius: 8px; color: #ffd600; border: 1px solid #ffd60033; margin-right: 4px; padding: 0 5px; font-size: 1.05em; cursor: pointer; }
+    .reaction-btn.reacted { background: #ffd60022; }
+    .reaction-btn.add-reaction-btn { color: #06b6d4; border: 1px dashed #06b6d4; font-size: 1.15em; }
+    .reply { background: #1a1a2e; border-radius: 10px; margin: 6px 0 6px 24px; padding: 9px 12px; color: #fff; }
+    .reply-form textarea { width: 100%; border-radius: 8px; border: 1px solid #232445; min-height: 38px; color: #fff; background: #181b2a; margin-bottom: 6px; padding: 4px 7px; resize: vertical; }
+    .reply-form { margin: 9px 0 7px 20px; }
+    .reply-post-btn { background: #06b6d4; color: #fff; border: none; border-radius: 7px; padding: 4px 16px; cursor: pointer; font-weight: 700; }
+    .reply-error { color: #f87171; margin-top: 2px; font-size: 0.93em; }
+    .star-value-preview { font-weight: 700; color: #ffd600; margin-left: 7px; }
+    .comment-form { margin: 32px 0 18px 0; }
+    .comment-input { width: 100%; border-radius: 10px; border: 1px solid #232445; min-height: 38px; color: #fff; background: #181b2a; padding: 8px 14px; margin-bottom: 8px; resize: vertical; }
+    .comment-post-btn { background: #06b6d4; color: #fff; border: none; border-radius: 7px; padding: 8px 20px; cursor: pointer; font-weight: 700; }
+    .comment-error { color: #f87171; margin: 7px 0 0 0; font-size: 1em; }
+    .comment-sort-filter { display: flex; align-items: center; gap: 1.2em; margin: 10px 0 18px 0; }
+    .comment-sort-dropdown { background: #232445; color: #ffd600; border: 1px solid #ffd60033; border-radius: 7px; font-size: 1em; padding: 1px 8px; }
+    .filter-star-btn { background: #232445; color: #ffd600; border: 1px solid #ffd60033; border-radius: 7px; font-size: 1em; padding: 0 6px; cursor: pointer; margin-right: 4px; }
+    .filter-star-btn.active { background: #ffd60022; }
+    .user-badge { background: #06b6d4; color: #fff; border-radius: 6px; font-size: 0.87em; font-weight: 700; padding: 2px 7px; margin-left: 5px;}
+    #emojiPicker { position: absolute; z-index: 2000; display: none; }
   </style>
+  <!-- Emoji Picker (Web Component) -->
+  <script src="https://cdn.jsdelivr.net/npm/emoji-picker-element@^1/index.js" type="module"></script>
 </head>
 <body class="bg-gradient-to-br from-[#0f0f23] via-[#1a1a2e] to-[#16213e] min-h-screen text-white font-[Inter]">
 
@@ -83,39 +117,27 @@
       <div class="flex-1 min-w-0">
         <div id="gameInfoHolder" class="rounded-2xl shadow-2xl bg-[#181b2a] border border-cyan-600/30 overflow-hidden mt-2"></div>
         <div id="gameFrameContainer" class="rounded-2xl shadow-2xl bg-[#181b2a] border border-cyan-600/30 overflow-hidden mt-8 hidden"></div>
-        <div id="playStats" class="bg-[#232445] border border-cyan-600/20 rounded-xl px-6 py-4 mt-8 mb-6 flex flex-wrap gap-8 justify-between items-center hidden">
-          <div>
-            <span class="text-cyan-400 font-bold text-lg" id="playCount">0</span>
-            <span class="text-white/80">Total Plays</span>
+        <!-- --- COMMENT SECTION --- -->
+        <div id="commentSectionWrap" class="mt-10 mb-12 max-w-3xl mx-auto">
+          <div class="flex items-center gap-2 mb-2">
+            <span class="text-xl font-bold text-cyan-400">Comments</span>
+            <span class="comment-count-badge">0</span>
           </div>
-          <div>
-            <span class="text-indigo-400 font-bold text-lg" id="playTime">0m 0s</span>
-            <span class="text-white/80">Your Play Time</span>
-          </div>
-        </div>
-        <!-- Comments Section -->
-        <section id="commentsSection" class="mt-12 mb-16">
-          <div class="bg-[#232445] border border-cyan-600/20 rounded-xl px-6 py-8">
-            <h2 class="text-xl font-bold text-cyan-400 mb-2 flex items-center gap-2">
-              <i class='bx bx-comment-detail text-2xl'></i> Comments
-            </h2>
-            <div id="newCommentBox" class="mb-6">
-              <textarea id="newCommentInput" rows="2" maxlength="500" placeholder="Write your comment..." class="w-full bg-[#181b2a] text-white px-4 py-3 rounded-lg focus:outline-none border border-cyan-600/30 resize-none"></textarea>
-              <div class="flex items-center gap-3 mt-2">
-                <span id="commentRatingStars" class="flex gap-1 text-2xl"></span>
-                <!-- Image upload -->
-                <label class="comment-image-upload-label" for="commentImageInput">
-                  <i class='bx bx-image-add'></i> Image
-                  <input type="file" id="commentImageInput" accept="image/png,image/jpeg,image/gif,image/webp" multiple style="display:none"/>
-                  <span id="commentImageUploadClear" class="comment-image-upload-clear hidden" title="Remove images">&times;</span>
-                </label>
-                <div class="comment-upload-preview" id="commentImagePreview"></div>
-                <button id="postCommentBtn" class="bg-cyan-500 hover:bg-cyan-400 text-black font-bold px-6 py-2 rounded-lg transition disabled:bg-gray-600" disabled>Post</button>
-              </div>
+          <div class="comment-sort-filter"></div>
+          <form class="comment-form flex flex-col gap-2" style="display:none;">
+            <div class="flex flex-col md:flex-row md:items-center gap-3">
+              <div class="comment-rating-stars"></div>
+              <span class="star-value-preview"></span>
             </div>
-            <div id="commentsList" class="space-y-6"></div>
-          </div>
-        </section>
+            <textarea class="comment-input" placeholder="Write your comment..." maxlength="500"></textarea>
+            <button class="comment-post-btn bg-cyan-500 hover:bg-cyan-400 px-6 py-2 rounded-lg font-bold text-white transition w-fit" type="submit" disabled>Post</button>
+            <div class="comment-error"></div>
+          </form>
+          <div class="comment-form-info" style="display:none;">Sign in to post a comment.</div>
+          <div class="comments-list mt-6"></div>
+        </div>
+        <!-- Emoji Picker -->
+        <emoji-picker id="emojiPicker"></emoji-picker>
       </div>
       <!-- RIGHT: SUGGESTED GAMES SIDEBAR -->
       <aside id="suggestedSidebar"
@@ -137,13 +159,9 @@
         <div id="tagGamesListBody" class="space-y-2"></div>
       </div>
     </div>
-    <!-- Image enlarge modal -->
-    <div id="commentImageEnlargeModal" class="comment-image-enlarge-modal" style="display:none;">
-      <span class="comment-image-enlarge-modal-close" onclick="closeCommentImageEnlargeModal()">&times;</span>
-      <img id="commentImageEnlargeImg" src="" alt="Enlarged image"/>
-    </div>
   </main>
 
+  <!-- --- PROXY & APP SCRIPTS --- -->
   <script type="module">
     import {
       makeURL,
@@ -211,23 +229,12 @@
   </script>
 
   <script>
-    // XSS sanitizer function (very strict)
-    function sanitize(str) {
-      if (typeof str !== "string") return "";
-      return str
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#39;");
-    }
-
     // Firebase config
     const firebaseConfig = {
       apiKey: "AIzaSyC4ilHYP1T-kdXbWPoHJHhD2aj0pNWmMec",
       authDomain: "carbon-services.firebaseapp.com",
       projectId: "carbon-services",
-      storageBucket: "carbon-services.appspot.com",
+      storageBucket: "carbon-services.firebasestorage.app",
       messagingSenderId: "288385472070",
       appId: "1:288385472070:web:c4be3ff186e248fc645c47",
       measurementId: "G-Y2K1RQYE74"
@@ -235,7 +242,6 @@
     firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
     const db = firebase.firestore();
-    const storage = firebase.storage();
 
     function googleSignIn() {
       const provider = new firebase.auth.GoogleAuthProvider();
@@ -551,322 +557,372 @@
         </tr>
       `;
     }
-
-    // --- Play Count and Play Time ---
-    async function incrementPlayCount(gameId) {
-      try {
-        const statsRef = db.collection("games").doc(gameId);
-        await statsRef.set({ playCount: firebase.firestore.FieldValue.increment(1) }, { merge: true });
-      } catch (e) {}
+    // --- COMMENT SECTION SCRIPTS (star rating, reply, reactions) ---
+    // Escape HTML for XSS
+    function escapeHTML(str) {
+      if (typeof str !== "string") return "";
+      return str.replace(/[<>&"'`]/g, c => ({
+        '<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;',"'":'&#39;','`':'&#96;'
+      })[c]);
     }
-    async function getPlayCount(gameId) {
-      try {
-        const doc = await db.collection("games").doc(gameId).get();
-        return doc.exists && doc.data().playCount ? doc.data().playCount : 0;
-      } catch (e) { return 0; }
-    }
-
-    // Per-user play time, stored in user doc under playTimes.{gameId}
-    async function addPlayTime(uid, gameId, seconds) {
-      try {
-        const ref = db.collection('users').doc(uid);
-        await ref.set({ playTimes: { [gameId]: firebase.firestore.FieldValue.increment(seconds) } }, { merge: true });
-      } catch (e) {}
-    }
-    async function getUserPlayTime(uid, gameId) {
-      try {
-        const doc = await db.collection('users').doc(uid).get();
-        return (doc.exists && doc.data().playTimes && doc.data().playTimes[gameId]) ? doc.data().playTimes[gameId] : 0;
-      } catch (e) { return 0; }
-    }
-    function formatDuration(seconds) {
-      let m = Math.floor(seconds / 60);
-      let s = Math.floor(seconds % 60);
-      return `${m}m ${s}s`;
-    }
-    async function renderPlayStats(uid, gameId) {
-      document.getElementById('playStats').classList.remove('hidden');
-      let count = await getPlayCount(gameId);
-      let playTime = await getUserPlayTime(uid, gameId);
-      document.getElementById('playCount').textContent = count || 0;
-      document.getElementById('playTime').textContent = formatDuration(playTime || 0);
-    }
-
-    // --- Comment Section ---
-    let commentsListener = null;
-    let commentRatingStarsSelected = 0;
-    let commentImageFiles = [];
-    // Render rating stars for comment input
-    function renderCommentRatingStars() {
-      const c = document.getElementById('commentRatingStars');
-      c.innerHTML = '';
-      for (let i = 1; i <= 5; i++) {
+    // Star picker for comment
+    function makeStarPicker(container, value, cb, disabled = false) {
+      container.innerHTML = '';
+      for (let i=1; i<=5; i++) {
         const s = document.createElement('span');
+        s.className = 'star' + (i <= value ? ' filled' : '') + (disabled ? ' disabled' : '');
         s.textContent = '★';
-        s.className = 'transition-colors duration-150 select-none ' +
-          (i <= commentRatingStarsSelected ? 'text-yellow-400' : 'text-slate-600') +
-          (firebase.auth().currentUser ? ' cursor-pointer hover:text-yellow-300' : ' cursor-not-allowed');
-        if (firebase.auth().currentUser) {
+        if (!disabled) {
           s.addEventListener('mouseenter', () => {
-            for (let j = 0; j < 5; j++) c.children[j].classList.toggle('text-yellow-400', j < i);
-            for (let j = i; j < 5; j++) c.children[j].classList.toggle('text-slate-600', j >= i);
+            Array.from(container.children).forEach((star, idx) => {
+              star.classList.toggle('filled', idx < i);
+            });
           });
           s.addEventListener('mouseleave', () => {
-            for (let j = 0; j < 5; j++) c.children[j].classList.toggle('text-yellow-400', j < commentRatingStarsSelected);
-            for (let j = commentRatingStarsSelected; j < 5; j++) c.children[j].classList.toggle('text-slate-600', j >= commentRatingStarsSelected);
+            Array.from(container.children).forEach((star, idx) => {
+              star.classList.toggle('filled', idx < value);
+            });
           });
-          s.addEventListener('click', () => {
-            commentRatingStarsSelected = i;
-            renderCommentRatingStars();
-            checkCommentInput();
-          });
+          s.addEventListener('click', () => cb(i));
         }
-        c.appendChild(s);
+        container.appendChild(s);
       }
     }
-    function checkCommentInput() {
-      const val = document.getElementById('newCommentInput').value.trim();
-      document.getElementById('postCommentBtn').disabled = !(val && commentRatingStarsSelected);
+    let commentStarRating = 0, currentUser = null, game = null;
+    function renderCommentStarPicker() {
+      const container = document.querySelector('.comment-rating-stars');
+      makeStarPicker(container, commentStarRating, (val) => {
+        commentStarRating = val;
+        document.querySelector('.star-value-preview').textContent = commentStarRating;
+        renderCommentStarPicker();
+        updateCommentPostBtn();
+      }, !currentUser);
+      document.querySelector('.star-value-preview').textContent = commentStarRating;
     }
-    document.addEventListener('input', function(e) {
-      if (e.target && e.target.id === "newCommentInput") checkCommentInput();
-    });
-
-    // --- Image upload for comments ---
-    function previewCommentImageFiles() {
-      const preview = document.getElementById('commentImagePreview');
-      preview.innerHTML = '';
-      if (commentImageFiles && commentImageFiles.length) {
-        commentImageFiles.forEach((file, idx) => {
-          const reader = new FileReader();
-          reader.onload = function(ev) {
-            const img = document.createElement('img');
-            img.src = ev.target.result;
-            img.className = 'comment-image-thumb';
-            img.title = file.name;
-            img.onclick = function() {
-              enlargeCommentImage(ev.target.result);
-            }
-            preview.appendChild(img);
-          };
-          reader.readAsDataURL(file);
-        });
-        document.getElementById('commentImageUploadClear').classList.remove('hidden');
-      } else {
-        document.getElementById('commentImageUploadClear').classList.add('hidden');
-      }
+    function updateCommentPostBtn() {
+      const hasText = document.querySelector('.comment-input').value.trim().length > 0;
+      document.querySelector('.comment-post-btn').disabled = !(hasText && commentStarRating > 0);
     }
-    document.addEventListener('DOMContentLoaded', () => {
-      const imageInput = document.getElementById('commentImageInput');
-      const clearBtn = document.getElementById('commentImageUploadClear');
-      imageInput.addEventListener('change', (e) => {
-        commentImageFiles = Array.from(e.target.files).slice(0, 3); // max 3 images
-        previewCommentImageFiles();
-      });
-      clearBtn.addEventListener('click', () => {
-        commentImageFiles = [];
-        imageInput.value = '';
-        previewCommentImageFiles();
-      });
-    });
-
-    // Discord-style reactions
-    const reactionTypes = ["👍", "😂", "😮", "🎉", "❤️", "👎"];
-    // ---- COMMENT POST ----
-    document.addEventListener('DOMContentLoaded', () => {
-      document.getElementById('postCommentBtn').onclick = async function() {
-        let user = firebase.auth().currentUser;
-        if (!user) return;
-        let val = document.getElementById('newCommentInput').value.trim();
-        if (!val || !commentRatingStarsSelected) return;
-        // Upload images if any
-        let imageURLs = [];
-        if (commentImageFiles && commentImageFiles.length) {
-          for (let i = 0; i < commentImageFiles.length; i++) {
-            const file = commentImageFiles[i];
-            const name = `${user.uid}_${Date.now()}_${i}_${Math.random().toString(36).substr(2,6)}.${file.name.split('.').pop()}`;
-            const ref = storage.ref(`comments/${currentGameId}/${name}`);
-            await ref.put(file);
-            const url = await ref.getDownloadURL();
-            imageURLs.push(url);
-          }
-        }
-        await db.collection("games").doc(currentGameId).collection("comments").add({
-          userId: user.uid,
-          userName: user.displayName,
-          userPhoto: user.photoURL,
-          text: sanitize(val),
-          rating: commentRatingStarsSelected,
-          createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-          reactions: {},
-          replyTo: null,
-          images: imageURLs
-        });
-        document.getElementById('newCommentInput').value = '';
-        commentRatingStarsSelected = 0;
-        renderCommentRatingStars();
-        commentImageFiles = [];
-        document.getElementById('commentImageInput').value = '';
-        previewCommentImageFiles();
-        checkCommentInput();
-      };
-      renderCommentRatingStars();
-      checkCommentInput();
-    });
-    function getTimeAgo(ts) {
-      if (!ts) return "";
+    function containsBadWord(text) {
+      const BAD_WORDS = ['fuck','shit','bitch','cunt','nigger','fag','asshole','bastard','slut','dick','pussy','whore','faggot','cock','retard','cum','rape'];
+      const lower = text.toLowerCase();
+      return BAD_WORDS.some(word => lower.includes(word));
+    }
+    let lastCommentText = "", lastCommentTimestamp = 0, lastCommentTime = 0;
+    function isSpam(text) {
       let now = Date.now();
-      let d = ts.seconds ? ts.seconds * 1000 : ts;
-      let diff = Math.floor((now - d) / 1000);
-      if (diff < 60) return `${diff}s ago`;
-      if (diff < 3600) return `${Math.floor(diff/60)}m ago`;
-      if (diff < 86400) return `${Math.floor(diff/3600)}h ago`;
-      let date = new Date(d);
-      return date.toLocaleDateString();
+      if (text.trim() === lastCommentText && now - lastCommentTimestamp < 60*1000) return true;
+      if (now - lastCommentTime < 30*1000) return true;
+      return false;
     }
-    // --- COMMENT RENDERING ---
-    async function renderComments(gameId) {
-      if (commentsListener) commentsListener();
-      const list = document.getElementById('commentsList');
-      list.innerHTML = '<div class="text-cyan-300 py-12 text-center">Loading comments...</div>';
-      commentsListener = db.collection("games").doc(gameId).collection("comments")
-        .orderBy("createdAt", "desc")
-        .onSnapshot(async (snap) => {
-          let items = [];
-          for (const doc of snap.docs) {
-            let c = doc.data();
-            if (!c.replyTo) {
-              items.push(await renderComment(doc.id, c, gameId, snap.docs));
-            }
-          }
-          list.innerHTML = items.join('') || '<div class="text-cyan-300 py-12 text-center">No comments yet.</div>';
+    // Emoji Picker
+    let emojiCallback = null;
+    const emojiPicker = document.getElementById('emojiPicker');
+    function showEmojiPicker(event, callback) {
+      emojiCallback = callback;
+      emojiPicker.style.display = 'block';
+      emojiPicker.style.left = (event.pageX || event.clientX) + 'px';
+      emojiPicker.style.top = (event.pageY || event.clientY) + 'px';
+    }
+    emojiPicker?.addEventListener('emoji-click', event => {
+      const emoji = event.detail.unicode;
+      if (emojiCallback) emojiCallback(emoji);
+      emojiPicker.style.display = 'none';
+    });
+    document.body.addEventListener('click', function(e){
+      if (!e.target.classList.contains("add-reaction-btn") && emojiPicker && emojiPicker.style.display === "block") {
+        emojiPicker.style.display = 'none';
+      }
+    });
+    // Comment CRUD
+    let commentsUnsubscribe = null;
+    let commentSort = 'newest', commentStarFilter = 0;
+    function renderCommentSortFilterUI() {
+      const container = document.querySelector('.comment-sort-filter');
+      if (!container) return;
+      container.innerHTML = `
+        <select class="comment-sort-dropdown">
+          <option value="newest">Newest</option>
+          <option value="oldest">Oldest</option>
+        </select>
+        <span class="comment-filter-stars">
+          ${[5,4,3,2,1].map(star => 
+            `<button class="filter-star-btn${commentStarFilter===star?' active':''}" data-star="${star}">${star}★</button>`
+          ).join('')}
+          <button class="filter-star-btn${commentStarFilter===0?' active':''}" data-star="0">All</button>
+        </span>
+      `;
+      document.querySelector('.comment-sort-dropdown').value = commentSort;
+      document.querySelector('.comment-sort-dropdown').onchange = (e) => {
+        commentSort = e.target.value;
+        setupComments();
+      };
+      document.querySelectorAll('.filter-star-btn').forEach(btn => {
+        btn.onclick = () => {
+          commentStarFilter = +btn.dataset.star;
+          setupComments();
+        };
+      });
+    }
+    function setupComments() {
+      if (commentsUnsubscribe) commentsUnsubscribe();
+      renderCommentsList([]);
+      if (!game) return;
+      const q = db.collection('games').doc(game.id).collection('comments').orderBy('createdAt', 'desc');
+      commentsUnsubscribe = q.onSnapshot(snap => {
+        let comments = [];
+        snap.forEach(doc => {
+          comments.push({ id: doc.id, ...doc.data() });
         });
+        renderCommentsList(comments);
+      });
     }
-    function renderCommentImages(urls) {
-      if (!urls || !urls.length) return '';
-      return `<div class="comment-image-row">` + urls.map(url => 
-        `<img src="${url}" class="comment-image-thumb" onclick="enlargeCommentImage('${url}')" loading="lazy" alt="comment image"/>`
-      ).join('') + `</div>`;
+    function toggleReaction(commentId, emoji, currentList) {
+      if (!currentUser) return alert("Login first!");
+      const ref = db.collection("games").doc(game.id).collection("comments").doc(commentId);
+      ref.get().then(docSnap => {
+        let data = docSnap.data();
+        if (!data.reactions) data.reactions = {};
+        if (!data.reactions[emoji]) data.reactions[emoji] = [];
+        let arr = data.reactions[emoji];
+        const idx = arr.indexOf(currentUser.uid);
+        if (idx !== -1) arr.splice(idx, 1);
+        else arr.push(currentUser.uid);
+        ref.update({ [`reactions.${emoji}`]: arr });
+      });
     }
-    window.enlargeCommentImage = function(url) {
-      const modal = document.getElementById('commentImageEnlargeModal');
-      const img = document.getElementById('commentImageEnlargeImg');
-      img.src = url;
-      modal.style.display = 'flex';
+    async function reportComment(commentId) {
+      await db.collection('games').doc(game.id).collection('comments').doc(commentId).update({reported: true});
+      alert('Reported!');
     }
-    window.closeCommentImageEnlargeModal = function() {
-      const modal = document.getElementById('commentImageEnlargeModal');
-      const img = document.getElementById('commentImageEnlargeImg');
-      img.src = '';
-      modal.style.display = 'none';
-    };
-    async function renderComment(id, c, gameId, allDocs) {
-      // Replies
-      let replies = allDocs.filter(d => d.data().replyTo === id);
-      let replyHTML = '';
-      if (replies.length) {
-        replyHTML = `<div class="ml-6 mt-2 space-y-2">` +
-          (await Promise.all(replies.map(async r => await renderComment(r.id, r.data(), gameId, allDocs)))).join('') +
-          `</div>`;
+    function renderCommentsList(comments) {
+      const badge = document.querySelector('.comment-count-badge');
+      if (badge) badge.textContent = comments.length;
+      let filtered = comments;
+      if (commentStarFilter) filtered = filtered.filter(c => c.stars === commentStarFilter);
+      if (commentSort === 'oldest') filtered = [...filtered].reverse();
+      const list = document.querySelector('.comments-list');
+      list.innerHTML = '';
+      if (!filtered.length) {
+        list.innerHTML = `<div style="color:#888b9a;padding:1.4em;text-align:center;">No comments yet. Be the first to comment!</div>`;
+        return;
       }
-      // Reactions
-      const user = firebase.auth().currentUser;
-      let reactionsHTML = reactionTypes.map(r => {
-        let count = c.reactions && c.reactions[r] ? c.reactions[r].length : 0;
-        let active = user && c.reactions && c.reactions[r] && c.reactions[r].includes(user.uid);
-        return `<span class="reaction-btn px-2 py-1 rounded transition ${active?'active':''}" data-react="${r}" data-comment="${id}">${sanitize(r)}${count?` <span>${count}</span>`:""}</span>`;
-      }).join('');
-      // Comment rating stars
-      let commentRating = '';
-      if(typeof c.rating === "number" && c.rating > 0){
-        for (let i = 1; i <= 5; i++) {
-          commentRating += `<span class="text-2xl comment-rating ${i<=c.rating?'text-yellow-400':'text-slate-600'}">★</span>`;
+      filtered.forEach(comment => {
+        const div = document.createElement('div');
+        div.className = 'comment';
+        if(comment.deleted) {
+          div.textContent = 'This comment was removed by a moderator.';
+          list.appendChild(div);
+          return;
         }
-      }
-      // Images
-      let imagesHTML = renderCommentImages(c.images);
-      // XSS-safe comment
+        let starsHtml = '';
+        if (typeof comment.stars === 'number' && comment.stars > 0) {
+          for (let i=1; i<=5; i++) {
+            starsHtml += `<span class="star"${i <= comment.stars ? ' style="color:#ffd600;"' : ' style="color:#888;"'}>&#9733;</span>`;
+          }
+        }
+        let userLink = `/public-profile.html?uid=${comment.user.uid || ''}`;
+        let badge = '';
+        if (comment.user.badge) badge = `<span class="user-badge">${comment.user.badge}</span>`;
+        div.innerHTML = `
+          <a href="${userLink}" target="_blank">
+            <img class="comment-avatar" src="${comment.user.photo ? escapeHTML(comment.user.photo) : 'https://ui-avatars.com/api/?name=' + encodeURIComponent(comment.user.name)}" alt="">
+          </a>
+          <div class="comment-main">
+            <span class="comment-user">
+              <a href="${userLink}" target="_blank">${escapeHTML(comment.user.name || 'Unknown')}</a> ${badge}
+            </span>
+            <span class="comment-date">${comment.createdAt && comment.createdAt.toDate ? escapeHTML(comment.createdAt.toDate().toLocaleString()) : ''}</span>
+            <div class="stars">${starsHtml}</div>
+            <div class="comment-text">${escapeHTML(comment.text)}</div>
+            <div class="comment-actions">
+              <button class="reply-btn" data-comment="${comment.id}"><i class='bx bx-reply'></i> Reply</button>
+              <button class="show-replies-btn" data-comment="${comment.id}">Show replies</button>
+              <button class="report-btn" data-comment="${comment.id}">Report</button>
+            </div>
+            <div class="emoji-picker-bar">
+              ${Object.keys(comment.reactions||{}).map(emoji => {
+                const userList = comment.reactions[emoji];
+                const active = userList.includes(currentUser?.uid);
+                return `<button class="reaction-btn${active ? ' reacted' : ''}" data-emoji="${emoji}" data-comment="${comment.id}">${emoji} <span>${userList.length}</span></button>`;
+              }).join('')}
+              <button class="reaction-btn add-reaction-btn" data-comment="${comment.id}" title="Add Emoji Reaction">➕</button>
+            </div>
+            <div class="replies-container" id="replies-${comment.id}"></div>
+          </div>
+        `;
+        list.appendChild(div);
+      });
+      document.querySelectorAll('.report-btn').forEach(btn => {
+        btn.onclick = () => {
+          reportComment(btn.dataset.comment);
+          btn.disabled = true; btn.textContent = "Reported!";
+        };
+      });
+      bindEmojiAndReplyEvents(comments);
+    }
+    function bindEmojiAndReplyEvents(comments) {
+      document.querySelectorAll('.reaction-btn').forEach(btn => {
+        if (btn.classList.contains('add-reaction-btn')) return;
+        btn.onclick = async e => {
+          e.preventDefault();
+          if (!currentUser) return;
+          const emoji = btn.getAttribute('data-emoji');
+          const commentId = btn.getAttribute('data-comment');
+          const comment = comments.find(c => c.id === commentId);
+          await toggleReaction(commentId, emoji, comment && comment.reactions ? comment.reactions[emoji] : []);
+        };
+      });
+      document.querySelectorAll('.add-reaction-btn').forEach(btn => {
+        btn.onclick = (e) => {
+          const commentId = btn.getAttribute('data-comment');
+          showEmojiPicker(e, (emoji) => {
+            const comment = comments.find(c => c.id === commentId);
+            toggleReaction(commentId, emoji, comment && comment.reactions ? comment.reactions[emoji] || [] : []);
+          });
+        };
+      });
+      document.querySelectorAll('.reply-btn').forEach(btn => {
+        btn.onclick = e => {
+          e.preventDefault();
+          const commentId = btn.getAttribute('data-comment');
+          showReplyForm(commentId);
+        };
+      });
+      document.querySelectorAll('.show-replies-btn').forEach(btn => {
+        btn.onclick = e => {
+          e.preventDefault();
+          const commentId = btn.getAttribute('data-comment');
+          showRepliesForComment(commentId);
+          btn.style.display = "none";
+          let hideBtn = btn.parentElement.querySelector('.hide-replies-btn');
+          if (!hideBtn) {
+            hideBtn = document.createElement("button");
+            hideBtn.className = "hide-replies-btn";
+            hideBtn.type = "button";
+            hideBtn.textContent = "Hide replies";
+            hideBtn.style.marginLeft = "0.7em";
+            btn.parentElement.appendChild(hideBtn);
+          }
+          hideBtn.onclick = evt => {
+            evt.preventDefault();
+            const repliesDiv = document.getElementById('replies-' + commentId);
+            if (repliesDiv) {
+              repliesDiv.innerHTML = "";
+              repliesDiv.dataset.loaded = "false";
+            }
+            hideBtn.remove();
+            btn.style.display = "";
+          };
+        };
+      });
+    }
+    function showReplyForm(commentId) {
+      const repliesDiv = document.getElementById('replies-' + commentId);
+      if (!repliesDiv) return;
+      if (repliesDiv.querySelector('.reply-form')) return;
+      repliesDiv.innerHTML = replyFormHTML(commentId) + repliesDiv.innerHTML;
+      const input = repliesDiv.querySelector('.reply-input');
+      const btn = repliesDiv.querySelector('.reply-post-btn');
+      input.oninput = () => btn.disabled = input.value.trim().length === 0;
+      repliesDiv.querySelector('.reply-form').onsubmit = async function(e) {
+        e.preventDefault();
+        const text = input.value.trim();
+        if (!text) return;
+        if (containsBadWord(text)) {
+          repliesDiv.querySelector('.reply-error').textContent = "Please avoid inappropriate language.";
+          return;
+        }
+        if (isSpam(text)) {
+          repliesDiv.querySelector('.reply-error').textContent = "Please wait before posting again or avoid duplicate replies.";
+          return;
+        }
+        btn.disabled = true;
+        try {
+          await db.collection('games').doc(game.id).collection('comments').doc(commentId).collection('replies').add({
+            text: escapeHTML(text),
+            user: {
+              uid: currentUser.uid,
+              name: escapeHTML(currentUser.displayName),
+              photo: currentUser.photoURL || "",
+            },
+            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+            deleted: false
+          });
+          input.value = '';
+          repliesDiv.querySelector('.reply-error').textContent = '';
+          showRepliesForComment(commentId, true);
+        } catch (err) {
+          repliesDiv.querySelector('.reply-error').textContent = err.message || "Failed to post reply.";
+        }
+        btn.disabled = false;
+      };
+    }
+    function replyFormHTML(commentId) {
       return `
-      <div class="flex gap-3 items-start rounded-lg bg-[#181b2a] px-4 py-3">
-        <img src="${c.userPhoto}" class="w-9 h-9 rounded-full mt-1" alt="Avatar"/>
-        <div class="flex-1 min-w-0">
-          <div class="flex items-center gap-2">
-            <div class="font-bold text-cyan-300 truncate">${sanitize(c.userName)}</div>
-            <span class="text-xs text-white/60">${getTimeAgo(c.createdAt)}</span>
-            <span class="ml-2">${commentRating}</span>
-          </div>
-          <div class="comment-content mt-1 mb-2 text-white/90 text-base">${sanitize(c.text)}</div>
-          ${imagesHTML}
-          <div class="flex items-center gap-2 mt-1">
-            <span class="flex items-center gap-1">${reactionsHTML}</span>
-            <button class="text-xs text-cyan-300 hover:text-cyan-400 ml-2 reply-btn" data-comment="${id}">Reply</button>
-          </div>
-          <div class="reply-area" id="replyArea-${id}"></div>
-          ${replyHTML}
-        </div>
-      </div>
+      <form class="reply-form" data-comment="${commentId}">
+        <textarea class="reply-input" placeholder="Write a reply..." maxlength="300"></textarea>
+        <button class="reply-post-btn" type="submit" disabled>Reply</button>
+        <div class="reply-error"></div>
+      </form>
       `;
     }
-    // --- Handle comment reactions
-    document.addEventListener('click', async function(e) {
-      if (e.target && e.target.classList.contains('reaction-btn')) {
-        let user = firebase.auth().currentUser;
-        if (!user) return;
-        let commentId = e.target.getAttribute('data-comment');
-        let reaction = e.target.getAttribute('data-react');
-        let commentRef = db.collection("games").doc(currentGameId).collection("comments").doc(commentId);
-        let doc = await commentRef.get();
-        let data = doc.data();
-        let arr = (data.reactions && data.reactions[reaction]) ? data.reactions[reaction] : [];
-        if (arr.includes(user.uid)) {
-          arr = arr.filter(uid => uid !== user.uid);
-        } else {
-          arr.push(user.uid);
-        }
-        await commentRef.set({ reactions: { ...data.reactions, [reaction]: arr } }, { merge: true });
-      }
-      if (e.target && e.target.classList.contains('reply-btn')) {
-        let user = firebase.auth().currentUser;
-        if (!user) return;
-        let commentId = e.target.getAttribute('data-comment');
-        let area = document.getElementById('replyArea-' + commentId);
-        if (!area) return;
-        if (area.innerHTML) { area.innerHTML = ''; return; }
-        area.innerHTML = `
-          <div class="comment-reply">
-            <textarea class="w-full bg-[#181b2a] text-white px-4 py-2 rounded-lg border border-cyan-600/30 resize-none mb-2" rows="2" maxlength="300" placeholder="Write a reply..."></textarea>
-            <button class="bg-cyan-500 hover:bg-cyan-400 text-black font-bold px-4 py-1 rounded mr-2 post-reply-btn" data-parent="${commentId}">Post Reply</button>
-            <button class="bg-white/10 hover:bg-pink-600 text-white px-3 py-1 rounded cancel-reply-btn">Cancel</button>
-          </div>`;
-      }
-      if (e.target && e.target.classList.contains('cancel-reply-btn')) {
-        let area = e.target.closest('.reply-area');
-        if (area) area.innerHTML = '';
-      }
-      if (e.target && e.target.classList.contains('post-reply-btn')) {
-        let user = firebase.auth().currentUser;
-        if (!user) return;
-        let parentId = e.target.getAttribute('data-parent');
-        let ta = e.target.closest('.comment-reply').querySelector('textarea');
-        let val = ta.value.trim();
-        if (!val) return;
-        await db.collection("games").doc(currentGameId).collection("comments").add({
-          userId: user.uid,
-          userName: user.displayName,
-          userPhoto: user.photoURL,
-          text: sanitize(val),
-          rating: null,
-          createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-          reactions: {},
-          replyTo: parentId,
-          images: []
+    function showRepliesForComment(commentId, force = false) {
+      const repliesDiv = document.getElementById('replies-' + commentId);
+      if (!repliesDiv) return;
+      if (repliesDiv.dataset.loaded === "true" && !force) return;
+      repliesDiv.dataset.loaded = "true";
+      const repliesQ = db.collection('games').doc(game.id).collection('comments').doc(commentId).collection('replies').orderBy('createdAt', 'asc');
+      repliesQ.onSnapshot(snap => {
+        let html = "";
+        snap.forEach(doc => {
+          const reply = doc.data();
+          if (reply.deleted) {
+            html += `<div class="reply" style="color:#888;">[deleted]</div>`;
+            return;
+          }
+          let userLink = `/public-profile.html?uid=${reply.user.uid || ''}`;
+          html += `
+            <div class="reply">
+              <a href="${userLink}" target="_blank">
+                <img class="comment-avatar" src="${reply.user.photo ? escapeHTML(reply.user.photo) : 'https://ui-avatars.com/api/?name=' + encodeURIComponent(reply.user.name)}" alt="">
+              </a>
+              <span class="comment-user"><a href="${userLink}" target="_blank">${escapeHTML(reply.user.name || 'Unknown')}</a></span>
+              <span class="comment-date">${reply.createdAt && reply.createdAt.toDate ? escapeHTML(reply.createdAt.toDate().toLocaleString()) : ''}</span>
+              <div class="comment-text">${escapeHTML(reply.text)}</div>
+            </div>
+          `;
         });
-        let area = e.target.closest('.reply-area');
-        if (area) area.innerHTML = '';
-      }
-    });
-
-    // ---- Main page logic ----
+        const existingForm = repliesDiv.querySelector('.reply-form');
+        repliesDiv.innerHTML = (existingForm ? existingForm.outerHTML : "") + html;
+      });
+    }
+    async function postComment(text) {
+      if (!currentUser) return;
+      if (!game) return;
+      if (containsBadWord(text)) throw new Error("Inappropriate language detected.");
+      if (isSpam(text)) throw new Error("Please wait before posting again or avoid duplicate comments.");
+      await db.collection('games').doc(game.id).collection('comments').add({
+        text: escapeHTML(text),
+        stars: commentStarRating,
+        user: {
+          uid: currentUser.uid,
+          name: escapeHTML(currentUser.displayName),
+          photo: currentUser.photoURL || "",
+          badge: "", // Optionally assign badge here
+        },
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        likes: [],
+        deleted: false
+      });
+      lastCommentText = text.trim();
+      lastCommentTimestamp = Date.now();
+      lastCommentTime = Date.now();
+      commentStarRating = 0;
+      renderCommentStarPicker();
+      updateCommentPostBtn();
+    }
+    // --- MAIN APP INIT ---
     document.addEventListener('DOMContentLoaded', async () => {
       showPreloader();
       document.getElementById('gameFrameContainer').classList.add('hidden');
@@ -874,19 +930,23 @@
       document.getElementById('loginScreen').classList.remove('hidden');
       auth.onAuthStateChanged(async (user) => {
         renderUserSection(user);
+        currentUser = user;
         if (!user) {
           hidePreloader();
           document.getElementById('loginScreen').classList.remove('hidden');
           document.getElementById('gameFrameContainer').classList.add('hidden');
           document.getElementById('gameInfoHolder').classList.add('hidden');
           if(document.getElementById('suggestedSidebar')) document.getElementById('suggestedSidebar').classList.add('hidden');
-          document.getElementById('playStats').classList.add('hidden');
+          document.querySelector('.comment-form').style.display = "none";
+          document.querySelector('.comment-form-info').style.display = "";
+          renderCommentStarPicker();
           return;
         }
         await loadGamesData();
         currentGameId = getGameIdFromURL();
         window.currentGameId = currentGameId;
         currentGame = gamesData.find(g => g.id == currentGameId || String(g.id) == currentGameId);
+        game = currentGame;
         if(document.getElementById('suggestedSidebar')) document.getElementById('suggestedSidebar').classList.remove('hidden');
         let suggestedGames = [];
         if(currentGame) {
@@ -949,7 +1009,6 @@
         `;
         renderStarRatingUI();
         renderGameInfoBox(currentGame, "gameInfoTable");
-        // --- Play button ---
         document.getElementById('bigPlayBtn').onclick = async () => {
           showPreloader();
           document.getElementById('gameInfoHolder').classList.add('hidden');
@@ -1071,25 +1130,49 @@
             const iframe = document.getElementById('gameFrameEmbed');
             requestFullScreen(iframe);
           };
-          // --- Track play count and play time ---
-          incrementPlayCount(currentGameId);
-          let start = Date.now();
-          let playTimer = setInterval(async () => {
-            let elapsed = Math.floor((Date.now() - start)/1000);
-            await addPlayTime(user.uid, currentGameId, 5);
-            renderPlayStats(user.uid, currentGameId);
-          }, 5000);
-          window.addEventListener('beforeunload', async () => {
-            let elapsed = Math.floor((Date.now() - start)/1000);
-            await addPlayTime(user.uid, currentGameId, elapsed);
-            clearInterval(playTimer);
-          });
-          renderPlayStats(user.uid, currentGameId);
         };
         hidePreloader();
-        // --- Comments section ---
-        renderComments(currentGameId);
-        renderPlayStats(user.uid, currentGameId);
+        // --- COMMENT SECTION INIT ---
+        renderCommentStarPicker();
+        renderCommentSortFilterUI();
+        if (user) {
+          document.querySelector('.comment-form').style.display = "";
+          document.querySelector('.comment-form-info').style.display = "none";
+        } else {
+          document.querySelector('.comment-form').style.display = "none";
+          document.querySelector('.comment-form-info').style.display = "";
+        }
+        document.querySelector('.comment-input').oninput = () => {
+          updateCommentPostBtn();
+          document.querySelector('.comment-error').textContent = '';
+        };
+        document.querySelector('.comment-form').onsubmit = async e => {
+          e.preventDefault();
+          const text = document.querySelector('.comment-input').value.trim();
+          if (!text) return;
+          if (containsBadWord(text)) {
+            document.querySelector('.comment-error').textContent = "Please avoid inappropriate language.";
+            return;
+          }
+          if (isSpam(text)) {
+            document.querySelector('.comment-error').textContent = "Please wait before posting again or avoid duplicate comments.";
+            return;
+          }
+          if (commentStarRating === 0) {
+            document.querySelector('.comment-error').textContent = "Select a star rating.";
+            return;
+          }
+          document.querySelector('.comment-post-btn').disabled = true;
+          try {
+            await postComment(text);
+            document.querySelector('.comment-input').value = '';
+            document.querySelector('.comment-error').textContent = '';
+          } catch (err) {
+            document.querySelector('.comment-error').textContent = err.message || "Failed to post comment.";
+          }
+          document.querySelector('.comment-post-btn').disabled = false;
+        };
+        setupComments();
       });
     });
 
