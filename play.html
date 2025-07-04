@@ -10,6 +10,8 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <!-- Discord Reactions API (hypothetical, for example) -->
+  <script src="https://cdn.jsdelivr.net/npm/emoji-picker-element@^1/index.js"></script>
   <style>
     .loader {
       border: 8px solid #16213e;
@@ -32,6 +34,11 @@
     .suggested-scrollbar::-webkit-scrollbar {width: 6px;}
     .suggested-scrollbar::-webkit-scrollbar-thumb {background: #232445; border-radius: 3px;}
     .suggested-scrollbar::-webkit-scrollbar-track {background: transparent;}
+    .comment-content {word-break: break-word;}
+    .reaction-btn { cursor:pointer; }
+    .reaction-btn.active { font-weight: bold; background: #06b6d422; color: #06b6d4; }
+    .comment-reply {background: #232445; border-radius: 8px; padding: 12px; margin-top: 8px;}
+    .comment-rating {display:inline-block;}
   </style>
 </head>
 <body class="bg-gradient-to-br from-[#0f0f23] via-[#1a1a2e] to-[#16213e] min-h-screen text-white font-[Inter]">
@@ -66,6 +73,32 @@
       <div class="flex-1 min-w-0">
         <div id="gameInfoHolder" class="rounded-2xl shadow-2xl bg-[#181b2a] border border-cyan-600/30 overflow-hidden mt-2"></div>
         <div id="gameFrameContainer" class="rounded-2xl shadow-2xl bg-[#181b2a] border border-cyan-600/30 overflow-hidden mt-8 hidden"></div>
+        <div id="playStats" class="bg-[#232445] border border-cyan-600/20 rounded-xl px-6 py-4 mt-8 mb-6 flex flex-wrap gap-8 justify-between items-center hidden">
+          <div>
+            <span class="text-cyan-400 font-bold text-lg" id="playCount">0</span>
+            <span class="text-white/80">Total Plays</span>
+          </div>
+          <div>
+            <span class="text-indigo-400 font-bold text-lg" id="playTime">0m 0s</span>
+            <span class="text-white/80">Your Play Time</span>
+          </div>
+        </div>
+        <!-- Comments Section -->
+        <section id="commentsSection" class="mt-12 mb-16">
+          <div class="bg-[#232445] border border-cyan-600/20 rounded-xl px-6 py-8">
+            <h2 class="text-xl font-bold text-cyan-400 mb-2 flex items-center gap-2">
+              <i class='bx bx-comment-detail text-2xl'></i> Comments
+            </h2>
+            <div id="newCommentBox" class="mb-6">
+              <textarea id="newCommentInput" rows="2" maxlength="500" placeholder="Write your comment..." class="w-full bg-[#181b2a] text-white px-4 py-3 rounded-lg focus:outline-none border border-cyan-600/30 resize-none"></textarea>
+              <div class="flex items-center gap-3 mt-2">
+                <span id="commentRatingStars" class="flex gap-1 text-2xl"></span>
+                <button id="postCommentBtn" class="bg-cyan-500 hover:bg-cyan-400 text-black font-bold px-6 py-2 rounded-lg transition disabled:bg-gray-600" disabled>Post</button>
+              </div>
+            </div>
+            <div id="commentsList" class="space-y-6"></div>
+          </div>
+        </section>
       </div>
       <!-- RIGHT: SUGGESTED GAMES SIDEBAR -->
       <aside id="suggestedSidebar"
@@ -90,7 +123,6 @@
   </main>
 
   <script type="module">
-    // Proxy code (unchanged)
     import {
       makeURL,
       getProxied,
@@ -157,6 +189,17 @@
   </script>
 
   <script>
+    // XSS sanitizer function (very strict)
+    function sanitize(str) {
+      if (typeof str !== "string") return "";
+      return str
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    }
+
     // Firebase config
     const firebaseConfig = {
       apiKey: "AIzaSyC4ilHYP1T-kdXbWPoHJHhD2aj0pNWmMec",
@@ -485,6 +528,243 @@
         </tr>
       `;
     }
+
+    // --- Play Count and Play Time ---
+    async function incrementPlayCount(gameId) {
+      try {
+        const statsRef = db.collection("games").doc(gameId);
+        await statsRef.set({ playCount: firebase.firestore.FieldValue.increment(1) }, { merge: true });
+      } catch (e) {}
+    }
+    async function getPlayCount(gameId) {
+      try {
+        const doc = await db.collection("games").doc(gameId).get();
+        return doc.exists && doc.data().playCount ? doc.data().playCount : 0;
+      } catch (e) { return 0; }
+    }
+
+    // Per-user play time, stored in user doc under playTimes.{gameId}
+    async function addPlayTime(uid, gameId, seconds) {
+      try {
+        const ref = db.collection('users').doc(uid);
+        await ref.set({ playTimes: { [gameId]: firebase.firestore.FieldValue.increment(seconds) } }, { merge: true });
+      } catch (e) {}
+    }
+    async function getUserPlayTime(uid, gameId) {
+      try {
+        const doc = await db.collection('users').doc(uid).get();
+        return (doc.exists && doc.data().playTimes && doc.data().playTimes[gameId]) ? doc.data().playTimes[gameId] : 0;
+      } catch (e) { return 0; }
+    }
+    function formatDuration(seconds) {
+      let m = Math.floor(seconds / 60);
+      let s = Math.floor(seconds % 60);
+      return `${m}m ${s}s`;
+    }
+    async function renderPlayStats(uid, gameId) {
+      document.getElementById('playStats').classList.remove('hidden');
+      let count = await getPlayCount(gameId);
+      let playTime = await getUserPlayTime(uid, gameId);
+      document.getElementById('playCount').textContent = count || 0;
+      document.getElementById('playTime').textContent = formatDuration(playTime || 0);
+    }
+
+    // --- Comment Section ---
+    let commentsListener = null;
+    let commentRatingStarsSelected = 0;
+    // Render rating stars for comment input
+    function renderCommentRatingStars() {
+      const c = document.getElementById('commentRatingStars');
+      c.innerHTML = '';
+      for (let i = 1; i <= 5; i++) {
+        const s = document.createElement('span');
+        s.textContent = '★';
+        s.className = 'transition-colors duration-150 select-none ' +
+          (i <= commentRatingStarsSelected ? 'text-yellow-400' : 'text-slate-600') +
+          (firebase.auth().currentUser ? ' cursor-pointer hover:text-yellow-300' : ' cursor-not-allowed');
+        if (firebase.auth().currentUser) {
+          s.addEventListener('mouseenter', () => {
+            for (let j = 0; j < 5; j++) c.children[j].classList.toggle('text-yellow-400', j < i);
+            for (let j = i; j < 5; j++) c.children[j].classList.toggle('text-slate-600', j >= i);
+          });
+          s.addEventListener('mouseleave', () => {
+            for (let j = 0; j < 5; j++) c.children[j].classList.toggle('text-yellow-400', j < commentRatingStarsSelected);
+            for (let j = commentRatingStarsSelected; j < 5; j++) c.children[j].classList.toggle('text-slate-600', j >= commentRatingStarsSelected);
+          });
+          s.addEventListener('click', () => {
+            commentRatingStarsSelected = i;
+            renderCommentRatingStars();
+            checkCommentInput();
+          });
+        }
+        c.appendChild(s);
+      }
+    }
+    function checkCommentInput() {
+      const val = document.getElementById('newCommentInput').value.trim();
+      document.getElementById('postCommentBtn').disabled = !(val && commentRatingStarsSelected);
+    }
+    document.addEventListener('input', function(e) {
+      if (e.target && e.target.id === "newCommentInput") checkCommentInput();
+    });
+
+    // Discord-style reactions
+    const reactionTypes = ["👍", "😂", "😮", "🎉", "❤️", "👎"];
+    // ---- COMMENT POST ----
+    document.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('postCommentBtn').onclick = async function() {
+        let user = firebase.auth().currentUser;
+        if (!user) return;
+        let val = document.getElementById('newCommentInput').value.trim();
+        if (!val || !commentRatingStarsSelected) return;
+        await db.collection("games").doc(currentGameId).collection("comments").add({
+          userId: user.uid,
+          userName: user.displayName,
+          userPhoto: user.photoURL,
+          text: sanitize(val),
+          rating: commentRatingStarsSelected,
+          createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+          reactions: {},
+          replyTo: null
+        });
+        document.getElementById('newCommentInput').value = '';
+        commentRatingStarsSelected = 0;
+        renderCommentRatingStars();
+        checkCommentInput();
+      };
+      renderCommentRatingStars();
+      checkCommentInput();
+    });
+    function getTimeAgo(ts) {
+      if (!ts) return "";
+      let now = Date.now();
+      let d = ts.seconds ? ts.seconds * 1000 : ts;
+      let diff = Math.floor((now - d) / 1000);
+      if (diff < 60) return `${diff}s ago`;
+      if (diff < 3600) return `${Math.floor(diff/60)}m ago`;
+      if (diff < 86400) return `${Math.floor(diff/3600)}h ago`;
+      let date = new Date(d);
+      return date.toLocaleDateString();
+    }
+    // --- COMMENT RENDERING ---
+    async function renderComments(gameId) {
+      if (commentsListener) commentsListener();
+      const list = document.getElementById('commentsList');
+      list.innerHTML = '<div class="text-cyan-300 py-12 text-center">Loading comments...</div>';
+      commentsListener = db.collection("games").doc(gameId).collection("comments")
+        .orderBy("createdAt", "desc")
+        .onSnapshot(async (snap) => {
+          let items = [];
+          for (const doc of snap.docs) {
+            let c = doc.data();
+            if (!c.replyTo) {
+              items.push(await renderComment(doc.id, c, gameId, snap.docs));
+            }
+          }
+          list.innerHTML = items.join('') || '<div class="text-cyan-300 py-12 text-center">No comments yet.</div>';
+        });
+    }
+    async function renderComment(id, c, gameId, allDocs) {
+      // Replies
+      let replies = allDocs.filter(d => d.data().replyTo === id);
+      let replyHTML = '';
+      if (replies.length) {
+        replyHTML = `<div class="ml-6 mt-2 space-y-2">` +
+          (await Promise.all(replies.map(async r => await renderComment(r.id, r.data(), gameId, allDocs)))).join('') +
+          `</div>`;
+      }
+      // Reactions
+      const user = firebase.auth().currentUser;
+      let reactionsHTML = reactionTypes.map(r => {
+        let count = c.reactions && c.reactions[r] ? c.reactions[r].length : 0;
+        let active = user && c.reactions && c.reactions[r] && c.reactions[r].includes(user.uid);
+        return `<span class="reaction-btn px-2 py-1 rounded transition ${active?'active':''}" data-react="${r}" data-comment="${id}">${sanitize(r)}${count?` <span>${count}</span>`:""}</span>`;
+      }).join('');
+      // Comment rating stars
+      let commentRating = '';
+      for (let i = 1; i <= 5; i++) {
+        commentRating += `<span class="text-2xl comment-rating ${i<=c.rating?'text-yellow-400':'text-slate-600'}">★</span>`;
+      }
+      // XSS-safe comment
+      return `
+      <div class="flex gap-3 items-start rounded-lg bg-[#181b2a] px-4 py-3">
+        <img src="${c.userPhoto}" class="w-9 h-9 rounded-full mt-1" alt="Avatar"/>
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center gap-2">
+            <div class="font-bold text-cyan-300 truncate">${sanitize(c.userName)}</div>
+            <span class="text-xs text-white/60">${getTimeAgo(c.createdAt)}</span>
+            <span class="ml-2">${commentRating}</span>
+          </div>
+          <div class="comment-content mt-1 mb-2 text-white/90 text-base">${sanitize(c.text)}</div>
+          <div class="flex items-center gap-2">
+            <span class="flex items-center gap-1">${reactionsHTML}</span>
+            <button class="text-xs text-cyan-300 hover:text-cyan-400 ml-2 reply-btn" data-comment="${id}">Reply</button>
+          </div>
+          <div class="reply-area" id="replyArea-${id}"></div>
+          ${replyHTML}
+        </div>
+      </div>
+      `;
+    }
+    // --- Handle comment reactions
+    document.addEventListener('click', async function(e) {
+      if (e.target && e.target.classList.contains('reaction-btn')) {
+        let user = firebase.auth().currentUser;
+        if (!user) return;
+        let commentId = e.target.getAttribute('data-comment');
+        let reaction = e.target.getAttribute('data-react');
+        let commentRef = db.collection("games").doc(currentGameId).collection("comments").doc(commentId);
+        let doc = await commentRef.get();
+        let data = doc.data();
+        let arr = (data.reactions && data.reactions[reaction]) ? data.reactions[reaction] : [];
+        if (arr.includes(user.uid)) {
+          arr = arr.filter(uid => uid !== user.uid);
+        } else {
+          arr.push(user.uid);
+        }
+        await commentRef.set({ reactions: { ...data.reactions, [reaction]: arr } }, { merge: true });
+      }
+      if (e.target && e.target.classList.contains('reply-btn')) {
+        let user = firebase.auth().currentUser;
+        if (!user) return;
+        let commentId = e.target.getAttribute('data-comment');
+        let area = document.getElementById('replyArea-' + commentId);
+        if (!area) return;
+        if (area.innerHTML) { area.innerHTML = ''; return; }
+        area.innerHTML = `
+          <div class="comment-reply">
+            <textarea class="w-full bg-[#181b2a] text-white px-4 py-2 rounded-lg border border-cyan-600/30 resize-none mb-2" rows="2" maxlength="300" placeholder="Write a reply..."></textarea>
+            <button class="bg-cyan-500 hover:bg-cyan-400 text-black font-bold px-4 py-1 rounded mr-2 post-reply-btn" data-parent="${commentId}">Post Reply</button>
+            <button class="bg-white/10 hover:bg-pink-600 text-white px-3 py-1 rounded cancel-reply-btn">Cancel</button>
+          </div>`;
+      }
+      if (e.target && e.target.classList.contains('cancel-reply-btn')) {
+        let area = e.target.closest('.reply-area');
+        if (area) area.innerHTML = '';
+      }
+      if (e.target && e.target.classList.contains('post-reply-btn')) {
+        let user = firebase.auth().currentUser;
+        if (!user) return;
+        let parentId = e.target.getAttribute('data-parent');
+        let ta = e.target.closest('.comment-reply').querySelector('textarea');
+        let val = ta.value.trim();
+        if (!val) return;
+        await db.collection("games").doc(currentGameId).collection("comments").add({
+          userId: user.uid,
+          userName: user.displayName,
+          userPhoto: user.photoURL,
+          text: sanitize(val),
+          rating: null,
+          createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+          reactions: {},
+          replyTo: parentId
+        });
+        let area = e.target.closest('.reply-area');
+        if (area) area.innerHTML = '';
+      }
+    });
+
+    // ---- Main page logic ----
     document.addEventListener('DOMContentLoaded', async () => {
       showPreloader();
       document.getElementById('gameFrameContainer').classList.add('hidden');
@@ -498,6 +778,7 @@
           document.getElementById('gameFrameContainer').classList.add('hidden');
           document.getElementById('gameInfoHolder').classList.add('hidden');
           if(document.getElementById('suggestedSidebar')) document.getElementById('suggestedSidebar').classList.add('hidden');
+          document.getElementById('playStats').classList.add('hidden');
           return;
         }
         await loadGamesData();
@@ -566,6 +847,7 @@
         `;
         renderStarRatingUI();
         renderGameInfoBox(currentGame, "gameInfoTable");
+        // --- Play button ---
         document.getElementById('bigPlayBtn').onclick = async () => {
           showPreloader();
           document.getElementById('gameInfoHolder').classList.add('hidden');
@@ -687,8 +969,25 @@
             const iframe = document.getElementById('gameFrameEmbed');
             requestFullScreen(iframe);
           };
+          // --- Track play count and play time ---
+          incrementPlayCount(currentGameId);
+          let start = Date.now();
+          let playTimer = setInterval(async () => {
+            let elapsed = Math.floor((Date.now() - start)/1000);
+            await addPlayTime(user.uid, currentGameId, 5);
+            renderPlayStats(user.uid, currentGameId);
+          }, 5000);
+          window.addEventListener('beforeunload', async () => {
+            let elapsed = Math.floor((Date.now() - start)/1000);
+            await addPlayTime(user.uid, currentGameId, elapsed);
+            clearInterval(playTimer);
+          });
+          renderPlayStats(user.uid, currentGameId);
         };
         hidePreloader();
+        // --- Comments section ---
+        renderComments(currentGameId);
+        renderPlayStats(user.uid, currentGameId);
       });
     });
 
