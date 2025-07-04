@@ -161,1066 +161,333 @@
     </div>
   </main>
 
-  <!-- --- PROXY & APP SCRIPTS --- -->
-  <script type="module">
-    import {
-      makeURL,
-      getProxied,
-      setProxy,
-      getProxy,
-      setTransport,
-      setWisp,
-    } from "/lethal.mjs";
-    let proxyOption = localStorage.getItem("proxy-backend") || "uv";
-    async function ensureProxyReady() {
-      if (!getProxy() || getProxy() !== proxyOption) await setProxy(proxyOption);
-      let wisp = localStorage.getItem("wisp-server") || "wss://anura.pro/";
-      let transport = localStorage.getItem("proxy-transport");
-      if (wisp) await setWisp(wisp);
-      if (transport) await setTransport(transport);
-      else if (navigator.userAgent.indexOf("Firefox") > 0) await setTransport("libcurl");
-      else await setTransport("epoxy");
+ <!-- --- PROXY & APP SCRIPTS --- -->
+<script type="module">
+  import {
+    makeURL,
+    getProxied,
+    setProxy,
+    getProxy,
+    setTransport,
+    setWisp,
+  } from "/lethal.mjs";
+  let proxyOption = localStorage.getItem("proxy-backend") || "uv";
+  async function ensureProxyReady() {
+    if (!getProxy() || getProxy() !== proxyOption) await setProxy(proxyOption);
+    let wisp = localStorage.getItem("wisp-server") || "wss://anura.pro/";
+    let transport = localStorage.getItem("proxy-transport");
+    if (wisp) await setWisp(wisp);
+    if (transport) await setTransport(transport);
+    else if (navigator.userAgent.indexOf("Firefox") > 0) await setTransport("libcurl");
+    else await setTransport("epoxy");
+  }
+  function updateProxyToggleUI(proxy) {
+    const proxyToggleBtn = document.getElementById("proxyToggleBtn");
+    const proxyToggleIcon = document.getElementById("proxyToggleIcon");
+    if (!proxyToggleBtn || !proxyToggleIcon) return;
+    if (proxy === "scram") {
+      proxyToggleBtn.classList.remove("border-cyan-400");
+      proxyToggleBtn.classList.add("border-gold", "bg-gold/20");
+      proxyToggleIcon.className = "bx bx-network-chart text-xl";
+      proxyToggleBtn.title = "Scramjet";
+    } else {
+      proxyToggleBtn.classList.remove("border-gold", "bg-gold/20");
+      proxyToggleBtn.classList.add("border-cyan-400");
+      proxyToggleIcon.className = "bx bx-cloud text-xl";
+      proxyToggleBtn.title = "UV";
     }
-    function updateProxyToggleUI(proxy) {
-      const proxyToggleBtn = document.getElementById("proxyToggleBtn");
-      const proxyToggleIcon = document.getElementById("proxyToggleIcon");
-      if (!proxyToggleBtn || !proxyToggleIcon) return;
-      if (proxy === "scram") {
-        proxyToggleBtn.classList.remove("border-cyan-400");
-        proxyToggleBtn.classList.add("border-gold", "bg-gold/20");
-        proxyToggleIcon.className = "bx bx-network-chart text-xl";
-        proxyToggleBtn.title = "Scramjet";
-      } else {
-        proxyToggleBtn.classList.remove("border-gold", "bg-gold/20");
-        proxyToggleBtn.classList.add("border-cyan-400");
-        proxyToggleIcon.className = "bx bx-cloud text-xl";
-        proxyToggleBtn.title = "UV";
-      }
-    }
-    document.addEventListener("DOMContentLoaded", function() {
-      setTimeout(() => updateProxyToggleUI(proxyOption), 200);
-    });
-    document.addEventListener("DOMContentLoaded", function() {
-      const btn = document.getElementById("proxyToggleBtn");
-      if (btn) {
-        btn.addEventListener("click", async () => {
-          proxyOption = (getProxy() === "scram") ? "uv" : "scram";
-          localStorage.setItem("proxy-backend", proxyOption);
-          await ensureProxyReady();
-          updateProxyToggleUI(proxyOption);
-          if (!document.getElementById("gameFrameContainer").classList.contains("hidden")) {
-            loadProxiedGameIframe();
-          }
-        });
-      }
-    });
-    async function loadProxiedGameIframe() {
-      await ensureProxyReady();
-      let gamesData = window.gamesData || [];
-      let currentGameId = window.currentGameId;
-      let currentGame = gamesData.find(g => String(g.id) === String(currentGameId));
-      if (!currentGame) return;
-      const proxied = await getProxied(currentGame.url);
-      document.getElementById("gameFrameEmbed").src = proxied;
-    }
-    window.loadProxiedGameIframe = loadProxiedGameIframe;
-    window.ensureProxyReady = ensureProxyReady;
-    window.updateProxyToggleUI = updateProxyToggleUI;
-  </script>
-
-  <script>
-    // Firebase config
-    const firebaseConfig = {
-      apiKey: "AIzaSyC4ilHYP1T-kdXbWPoHJHhD2aj0pNWmMec",
-      authDomain: "carbon-services.firebaseapp.com",
-      projectId: "carbon-services",
-      storageBucket: "carbon-services.firebasestorage.app",
-      messagingSenderId: "288385472070",
-      appId: "1:288385472070:web:c4be3ff186e248fc645c47",
-      measurementId: "G-Y2K1RQYE74"
-    };
-    firebase.initializeApp(firebaseConfig);
-    const auth = firebase.auth();
-    const db = firebase.firestore();
-
-    function googleSignIn() {
-      const provider = new firebase.auth.GoogleAuthProvider();
-      auth.signInWithPopup(provider)
-        .catch((error) => {
-          document.getElementById('loginError').innerText = error.message;
-          document.getElementById('loginError').classList.remove('hidden');
-        });
-    }
-    function signOut() {
-      auth.signOut().then(() => location.reload());
-    }
-
-    let gamesData = [];
-    let currentGameId = null;
-    let currentGame = null;
-    let categoryCounts = {};
-    let tagCounts = {};
-
-    async function loadGamesData() {
-      const res = await fetch('games.json');
-      gamesData = await res.json();
-      window.gamesData = gamesData;
-      categoryCounts = {};
-      tagCounts = {};
-      gamesData.forEach(game => {
-        if (game.category) categoryCounts[game.category] = (categoryCounts[game.category] || 0) + 1;
-        if (game.tags && Array.isArray(game.tags)) {
-          game.tags.forEach(t => tagCounts[t] = (tagCounts[t] || 0) + 1);
+  }
+  document.addEventListener("DOMContentLoaded", function() {
+    setTimeout(() => updateProxyToggleUI(proxyOption), 200);
+  });
+  document.addEventListener("DOMContentLoaded", function() {
+    const btn = document.getElementById("proxyToggleBtn");
+    if (btn) {
+      btn.addEventListener("click", async () => {
+        proxyOption = (getProxy() === "scram") ? "uv" : "scram";
+        localStorage.setItem("proxy-backend", proxyOption);
+        await ensureProxyReady();
+        updateProxyToggleUI(proxyOption);
+        if (!document.getElementById("gameFrameContainer").classList.contains("hidden")) {
+          loadProxiedGameIframe();
         }
       });
-      window.categoryCounts = categoryCounts;
-      window.tagCounts = tagCounts;
     }
+  });
+  async function loadProxiedGameIframe() {
+    await ensureProxyReady();
+    let gamesData = window.gamesData || [];
+    let currentGameId = window.currentGameId;
+    let currentGame = gamesData.find(g => String(g.id) === String(currentGameId));
+    if (!currentGame) return;
+    const proxied = await getProxied(currentGame.url);
+    document.getElementById("gameFrameEmbed").src = proxied;
+  }
+  window.loadProxiedGameIframe = loadProxiedGameIframe;
+  window.ensureProxyReady = ensureProxyReady;
+  window.updateProxyToggleUI = updateProxyToggleUI;
+</script>
 
-    function getGameIdFromURL() {
-      const urlParams = new URLSearchParams(window.location.search);
-      return urlParams.get('id');
-    }
-    function setButtonActive(btn, isActive, activeClass='bg-cyan-500/80') {
-      btn.classList.toggle(activeClass, isActive);
-    }
-    function renderUserSection(user) {
-      const section = document.getElementById('userSection');
-      if (!section) return;
-      if (!user) {
-        section.innerHTML = '';
-      } else {
-        section.innerHTML = `
-          <img src="${user.photoURL}" class="w-8 h-8 rounded-full inline mr-2" title="${user.displayName}">
-          <span class="mr-3">${user.displayName}</span>
-          <button onclick="signOut()" class="bg-white/10 px-3 py-1 rounded hover:bg-pink-600 text-white">Sign Out</button>
-        `;
-      }
-    }
-    function showPreloader() {
-      document.getElementById('preloader').style.display = '';
-    }
-    function hidePreloader() {
-      document.getElementById('preloader').style.display = 'none';
-    }
-    function requestFullScreen(element) {
-      if (element.requestFullscreen) element.requestFullscreen();
-      else if (element.webkitRequestFullscreen) element.webkitRequestFullscreen();
-      else if (element.msRequestFullscreen) element.msRequestFullscreen();
-      else if (element.mozRequestFullScreen) element.mozRequestFullScreen();
-    }
+<script>
+  // Firebase config
+  const firebaseConfig = {
+    apiKey: "AIzaSyC4ilHYP1T-kdXbWPoHJHhD2aj0pNWmMec",
+    authDomain: "carbon-services.firebaseapp.com",
+    projectId: "carbon-services",
+    storageBucket: "carbon-services.firebasestorage.app",
+    messagingSenderId: "288385472070",
+    appId: "1:288385472070:web:c4be3ff186e248fc645c47",
+    measurementId: "G-Y2K1RQYE74"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const auth = firebase.auth();
+  const db = firebase.firestore();
 
-    let starRatingData = {
-      average: 0,
-      count: 0,
-      yourRating: 0,
-      loading: false,
-      error: "",
-      percent: 0
-    };
+  function googleSignIn() {
+    const provider = new firebase.auth.GoogleAuthProvider();
+    auth.signInWithPopup(provider)
+      .catch((error) => {
+        document.getElementById('loginError').innerText = error.message;
+        document.getElementById('loginError').classList.remove('hidden');
+      });
+  }
+  function signOut() {
+    auth.signOut().then(() => location.reload());
+  }
 
-    function renderStarRatingUI(target = "") {
-      const pre = target ? target : "";
-      const container = document.getElementById('starsContainer' + pre);
-      if (!container) return;
-      container.innerHTML = '';
-      let fill = starRatingData.yourRating ? starRatingData.yourRating : Math.round(starRatingData.average);
-      for (let i = 1; i <= 5; i++) {
-        const star = document.createElement('span');
-        star.textContent = '★';
-        star.className = 'transition-colors duration-150 select-none ' +
-          (i <= fill ? 'text-yellow-400' : 'text-slate-600') +
-          (firebase.auth().currentUser ? ' cursor-pointer hover:text-yellow-300' : ' cursor-not-allowed');
-        if (firebase.auth().currentUser) {
-          star.addEventListener('mouseenter', () => {
-            for (let j = 0; j < 5; j++) container.children[j].classList.toggle('text-yellow-400', j < i);
-            for (let j = i; j < 5; j++) container.children[j].classList.toggle('text-slate-600', j >= i);
-          });
-          star.addEventListener('mouseleave', () => {
-            for (let j = 0; j < 5; j++) {
-              container.children[j].classList.toggle('text-yellow-400', j < fill);
-              container.children[j].classList.toggle('text-slate-600', j >= fill);
-            }
-          });
-          star.addEventListener('click', async () => {
-            await submitStarRating(i);
-          });
-        }
-        container.appendChild(star);
-      }
-      document.getElementById('starRatingSummary' + pre).textContent =
-        starRatingData.count ? `${starRatingData.average.toFixed(2)} / 5` : "Not rated";
-      document.getElementById('starRatingCount' + pre).textContent =
-        starRatingData.count === 1 ? "1 rating" : (starRatingData.count ? `${starRatingData.count} ratings` : "");
-      document.getElementById('starRatingError' + pre).textContent = starRatingData.error || '';
-      renderRatingPercentUI(target);
-    }
+  let gamesData = [];
+  let currentGameId = null;
+  let currentGame = null;
+  let categoryCounts = {};
+  let tagCounts = {};
 
-    async function loadStarRating(gameId) {
-      starRatingData.loading = true;
-      starRatingData.error = "";
-      starRatingData.average = 0;
-      starRatingData.count = 0;
-      starRatingData.yourRating = 0;
-      starRatingData.percent = 0;
-      try {
-        const ratingsRef = db.collection("games").doc(gameId).collection("ratings");
-        const snap = await ratingsRef.get();
-        let total = 0, count = 0, your = 0, user = firebase.auth().currentUser;
-        let highCount = 0;
-        snap.forEach(doc => {
-          const d = doc.data();
-          if (typeof d.rating === "number" && d.rating >= 1 && d.rating <= 5) {
-            total += d.rating;
-            count++;
-            if (d.rating >= 4) highCount++;
-            if (user && doc.id === user.uid) your = d.rating;
-          }
-        });
-        starRatingData.average = count ? total / count : 0;
-        starRatingData.count = count;
-        starRatingData.yourRating = your;
-        starRatingData.percent = count ? Math.round((highCount / count) * 100) : 0;
-      } catch (e) {
-        starRatingData.error = "Failed to load ratings.";
+  async function loadGamesData() {
+    const res = await fetch('games.json');
+    gamesData = await res.json();
+    window.gamesData = gamesData;
+    categoryCounts = {};
+    tagCounts = {};
+    gamesData.forEach(game => {
+      if (game.category) categoryCounts[game.category] = (categoryCounts[game.category] || 0) + 1;
+      if (game.tags && Array.isArray(game.tags)) {
+        game.tags.forEach(t => tagCounts[t] = (tagCounts[t] || 0) + 1);
       }
-      starRatingData.loading = false;
-      renderStarRatingUI();
-      renderStarRatingUI("Frame");
-    }
+    });
+    window.categoryCounts = categoryCounts;
+    window.tagCounts = tagCounts;
+  }
 
-    async function submitStarRating(stars) {
-      if (!firebase.auth().currentUser) {
-        starRatingData.error = "Sign in first!";
-        renderStarRatingUI();
-        renderStarRatingUI("Frame");
-        return;
-      }
-      if (!currentGameId) {
-        starRatingData.error = "Game not loaded!";
-        renderStarRatingUI();
-        renderStarRatingUI("Frame");
-        return;
-      }
-      if (stars < 1 || stars > 5) {
-        starRatingData.error = "Invalid rating value!";
-        renderStarRatingUI();
-        renderStarRatingUI("Frame");
-        return;
-      }
-      starRatingData.loading = true;
-      starRatingData.error = "";
-      renderStarRatingUI();
-      renderStarRatingUI("Frame");
-      try {
-        const ref = db.collection("games").doc(currentGameId).collection("ratings").doc(firebase.auth().currentUser.uid);
-        await ref.set({
-          rating: stars,
-          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-        });
-        starRatingData.yourRating = stars;
-        await loadStarRating(currentGameId);
-      } catch (e) {
-        starRatingData.error = "Failed to rate, try again.";
-        renderStarRatingUI();
-        renderStarRatingUI("Frame");
-      }
-      starRatingData.loading = false;
-      renderStarRatingUI();
-      renderStarRatingUI("Frame");
-    }
-
-    function renderRatingPercentUI(target = "") {
-      const pre = target ? target : "";
-      const txt = document.getElementById('ratingPercentText' + pre);
-      const bar = document.getElementById('ratingPercentBar' + pre);
-      if (!txt || !bar) return;
-      if (starRatingData.count === 0) {
-        txt.textContent = "Not enough ratings yet";
-        bar.style.width = "0%";
-      } else {
-        txt.textContent = `${starRatingData.percent}% of raters gave 4 or 5 stars`;
-        bar.style.width = `${starRatingData.percent}%`;
-      }
-    }
-
-    function getSuggestedGames(currentId, currentCategory, limit = 8) {
-      let filtered = [];
-      if (currentId && currentCategory) {
-        filtered = gamesData.filter(
-          g => g.id !== currentId && g.category === currentCategory
-        );
-      }
-      if (filtered.length < limit) {
-        let others = gamesData.filter(g => g.id !== currentId && !filtered.includes(g));
-        while (filtered.length < limit && others.length) {
-          let idx = Math.floor(Math.random() * others.length);
-          filtered.push(others.splice(idx, 1)[0]);
-        }
-      }
-      for (let i = filtered.length - 1; i > 0; i--) {
-        let j = Math.floor(Math.random() * (i + 1));
-        [filtered[i], filtered[j]] = [filtered[j], filtered[i]];
-      }
-      return filtered.slice(0, limit);
-    }
-    function renderSuggestedGamesSidebar(suggestedGames) {
-      const container = document.getElementById("suggestedGamesList");
-      if (!container) return;
-      container.innerHTML = suggestedGames.map(game => `
-        <a href="play.html?id=${game.id}" 
-          class="block group overflow-hidden shadow-lg bg-[#232445] border border-white/10 hover:border-cyan-400/60 transition relative rounded-[22px]">
-          <div class="relative aspect-[16/9] bg-black rounded-t-[22px] overflow-hidden">
-            <img src="${game.image || 'https://via.placeholder.com/400x300/232445/ffffff?text=No+Image'}" 
-                 alt="${game.title}" 
-                 class="w-full h-full object-cover group-hover:scale-[1.04] transition duration-200 pointer-events-none select-none" />
-            ${game.featured ? `<span class="absolute top-2 right-2 bg-indigo-600/80 text-white text-[10px] font-bold px-2 py-1 rounded-full shadow">FEATURED</span>` : ""}
-          </div>
-          <div class="p-3 flex flex-col gap-1">
-            <div class="text-cyan-300 font-bold text-base truncate group-hover:text-cyan-400 transition">${game.title}</div>
-            <div class="flex items-center gap-2 flex-wrap">
-              <span class="bg-cyan-400/20 text-cyan-300 text-xs px-2 py-0.5 rounded-full font-semibold">${game.category || ''}</span>
-              ${(game.tags && game.tags.length) ? `<span class="bg-indigo-400/20 text-indigo-200 text-xs px-2 py-0.5 rounded-full font-semibold">${game.tags[0]}</span>` : ""}
-            </div>
-          </div>
-        </a>
-      `).join('');
-    }
-
-    function openTagGamesModal(tag) {
-      const modal = document.getElementById('tagGamesListModal');
-      const title = document.getElementById('tagGamesListTitle');
-      const body = document.getElementById('tagGamesListBody');
-      const games = gamesData.filter(g => g.tags && g.tags.includes(tag));
-      title.innerHTML = `${tag.charAt(0).toUpperCase() + tag.slice(1)} <span class="text-cyan-400/70 text-base">(${games.length} game${games.length!==1?'s':''})</span>`;
-      body.innerHTML = games.length ? games.map(g => `
-        <a href="play.html?id=${g.id}" class="block px-4 py-2 bg-white/5 rounded-md hover:bg-cyan-500/20 text-white/90 font-semibold transition">
-          ${g.title}
-        </a>
-      `).join('') : `<div class="text-white/60">No games in this category.</div>`;
-      modal.classList.remove("hidden");
-    }
-    function closeTagGamesModal() {
-      document.getElementById('tagGamesListModal').classList.add('hidden');
-    }
-    function renderCategoryGamesCountFrame(currentGame) {
-      const el = document.getElementById('categoryGamesCountFrame');
-      if (!el || !currentGame || !currentGame.category || !window.categoryCounts) {
-        if (el) el.textContent = "";
-        return;
-      }
-      const cat = currentGame.category;
-      const count = window.categoryCounts[cat] || 0;
-      el.textContent = `${cat.charAt(0).toUpperCase() + cat.slice(1)} (${count}) games`;
-    }
-    function renderTagsAreaFrame(currentGame) {
-      const el = document.getElementById('tagsAreaFrame');
-      if (!el) return;
-      if (!currentGame || !currentGame.tags || !currentGame.tags.length) {
-        el.innerHTML = "";
-        return;
-      }
-      el.innerHTML = currentGame.tags.map(tag => `
-        <button type="button"
-          class="tag-btn inline-block px-3 py-1 bg-gradient-to-r from-cyan-400/20 to-indigo-500/20 text-cyan-300 text-xs rounded-full border border-cyan-400/30 hover:bg-cyan-600/10 transition font-semibold"
-          onclick="openTagGamesModal('${tag}')"
-          >
-          ${tag.charAt(0).toUpperCase() + tag.slice(1)} <span class="text-cyan-400/70">(${window.tagCounts[tag]||1})</span>
-        </button>
-      `).join('');
-    }
-    function renderGameInfoBox(game, tableId) {
-      const el = document.getElementById(tableId);
-      if (!el) return;
-      el.innerHTML = `
-        <tr>
-          <th class="pr-4 py-1 text-cyan-400 font-semibold align-top">Developer</th>
-          <td class="py-1">${game.developer || "Unknown"}</td>
-        </tr>
-        <tr>
-          <th class="pr-4 py-1 text-cyan-400 font-semibold align-top">Release</th>
-          <td class="py-1">${game.release || "Unknown"}</td>
-        </tr>
-        <tr>
-          <th class="pr-4 py-1 text-cyan-400 font-semibold align-top">Technology</th>
-          <td class="py-1">${game.technology || "Unknown"}</td>
-        </tr>
-        <tr>
-          <th class="pr-4 py-1 text-cyan-400 font-semibold align-top">Platforms</th>
-          <td class="flex flex-wrap gap-2 py-1">
-            ${(Array.isArray(game.platforms) ? game.platforms.map(p => `<span class="bg-[#232445] text-cyan-300 px-2 py-[2px] rounded-full text-xs font-semibold">${p}</span>`).join('') : (game.platforms || "Unknown"))}
-          </td>
-        </tr>
-        <tr>
-          <th class="pr-4 py-1 text-cyan-400 font-semibold align-top">Controls</th>
-          <td class="py-1">${game.controls || "See in-game"}</td>
-        </tr>
+  function getGameIdFromURL() {
+    const urlParams = new URLSearchParams(window.location.search);
+    return urlParams.get('id');
+  }
+  function setButtonActive(btn, isActive, activeClass='bg-cyan-500/80') {
+    btn.classList.toggle(activeClass, isActive);
+  }
+  function renderUserSection(user) {
+    const section = document.getElementById('userSection');
+    if (!section) return;
+    if (!user) {
+      section.innerHTML = '';
+    } else {
+      section.innerHTML = `
+        <img src="${user.photoURL}" class="w-8 h-8 rounded-full inline mr-2" title="${user.displayName}">
+        <span class="mr-3">${user.displayName}</span>
+        <button onclick="signOut()" class="bg-white/10 px-3 py-1 rounded hover:bg-pink-600 text-white">Sign Out</button>
       `;
     }
-    // --- COMMENT SECTION SCRIPTS (star rating, reply, reactions) ---
-// Escape HTML for XSS
-function escapeHTML(str) {
-  if (typeof str !== "string" || str === null || str === undefined) return "";
-  return str.replace(/[<>&"'`]/g, c => ({
-    '<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;',"'":'&#39;','`':'&#96;'
-  })[c]);
-}
-// Star picker for comment
-function makeStarPicker(container, value, cb, disabled = false) {
-  container.innerHTML = '';
-  for (let i=1; i<=5; i++) {
-    const s = document.createElement('span');
-    s.className = 'star' + (i <= value ? ' filled' : '') + (disabled ? ' disabled' : '');
-    s.textContent = '★';
-    if (!disabled) {
-      s.addEventListener('mouseenter', () => {
-        Array.from(container.children).forEach((star, idx) => {
-          star.classList.toggle('filled', idx < i);
-        });
-      });
-      s.addEventListener('mouseleave', () => {
-        Array.from(container.children).forEach((star, idx) => {
-          star.classList.toggle('filled', idx < value);
-        });
-      });
-      s.addEventListener('click', () => cb(i));
-    }
-    container.appendChild(s);
   }
-}
-let commentStarRating = 0, currentUser = null, game = null;
-function renderCommentStarPicker() {
-  const container = document.querySelector('.comment-rating-stars');
-  makeStarPicker(container, commentStarRating, (val) => {
-    commentStarRating = val;
-    document.querySelector('.star-value-preview').textContent = commentStarRating;
-    renderCommentStarPicker();
-    updateCommentPostBtn();
-  }, !currentUser);
-  document.querySelector('.star-value-preview').textContent = commentStarRating;
-}
-function updateCommentPostBtn() {
-  const hasText = document.querySelector('.comment-input').value.trim().length > 0;
-  document.querySelector('.comment-post-btn').disabled = !(hasText && commentStarRating > 0);
-}
-function containsBadWord(text) {
-  const BAD_WORDS = ['fuck','shit','bitch','cunt','nigger','fag','asshole','bastard','slut','dick','pussy','whore','faggot','cock','retard','cum','rape'];
-  const lower = text.toLowerCase();
-  return BAD_WORDS.some(word => lower.includes(word));
-}
-let lastCommentText = "", lastCommentTimestamp = 0, lastCommentTime = 0;
-function isSpam(text) {
-  let now = Date.now();
-  if (text.trim() === lastCommentText && now - lastCommentTimestamp < 60*1000) return true;
-  if (now - lastCommentTime < 30*1000) return true;
-  return false;
-}
-// Emoji Picker
-let emojiCallback = null;
-const emojiPicker = document.getElementById('emojiPicker');
-function showEmojiPicker(event, callback) {
-  emojiCallback = callback;
-  emojiPicker.style.display = 'block';
-  emojiPicker.style.left = (event.pageX || event.clientX) + 'px';
-  emojiPicker.style.top = (event.pageY || event.clientY) + 'px';
-}
-emojiPicker?.addEventListener('emoji-click', event => {
-  const emoji = event.detail.unicode;
-  if (emojiCallback) emojiCallback(emoji);
-  emojiPicker.style.display = 'none';
-});
-document.body.addEventListener('click', function(e){
-  if (!e.target.classList.contains("add-reaction-btn") && emojiPicker && emojiPicker.style.display === "block") {
-    emojiPicker.style.display = 'none';
+  function showPreloader() {
+    document.getElementById('preloader').style.display = '';
   }
-});
-// Comment CRUD
-let commentsUnsubscribe = null;
-let commentSort = 'newest', commentStarFilter = 0;
-function renderCommentSortFilterUI() {
-  const container = document.querySelector('.comment-sort-filter');
-  if (!container) return;
-  container.innerHTML = `
-    <select class="comment-sort-dropdown">
-      <option value="newest">Newest</option>
-      <option value="oldest">Oldest</option>
-    </select>
-    <span class="comment-filter-stars">
-      ${[5,4,3,2,1].map(star => 
-        `<button class="filter-star-btn${commentStarFilter===star?' active':''}" data-star="${star}">${star}★</button>`
-      ).join('')}
-      <button class="filter-star-btn${commentStarFilter===0?' active':''}" data-star="0">All</button>
-    </span>
-  `;
-  document.querySelector('.comment-sort-dropdown').value = commentSort;
-  document.querySelector('.comment-sort-dropdown').onchange = (e) => {
-    commentSort = e.target.value;
-    setupComments();
+  function hidePreloader() {
+    document.getElementById('preloader').style.display = 'none';
+  }
+  function requestFullScreen(element) {
+    if (element.requestFullscreen) element.requestFullscreen();
+    else if (element.webkitRequestFullscreen) element.webkitRequestFullscreen();
+    else if (element.msRequestFullscreen) element.msRequestFullscreen();
+    else if (element.mozRequestFullScreen) element.mozRequestFullScreen();
+  }
+
+  let starRatingData = {
+    average: 0,
+    count: 0,
+    yourRating: 0,
+    loading: false,
+    error: "",
+    percent: 0
   };
-  document.querySelectorAll('.filter-star-btn').forEach(btn => {
-    btn.onclick = () => {
-      commentStarFilter = +btn.dataset.star;
-      setupComments();
-    };
-  });
-}
-function setupComments() {
-  if (commentsUnsubscribe) commentsUnsubscribe();
-  renderCommentsList([]);
-  if (!game) return;
-  const q = db.collection('games').doc(game.id).collection('comments').orderBy('createdAt', 'desc');
-  commentsUnsubscribe = q.onSnapshot(snap => {
-    let comments = [];
-    snap.forEach(doc => {
-      comments.push({ id: doc.id, ...doc.data() });
-    });
-    renderCommentsList(comments);
-  });
-}
-function toggleReaction(commentId, emoji, currentList) {
-  if (!currentUser) return alert("Login first!");
-  const ref = db.collection("games").doc(game.id).collection("comments").doc(commentId);
-  ref.get().then(docSnap => {
-    let data = docSnap.data();
-    if (!data.reactions) data.reactions = {};
-    if (!data.reactions[emoji] || !Array.isArray(data.reactions[emoji])) data.reactions[emoji] = [];
-    let arr = data.reactions[emoji];
-    const idx = arr.indexOf(currentUser.uid);
-    if (idx !== -1) arr.splice(idx, 1);
-    else arr.push(currentUser.uid);
-    ref.update({ [`reactions.${emoji}`]: arr });
-  });
-}
-async function reportComment(commentId) {
-  await db.collection('games').doc(game.id).collection('comments').doc(commentId).update({reported: true});
-  alert('Reported!');
-}
-function renderCommentsList(comments) {
-  const badge = document.querySelector('.comment-count-badge');
-  if (badge) badge.textContent = comments.length;
-  let filtered = comments;
-  if (commentStarFilter) filtered = filtered.filter(c => c.stars === commentStarFilter);
-  if (commentSort === 'oldest') filtered = [...filtered].reverse();
-  const list = document.querySelector('.comments-list');
-  list.innerHTML = '';
-  if (!filtered.length) {
-    list.innerHTML = `<div style="color:#888b9a;padding:1.4em;text-align:center;">No comments yet. Be the first to comment!</div>`;
-    return;
+
+  function renderStarRatingUI(target = "") {
+    const pre = target ? target : "";
+    const container = document.getElementById('starsContainer' + pre);
+    if (!container) return;
+    container.innerHTML = '';
+    let fill = starRatingData.yourRating ? starRatingData.yourRating : Math.round(starRatingData.average);
+    for (let i = 1; i <= 5; i++) {
+      const star = document.createElement('span');
+      star.textContent = '★';
+      star.className = 'transition-colors duration-150 select-none ' +
+        (i <= fill ? 'text-yellow-400' : 'text-slate-600') +
+        (firebase.auth().currentUser ? ' cursor-pointer hover:text-yellow-300' : ' cursor-not-allowed');
+      if (firebase.auth().currentUser) {
+        star.addEventListener('mouseenter', () => {
+          for (let j = 0; j < 5; j++) container.children[j].classList.toggle('text-yellow-400', j < i);
+          for (let j = i; j < 5; j++) container.children[j].classList.toggle('text-slate-600', j >= i);
+        });
+        star.addEventListener('mouseleave', () => {
+          for (let j = 0; j < 5; j++) {
+            container.children[j].classList.toggle('text-yellow-400', j < fill);
+            container.children[j].classList.toggle('text-slate-600', j >= fill);
+          }
+        });
+        star.addEventListener('click', async () => {
+          await submitStarRating(i);
+        });
+      }
+      container.appendChild(star);
+    }
+    document.getElementById('starRatingSummary' + pre).textContent =
+      starRatingData.count ? `${starRatingData.average.toFixed(2)} / 5` : "Not rated";
+    document.getElementById('starRatingCount' + pre).textContent =
+      starRatingData.count === 1 ? "1 rating" : (starRatingData.count ? `${starRatingData.count} ratings` : "");
+    document.getElementById('starRatingError' + pre).textContent = starRatingData.error || '';
+    renderRatingPercentUI(target);
   }
-  filtered.forEach(comment => {
-    const div = document.createElement('div');
-    div.className = 'comment';
-    if(comment.deleted) {
-      div.textContent = 'This comment was removed by a moderator.';
-      list.appendChild(div);
-      return;
-    }
-    let starsHtml = '';
-    if (typeof comment.stars === 'number' && comment.stars > 0) {
-      for (let i=1; i<=5; i++) {
-        starsHtml += `<span class="star"${i <= comment.stars ? ' style="color:#ffd600;"' : ' style="color:#888;"'}>&#9733;</span>`;
-      }
-    }
-    // Safely handle user data with proper null checks
-    const userUid = comment.user && comment.user.uid ? comment.user.uid : '';
-    const userName = comment.user && comment.user.name ? comment.user.name : 'Unknown';
-    const userPhoto = comment.user && comment.user.photo ? comment.user.photo : '';
-    const userBadge = comment.user && comment.user.badge ? comment.user.badge : '';
-    let userLink = `/public-profile.html?uid=${userUid}`;
-    let badge = '';
-    if (userBadge) badge = `<span class="user-badge">${userBadge}</span>`;
-    const avatarUrl = userPhoto || `https://ui-avatars.com/api/?name=${encodeURIComponent(userName)}`;
-    div.innerHTML = `
-      <a href="${userLink}" target="_blank">
-        <img class="comment-avatar" src="${escapeHTML(avatarUrl)}" alt="">
-      </a>
-      <div class="comment-main">
-        <span class="comment-user">
-          <a href="${userLink}" target="_blank">${escapeHTML(userName)}</a> ${badge}
-        </span>
-        <span class="comment-date">${comment.createdAt && comment.createdAt.toDate ? escapeHTML(comment.createdAt.toDate().toLocaleString()) : ''}</span>
-        <div class="stars">${starsHtml}</div>
-        <div class="comment-text">${escapeHTML(comment.text || '')}</div>
-        <div class="comment-actions">
-          <button class="reply-btn" data-comment="${comment.id}"><i class='bx bx-reply'></i> Reply</button>
-          <button class="show-replies-btn" data-comment="${comment.id}">Show replies</button>
-          <button class="report-btn" data-comment="${comment.id}">Report</button>
-        </div>
-        <div class="emoji-picker-bar">
-          ${Object.keys(comment.reactions||{}).map(emoji => {
-            let userList = comment.reactions[emoji];
-            if (!Array.isArray(userList)) userList = [];
-            const active = currentUser && userList.includes(currentUser.uid);
-            return `<button class="reaction-btn${active ? ' reacted' : ''}" data-emoji="${emoji}" data-comment="${comment.id}">${emoji} <span>${userList.length}</span></button>`;
-          }).join('')}
-          <button class="reaction-btn add-reaction-btn" data-comment="${comment.id}" title="Add Emoji Reaction">➕</button>
-        </div>
-        <div class="replies-container" id="replies-${comment.id}"></div>
-      </div>
-    `;
-    list.appendChild(div);
-  });
-  document.querySelectorAll('.report-btn').forEach(btn => {
-    btn.onclick = () => {
-      reportComment(btn.dataset.comment);
-      btn.disabled = true; 
-      btn.textContent = "Reported!";
-    };
-  });
-  bindEmojiAndReplyEvents(comments);
-}
-function bindEmojiAndReplyEvents(comments) {
-  document.querySelectorAll('.reaction-btn').forEach(btn => {
-    if (btn.classList.contains('add-reaction-btn')) return;
-    btn.onclick = async e => {
-      e.preventDefault();
-      if (!currentUser) return;
-      const emoji = btn.getAttribute('data-emoji');
-      const commentId = btn.getAttribute('data-comment');
-      const comment = comments.find(c => c.id === commentId);
-      let userList = comment && comment.reactions ? comment.reactions[emoji] : [];
-      if (!Array.isArray(userList)) userList = [];
-      await toggleReaction(commentId, emoji, userList);
-    };
-  });
-  document.querySelectorAll('.add-reaction-btn').forEach(btn => {
-    btn.onclick = (e) => {
-      const commentId = btn.getAttribute('data-comment');
-      showEmojiPicker(e, (emoji) => {
-        const comment = comments.find(c => c.id === commentId);
-        let userList = comment && comment.reactions ? comment.reactions[emoji] : [];
-        if (!Array.isArray(userList)) userList = [];
-        toggleReaction(commentId, emoji, userList);
-      });
-    };
-  });
-  document.querySelectorAll('.reply-btn').forEach(btn => {
-    btn.onclick = e => {
-      e.preventDefault();
-      const commentId = btn.getAttribute('data-comment');
-      showReplyForm(commentId);
-    };
-  });
-  document.querySelectorAll('.show-replies-btn').forEach(btn => {
-    btn.onclick = e => {
-      e.preventDefault();
-      const commentId = btn.getAttribute('data-comment');
-      showRepliesForComment(commentId);
-      btn.style.display = "none";
-      let hideBtn = btn.parentElement.querySelector('.hide-replies-btn');
-      if (!hideBtn) {
-        hideBtn = document.createElement("button");
-        hideBtn.className = "hide-replies-btn";
-        hideBtn.type = "button";
-        hideBtn.textContent = "Hide replies";
-        hideBtn.style.marginLeft = "0.7em";
-        btn.parentElement.appendChild(hideBtn);
-      }
-      hideBtn.onclick = evt => {
-        evt.preventDefault();
-        const repliesDiv = document.getElementById('replies-' + commentId);
-        if (repliesDiv) {
-          repliesDiv.innerHTML = "";
-          repliesDiv.dataset.loaded = "false";
-        }
-        hideBtn.remove();
-        btn.style.display = "";
-      };
-    };
-  });
-}
-function showReplyForm(commentId) {
-  const repliesDiv = document.getElementById('replies-' + commentId);
-  if (!repliesDiv) return;
-  if (repliesDiv.querySelector('.reply-form')) return;
-  repliesDiv.innerHTML = replyFormHTML(commentId) + repliesDiv.innerHTML;
-  const input = repliesDiv.querySelector('.reply-input');
-  const btn = repliesDiv.querySelector('.reply-post-btn');
-  input.oninput = () => btn.disabled = input.value.trim().length === 0;
-  repliesDiv.querySelector('.reply-form').onsubmit = async function(e) {
-    e.preventDefault();
-    const text = String(input.value || '').trim();
-    if (!text) return;
-    if (containsBadWord(text)) {
-      repliesDiv.querySelector('.reply-error').textContent = "Please avoid inappropriate language.";
-      return;
-    }
-    if (isSpam(text)) {
-      repliesDiv.querySelector('.reply-error').textContent = "Please wait before posting again or avoid duplicate replies.";
-      return;
-    }
-    btn.disabled = true;
+
+  async function loadStarRating(gameId) {
+    starRatingData.loading = true;
+    starRatingData.error = "";
+    starRatingData.average = 0;
+    starRatingData.count = 0;
+    starRatingData.yourRating = 0;
+    starRatingData.percent = 0;
     try {
-      const userData = {
-        uid: currentUser.uid || '',
-        name: currentUser.displayName || 'Unknown User',
-        photo: currentUser.photoURL || ''
-      };
-      await db.collection('games').doc(game.id).collection('comments').doc(commentId).collection('replies').add({
-        text: escapeHTML(text),
-        user: userData,
-        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-        deleted: false
+      const ratingsRef = db.collection("games").doc(gameId).collection("ratings");
+      const snap = await ratingsRef.get();
+      let total = 0, count = 0, your = 0, user = firebase.auth().currentUser;
+      let highCount = 0;
+      snap.forEach(doc => {
+        const d = doc.data();
+        if (typeof d.rating === "number" && d.rating >= 1 && d.rating <= 5) {
+          total += d.rating;
+          count++;
+          if (d.rating >= 4) highCount++;
+          if (user && doc.id === user.uid) your = d.rating;
+        }
       });
-      input.value = '';
-      repliesDiv.querySelector('.reply-error').textContent = '';
-      showRepliesForComment(commentId, true);
-    } catch (err) {
-      repliesDiv.querySelector('.reply-error').textContent = err.message || "Failed to post reply.";
+      starRatingData.average = count ? total / count : 0;
+      starRatingData.count = count;
+      starRatingData.yourRating = your;
+      starRatingData.percent = count ? Math.round((highCount / count) * 100) : 0;
+    } catch (e) {
+      starRatingData.error = "Failed to load ratings.";
     }
-    btn.disabled = false;
-  };
-}
-function replyFormHTML(commentId) {
-  return `
-  <form class="reply-form" data-comment="${commentId}">
-    <textarea class="reply-input" placeholder="Write a reply..." maxlength="300"></textarea>
-    <button class="reply-post-btn" type="submit" disabled>Reply</button>
-    <div class="reply-error"></div>
-  </form>
-  `;
-}
-function showRepliesForComment(commentId, force = false) {
-  const repliesDiv = document.getElementById('replies-' + commentId);
-  if (!repliesDiv) return;
-  if (repliesDiv.dataset.loaded === "true" && !force) return;
-  repliesDiv.dataset.loaded = "true";
-  const repliesQ = db.collection('games').doc(game.id).collection('comments').doc(commentId).collection('replies').orderBy('createdAt', 'asc');
-  repliesQ.onSnapshot(snap => {
-    let html = "";
-    snap.forEach(doc => {
-      const reply = doc.data();
-      if (reply.deleted) {
-        html += `<div class="reply" style="color:#888;">[deleted]</div>`;
-        return;
-      }
-      const replyUserUid = reply.user && reply.user.uid ? reply.user.uid : '';
-      const replyUserName = reply.user && reply.user.name ? reply.user.name : 'Unknown';
-      const replyUserPhoto = reply.user && reply.user.photo ? reply.user.photo : '';
-      const replyText = reply.text || '';
-      let userLink = `/public-profile.html?uid=${replyUserUid}`;
-      const avatarUrl = replyUserPhoto || `https://ui-avatars.com/api/?name=${encodeURIComponent(replyUserName)}`;
-      html += `
-        <div class="reply">
-          <a href="${userLink}" target="_blank">
-            <img class="comment-avatar" src="${escapeHTML(avatarUrl)}" alt="">
-          </a>
-          <span class="comment-user"><a href="${userLink}" target="_blank">${escapeHTML(replyUserName)}</a></span>
-          <span class="comment-date">${reply.createdAt && reply.createdAt.toDate ? escapeHTML(reply.createdAt.toDate().toLocaleString()) : ''}</span>
-          <div class="comment-text">${escapeHTML(replyText)}</div>
-        </div>
-      `;
-    });
-    const existingForm = repliesDiv.querySelector('.reply-form');
-    repliesDiv.innerHTML = (existingForm ? existingForm.outerHTML : "") + html;
-  });
-}
-async function postComment(text) {
-  if (!currentUser) return;
-  if (!game) return;
-  const commentText = String(text || '').trim();
-  if (!commentText) throw new Error("Comment text cannot be empty.");
-  if (containsBadWord(commentText)) throw new Error("Inappropriate language detected.");
-  if (isSpam(commentText)) throw new Error("Please wait before posting again or avoid duplicate comments.");
-  const userData = {
-    uid: currentUser.uid || '',
-    name: currentUser.displayName || 'Unknown User',
-    photo: currentUser.photoURL || '',
-    badge: "" // Optionally assign badge here
-  };
-  await db.collection('games').doc(game.id).collection('comments').add({
-    text: escapeHTML(commentText),
-    stars: commentStarRating,
-    user: userData,
-    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-    likes: [],
-    deleted: false,
-    reactions: {} // Initialize reactions object
-  });
-  lastCommentText = commentText;
-  lastCommentTimestamp = Date.now();
-  lastCommentTime = Date.now();
-  commentStarRating = 0;
-  renderCommentStarPicker();
-  updateCommentPostBtn();
-}
-    // --- MAIN APP INIT ---
-    document.addEventListener('DOMContentLoaded', async () => {
-      showPreloader();
-      document.getElementById('gameFrameContainer').classList.add('hidden');
-      document.getElementById('gameInfoHolder').classList.add('hidden');
-      document.getElementById('loginScreen').classList.remove('hidden');
-      auth.onAuthStateChanged(async (user) => {
-        renderUserSection(user);
-        currentUser = user;
-        if (!user) {
-          hidePreloader();
-          document.getElementById('loginScreen').classList.remove('hidden');
-          document.getElementById('gameFrameContainer').classList.add('hidden');
-          document.getElementById('gameInfoHolder').classList.add('hidden');
-          if(document.getElementById('suggestedSidebar')) document.getElementById('suggestedSidebar').classList.add('hidden');
-          document.querySelector('.comment-form').style.display = "none";
-          document.querySelector('.comment-form-info').style.display = "";
-          renderCommentStarPicker();
-          return;
-        }
-        await loadGamesData();
-        currentGameId = getGameIdFromURL();
-        window.currentGameId = currentGameId;
-        currentGame = gamesData.find(g => g.id == currentGameId || String(g.id) == currentGameId);
-        game = currentGame;
-        if(document.getElementById('suggestedSidebar')) document.getElementById('suggestedSidebar').classList.remove('hidden');
-        let suggestedGames = [];
-        if(currentGame) {
-          suggestedGames = getSuggestedGames(currentGame.id, currentGame.category, 8);
-        } else {
-          suggestedGames = getSuggestedGames(null, null, 8);
-        }
-        renderSuggestedGamesSidebar(suggestedGames);
-        if (!currentGame) {
-          hidePreloader();
-          document.getElementById('gameInfoHolder').innerHTML = `<div class="text-center p-12 text-red-400">Game not found.</div>`;
-          document.getElementById('gameInfoHolder').classList.remove('hidden');
-          return;
-        }
-        document.getElementById('loginScreen').classList.add('hidden');
-        document.getElementById('gameInfoHolder').classList.remove('hidden');
-        document.getElementById('gameInfoHolder').innerHTML = `
-          <div class="relative aspect-video bg-black flex items-center justify-center">
-            <img id="gameCoverImg" src="${currentGame.image || 'https://via.placeholder.com/400x300/232445/ffffff?text=No+Image'}" class="w-full h-full object-cover pointer-events-none select-none rounded-t-2xl" alt="Game Cover" />
-            <button id="bigPlayBtn" class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10 bg-gradient-to-br from-cyan-400 to-indigo-500 text-white font-extrabold rounded-lg px-6 py-3 shadow-lg text-lg hover:scale-105 transition-all flex items-center gap-3 group min-w-[120px]">
-              <i class='bx bx-play-circle text-2xl drop-shadow-lg group-hover:scale-110 transition-transform'></i>
-              <span class="block text-base font-bold">Play</span>
-            </button>
-            <div class="absolute bottom-4 left-4 flex gap-3">
-              <span id="gameCategoryTag" class="bg-cyan-400/30 text-cyan-300 px-3 py-1 rounded text-xs font-semibold">${currentGame.category || ''}</span>
-              ${currentGame.featured ? '<span id="gameFeaturedTag" class="bg-indigo-400/30 text-indigo-200 px-3 py-1 rounded text-xs font-semibold">Featured</span>' : ''}
-            </div>
-          </div>
-          <div class="flex flex-col md:flex-row p-6 gap-6 items-start bg-[#232445]">
-            <div class="flex-1">
-              <div id="gameTitleDisplay" class="text-2xl md:text-3xl font-extrabold text-cyan-400 mb-3">${currentGame.title}</div>
-              <div id="starRatingSection" class="my-4">
-                <div id="starsContainer" class="flex gap-1 text-3xl"></div>
-                <div class="text-sm mt-1 flex flex-wrap items-center gap-2 text-cyan-200">
-                  <span id="starRatingSummary"></span>
-                  <span id="starRatingCount"></span>
-                  <span id="starRatingError" class="text-pink-400"></span>
-                </div>
-                <div id="ratingPercentContainer" class="flex items-center mt-2 gap-2">
-                  <span id="ratingPercentText" class="text-indigo-400 font-semibold"></span>
-                  <div class="w-40 h-2 bg-slate-700 rounded overflow-hidden">
-                    <div id="ratingPercentBar" class="h-2 bg-indigo-400 rounded transition-all duration-300" style="width:0%"></div>
-                  </div>
-                </div>
-              </div>
-              <p id="gameFrameDesc" class="text-white/80 mb-2 text-base leading-relaxed">${currentGame.description || ""}</p>
-              <div id="gameInfoBox" class="mt-6 w-full">
-                <div class="bg-[#181b2a] border border-cyan-600/30 rounded-2xl px-6 py-5 text-white">
-                  <table class="w-full text-left">
-                    <tbody id="gameInfoTable"></tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
-            <div class="flex flex-col gap-2 w-full md:w-auto">
-              <button id="fullscreenBtn" class="bg-gradient-to-r from-cyan-400 to-indigo-500 text-black font-bold px-6 py-2 rounded-lg hover:scale-105 transition-transform">Fullscreen</button>
-              <a href="profile.html" class="bg-white/10 text-white px-6 py-2 rounded-lg hover:bg-cyan-400/20 transition text-center">View Profile</a>
-            </div>
-          </div>
-        `;
-        renderStarRatingUI();
-        renderGameInfoBox(currentGame, "gameInfoTable");
-        document.getElementById('bigPlayBtn').onclick = async () => {
-          showPreloader();
-          document.getElementById('gameInfoHolder').classList.add('hidden');
-          document.getElementById('gameFrameContainer').classList.remove('hidden');
-          document.getElementById('gameFrameContainer').innerHTML = `
-            <div class="relative aspect-video bg-black">
-              <iframe id="gameFrameEmbed" src="" class="w-full h-full" frameborder="0" allowfullscreen allow="fullscreen"></iframe>
-              <div class="absolute top-4 right-4 flex gap-2 z-10">
-                <button id="likeBtn" class="w-10 h-10 bg-white/10 hover:bg-cyan-500/80 text-white rounded-full flex items-center justify-center transition" title="Like">
-                  <i class='bx bx-like text-xl'></i>
-                </button>
-                <button id="favBtn" class="w-10 h-10 bg-white/10 hover:bg-pink-500/80 text-white rounded-full flex items-center justify-center transition" title="Favorite">
-                  <i class='bx bx-heart text-xl'></i>
-                </button>
-                <button id="dislikeBtn" class="w-10 h-10 bg-white/10 hover:bg-red-500/80 text-white rounded-full flex items-center justify-center transition" title="Dislike">
-                  <i class='bx bx-dislike text-xl'></i>
-                </button>
-                <button id="proxyToggleBtn" class="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center transition border-2 border-cyan-400" title="Toggle Proxy">
-                  <i id="proxyToggleIcon" class="bx bx-cloud text-xl"></i>
-                </button>
-                <button id="shareBtn" class="w-10 h-10 bg-white/10 hover:bg-indigo-500/80 text-white rounded-full flex items-center justify-center transition" title="Share">
-                  <i class='bx bx-share-alt text-xl'></i>
-                </button>
-                <button id="playlistBtn" class="w-10 h-10 bg-white/10 hover:bg-yellow-400/80 text-white rounded-full flex items-center justify-center transition" title="Add to Playlist">
-                  <i class='bx bx-list-plus text-xl'></i>
-                </button>
-              </div>
-            </div>
-            <div class="flex flex-col md:flex-row p-6 gap-6 items-start bg-[#232445]">
-              <div class="flex-1">
-                <div id="gameTitleDisplayFrame" class="text-2xl md:text-3xl font-extrabold text-cyan-400 mb-3">${currentGame.title}</div>
-                <div id="starRatingSectionFrame" class="max-w-xl my-4">
-                  <div id="starsContainerFrame" class="flex gap-1 text-3xl"></div>
-                  <div class="text-sm mt-1 flex flex-wrap items-center gap-2 text-cyan-200">
-                    <span id="starRatingSummaryFrame"></span>
-                    <span id="starRatingCountFrame"></span>
-                    <span id="starRatingErrorFrame" class="text-pink-400"></span>
-                  </div>
-                  <div id="ratingPercentContainerFrame" class="flex items-center mt-2 gap-2">
-                    <span id="ratingPercentTextFrame" class="text-indigo-400 font-semibold"></span>
-                    <div class="w-40 h-2 bg-slate-700 rounded overflow-hidden">
-                      <div id="ratingPercentBarFrame" class="h-2 bg-indigo-400 rounded transition-all duration-300" style="width:0%"></div>
-                    </div>
-                  </div>
-                  <div id="tagsAreaFrame" class="mt-5 flex flex-wrap gap-2"></div>
-                  <div id="categoryGamesCountFrame" class="mt-4 text-cyan-300 text-base font-semibold"></div>
-                </div>
-              </div>
-              <div class="flex flex-col gap-2 w-full md:w-auto">
-                <button id="fullscreenBtnBottom" class="bg-gradient-to-r from-cyan-400 to-indigo-500 text-black font-bold px-6 py-2 rounded-lg hover:scale-105 transition-transform">Fullscreen</button>
-                <a href="profile.html" class="bg-white/10 text-white px-6 py-2 rounded-lg hover:bg-cyan-400/20 transition text-center">View Profile</a>
-              </div>
-            </div>
-            <div id="gameInfoBoxFrame" class="mt-6 w-full">
-              <div class="bg-[#181b2a] border border-cyan-600/30 rounded-2xl px-6 py-5 text-white mx-6 mb-8">
-                <table class="w-full text-left">
-                  <tbody id="gameInfoTableFrame"></tbody>
-                </table>
-              </div>
-            </div>
-            <div id="tagGamesListModal" class="hidden fixed inset-0 z-[10000] bg-black/70 flex items-center justify-center">
-              <div class="bg-[#232445] rounded-xl p-8 max-w-lg w-full shadow-2xl border border-cyan-400/20 relative">
-                <button onclick="closeTagGamesModal()" class="absolute top-3 right-4 text-white/70 hover:text-pink-400 text-xl"><i class='bx bx-x'></i></button>
-                <h2 class="text-2xl font-bold mb-4 text-cyan-400" id="tagGamesListTitle"></h2>
-                <div id="tagGamesListBody" class="space-y-2"></div>
-              </div>
-            </div>
-          `;
-          await window.loadProxiedGameIframe();
-          document.getElementById('gameFrameEmbed').onload = hidePreloader;
-          document.getElementById('gameTitleDisplayFrame').textContent = currentGame.title || "";
-          renderStarRatingUI("Frame");
-          renderTagsAreaFrame(currentGame);
-          renderCategoryGamesCountFrame(currentGame);
-          renderGameInfoBox(currentGame, "gameInfoTableFrame");
-          let lists = await getUserGameLists(user.uid);
-          setButtonActive(document.getElementById('likeBtn'), lists.likedGames?.includes(currentGameId));
-          setButtonActive(document.getElementById('favBtn'), lists.favoriteGames?.includes(currentGameId), 'bg-pink-600/80');
-          setButtonActive(document.getElementById('playlistBtn'), lists.playlist?.includes(currentGameId), 'bg-yellow-400/80');
-          document.getElementById('likeBtn').onclick = async () => {
-            const isLiked = lists.likedGames?.includes(currentGameId);
-            await updateUserArray(user.uid, 'likedGames', currentGameId, !isLiked);
-            lists = await getUserGameLists(user.uid);
-            setButtonActive(document.getElementById('likeBtn'), lists.likedGames?.includes(currentGameId));
-          };
-          document.getElementById('favBtn').onclick = async () => {
-            const isFav = lists.favoriteGames?.includes(currentGameId);
-            await updateUserArray(user.uid, 'favoriteGames', currentGameId, !isFav);
-            lists = await getUserGameLists(user.uid);
-            setButtonActive(document.getElementById('favBtn'), lists.favoriteGames?.includes(currentGameId), 'bg-pink-600/80');
-          };
-          document.getElementById('dislikeBtn').onclick = async () => {
-            const isLiked = lists.likedGames?.includes(currentGameId);
-            if (isLiked) {
-              await updateUserArray(user.uid, 'likedGames', currentGameId, false);
-            }
-            alert('Game disliked!');
-            lists = await getUserGameLists(user.uid);
-            setButtonActive(document.getElementById('likeBtn'), lists.likedGames?.includes(currentGameId));
-          };
-          document.getElementById('shareBtn').onclick = () => {
-            const url = `${window.location.origin}/play.html?id=${currentGameId}`;
-            navigator.clipboard.writeText(url);
-            alert('Game link copied!');
-          };
-          document.getElementById('playlistBtn').onclick = async () => {
-            const inPlaylist = lists.playlist?.includes(currentGameId);
-            await updateUserArray(user.uid, 'playlist', currentGameId, !inPlaylist);
-            lists = await getUserGameLists(user.uid);
-            setButtonActive(document.getElementById('playlistBtn'), lists.playlist?.includes(currentGameId), 'bg-yellow-400/80');
-          };
-          document.getElementById('fullscreenBtn').onclick = (e) => {
-            e.preventDefault();
-            const iframe = document.getElementById('gameFrameEmbed');
-            requestFullScreen(iframe);
-          };
-          document.getElementById('fullscreenBtnBottom').onclick = (e) => {
-            e.preventDefault();
-            const iframe = document.getElementById('gameFrameEmbed');
-            requestFullScreen(iframe);
-          };
-        };
-        hidePreloader();
-        // --- COMMENT SECTION INIT ---
-        renderCommentStarPicker();
-        renderCommentSortFilterUI();
-        if (user) {
-          document.querySelector('.comment-form').style.display = "";
-          document.querySelector('.comment-form-info').style.display = "none";
-        } else {
-          document.querySelector('.comment-form').style.display = "none";
-          document.querySelector('.comment-form-info').style.display = "";
-        }
-        document.querySelector('.comment-input').oninput = () => {
-          updateCommentPostBtn();
-          document.querySelector('.comment-error').textContent = '';
-        };
-        document.querySelector('.comment-form').onsubmit = async e => {
-          e.preventDefault();
-          const text = document.querySelector('.comment-input').value.trim();
-          if (!text) return;
-          if (containsBadWord(text)) {
-            document.querySelector('.comment-error').textContent = "Please avoid inappropriate language.";
-            return;
-          }
-          if (isSpam(text)) {
-            document.querySelector('.comment-error').textContent = "Please wait before posting again or avoid duplicate comments.";
-            return;
-          }
-          if (commentStarRating === 0) {
-            document.querySelector('.comment-error').textContent = "Select a star rating.";
-            return;
-          }
-          document.querySelector('.comment-post-btn').disabled = true;
-          try {
-            await postComment(text);
-            document.querySelector('.comment-input').value = '';
-            document.querySelector('.comment-error').textContent = '';
-          } catch (err) {
-            document.querySelector('.comment-error').textContent = err.message || "Failed to post comment.";
-          }
-          document.querySelector('.comment-post-btn').disabled = false;
-        };
-        setupComments();
-      });
-    });
+    starRatingData.loading = false;
+    renderStarRatingUI();
+    renderStarRatingUI("Frame");
+  }
 
-    async function getUserDocRef(uid) {
-      return db.collection('users').doc(uid);
+  async function submitStarRating(stars) {
+    if (!firebase.auth().currentUser) {
+      starRatingData.error = "Sign in first!";
+      renderStarRatingUI();
+      renderStarRatingUI("Frame");
+      return;
     }
-    async function updateUserArray(uid, field, gameId, add = true) {
-      const ref = await getUserDocRef(uid);
-      if (add) {
-        await ref.set({ [field]: firebase.firestore.FieldValue.arrayUnion(gameId) }, { merge: true });
-      } else {
-        await ref.set({ [field]: firebase.firestore.FieldValue.arrayRemove(gameId) }, { merge: true });
+    if (!currentGameId) {
+      starRatingData.error = "Game not loaded!";
+      renderStarRatingUI();
+      renderStarRatingUI("Frame");
+      return;
+    }
+    if (stars < 1 || stars > 5) {
+      starRatingData.error = "Invalid rating value!";
+      renderStarRatingUI();
+      renderStarRatingUI("Frame");
+      return;
+    }
+    starRatingData.loading = true;
+    starRatingData.error = "";
+    renderStarRatingUI();
+    renderStarRatingUI("Frame");
+    try {
+      const ref = db.collection("games").doc(currentGameId).collection("ratings").doc(firebase.auth().currentUser.uid);
+      await ref.set({
+        rating: stars,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+      starRatingData.yourRating = stars;
+      await loadStarRating(currentGameId);
+    } catch (e) {
+      starRatingData.error = "Failed to rate, try again.";
+      renderStarRatingUI();
+      renderStarRatingUI("Frame");
+    }
+    starRatingData.loading = false;
+    renderStarRatingUI();
+    renderStarRatingUI("Frame");
+  }
+
+  function renderRatingPercentUI(target = "") {
+    const pre = target ? target : "";
+    const txt = document.getElementById('ratingPercentText' + pre);
+    const bar = document.getElementById('ratingPercentBar' + pre);
+    if (!txt || !bar) return;
+    if (starRatingData.count === 0) {
+      txt.textContent = "Not enough ratings yet";
+      bar.style.width = "0%";
+    } else {
+      txt.textContent = `${starRatingData.percent}% of raters gave 4 or 5 stars`;
+      bar.style.width = `${starRatingData.percent}%`;
+    }
+  }
+
+  function getSuggestedGames(currentId, currentCategory, limit = 8) {
+    let filtered = [];
+    if (currentId && currentCategory) {
+      filtered = gamesData.filter(
+        g => g.id !== currentId && g.category === currentCategory
+      );
+    }
+    if (filtered.length < limit) {
+      let others = gamesData.filter(g => g.id !== currentId && !filtered.includes(g));
+      while (filtered.length < limit && others.length) {
+        let idx = Math.floor(Math.random() * others.length);
+        filtered.push(others.splice(idx, 1)[0]);
       }
     }
-    async function getUserGameLists(uid) {
-      const doc = await db.collection('users').doc(uid).get();
-      return doc.exists ? doc.data() : { likedGames: [], favoriteGames: [], playlist: [], history: [] };
+    for (let i = filtered.length - 1; i > 0; i--) {
+      let j = Math.floor(Math.random() * (i + 1));
+      [filtered[i], filtered[j]] = [filtered[j], filtered[i]];
     }
-    async function updateGameHistory(uid, gameId) {
-      const ref = await getUserDocRef(uid);
-      await ref.set({ history: firebase.firestore.FieldValue.arrayUnion(gameId) }, { merge: true });
-    }
-    window.openTagGamesModal = openTagGamesModal;
-    window.closeTagGamesModal = closeTagGamesModal;
-    window.googleSignIn = googleSignIn;
-    window.signOut = signOut;
-  </script>
-</body>
-</html>
+    return filtered.slice(0, limit);
+  }
+
+  function renderSuggestedGamesSidebar(suggestedGames) {
+    const container = document.getElementById("suggestedGamesList");
+    if (!container) return;
+    container.innerHTML = suggestedGames.map(game => `
+      <a href="play.html?id=${game.id}" 
+        class="block group overflow-hidden shadow-lg bg-[#232445] border border-white/10 hover:border-cyan-400/60 transition relative rounded-[22px]">
+        <div class="relative aspect-[16/9] bg-black rounded-t-[22px] overflow-hidden">
+          <img src="${game.image || 'https://via.placeholder.com/400x300/232445/ffffff?text=No+Image'}" 
+               alt="${game.title}" 
+               class="w-full h-full object-cover group-hover:scale-[1.04] transition duration-200 pointer-events-none select-none" />
+          ${game.featured ? `<span class="absolute top-2 right-2 bg-indigo-600/80 text-white text-[10px] font-bold px-2 py-1 rounded-full shadow">FEATURED</span>` : ""}
+        </div>
+        <div class="p-3 flex flex-col gap-1">
+          <div class="text-cyan-300 font-bold text-base truncate group-hover:text-cyan-400 transition">${game.title}</div>
+          <div class="flex items-center gap-2 flex-wrap">
+            <span class="bg-cyan-400/20 text-cyan-300 text-xs px-2 py-0.5 rounded-full font-semibold">${game.category || ''}</span>
+            ${(game.tags && game.tags.length) ? `<span class="bg-indigo-400/20 text-indigo-200 text-xs px-2 py-0.5 rounded-full font-semibold">${game.tags[0]}</span>` : ""}
+          </div>
+        </div>
+      </a>
+    `).join('');
+  }
+
+  
+</script>
+<script src="comment-section.js"></script>
