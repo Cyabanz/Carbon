@@ -1,0 +1,772 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Settings - Carbon</title>
+    <script defer async>
+        function setConfig() {
+            tailwind.config = {
+                theme: {
+                    extend: {
+                        fontFamily: {
+                            display: ["Switzer", "Helvetica", "sans-serif"],
+                            inter: ["Inter", "sans-serif"],
+                        },
+                        colors: {
+                            base: "#191724",
+                            surface: "#1f1d2e",
+                            overlay: "#26233a",
+                            muted: "#6e6a86",
+                            subtle: "#908caa",
+                            text: "#e0def4",
+                            love: "#eb6f92",
+                            gold: "#f6c177",
+                            rose: "#ebbcba",
+                            pine: "#31748f",
+                            foam: "#9ccfd8",
+                            iris: "#c4a7e7",
+                            "highlight-low": "#21202e",
+                            "highlight-med": "#403d52",
+                            "highlight-high": "#524f67",
+                        },
+                    },
+                },
+            };
+        }
+    </script>
+    <script defer async src="https://cdn.tailwindcss.com" onload="setConfig()"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet" />
+    <style>
+        .settings-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        .setting-card {
+            background: #1f1d2e;
+            border: 1px solid #26233a;
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            transition: all 0.3s ease;
+        }
+        .setting-card:hover {
+            border-color: #403d52;
+            transform: translateY(-2px);
+        }
+        .bg-preview {
+            width: 100px;
+            height: 60px;
+            border-radius: 8px;
+            cursor: pointer;
+            border: 3px solid transparent;
+            transition: border-color 0.3s ease;
+        }
+        .bg-preview.active {
+            border-color: #9ccfd8;
+        }
+        .bg-preview:hover {
+            border-color: #6e6a86;
+        }
+        .panic-key-display {
+            min-height: 3rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            font-weight: bold;
+            background: #26233a;
+            border-radius: 0.5rem;
+            color: #9ccfd8;
+            border: 2px solid #403d52;
+            transition: all 0.3s ease;
+        }
+        .panic-key-display.recording {
+            border-color: #eb6f92;
+            background: #eb6f92;
+            color: white;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.7; }
+            100% { opacity: 1; }
+        }
+        .fullscreen-enabled {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 10000;
+            background: #191724;
+        }
+        .image-upload {
+            border: 2px dashed #403d52;
+            border-radius: 0.5rem;
+            padding: 2rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .image-upload:hover {
+            border-color: #9ccfd8;
+            background: #21202e;
+        }
+        .image-upload.dragover {
+            border-color: #9ccfd8;
+            background: #21202e;
+        }
+        .custom-bg-preview {
+            width: 100%;
+            height: 150px;
+            border-radius: 8px;
+            background-size: cover;
+            background-position: center;
+            border: 2px solid #403d52;
+            cursor: pointer;
+            transition: border-color 0.3s ease;
+        }
+        .custom-bg-preview:hover {
+            border-color: #9ccfd8;
+        }
+    </style>
+</head>
+<body class="font-inter bg-gradient-to-br from-base via-surface to-overlay text-text min-h-screen">
+    <div class="settings-container">
+        <div class="mb-8">
+            <h1 class="text-3xl font-bold mb-2 text-text flex items-center gap-3">
+                <i class="bx bx-cog text-foam"></i>
+                Carbon Settings
+            </h1>
+            <p class="text-muted">Customize your Carbon browser experience</p>
+        </div>
+
+        <!-- Panic Key Settings -->
+        <div class="setting-card">
+            <h2 class="text-xl font-semibold mb-4 flex items-center gap-2">
+                <i class="bx bx-shield-alt-2 text-love"></i>
+                Panic Key
+            </h2>
+            <p class="text-muted mb-4">Set a panic key to quickly close Carbon and redirect to a safe page</p>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium mb-2">Current Panic Key</label>
+                    <div id="panic-key-display" class="panic-key-display">
+                        Press "Set Key" to configure
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-2">Actions</label>
+                    <div class="flex gap-2">
+                        <button id="set-panic-key" class="px-4 py-2 bg-foam hover:bg-foam/80 text-base rounded-lg font-medium transition-all">
+                            Set Key
+                        </button>
+                        <button id="clear-panic-key" class="px-4 py-2 bg-love hover:bg-love/80 text-white rounded-lg font-medium transition-all">
+                            Clear
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mt-4">
+                <label class="block text-sm font-medium mb-2">Panic Redirect URL</label>
+                <input type="url" id="panic-url" placeholder="https://classroom.google.com" 
+                       class="w-full px-3 py-2 bg-highlight-med border border-overlay rounded-lg text-text placeholder-muted focus:outline-none focus:border-foam focus:ring-1 focus:ring-foam">
+            </div>
+        </div>
+
+        <!-- Background Settings -->
+        <div class="setting-card">
+            <h2 class="text-xl font-semibold mb-4 flex items-center gap-2">
+                <i class="bx bx-palette text-iris"></i>
+                Background & Theme
+            </h2>
+            <p class="text-muted mb-4">Choose your preferred background and theme</p>
+            
+            <div class="mb-6">
+                <label class="block text-sm font-medium mb-3">Built-in Backgrounds</label>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <div class="bg-preview active" data-bg="default" style="background: linear-gradient(135deg, #191724 0%, #1f1d2e 50%, #26233a 100%);">
+                        <div class="text-center text-xs p-2 text-text">Default</div>
+                    </div>
+                    <div class="bg-preview" data-bg="black" style="background: #000000;">
+                        <div class="text-center text-xs p-2 text-white">Black</div>
+                    </div>
+                    <div class="bg-preview" data-bg="white" style="background: #ffffff;">
+                        <div class="text-center text-xs p-2 text-black">White</div>
+                    </div>
+                    <div class="bg-preview" data-bg="mocha" style="background: linear-gradient(135deg, #1e1e2e 0%, #313244 50%, #45475a 100%);">
+                        <div class="text-center text-xs p-2 text-white">Mocha</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mb-6">
+                <label class="block text-sm font-medium mb-3">Custom Background Image</label>
+                <div class="image-upload" id="bg-upload">
+                    <i class="bx bx-cloud-upload text-3xl text-muted mb-2"></i>
+                    <p class="text-muted">Click to upload or drag and drop an image</p>
+                    <p class="text-xs text-subtle mt-1">Supports JPG, PNG, WebP</p>
+                </div>
+                <input type="file" id="bg-file-input" accept="image/*" style="display: none;">
+                
+                <div id="custom-bg-preview" class="mt-4 hidden">
+                    <div class="custom-bg-preview" id="bg-preview-image"></div>
+                    <div class="flex gap-2 mt-2">
+                        <button id="remove-bg" class="px-3 py-1 bg-love hover:bg-love/80 text-white rounded text-sm">
+                            Remove
+                        </button>
+                        <button id="change-bg" class="px-3 py-1 bg-foam hover:bg-foam/80 text-base rounded text-sm">
+                            Change
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab Cloaking -->
+        <div class="setting-card">
+            <h2 class="text-xl font-semibold mb-4 flex items-center gap-2">
+                <i class="bx bx-mask text-gold"></i>
+                Tab Cloaking
+            </h2>
+            <p class="text-muted mb-4">Disguise your tab title and favicon to avoid detection</p>
+            
+            <div class="flex items-center gap-4 mb-4">
+                <label class="flex items-center gap-2">
+                    <input type="checkbox" id="tab-cloaking-enabled" class="rounded border-overlay bg-highlight-med">
+                    <span>Enable Tab Cloaking</span>
+                </label>
+            </div>
+            
+            <div id="cloaking-options" class="space-y-4 opacity-50">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium mb-2">Fake Title</label>
+                        <input type="text" id="cloak-title" placeholder="Google Classroom" 
+                               class="w-full px-3 py-2 bg-highlight-med border border-overlay rounded-lg text-text placeholder-muted focus:outline-none focus:border-foam focus:ring-1 focus:ring-foam">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-2">Fake Favicon URL</label>
+                        <input type="url" id="cloak-favicon" placeholder="https://classroom.google.com/favicon.ico" 
+                               class="w-full px-3 py-2 bg-highlight-med border border-overlay rounded-lg text-text placeholder-muted focus:outline-none focus:border-foam focus:ring-1 focus:ring-foam">
+                    </div>
+                </div>
+                
+                <div class="bg-highlight-med p-4 rounded-lg">
+                    <h4 class="font-medium mb-2">Quick Presets</h4>
+                    <div class="flex gap-2 flex-wrap">
+                        <button class="cloak-preset px-3 py-1 bg-foam hover:bg-foam/80 text-base rounded text-sm" 
+                                data-title="Google Classroom" data-favicon="https://classroom.google.com/favicon.ico">
+                            Google Classroom
+                        </button>
+                        <button class="cloak-preset px-3 py-1 bg-foam hover:bg-foam/80 text-base rounded text-sm" 
+                                data-title="Google Docs" data-favicon="https://docs.google.com/favicon.ico">
+                            Google Docs
+                        </button>
+                        <button class="cloak-preset px-3 py-1 bg-foam hover:bg-foam/80 text-base rounded text-sm" 
+                                data-title="Khan Academy" data-favicon="https://www.khanacademy.org/favicon.ico">
+                            Khan Academy
+                        </button>
+                        <button class="cloak-preset px-3 py-1 bg-foam hover:bg-foam/80 text-base rounded text-sm" 
+                                data-title="Schoology" data-favicon="https://www.schoology.com/favicon.ico">
+                            Schoology
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Fullscreen Controls -->
+        <div class="setting-card">
+            <h2 class="text-xl font-semibold mb-4 flex items-center gap-2">
+                <i class="bx bx-fullscreen text-pine"></i>
+                Fullscreen Controls
+            </h2>
+            <p class="text-muted mb-4">Enable fullscreen mode and configure behavior</p>
+            
+            <div class="flex items-center gap-4 mb-4">
+                <label class="flex items-center gap-2">
+                    <input type="checkbox" id="fullscreen-enabled" class="rounded border-overlay bg-highlight-med">
+                    <span>Enable Fullscreen Button</span>
+                </label>
+            </div>
+            
+            <div class="flex gap-2">
+                <button id="enter-fullscreen" class="px-4 py-2 bg-pine hover:bg-pine/80 text-white rounded-lg font-medium transition-all">
+                    Enter Fullscreen
+                </button>
+                <button id="exit-fullscreen" class="px-4 py-2 bg-love hover:bg-love/80 text-white rounded-lg font-medium transition-all">
+                    Exit Fullscreen
+                </button>
+            </div>
+        </div>
+
+        <!-- Close Prevention -->
+        <div class="setting-card">
+            <h2 class="text-xl font-semibold mb-4 flex items-center gap-2">
+                <i class="bx bx-shield-x text-love"></i>
+                Close Prevention
+            </h2>
+            <p class="text-muted mb-4">Prevent accidental closing of Carbon</p>
+            
+            <div class="space-y-4">
+                <label class="flex items-center gap-2">
+                    <input type="checkbox" id="close-prevention-enabled" class="rounded border-overlay bg-highlight-med">
+                    <span>Enable Close Prevention</span>
+                </label>
+                
+                <label class="flex items-center gap-2">
+                    <input type="checkbox" id="confirm-close" class="rounded border-overlay bg-highlight-med">
+                    <span>Show confirmation dialog before closing</span>
+                </label>
+                
+                <div>
+                    <label class="block text-sm font-medium mb-2">Custom Close Message</label>
+                    <input type="text" id="close-message" placeholder="Are you sure you want to close Carbon?" 
+                           class="w-full px-3 py-2 bg-highlight-med border border-overlay rounded-lg text-text placeholder-muted focus:outline-none focus:border-foam focus:ring-1 focus:ring-foam">
+                </div>
+            </div>
+        </div>
+
+        <!-- Teacher Prevention -->
+        <div class="setting-card">
+            <h2 class="text-xl font-semibold mb-4 flex items-center gap-2">
+                <i class="bx bx-user-x text-gold"></i>
+                Teacher Prevention
+            </h2>
+            <p class="text-muted mb-4">Advanced privacy and stealth features</p>
+            
+            <div class="space-y-4">
+                <label class="flex items-center gap-2">
+                    <input type="checkbox" id="disable-right-click" class="rounded border-overlay bg-highlight-med">
+                    <span>Disable right-click menu</span>
+                </label>
+                
+                <label class="flex items-center gap-2">
+                    <input type="checkbox" id="disable-devtools" class="rounded border-overlay bg-highlight-med">
+                    <span>Disable developer tools shortcuts</span>
+                </label>
+                
+                <label class="flex items-center gap-2">
+                    <input type="checkbox" id="disable-select" class="rounded border-overlay bg-highlight-med">
+                    <span>Disable text selection</span>
+                </label>
+                
+                <label class="flex items-center gap-2">
+                    <input type="checkbox" id="hide-cursor" class="rounded border-overlay bg-highlight-med">
+                    <span>Hide cursor when idle</span>
+                </label>
+                
+                <label class="flex items-center gap-2">
+                    <input type="checkbox" id="blur-on-unfocus" class="rounded border-overlay bg-highlight-med">
+                    <span>Blur screen when window loses focus</span>
+                </label>
+            </div>
+        </div>
+
+        <!-- Navigation Links -->
+        <div class="setting-card">
+            <h2 class="text-xl font-semibold mb-4 flex items-center gap-2">
+                <i class="bx bx-link text-foam"></i>
+                Quick Links
+            </h2>
+            <p class="text-muted mb-4">Access other Carbon features</p>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <a href="carbon://ai" class="flex items-center gap-3 p-3 bg-highlight-med hover:bg-highlight-high rounded-lg transition-all">
+                    <i class="bx bx-brain text-iris"></i>
+                    <span>AI Assistant</span>
+                </a>
+                <a href="carbon://games" class="flex items-center gap-3 p-3 bg-highlight-med hover:bg-highlight-high rounded-lg transition-all">
+                    <i class="bx bx-joystick text-foam"></i>
+                    <span>Games</span>
+                </a>
+                <a href="carbon://newtab" class="flex items-center gap-3 p-3 bg-highlight-med hover:bg-highlight-high rounded-lg transition-all">
+                    <i class="bx bx-home text-gold"></i>
+                    <span>New Tab</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- Save Settings -->
+        <div class="text-center">
+            <button id="save-settings" class="px-6 py-3 bg-foam hover:bg-foam/80 text-base rounded-lg font-medium transition-all">
+                <i class="bx bx-save mr-2"></i>
+                Save Settings
+            </button>
+        </div>
+    </div>
+
+    <script>
+        let panicKey = null;
+        let isRecordingPanicKey = false;
+        let currentBackground = 'default';
+        
+        // Load settings on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            loadSettings();
+        });
+
+        // Settings management
+        function loadSettings() {
+            // Load panic key
+            const savedPanicKey = localStorage.getItem('carbon-panic-key');
+            if (savedPanicKey) {
+                panicKey = savedPanicKey;
+                document.getElementById('panic-key-display').textContent = panicKey.toUpperCase();
+            }
+            
+            // Load panic URL
+            const savedPanicUrl = localStorage.getItem('carbon-panic-url');
+            if (savedPanicUrl) {
+                document.getElementById('panic-url').value = savedPanicUrl;
+            }
+            
+            // Load background
+            const savedBg = localStorage.getItem('carbon-background');
+            if (savedBg) {
+                currentBackground = savedBg;
+                document.querySelectorAll('.bg-preview').forEach(el => el.classList.remove('active'));
+                document.querySelector(`[data-bg="${savedBg}"]`)?.classList.add('active');
+            }
+            
+            // Load custom background
+            const savedCustomBg = localStorage.getItem('carbon-custom-bg');
+            if (savedCustomBg) {
+                showCustomBgPreview(savedCustomBg);
+            }
+            
+            // Load tab cloaking
+            const cloakingEnabled = localStorage.getItem('carbon-cloak-enabled') === 'true';
+            document.getElementById('tab-cloaking-enabled').checked = cloakingEnabled;
+            document.getElementById('cloak-title').value = localStorage.getItem('carbon-cloak-title') || '';
+            document.getElementById('cloak-favicon').value = localStorage.getItem('carbon-cloak-favicon') || '';
+            toggleCloakingOptions();
+            
+            // Load fullscreen
+            const fullscreenEnabled = localStorage.getItem('carbon-fullscreen-enabled') === 'true';
+            document.getElementById('fullscreen-enabled').checked = fullscreenEnabled;
+            
+            // Load close prevention
+            document.getElementById('close-prevention-enabled').checked = localStorage.getItem('carbon-close-prevention') === 'true';
+            document.getElementById('confirm-close').checked = localStorage.getItem('carbon-confirm-close') === 'true';
+            document.getElementById('close-message').value = localStorage.getItem('carbon-close-message') || '';
+            
+            // Load teacher prevention
+            document.getElementById('disable-right-click').checked = localStorage.getItem('carbon-disable-right-click') === 'true';
+            document.getElementById('disable-devtools').checked = localStorage.getItem('carbon-disable-devtools') === 'true';
+            document.getElementById('disable-select').checked = localStorage.getItem('carbon-disable-select') === 'true';
+            document.getElementById('hide-cursor').checked = localStorage.getItem('carbon-hide-cursor') === 'true';
+            document.getElementById('blur-on-unfocus').checked = localStorage.getItem('carbon-blur-unfocus') === 'true';
+        }
+
+        function saveSettings() {
+            // Save panic key
+            localStorage.setItem('carbon-panic-key', panicKey || '');
+            localStorage.setItem('carbon-panic-url', document.getElementById('panic-url').value);
+            
+            // Save background
+            localStorage.setItem('carbon-background', currentBackground);
+            
+            // Save tab cloaking
+            localStorage.setItem('carbon-cloak-enabled', document.getElementById('tab-cloaking-enabled').checked);
+            localStorage.setItem('carbon-cloak-title', document.getElementById('cloak-title').value);
+            localStorage.setItem('carbon-cloak-favicon', document.getElementById('cloak-favicon').value);
+            
+            // Save fullscreen
+            localStorage.setItem('carbon-fullscreen-enabled', document.getElementById('fullscreen-enabled').checked);
+            
+            // Save close prevention
+            localStorage.setItem('carbon-close-prevention', document.getElementById('close-prevention-enabled').checked);
+            localStorage.setItem('carbon-confirm-close', document.getElementById('confirm-close').checked);
+            localStorage.setItem('carbon-close-message', document.getElementById('close-message').value);
+            
+            // Save teacher prevention
+            localStorage.setItem('carbon-disable-right-click', document.getElementById('disable-right-click').checked);
+            localStorage.setItem('carbon-disable-devtools', document.getElementById('disable-devtools').checked);
+            localStorage.setItem('carbon-disable-select', document.getElementById('disable-select').checked);
+            localStorage.setItem('carbon-hide-cursor', document.getElementById('hide-cursor').checked);
+            localStorage.setItem('carbon-blur-unfocus', document.getElementById('blur-on-unfocus').checked);
+            
+            // Apply settings immediately
+            applySettings();
+            
+            // Show success message
+            const btn = document.getElementById('save-settings');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i class="bx bx-check mr-2"></i>Saved!';
+            btn.classList.add('bg-pine');
+            btn.classList.remove('bg-foam');
+            
+            setTimeout(() => {
+                btn.innerHTML = originalText;
+                btn.classList.remove('bg-pine');
+                btn.classList.add('bg-foam');
+            }, 2000);
+        }
+
+        function applySettings() {
+            // Apply background
+            applyBackground();
+            
+            // Apply tab cloaking
+            applyTabCloaking();
+            
+            // Apply teacher prevention
+            applyTeacherPrevention();
+            
+            // Apply close prevention
+            applyClosePrevention();
+            
+            // Notify parent window of settings changes
+            if (window.parent && window.parent !== window) {
+                window.parent.postMessage({
+                    type: 'carbon-settings-updated',
+                    settings: {
+                        panicKey: panicKey,
+                        panicUrl: document.getElementById('panic-url').value,
+                        background: currentBackground,
+                        cloaking: {
+                            enabled: document.getElementById('tab-cloaking-enabled').checked,
+                            title: document.getElementById('cloak-title').value,
+                            favicon: document.getElementById('cloak-favicon').value
+                        }
+                    }
+                }, '*');
+            }
+        }
+
+        function applyBackground() {
+            const body = document.body;
+            const customBg = localStorage.getItem('carbon-custom-bg');
+            
+            if (customBg) {
+                body.style.background = `url(${customBg}) center/cover`;
+            } else {
+                switch (currentBackground) {
+                    case 'black':
+                        body.style.background = '#000000';
+                        break;
+                    case 'white':
+                        body.style.background = '#ffffff';
+                        body.style.color = '#000000';
+                        break;
+                    case 'mocha':
+                        body.style.background = 'linear-gradient(135deg, #1e1e2e 0%, #313244 50%, #45475a 100%)';
+                        break;
+                    default:
+                        body.style.background = 'linear-gradient(135deg, #191724 0%, #1f1d2e 50%, #26233a 100%)';
+                        break;
+                }
+            }
+        }
+
+        function applyTabCloaking() {
+            const enabled = document.getElementById('tab-cloaking-enabled').checked;
+            const title = document.getElementById('cloak-title').value;
+            const favicon = document.getElementById('cloak-favicon').value;
+            
+            if (enabled && title) {
+                document.title = title;
+                
+                if (favicon) {
+                    const link = document.querySelector("link[rel*='icon']") || document.createElement('link');
+                    link.type = 'image/x-icon';
+                    link.rel = 'shortcut icon';
+                    link.href = favicon;
+                    document.getElementsByTagName('head')[0].appendChild(link);
+                }
+            } else {
+                document.title = 'Settings - Carbon';
+            }
+        }
+
+        function applyTeacherPrevention() {
+            // Disable right-click
+            if (document.getElementById('disable-right-click').checked) {
+                document.addEventListener('contextmenu', e => e.preventDefault());
+            }
+            
+            // Disable text selection
+            if (document.getElementById('disable-select').checked) {
+                document.body.style.userSelect = 'none';
+                document.body.style.webkitUserSelect = 'none';
+                document.body.style.mozUserSelect = 'none';
+            }
+            
+            // Hide cursor when idle
+            if (document.getElementById('hide-cursor').checked) {
+                let cursorTimer;
+                document.addEventListener('mousemove', () => {
+                    document.body.style.cursor = 'default';
+                    clearTimeout(cursorTimer);
+                    cursorTimer = setTimeout(() => {
+                        document.body.style.cursor = 'none';
+                    }, 3000);
+                });
+            }
+            
+            // Blur on unfocus
+            if (document.getElementById('blur-on-unfocus').checked) {
+                window.addEventListener('blur', () => {
+                    document.body.style.filter = 'blur(10px)';
+                });
+                window.addEventListener('focus', () => {
+                    document.body.style.filter = 'none';
+                });
+            }
+        }
+
+        function applyClosePrevention() {
+            const enabled = document.getElementById('close-prevention-enabled').checked;
+            const confirm = document.getElementById('confirm-close').checked;
+            const message = document.getElementById('close-message').value || 'Are you sure you want to close Carbon?';
+            
+            if (enabled) {
+                window.addEventListener('beforeunload', (e) => {
+                    if (confirm) {
+                        e.preventDefault();
+                        e.returnValue = message;
+                        return message;
+                    }
+                });
+            }
+        }
+
+        // Panic key functionality
+        document.getElementById('set-panic-key').addEventListener('click', function() {
+            if (isRecordingPanicKey) return;
+            
+            isRecordingPanicKey = true;
+            const display = document.getElementById('panic-key-display');
+            display.textContent = 'Press any key...';
+            display.classList.add('recording');
+            
+            function recordKey(e) {
+                e.preventDefault();
+                panicKey = e.key.toLowerCase();
+                display.textContent = panicKey.toUpperCase();
+                display.classList.remove('recording');
+                isRecordingPanicKey = false;
+                document.removeEventListener('keydown', recordKey);
+            }
+            
+            document.addEventListener('keydown', recordKey);
+        });
+
+        document.getElementById('clear-panic-key').addEventListener('click', function() {
+            panicKey = null;
+            document.getElementById('panic-key-display').textContent = 'Press "Set Key" to configure';
+        });
+
+        // Background selection
+        document.querySelectorAll('.bg-preview').forEach(preview => {
+            preview.addEventListener('click', function() {
+                document.querySelectorAll('.bg-preview').forEach(el => el.classList.remove('active'));
+                this.classList.add('active');
+                currentBackground = this.dataset.bg;
+                applyBackground();
+            });
+        });
+
+        // Custom background upload
+        document.getElementById('bg-upload').addEventListener('click', () => {
+            document.getElementById('bg-file-input').click();
+        });
+
+        document.getElementById('bg-file-input').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const dataUrl = e.target.result;
+                    localStorage.setItem('carbon-custom-bg', dataUrl);
+                    showCustomBgPreview(dataUrl);
+                    applyBackground();
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        function showCustomBgPreview(dataUrl) {
+            const preview = document.getElementById('custom-bg-preview');
+            const image = document.getElementById('bg-preview-image');
+            image.style.backgroundImage = `url(${dataUrl})`;
+            preview.classList.remove('hidden');
+        }
+
+        document.getElementById('remove-bg').addEventListener('click', function() {
+            localStorage.removeItem('carbon-custom-bg');
+            document.getElementById('custom-bg-preview').classList.add('hidden');
+            applyBackground();
+        });
+
+        document.getElementById('change-bg').addEventListener('click', () => {
+            document.getElementById('bg-file-input').click();
+        });
+
+        // Tab cloaking
+        document.getElementById('tab-cloaking-enabled').addEventListener('change', toggleCloakingOptions);
+
+        function toggleCloakingOptions() {
+            const enabled = document.getElementById('tab-cloaking-enabled').checked;
+            const options = document.getElementById('cloaking-options');
+            options.style.opacity = enabled ? '1' : '0.5';
+            options.style.pointerEvents = enabled ? 'auto' : 'none';
+        }
+
+        // Cloaking presets
+        document.querySelectorAll('.cloak-preset').forEach(preset => {
+            preset.addEventListener('click', function() {
+                document.getElementById('cloak-title').value = this.dataset.title;
+                document.getElementById('cloak-favicon').value = this.dataset.favicon;
+            });
+        });
+
+        // Fullscreen controls
+        document.getElementById('enter-fullscreen').addEventListener('click', function() {
+            if (document.documentElement.requestFullscreen) {
+                document.documentElement.requestFullscreen();
+            }
+        });
+
+        document.getElementById('exit-fullscreen').addEventListener('click', function() {
+            if (document.exitFullscreen) {
+                document.exitFullscreen();
+            }
+        });
+
+        // Save settings button
+        document.getElementById('save-settings').addEventListener('click', saveSettings);
+
+        // Global panic key listener
+        document.addEventListener('keydown', function(e) {
+            if (panicKey && e.key.toLowerCase() === panicKey) {
+                const panicUrl = document.getElementById('panic-url').value || 'https://classroom.google.com';
+                window.location.href = panicUrl;
+            }
+        });
+
+        // Disable dev tools shortcuts if enabled
+        document.addEventListener('keydown', function(e) {
+            if (document.getElementById('disable-devtools').checked) {
+                if (e.key === 'F12' || 
+                    (e.ctrlKey && e.shiftKey && e.key === 'I') || 
+                    (e.ctrlKey && e.shiftKey && e.key === 'J') || 
+                    (e.ctrlKey && e.key === 'U')) {
+                    e.preventDefault();
+                    return false;
+                }
+            }
+        });
+
+        // Apply settings on load
+        applySettings();
+    </script>
+</body>
+</html>
