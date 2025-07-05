@@ -1717,6 +1717,7 @@
       
       function toggleVerticalTabs() {
         verticalTabsMode = !verticalTabsMode;
+        
         const verticalContainer = document.getElementById("vertical-tabs-container");
         const verticalControls = document.getElementById("vertical-tab-controls");
         const horizontalControls = document.getElementById("horizontal-tab-controls");
@@ -1734,6 +1735,9 @@
           if (verticalToggleBtn) {
             verticalToggleBtn.innerHTML = '<i class="bx bx-sidebar text-sm rotate-180"></i><span class="text-xs">Hide Vertical</span>';
           }
+          
+          // Attach event listeners for vertical tab controls
+          setTimeout(attachVerticalTabListeners, 150);
         } else {
           verticalContainer.classList.remove("open");
           verticalControls.classList.add("hidden");
@@ -1749,13 +1753,8 @@
         renderTabs();
         localStorage.setItem("vertical-tabs-mode", verticalTabsMode);
         
-        // Attach event listeners for vertical tab controls
-        if (verticalTabsMode) {
-          setTimeout(attachVerticalTabListeners, 100);
-        }
-        
         // Notify all iframes about vertical tabs state change
-        notifyIframesVerticalTabsState();
+        setTimeout(notifyIframesVerticalTabsState, 200);
       }
       
       let tabBarHidden = localStorage.getItem("tab-bar-hidden") === "true";
@@ -2300,6 +2299,12 @@
           // Sync search engine state from newtab iframe
           const searchEngine = event.data.searchEngine;
           setCurrentSearchEngine(searchEngine);
+        } else if (event.data && event.data.type === 'carbon-request-vertical-tabs-state') {
+          // Send current vertical tabs state to requesting iframe
+          event.source.postMessage({
+            type: 'carbon-vertical-tabs-state',
+            enabled: verticalTabsMode
+          }, '*');
         }
       });
 
