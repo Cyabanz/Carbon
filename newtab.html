@@ -108,6 +108,182 @@
         border-color: #f6c177;
         background: #403d52;
       }
+      
+      /* Responsive design for vertical tabs mode */
+      @media (max-width: 1400px) {
+        .bookmark-grid {
+          grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+        }
+        
+        header h1 {
+          font-size: 2.75rem;
+        }
+        
+        main {
+          padding-left: 2rem;
+          padding-right: 2rem;
+        }
+        
+        #search-input {
+          width: 100%;
+          height: 3.5rem;
+        }
+      }
+      
+      @media (max-width: 1000px) {
+        .bookmark-grid {
+          grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+        }
+        
+        header {
+          padding: 1.5rem;
+        }
+        
+        header h1 {
+          font-size: 2.25rem;
+        }
+        
+        #search-input {
+          height: 3.25rem;
+          font-size: 1rem;
+          padding-left: 2.75rem;
+          padding-right: 3.5rem;
+        }
+        
+        section:first-of-type {
+          margin-bottom: 2rem;
+        }
+        
+        .absolute.right-4 button {
+          width: 2.25rem;
+          height: 2.25rem;
+        }
+        
+        .absolute.right-4 i {
+          font-size: 1rem;
+        }
+      }
+      
+      @media (max-width: 800px) {
+        .bookmark-grid {
+          grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+          gap: 0.75rem;
+        }
+        
+        header h1 {
+          font-size: 2rem;
+        }
+        
+        header {
+          padding: 1rem;
+        }
+        
+        main {
+          padding-left: 1rem;
+          padding-right: 1rem;
+        }
+        
+        #search-input {
+          height: 3rem;
+          padding-left: 2.5rem;
+          padding-right: 3rem;
+          font-size: 0.875rem;
+        }
+        
+        .absolute.left-4 {
+          font-size: 1rem;
+        }
+        
+        .absolute.right-4 button {
+          width: 2rem;
+          height: 2rem;
+        }
+        
+        .absolute.right-4 i {
+          font-size: 0.875rem;
+        }
+        
+        h2 {
+          font-size: 1.5rem;
+        }
+        
+        #add-bookmark-btn {
+          padding: 0.5rem 0.75rem;
+          font-size: 0.875rem;
+        }
+      }
+      
+      @media (max-width: 600px) {
+        .bookmark-grid {
+          grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+          gap: 0.5rem;
+        }
+        
+        header h1 {
+          font-size: 1.75rem;
+        }
+        
+        #search-input {
+          height: 2.75rem;
+          padding-left: 2.25rem;
+          padding-right: 2.75rem;
+        }
+        
+        .absolute.right-4 {
+          right: 0.75rem;
+          gap: 0.25rem;
+        }
+        
+        .absolute.right-4 button {
+          width: 1.75rem;
+          height: 1.75rem;
+        }
+        
+                 footer {
+           padding: 1rem;
+         }
+       }
+       
+       /* Vertical tabs active state */
+       body.vertical-tabs-active {
+         background: linear-gradient(to bottom right, #191724, #1f1d2e);
+       }
+       
+       body.vertical-tabs-active header {
+         padding: 1rem 2rem;
+       }
+       
+       body.vertical-tabs-active header h1 {
+         font-size: 2.5rem;
+       }
+       
+       body.vertical-tabs-active main {
+         padding-left: 2rem;
+         padding-right: 2rem;
+         max-width: 5xl;
+       }
+       
+       body.vertical-tabs-active .bookmark-grid {
+         grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+         gap: 0.875rem;
+       }
+       
+       body.vertical-tabs-active #search-input {
+         height: 3.5rem;
+         max-width: 32rem;
+       }
+       
+       body.vertical-tabs-active section:first-of-type {
+         margin-bottom: 2.5rem;
+       }
+       
+       body.vertical-tabs-active h2 {
+         font-size: 1.75rem;
+       }
+       
+       body.vertical-tabs-active footer {
+         padding: 1rem 2rem;
+       }
     </style>
   </head>
   <body class="font-inter bg-gradient-to-br from-base via-surface to-overlay min-h-screen text-text">
@@ -279,8 +455,32 @@
           currentSearchEngine = event.data.searchEngine;
           localStorage.setItem('search-engine', currentSearchEngine);
           updateSearchEngineUI();
+        } else if (event.data && event.data.type === 'carbon-vertical-tabs-state') {
+          adjustForVerticalTabs(event.data.enabled);
         }
       });
+
+      // Function to adjust layout for vertical tabs
+      function adjustForVerticalTabs(verticalTabsEnabled) {
+        const body = document.body;
+        if (verticalTabsEnabled) {
+          body.classList.add('vertical-tabs-active');
+        } else {
+          body.classList.remove('vertical-tabs-active');
+        }
+      }
+
+      // Auto-detect narrow viewport (likely vertical tabs)
+      function detectVerticalTabs() {
+        const isNarrow = window.innerWidth < 1400;
+        adjustForVerticalTabs(isNarrow);
+      }
+
+      // Listen for resize events
+      window.addEventListener('resize', detectVerticalTabs);
+      
+      // Initial detection
+      setTimeout(detectVerticalTabs, 100);
 
       // Proxy Toggle
       function updateProxyUI() {
