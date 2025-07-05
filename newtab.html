@@ -244,45 +244,87 @@
          }
        }
        
-       /* Vertical tabs active state */
+       /* Vertical tabs active state - compensate for left sidebar */
        body.vertical-tabs-active {
-         background: linear-gradient(to bottom right, #191724, #1f1d2e);
+         padding-left: 0 !important;
+         margin-left: 0 !important;
        }
        
        body.vertical-tabs-active header {
-         padding: 1rem 2rem;
+         padding: 1.5rem 1rem 1.5rem 1rem;
+         max-width: calc(100vw - 320px);
+         margin: 0 auto;
        }
        
        body.vertical-tabs-active header h1 {
-         font-size: 2.5rem;
+         font-size: 2.25rem;
        }
        
        body.vertical-tabs-active main {
-         padding-left: 2rem;
-         padding-right: 2rem;
-         max-width: 5xl;
+         padding-left: 1rem;
+         padding-right: 1rem;
+         max-width: calc(100vw - 320px);
+         margin: 0 auto;
        }
        
        body.vertical-tabs-active .bookmark-grid {
-         grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
-         gap: 0.875rem;
+         grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+         gap: 0.75rem;
        }
        
        body.vertical-tabs-active #search-input {
-         height: 3.5rem;
-         max-width: 32rem;
+         height: 3.25rem;
+         max-width: 28rem;
        }
        
        body.vertical-tabs-active section:first-of-type {
-         margin-bottom: 2.5rem;
+         margin-bottom: 2rem;
+       }
+       
+       body.vertical-tabs-active section:first-of-type .max-w-2xl {
+         max-width: 28rem;
        }
        
        body.vertical-tabs-active h2 {
-         font-size: 1.75rem;
+         font-size: 1.625rem;
        }
        
        body.vertical-tabs-active footer {
-         padding: 1rem 2rem;
+         padding: 1rem;
+         max-width: calc(100vw - 320px);
+         margin: 0 auto;
+       }
+       
+       body.vertical-tabs-active .absolute.right-4 {
+         right: 0.75rem;
+       }
+       
+       body.vertical-tabs-active .absolute.right-4 button {
+         width: 2rem;
+         height: 2rem;
+       }
+       
+       body.vertical-tabs-active .absolute.right-4 i {
+         font-size: 0.875rem;
+       }
+       
+       /* Further adjustments for smaller screens with vertical tabs */
+       @media (max-width: 1200px) {
+         body.vertical-tabs-active main {
+           max-width: calc(100vw - 300px);
+         }
+         
+         body.vertical-tabs-active header {
+           max-width: calc(100vw - 300px);
+         }
+         
+         body.vertical-tabs-active footer {
+           max-width: calc(100vw - 300px);
+         }
+         
+         body.vertical-tabs-active .bookmark-grid {
+           grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+         }
        }
     </style>
   </head>
@@ -456,31 +498,53 @@
           localStorage.setItem('search-engine', currentSearchEngine);
           updateSearchEngineUI();
         } else if (event.data && event.data.type === 'carbon-vertical-tabs-state') {
-          adjustForVerticalTabs(event.data.enabled);
+          adjustForVerticalTabs(event.data.enabled, true);
         }
       });
 
       // Function to adjust layout for vertical tabs
-      function adjustForVerticalTabs(verticalTabsEnabled) {
+      function adjustForVerticalTabs(verticalTabsEnabled, fromParent = false) {
         const body = document.body;
         if (verticalTabsEnabled) {
           body.classList.add('vertical-tabs-active');
         } else {
           body.classList.remove('vertical-tabs-active');
         }
+        
+        // Mark that we've received explicit state from parent
+        if (fromParent) {
+          body.setAttribute('data-vertical-tabs-detected', 'true');
+        }
       }
 
-      // Auto-detect narrow viewport (likely vertical tabs)
-      function detectVerticalTabs() {
-        const isNarrow = window.innerWidth < 1400;
-        adjustForVerticalTabs(isNarrow);
+      // Better detection: Check if we're in an iframe and request vertical tabs state
+      function requestVerticalTabsState() {
+        if (window.parent && window.parent !== window) {
+          // Request vertical tabs state from parent
+          window.parent.postMessage({
+            type: 'carbon-request-vertical-tabs-state'
+          }, '*');
+        } else {
+          // Not in iframe, check localStorage as fallback
+          const savedVerticalMode = localStorage.getItem("vertical-tabs-mode");
+          adjustForVerticalTabs(savedVerticalMode === "true");
+        }
       }
 
-      // Listen for resize events
-      window.addEventListener('resize', detectVerticalTabs);
+      // Listen for resize events as fallback
+      window.addEventListener('resize', () => {
+        // Only auto-detect if we haven't received explicit state from parent
+        if (!document.body.hasAttribute('data-vertical-tabs-detected')) {
+          const isNarrow = window.innerWidth < 1200;
+          adjustForVerticalTabs(isNarrow);
+        }
+      });
       
       // Initial detection
-      setTimeout(detectVerticalTabs, 100);
+      setTimeout(requestVerticalTabsState, 100);
+      
+      // Also try detection after a delay in case parent hasn't loaded yet
+      setTimeout(requestVerticalTabsState, 500);
 
       // Proxy Toggle
       function updateProxyUI() {
