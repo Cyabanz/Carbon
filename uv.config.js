@@ -72,16 +72,44 @@ if (typeof window !== "undefined" && typeof document !== "undefined") {
             // AdGuard
             await loadResource("https://cdn.jsdelivr.net/npm/adguard-js@4.0.34/dist/adguard.js", "js");
 
-            // Dark Reader (always dark)
-            await new Promise(resolve => {
-              const script = document.createElement("script");
-              script.src = "https://cdn.jsdelivr.net/npm/darkreader@4.9.82/darkreader.min.js";
-              script.onload = resolve;
-              document.head.appendChild(script);
-            });
-            if (window.DarkReader) {
-              window.DarkReader.enable({ brightness: 100, contrast: 100, sepia: 0 });
-            }
+            // Inject simple dark theme CSS
+            (function injectDarkCSS() {
+              const darkCSS = \`
+                html, body {
+                  background: #181a1b !important;
+                  color: #e8e6e3 !important;
+                  color-scheme: dark !important;
+                }
+                * {
+                  background-color: transparent !important;
+                  border-color: #23272a !important;
+                  color: inherit !important;
+                }
+                a, a * {
+                  color: #8ab4f8 !important;
+                }
+                /* Optional: tweak Discord UI for better dark appearance */
+                [class*="background"], [class*="container"], [class*="scroller"], [class*="content"] {
+                  background: #181a1b !important;
+                  color: #e8e6e3 !important;
+                }
+                ::selection {
+                  background: #3a3f41 !important;
+                }
+                /* Scrollbars */
+                ::-webkit-scrollbar {
+                  background: #23272a !important;
+                  width: 12px;
+                }
+                ::-webkit-scrollbar-thumb {
+                  background: #2c2f33 !important;
+                }
+              \`;
+              let style = document.createElement('style');
+              style.id = 'uv-injected-dark-css';
+              style.textContent = darkCSS;
+              document.head.appendChild(style);
+            })();
 
             // Custom CSS/JS injectors
             window.injectCustomCSS = function(css) {
