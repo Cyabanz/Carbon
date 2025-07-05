@@ -9,7 +9,7 @@ self.__uv$config = {
   sw: "https://cdn.jsdelivr.net/npm/@titaniumnetwork-dev/ultraviolet/dist/uv.sw.js"
 };
 
-// Vencord + AdGuard + Dark Reader + Custom CSS/JS injection for Discord.com via UV proxy
+// Injects ONLY in proxied Discord.com iframe, after UV is ready
 (function vencordAndEnhancementsInjection() {
   function waitForEvalReady() {
     return new Promise(resolve => {
@@ -23,7 +23,7 @@ self.__uv$config = {
     });
   }
 
-  // Only run in the proxied iframe, not the top frame
+  // Only run in the proxied iframe, not the main window
   if (window.top === window) return;
 
   waitForEvalReady().then(() => {
@@ -36,55 +36,53 @@ self.__uv$config = {
     } catch (e) {
       return;
     }
+    // Only inject on Discord
     if (currentHost === "discord.com") {
       __uv$eval(`
         (async () => {
-          // --- Vencord Injection ---
+          // Vencord
           const cachedStorage = localStorage;
-          async function loadVencordResource(url) {
+          async function loadResource(url, type) {
             try {
               let el;
-              if (url.endsWith(".js")) {
+              if (type === 'js') {
                 el = document.createElement('script');
                 el.type = "text/javascript";
                 el.textContent = await (await fetch(url)).text();
-              } else if (url.endsWith(".css")) {
+              } else if (type === 'css') {
                 el = document.createElement('style');
                 el.textContent = await (await fetch(url)).text();
-              } else {
-                return;
+              } else if (type === 'cdn') {
+                el = document.createElement('script');
+                el.type = "text/javascript";
+                el.src = url;
               }
               document.head.appendChild(el);
             } catch (e) {}
           }
-          await loadVencordResource("https://raw.githubusercontent.com/Vencord/builds/refs/heads/main/browser.js");
-          await loadVencordResource("https://raw.githubusercontent.com/Vencord/builds/refs/heads/main/browser.css");
+          await loadResource("https://raw.githubusercontent.com/Vencord/builds/refs/heads/main/browser.js", "js");
+          await loadResource("https://raw.githubusercontent.com/Vencord/builds/refs/heads/main/browser.css", "css");
           window.addEventListener("load", () => {
             window.localStorage = cachedStorage;
             this.localStorage = cachedStorage;
             localStorage = cachedStorage;
           });
 
-          // --- AdGuard JS Injection ---
-          await loadVencordResource("https://cdn.jsdelivr.net/npm/adguard-js@4.0.34/dist/adguard.js");
+          // AdGuard
+          await loadResource("https://cdn.jsdelivr.net/npm/adguard-js@4.0.34/dist/adguard.js", "js");
 
-          // --- Dark Reader Injection ---
-          // Loads Dark Reader from CDN and enables it with default settings
-          const darkReaderScript = document.createElement("script");
-          darkReaderScript.src = "https://cdn.jsdelivr.net/npm/darkreader@4.9.82/darkreader.min.js";
-          darkReaderScript.onload = function() {
-            if (window.DarkReader) {
-              // Enable Dark Reader with default settings, always dark
-              window.DarkReader.enable({
-                brightness: 100,
-                contrast: 100,
-                sepia: 0
-              });
-            }
-          };
-          document.head.appendChild(darkReaderScript);
+          // Dark Reader (always dark)
+          await new Promise(resolve => {
+            const script = document.createElement("script");
+            script.src = "https://cdn.jsdelivr.net/npm/darkreader@4.9.82/darkreader.min.js";
+            script.onload = resolve;
+            document.head.appendChild(script);
+          });
+          if (window.DarkReader) {
+            window.DarkReader.enable({ brightness: 100, contrast: 100, sepia: 0 });
+          }
 
-          // --- Custom CSS Injector ---
+          // Custom CSS/JS injectors
           window.injectCustomCSS = function(css) {
             let styleTag = document.getElementById('custom-css-injector');
             if (!styleTag) {
@@ -94,18 +92,12 @@ self.__uv$config = {
             }
             styleTag.textContent = css;
           };
-
-          // --- Custom Script Injector ---
           window.injectCustomScript = function(js) {
             let scriptTag = document.createElement('script');
             scriptTag.type = 'text/javascript';
             scriptTag.textContent = js;
             document.body.appendChild(scriptTag);
           };
-
-          // Example usage (commented):
-          // window.injectCustomCSS("body { font-family: monospace !important; }");
-          // window.injectCustomScript("alert('Custom script!');");
         })();
       `);
     }
