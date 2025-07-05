@@ -1224,6 +1224,18 @@
                    console.error('Error decoding URL:', e);
                }
            };            iframeContainer.appendChild(iframe);
+            
+            // Notify new iframe about vertical tabs state
+            setTimeout(() => {
+              try {
+                iframe.contentWindow.postMessage({
+                  type: 'carbon-vertical-tabs-state',
+                  enabled: verticalTabsMode
+                }, '*');
+              } catch (e) {
+                // Ignore cross-origin errors
+              }
+            }, 500);
         }
 
         iframe.classList.remove('hidden');
@@ -1736,6 +1748,14 @@
         
         renderTabs();
         localStorage.setItem("vertical-tabs-mode", verticalTabsMode);
+        
+        // Attach event listeners for vertical tab controls
+        if (verticalTabsMode) {
+          setTimeout(attachVerticalTabListeners, 100);
+        }
+        
+        // Notify all iframes about vertical tabs state change
+        notifyIframesVerticalTabsState();
       }
       
       let tabBarHidden = localStorage.getItem("tab-bar-hidden") === "true";
@@ -2155,28 +2175,47 @@
         .addEventListener("click", toggleVerticalTabs);
 
       // Add event listeners for vertical tab controls
-      document.addEventListener('DOMContentLoaded', function() {
+      function attachVerticalTabListeners() {
         const verticalNewTabBtn = document.getElementById("vertical-new-tab-btn");
         const verticalHideTabBarToggle = document.getElementById("vertical-hide-tab-bar-toggle");
         const verticalTabGroupsToggle = document.getElementById("vertical-tab-groups-toggle");
         const verticalTabsLayoutToggle = document.getElementById("vertical-tabs-layout-toggle");
         
-        if (verticalNewTabBtn) {
+        if (verticalNewTabBtn && !verticalNewTabBtn.hasAttribute('data-listener-attached')) {
           verticalNewTabBtn.addEventListener("click", () => addTab("carbon://newtab"));
+          verticalNewTabBtn.setAttribute('data-listener-attached', 'true');
         }
         
-        if (verticalHideTabBarToggle) {
+        if (verticalHideTabBarToggle && !verticalHideTabBarToggle.hasAttribute('data-listener-attached')) {
           verticalHideTabBarToggle.addEventListener("click", toggleTabBarVisibility);
+          verticalHideTabBarToggle.setAttribute('data-listener-attached', 'true');
         }
         
-        if (verticalTabGroupsToggle) {
+        if (verticalTabGroupsToggle && !verticalTabGroupsToggle.hasAttribute('data-listener-attached')) {
           verticalTabGroupsToggle.addEventListener("click", openTabGroupsModal);
+          verticalTabGroupsToggle.setAttribute('data-listener-attached', 'true');
         }
         
-        if (verticalTabsLayoutToggle) {
+        if (verticalTabsLayoutToggle && !verticalTabsLayoutToggle.hasAttribute('data-listener-attached')) {
           verticalTabsLayoutToggle.addEventListener("click", toggleVerticalTabs);
+          verticalTabsLayoutToggle.setAttribute('data-listener-attached', 'true');
         }
-      });
+      }
+      
+      function notifyIframesVerticalTabsState() {
+        // Send vertical tabs state to all iframes
+        const iframes = document.querySelectorAll('#iframe-container iframe');
+        iframes.forEach(iframe => {
+          try {
+            iframe.contentWindow.postMessage({
+              type: 'carbon-vertical-tabs-state',
+              enabled: verticalTabsMode
+            }, '*');
+          } catch (e) {
+            // Ignore cross-origin errors
+          }
+        });
+      }
 
       const historyBtn = document.getElementById("history-btn");
       const historyModalBg = document.getElementById("history-modal-bg");
@@ -2348,6 +2387,12 @@
         mainContent.classList.add("with-vertical-tabs");
         toggleBtn.innerHTML = '<i class="bx bx-sidebar text-lg rotate-180"></i>';
         toggleBtn.title = "Hide Vertical Tabs";
+        
+        // Attach vertical tab event listeners
+        setTimeout(attachVerticalTabListeners, 100);
+        
+        // Notify existing iframes about vertical tabs state
+        setTimeout(notifyIframesVerticalTabsState, 600);
       }
       
       // Restore tab bar visibility from localStorage
