@@ -74,6 +74,28 @@
         z-index: 10;
         border-bottom: 1px solid #26233a;
       }
+      .filter-tab {
+        padding: 0.5rem 1rem;
+        background: transparent;
+        border: 1px solid #26233a;
+        border-radius: 0.5rem;
+        color: #908caa;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.875rem;
+      }
+      .filter-tab:hover {
+        background: #26233a;
+        color: #e0def4;
+      }
+      .filter-tab.active {
+        background: #9ccfd8;
+        color: #191724;
+        border-color: #9ccfd8;
+      }
     </style>
   </head>
   <body class="font-inter bg-gradient-to-br from-base via-surface to-overlay min-h-screen text-text">
@@ -145,100 +167,102 @@
       </main>
     </div>
 
-    <style>
-      .filter-tab {
-        padding: 0.5rem 1rem;
-        background: transparent;
-        border: 1px solid #26233a;
-        border-radius: 0.5rem;
-        color: #908caa;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        font-size: 0.875rem;
-      }
-      .filter-tab:hover {
-        background: #26233a;
-        color: #e0def4;
-      }
-      .filter-tab.active {
-        background: #9ccfd8;
-        color: #191724;
-        border-color: #9ccfd8;
-      }
-    </style>
-
     <script type="module">
+      // --- Utility Imports for Proxy Navigation (if any) ---
       import { makeURL, getProxied } from '/lethal.mjs';
 
-      // DOM Elements
+      // --- DOM Elements ---
       const historyList = document.getElementById('history-list');
       const noHistory = document.getElementById('no-history');
       const historySearch = document.getElementById('history-search');
       const clearAllBtn = document.getElementById('clear-all-history');
       const filterTabs = document.querySelectorAll('.filter-tab');
 
-      // State
+      // --- Global State ---
       let allHistory = [];
       let filteredHistory = [];
       let currentFilter = 'all';
 
-      // Load history from localStorage
+      // --- Strongly Sanitize a History Item ---
+      function sanitizeHistoryItem(rawItem) {
+        const url = (typeof rawItem.url === 'string' && rawItem.url.trim()) ? rawItem.url.trim() : '';
+        let title = '';
+        if (typeof rawItem.title === 'string' && rawItem.title.trim()) {
+          title = rawItem.title.trim();
+        } else {
+          title = url;
+        }
+        let timestamp = '';
+        if (typeof rawItem.timestamp === 'string' && !isNaN(Date.parse(rawItem.timestamp))) {
+          timestamp = rawItem.timestamp;
+        } else {
+          timestamp = new Date().toISOString();
+        }
+        let visits = 1;
+        if (typeof rawItem.visits === 'number' && Number.isFinite(rawItem.visits) && rawItem.visits > 0) {
+          visits = Math.floor(rawItem.visits);
+        }
+        let id = (typeof rawItem.id === 'number' && Number.isFinite(rawItem.id)) ? rawItem.id : (Date.now() + Math.random());
+        return { id, url, title, timestamp, visits };
+      }
+
+      // --- Load and Sanitize all History from localStorage ---
       function loadHistory() {
-        const history = JSON.parse(localStorage.getItem('carbon-history') || '[]');
+        let history = [];
+        try {
+          const raw = localStorage.getItem('carbon-history');
+          if (raw) {
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed)) {
+              history = parsed.map(sanitizeHistoryItem).filter(item => item.url);
+            }
+          }
+        } catch (e) {
+          history = [];
+        }
         allHistory = history.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
         filterHistory();
         renderHistory();
       }
 
-      // Save history to localStorage
+      // --- Save History to localStorage ---
       function saveHistory() {
         localStorage.setItem('carbon-history', JSON.stringify(allHistory));
       }
 
-      // Add item to history (called from parent frame)
-      function addToHistory(url, title = '') {
-        // Don't add carbon:// URLs to history
-        if (url.startsWith('carbon://')) return;
-        
-        const item = {
-          id: Date.now() + Math.random(),
-          url: url,
-          title: title || url,
-          timestamp: new Date().toISOString(),
-          visits: 1
-        };
-
-        // Check if URL already exists
+      // --- Add a History Item, Guaranteeing Valid Title ---
+      function addToHistory(url, title) {
+        if (typeof url !== 'string' || !url.trim() || url.startsWith('carbon://')) return;
+        let safeTitle = (typeof title === 'string' && title.trim()) ? title.trim() : url;
+        const now = new Date().toISOString();
+        const id = Date.now() + Math.random();
         const existingIndex = allHistory.findIndex(h => h.url === url);
         if (existingIndex !== -1) {
-          allHistory[existingIndex].timestamp = item.timestamp;
-          allHistory[existingIndex].visits++;
-          allHistory[existingIndex].title = title || allHistory[existingIndex].title;
+          allHistory[existingIndex].timestamp = now;
+          allHistory[existingIndex].visits = (allHistory[existingIndex].visits || 1) + 1;
+          allHistory[existingIndex].title = safeTitle;
         } else {
-          allHistory.unshift(item);
+          allHistory.unshift({
+            id: id,
+            url: url,
+            title: safeTitle,
+            timestamp: now,
+            visits: 1
+          });
         }
-
-        // Limit history to 1000 items
         if (allHistory.length > 1000) {
           allHistory = allHistory.slice(0, 1000);
         }
-
         saveHistory();
         filterHistory();
         renderHistory();
       }
 
-      // Filter history based on current filter
+      // --- Filter History Based on Search and Date ---
       function filterHistory() {
         const searchTerm = historySearch.value.toLowerCase();
         const now = new Date();
-        
         let filtered = allHistory;
-
-        // Apply time filter
         if (currentFilter === 'today') {
           const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
           filtered = allHistory.filter(item => new Date(item.timestamp) >= today);
@@ -249,30 +273,24 @@
           const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
           filtered = allHistory.filter(item => new Date(item.timestamp) >= monthAgo);
         }
-
-        // Apply search filter
         if (searchTerm) {
-          filtered = filtered.filter(item => 
+          filtered = filtered.filter(item =>
             item.url.toLowerCase().includes(searchTerm) ||
             item.title.toLowerCase().includes(searchTerm)
           );
         }
-
         filteredHistory = filtered;
       }
 
-      // Render history items
+      // --- Render History with Full Details ---
       function renderHistory() {
         if (filteredHistory.length === 0) {
           historyList.classList.add('hidden');
           noHistory.classList.remove('hidden');
           return;
         }
-
         historyList.classList.remove('hidden');
         noHistory.classList.add('hidden');
-
-        // Group by date
         const groupedHistory = {};
         filteredHistory.forEach(item => {
           const date = new Date(item.timestamp).toDateString();
@@ -281,15 +299,12 @@
           }
           groupedHistory[date].push(item);
         });
-
         historyList.innerHTML = Object.entries(groupedHistory).map(([date, items]) => {
           const isToday = date === new Date().toDateString();
           const isYesterday = date === new Date(Date.now() - 24 * 60 * 60 * 1000).toDateString();
-          
           let displayDate = date;
           if (isToday) displayDate = 'Today';
           else if (isYesterday) displayDate = 'Yesterday';
-
           return `
             <div class="mb-6">
               <h3 class="text-lg font-semibold text-text mb-3 flex items-center gap-2">
@@ -321,29 +336,21 @@
             </div>
           `;
         }).join('');
-
-        // Add event listeners
         document.querySelectorAll('.history-item').forEach(item => {
           item.addEventListener('click', async (e) => {
             if (e.target.closest('.delete-item')) return;
-            
             const url = item.dataset.url;
-            
-            // Check if we're in an iframe (within the proxy browser)
             if (window.parent && window.parent !== window) {
-              // Send message to parent frame to navigate
               window.parent.postMessage({
                 type: 'carbon-navigate',
                 url: url
               }, '*');
             } else {
-              // Navigate normally if not in iframe
               const proxiedUrl = await getProxied(makeURL(url));
               window.location.href = proxiedUrl;
             }
           });
         });
-
         document.querySelectorAll('.delete-item').forEach(btn => {
           btn.addEventListener('click', (e) => {
             e.stopPropagation();
@@ -353,25 +360,24 @@
         });
       }
 
-      // Format timestamp
+      // --- Format Timestamps for Display ---
       function formatTime(timestamp) {
         const date = new Date(timestamp);
         const now = new Date();
         const diff = now - date;
-        
-        if (diff < 60000) { // Less than 1 minute
+        if (diff < 60000) {
           return 'Just now';
-        } else if (diff < 3600000) { // Less than 1 hour
+        } else if (diff < 3600000) {
           const minutes = Math.floor(diff / 60000);
           return `${minutes} minute${minutes > 1 ? 's' : ''} ago`;
-        } else if (diff < 86400000) { // Less than 1 day
+        } else if (diff < 86400000) {
           return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
         } else {
           return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
         }
       }
 
-      // Delete single history item
+      // --- Delete a Single History Item ---
       function deleteHistoryItem(id) {
         allHistory = allHistory.filter(item => item.id !== id);
         saveHistory();
@@ -379,7 +385,7 @@
         renderHistory();
       }
 
-      // Clear all history
+      // --- Clear All History with Confirmation ---
       function clearAllHistory() {
         if (confirm('Are you sure you want to clear all history? This action cannot be undone.')) {
           allHistory = [];
@@ -389,7 +395,7 @@
         }
       }
 
-      // Event listeners
+      // --- Search and Filter Event Listeners ---
       historySearch.addEventListener('input', () => {
         filterHistory();
         renderHistory();
@@ -407,17 +413,26 @@
         });
       });
 
-      // Listen for history updates from parent frame
+      // --- Listen for Cross-Frame History Updates, Always Sanitize Title ---
       window.addEventListener('message', (event) => {
-        if (event.data && event.data.type === 'carbon-add-history') {
-          addToHistory(event.data.url, event.data.title);
+        if (
+          event.data &&
+          event.data.type === 'carbon-add-history' &&
+          typeof event.data.url === 'string' &&
+          event.data.url.trim()
+        ) {
+          const incomingTitle =
+            (typeof event.data.title === 'string' && event.data.title.trim())
+              ? event.data.title
+              : event.data.url;
+          addToHistory(event.data.url, incomingTitle);
         }
       });
 
-      // Expose addToHistory for external use
+      // --- Expose addToHistory for External Use ---
       window.addToHistory = addToHistory;
 
-      // Initialize
+      // --- Initialize on Page Load ---
       loadHistory();
     </script>
   </body>
