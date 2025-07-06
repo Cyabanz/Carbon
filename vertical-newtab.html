@@ -98,102 +98,14 @@
         transition: padding-left var(--carbon-transition-normal);
       }
 
-      .vertical-compact-header {
-        background: var(--theme-surface);
-        border-bottom: 1px solid var(--theme-overlay);
-        backdrop-filter: blur(10px);
-        position: sticky;
-        top: 0;
-        z-index: 100;
-      }
-
-      .vertical-search-container {
-        max-width: none;
-        margin: 0;
-      }
-
-      .vertical-search-input {
-        height: 3rem;
-        font-size: 0.95rem;
-        border-radius: var(--carbon-border-radius);
-        background: var(--theme-highlight-med);
-        border: 1px solid var(--theme-overlay);
-        transition: all var(--carbon-transition-fast);
-      }
-
-      .vertical-search-input:focus {
-        background: var(--theme-surface);
-        border-color: var(--theme-foam);
-        box-shadow: 0 0 0 3px rgba(156, 207, 216, 0.1);
-      }
-
-      .vertical-bookmarks-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-        gap: 0.75rem;
-        padding: 0.5rem 0;
-      }
-
-      .vertical-bookmark-item {
+      /* Quick Actions Grid */
+      .quick-action {
         background: var(--theme-surface);
         border: 1px solid var(--theme-overlay);
-        border-radius: var(--carbon-border-radius);
-        padding: 0.75rem;
-        cursor: pointer;
-        transition: all var(--carbon-transition-fast);
-        position: relative;
-        overflow: hidden;
-        min-height: 80px;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-      }
-
-      .vertical-bookmark-item:hover {
-        background: var(--theme-overlay);
-        border-color: var(--theme-foam);
-        transform: translateY(-1px);
-        box-shadow: 0 2px 8px rgba(156, 207, 216, 0.15);
-      }
-
-      .vertical-bookmark-item.editing {
-        border-color: var(--theme-gold);
-        background: var(--theme-highlight-med);
-      }
-
-      .vertical-bookmark-title {
-        font-size: 0.85rem;
-        font-weight: 600;
-        color: var(--theme-text);
-        margin-bottom: 0.25rem;
-        line-height: 1.2;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-      }
-
-      .vertical-bookmark-url {
-        font-size: 0.7rem;
-        color: var(--theme-muted);
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-      }
-
-      .vertical-quick-actions {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-        gap: 0.5rem;
-        margin-bottom: 1rem;
-      }
-
-      .vertical-quick-action {
-        background: var(--theme-surface);
-        border: 1px solid var(--theme-overlay);
-        border-radius: var(--carbon-border-radius);
-        padding: 0.75rem;
+        border-radius: 0.75rem;
+        padding: 1rem;
         text-align: center;
-        transition: all var(--carbon-transition-fast);
+        transition: all 0.3s ease;
         cursor: pointer;
         display: flex;
         flex-direction: column;
@@ -201,28 +113,41 @@
         gap: 0.25rem;
       }
 
-      .vertical-quick-action:hover {
+      .quick-action:hover {
         background: var(--theme-overlay);
         border-color: var(--theme-foam);
-        transform: translateY(-1px);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(156, 207, 216, 0.2);
       }
 
-      .vertical-section {
-        background: var(--theme-base);
+      /* Bookmark Grid - Same as newtab.html */
+      .bookmark-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 1rem;
+      }
+
+      .bookmark-item {
+        background: var(--theme-surface);
         border: 1px solid var(--theme-overlay);
-        border-radius: var(--carbon-border-radius);
+        border-radius: 0.75rem;
         padding: 1rem;
-        margin-bottom: 1rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
       }
 
-      .vertical-section-title {
-        font-size: 1rem;
-        font-weight: 600;
-        color: var(--theme-text);
-        margin-bottom: 0.75rem;
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
+      .bookmark-item:hover {
+        background: var(--theme-overlay);
+        border-color: var(--theme-foam);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(156, 207, 216, 0.2);
+      }
+
+      .bookmark-item.editing {
+        border-color: var(--theme-gold);
+        background: var(--theme-highlight-med);
       }
 
       .suggestion-box {
@@ -265,12 +190,8 @@
           padding-left: 0;
         }
         
-        .vertical-bookmarks-grid {
-          grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-        }
-        
-        .vertical-quick-actions {
-          grid-template-columns: repeat(2, 1fr);
+        .bookmark-grid {
+          grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
         }
       }
 
@@ -280,169 +201,152 @@
         background-attachment: fixed;
       }
 
-      /* Modal styles */
-      .modal-backdrop {
-        backdrop-filter: blur(8px);
-        background: rgba(0, 0, 0, 0.5);
-      }
-
-      .modal-content {
-        background: var(--theme-surface);
-        border: 1px solid var(--theme-overlay);
-        border-radius: calc(var(--carbon-border-radius) * 1.5);
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-      }
+      /* Modal styles - Clean design */
     </style>
   </head>
-  <body class="font-inter text-text min-h-screen">
-    <div class="vertical-layout min-h-screen">
-      <!-- Compact Header for Vertical Layout -->
-      <header class="vertical-compact-header p-3">
-        <div class="flex items-center justify-between">
-          <div class="flex items-center gap-2">
-            <i class="bx bx-atom text-foam text-lg"></i>
-            <span class="font-semibold text-sm">New Tab</span>
-          </div>
-          <div class="text-xs text-muted">Vertical Mode</div>
-        </div>
+  <body class="font-inter bg-gradient-to-br from-base via-surface to-overlay min-h-screen text-text">
+    <div class="vertical-layout min-h-screen flex flex-col">
+      <!-- Clean Header for Vertical Layout -->
+      <header class="p-4 text-center">
+        <h1 class="text-2xl font-bold text-text mb-1 flex items-center justify-center gap-2">
+          <i class="bx bx-atom text-foam"></i>
+          Carbon
+        </h1>
+        <p class="text-muted text-xs">New Tab</p>
       </header>
 
       <!-- Main Content -->
-      <main class="p-4 space-y-4">
+      <main class="flex-1 max-w-4xl mx-auto w-full px-4">
         <!-- Search Section -->
-        <div class="vertical-section">
-          <div class="vertical-search-container">
+        <section class="mb-8">
+          <div class="max-w-xl mx-auto">
             <form id="search-form" class="relative">
               <div class="relative">
-                <i class="bx bx-search absolute left-3 top-1/2 transform -translate-y-1/2 text-muted"></i>
+                <i class="bx bx-search absolute left-4 top-1/2 transform -translate-y-1/2 text-muted text-lg"></i>
                 <input
                   id="search-input"
                   type="text"
                   spellcheck="false"
                   autocomplete="off"
-                  placeholder="Search or enter URL"
-                  class="vertical-search-input w-full pl-10 pr-20 text-text placeholder-muted"
+                  placeholder="Search or enter website URL"
+                  class="w-full h-12 pl-12 pr-20 bg-surface border-2 border-overlay text-text rounded-full text-base focus:outline-none focus:ring-2 focus:ring-foam focus:border-foam placeholder-muted transition-all"
                 />
-                <div class="absolute right-2 top-1/2 transform -translate-y-1/2 flex items-center gap-1">
+                <div class="absolute right-3 top-1/2 transform -translate-y-1/2 flex items-center gap-2">
                   <!-- Proxy Toggle -->
                   <button
                     id="proxy-toggle"
                     type="button"
-                    class="w-7 h-7 rounded bg-highlight-med hover:bg-highlight-high border border-overlay flex items-center justify-center transition-all text-xs"
-                    title="Proxy"
+                    class="w-8 h-8 rounded-full bg-highlight-med hover:bg-highlight-high border-2 border-foam flex items-center justify-center transition-all"
+                    title="UV Proxy"
                   >
-                    <i id="proxy-icon" class="bx bx-cloud"></i>
+                    <i id="proxy-icon" class="bx bx-cloud text-sm"></i>
                   </button>
                   <!-- Search Engine -->
                   <button
                     id="search-engine-toggle"
                     type="button"
-                    class="w-7 h-7 rounded bg-highlight-med hover:bg-highlight-high border border-overlay flex items-center justify-center transition-all text-xs"
+                    class="w-8 h-8 rounded-full bg-highlight-med hover:bg-highlight-high border-2 border-overlay flex items-center justify-center transition-all"
                     title="Search Engine"
                   >
-                    <i id="search-engine-icon" class="bx bxl-brave"></i>
+                    <i id="search-engine-icon" class="bx bxl-brave text-sm"></i>
                   </button>
                 </div>
               </div>
               <div id="suggestion-box" class="suggestion-box hidden"></div>
             </form>
           </div>
-        </div>
+        </section>
 
         <!-- Quick Actions -->
-        <div class="vertical-section">
-          <div class="vertical-section-title">
-            <i class="bx bx-flash text-gold"></i>
-            Quick Actions
+        <section class="mb-8">
+          <div class="text-center mb-4">
+            <h2 class="text-lg font-semibold text-text flex items-center justify-center gap-2">
+              <i class="bx bx-flash text-gold"></i>
+              Quick Actions
+            </h2>
           </div>
-          <div class="vertical-quick-actions">
-            <div class="vertical-quick-action" onclick="navigateToCarbon('carbon://games')">
-              <i class="bx bx-game text-foam"></i>
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 max-w-md mx-auto">
+            <button class="quick-action" onclick="navigateToCarbon('carbon://games')">
+              <i class="bx bx-game text-foam text-xl mb-1"></i>
               <span class="text-xs">Games</span>
-            </div>
-            <div class="vertical-quick-action" onclick="navigateToCarbon('carbon://history')">
-              <i class="bx bx-history text-iris"></i>
+            </button>
+            <button class="quick-action" onclick="navigateToCarbon('carbon://history')">
+              <i class="bx bx-history text-iris text-xl mb-1"></i>
               <span class="text-xs">History</span>
-            </div>
-            <div class="vertical-quick-action" onclick="navigateToCarbon('carbon://settings')">
-              <i class="bx bx-cog text-gold"></i>
+            </button>
+            <button class="quick-action" onclick="navigateToCarbon('carbon://settings')">
+              <i class="bx bx-cog text-gold text-xl mb-1"></i>
               <span class="text-xs">Settings</span>
-            </div>
-            <div class="vertical-quick-action" onclick="navigateToCarbon('carbon://account')">
-              <i class="bx bx-user text-pine"></i>
+            </button>
+            <button class="quick-action" onclick="navigateToCarbon('carbon://account')">
+              <i class="bx bx-user text-pine text-xl mb-1"></i>
               <span class="text-xs">Profile</span>
-            </div>
+            </button>
           </div>
-        </div>
+        </section>
 
         <!-- Bookmarks Section -->
-        <div class="vertical-section">
-          <div class="flex items-center justify-between mb-3">
-            <div class="vertical-section-title mb-0">
+        <section>
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="text-lg font-semibold text-text flex items-center gap-2">
               <i class="bx bx-bookmark text-foam"></i>
               Bookmarks
-            </div>
+            </h2>
             <button
               id="add-bookmark-btn"
-              class="px-2 py-1 bg-foam text-base rounded text-xs hover:bg-foam/80 transition-colors flex items-center gap-1"
+              class="px-3 py-2 bg-foam text-base rounded-lg hover:bg-foam/80 transition-colors flex items-center gap-1 text-sm"
             >
-              <i class="bx bx-plus text-sm"></i>
-              Add
+              <i class="bx bx-plus"></i>
+              Add Bookmark
             </button>
           </div>
           
-          <div id="bookmarks-grid" class="vertical-bookmarks-grid">
+          <div id="bookmarks-grid" class="bookmark-grid">
             <!-- Bookmarks will be populated here -->
           </div>
-        </div>
-
-        <!-- Recent Sites -->
-        <div class="vertical-section">
-          <div class="vertical-section-title">
-            <i class="bx bx-time text-iris"></i>
-            Recent Sites
-          </div>
-          <div id="recent-sites" class="space-y-1">
-            <!-- Recent sites will be populated here -->
-          </div>
-        </div>
+        </section>
       </main>
+
+      <!-- Footer -->
+      <footer class="p-4 text-center text-muted text-xs">
+        <p>Press <kbd class="bg-highlight-med px-2 py-1 rounded text-xs">Ctrl+T</kbd> for new tab</p>
+      </footer>
     </div>
 
     <!-- Add Bookmark Modal -->
-    <div id="bookmark-modal" class="modal-backdrop fixed inset-0 flex items-center justify-center opacity-0 pointer-events-none transition-opacity duration-300 z-50">
-      <div class="modal-content max-w-sm w-[90vw] p-4">
-        <h3 class="text-lg font-semibold mb-3 text-text">Add Bookmark</h3>
+    <div id="bookmark-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center opacity-0 pointer-events-none transition-opacity duration-300 z-50">
+      <div class="bg-surface border border-overlay rounded-xl shadow-2xl max-w-md w-[90vw] p-6">
+        <h3 class="text-xl font-semibold mb-4 text-text">Add Bookmark</h3>
         <form id="bookmark-form">
-          <div class="mb-3">
-            <label class="block text-xs font-medium text-text mb-1">Title</label>
+          <div class="mb-4">
+            <label class="block text-sm font-medium text-text mb-2">Title</label>
             <input
               id="bookmark-title"
               type="text"
-              class="w-full px-3 py-2 bg-highlight-med border border-overlay rounded text-text text-sm focus:outline-none focus:ring-2 focus:ring-foam"
+              class="w-full px-3 py-2 bg-highlight-med border border-overlay rounded-lg text-text focus:outline-none focus:ring-2 focus:ring-foam"
               placeholder="Bookmark title"
             />
           </div>
           <div class="mb-4">
-            <label class="block text-xs font-medium text-text mb-1">URL</label>
+            <label class="block text-sm font-medium text-text mb-2">URL</label>
             <input
               id="bookmark-url"
               type="url"
-              class="w-full px-3 py-2 bg-highlight-med border border-overlay rounded text-text text-sm focus:outline-none focus:ring-2 focus:ring-foam"
+              class="w-full px-3 py-2 bg-highlight-med border border-overlay rounded-lg text-text focus:outline-none focus:ring-2 focus:ring-foam"
               placeholder="https://example.com"
             />
           </div>
           <div class="flex gap-2">
             <button
               type="submit"
-              class="flex-1 px-3 py-2 bg-foam text-base rounded text-sm hover:bg-foam/80 transition-colors"
+              class="flex-1 px-4 py-2 bg-foam text-base rounded-lg hover:bg-foam/80 transition-colors"
             >
               Add
             </button>
             <button
               type="button"
               id="cancel-bookmark"
-              class="flex-1 px-3 py-2 bg-highlight-med text-text rounded text-sm hover:bg-highlight-high transition-colors"
+              class="flex-1 px-4 py-2 bg-highlight-med text-text rounded-lg hover:bg-highlight-high transition-colors"
             >
               Cancel
             </button>
@@ -488,7 +392,6 @@
       let currentSearchEngine = localStorage.getItem('search-engine') || 'https://search.brave.com/search?q=%s';
       let currentProxy = localStorage.getItem('proxy-backend') || 'uv';
       let bookmarks = JSON.parse(localStorage.getItem('carbon-bookmarks') || '[]');
-      let recentSites = JSON.parse(localStorage.getItem('carbon-recent-sites') || '[]');
       let currentUser = null;
       
       // Authentication state observer
@@ -625,23 +528,40 @@
 
       function renderBookmarks() {
         const grid = document.getElementById('bookmarks-grid');
-        grid.innerHTML = '';
-
+        
         if (bookmarks.length === 0) {
-          grid.innerHTML = '<div class="col-span-full text-center text-muted text-sm py-4">No bookmarks yet. Add one to get started!</div>';
+          grid.innerHTML = `
+            <div class="col-span-full text-center text-muted py-8">
+              <i class="bx bx-bookmark text-4xl mb-2"></i>
+              <p>No bookmarks yet. Click "Add Bookmark" to get started!</p>
+            </div>
+          `;
           return;
         }
+        
+        grid.innerHTML = bookmarks.map((bookmark, index) => `
+          <div class="bookmark-item" data-index="${index}">
+            <div class="flex items-start justify-between mb-3">
+              <div class="w-8 h-8 rounded-lg bg-foam/20 flex items-center justify-center flex-shrink-0">
+                <i class="bx bx-bookmark text-foam"></i>
+              </div>
+              <div class="flex gap-1">
+                <button class="edit-bookmark w-6 h-6 rounded hover:bg-highlight-med flex items-center justify-center text-muted hover:text-text transition-colors">
+                  <i class="bx bx-edit text-xs"></i>
+                </button>
+                <button class="delete-bookmark w-6 h-6 rounded hover:bg-love/20 flex items-center justify-center text-muted hover:text-love transition-colors">
+                  <i class="bx bx-trash text-xs"></i>
+                </button>
+              </div>
+            </div>
+            <h3 class="font-medium text-text mb-1 leading-tight line-clamp-2">${bookmark.title}</h3>
+            <p class="text-xs text-muted truncate">${bookmark.url}</p>
+          </div>
+        `).join('');
 
-        bookmarks.forEach(bookmark => {
-          const item = document.createElement('div');
-          item.className = 'vertical-bookmark-item';
-          item.innerHTML = `
-            <div class="vertical-bookmark-title">${bookmark.title}</div>
-            <div class="vertical-bookmark-url">${bookmark.url}</div>
-            <button class="absolute top-1 right-1 w-5 h-5 rounded bg-love/20 hover:bg-love/40 text-love flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity" onclick="removeBookmark('${bookmark.id}')">
-              <i class="bx bx-x"></i>
-            </button>
-          `;
+        // Add event listeners for bookmark interactions
+        grid.querySelectorAll('.bookmark-item').forEach((item, index) => {
+          const bookmark = bookmarks[index];
           
           item.addEventListener('click', (e) => {
             if (!e.target.closest('button')) {
@@ -649,16 +569,17 @@
             }
           });
           
-          // Add hover effect
-          item.addEventListener('mouseenter', () => {
-            item.style.transform = 'translateY(-1px)';
+          const deleteBtn = item.querySelector('.delete-bookmark');
+          deleteBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            removeBookmark(bookmark.id);
           });
           
-          item.addEventListener('mouseleave', () => {
-            item.style.transform = 'translateY(0)';
+          const editBtn = item.querySelector('.edit-bookmark');
+          editBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            editBookmark(index);
           });
-
-          grid.appendChild(item);
         });
       }
 
@@ -690,39 +611,21 @@
         renderBookmarks();
       }
 
-      // Recent Sites Management
-      function loadRecentSites() {
-        const history = JSON.parse(localStorage.getItem('carbon-history') || '[]');
-        recentSites = history.slice(0, 5); // Get last 5 sites
-        renderRecentSites();
-      }
-
-      function renderRecentSites() {
-        const container = document.getElementById('recent-sites');
-        container.innerHTML = '';
-
-        if (recentSites.length === 0) {
-          container.innerHTML = '<div class="text-muted text-xs py-2">No recent sites</div>';
-          return;
+      function editBookmark(index) {
+        const bookmark = bookmarks[index];
+        const newTitle = prompt('Edit bookmark title:', bookmark.title);
+        const newUrl = prompt('Edit bookmark URL:', bookmark.url);
+        
+        if (newTitle !== null && newUrl !== null && newTitle.trim() && newUrl.trim()) {
+          bookmarks[index] = {
+            ...bookmark,
+            title: newTitle.trim(),
+            url: newUrl.trim()
+          };
+          localStorage.setItem('carbon-bookmarks', JSON.stringify(bookmarks));
+          saveBookmarksToFirebase();
+          renderBookmarks();
         }
-
-        recentSites.forEach(site => {
-          const item = document.createElement('div');
-          item.className = 'flex items-center gap-2 p-2 hover:bg-highlight-med rounded cursor-pointer transition-colors';
-          item.innerHTML = `
-            <i class="bx bx-globe text-foam text-sm"></i>
-            <div class="flex-1 min-w-0">
-              <div class="text-xs font-medium text-text truncate">${site.title || 'Untitled'}</div>
-              <div class="text-xs text-muted truncate">${site.url}</div>
-            </div>
-          `;
-          
-          item.addEventListener('click', () => {
-            openBookmark(site.url);
-          });
-
-          container.appendChild(item);
-        });
       }
 
       // Search functionality
@@ -776,7 +679,6 @@
       updateProxyUI();
       updateSearchEngineUI();
       renderBookmarks();
-      loadRecentSites();
 
       // Request vertical tabs state from parent
       window.parent.postMessage({
@@ -786,6 +688,7 @@
       // Expose functions globally for onclick handlers
       window.navigateToCarbon = navigateToCarbon;
       window.removeBookmark = removeBookmark;
+      window.editBookmark = editBookmark;
     </script>
   </body>
 </html>
