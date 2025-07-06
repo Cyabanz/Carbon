@@ -467,6 +467,91 @@
           setTimeout(() => feedback.style.opacity = 0, 1200);
         });
       };
+      
+      // Load user's theme preferences if available
+      try {
+        await loadUserThemeFromFirebase(uid);
+      } catch (error) {
+        console.log('Could not load theme for public profile:', error);
+      }
+    }
+
+    // Theme syncing functions
+    async function loadUserThemeFromFirebase(userId) {
+      try {
+        const userPrefsDoc = await db.collection('user-preferences').doc(userId).get();
+        if (userPrefsDoc.exists) {
+          const prefs = userPrefsDoc.data();
+          if (prefs.theme) {
+            const theme = prefs.theme;
+            localStorage.setItem('carbon-theme', theme);
+            localStorage.setItem('carbon-theme-global', theme);
+            
+            // Apply theme to current page
+            document.documentElement.setAttribute('data-theme', theme);
+            
+            // Update Tailwind colors if needed
+            updateTailwindTheme(theme);
+          }
+          if (prefs.background) {
+            localStorage.setItem('carbon-background', prefs.background);
+          }
+          if (prefs.customBackground) {
+            localStorage.setItem('carbon-custom-bg', prefs.customBackground);
+          }
+        }
+      } catch (error) {
+        console.error('Error loading user theme from Firebase:', error);
+      }
+    }
+
+    async function saveUserThemeToFirebase(userId, theme, background = null, customBackground = null) {
+      if (!userId) return;
+      
+      try {
+        const updateData = { theme };
+        if (background !== null) updateData.background = background;
+        if (customBackground !== null) updateData.customBackground = customBackground;
+        
+        await db.collection('user-preferences').doc(userId).set(updateData, { merge: true });
+      } catch (error) {
+        console.error('Error saving user theme to Firebase:', error);
+      }
+    }
+
+    function updateTailwindTheme(theme) {
+      // Update Tailwind config based on theme
+      const themeMap = {
+        'dark': {
+          'rp-base': '#0f172a',
+          'rp-surface': '#1e293b',
+          'rp-overlay': '#334155',
+          'rp-text': '#f1f5f9',
+          'rp-foam': '#06b6d4'
+        },
+        'light': {
+          'rp-base': '#f8fafc',
+          'rp-surface': '#e2e8f0',
+          'rp-overlay': '#cbd5e1',
+          'rp-text': '#0f172a',
+          'rp-foam': '#0891b2'
+        },
+        'catppuccin': {
+          'rp-base': '#1e1e2e',
+          'rp-surface': '#313244',
+          'rp-overlay': '#45475a',
+          'rp-text': '#cdd6f4',
+          'rp-foam': '#89dceb'
+        }
+        // Add more theme mappings as needed
+      };
+      
+      if (themeMap[theme]) {
+        const root = document.documentElement;
+        Object.entries(themeMap[theme]).forEach(([key, value]) => {
+          root.style.setProperty(`--${key}`, value);
+        });
+      }
     }
 
     document.addEventListener('DOMContentLoaded', async () => {
@@ -491,6 +576,14 @@
           return;
         }
         await ensureUserDoc(user);
+        
+        // Load user's theme preferences
+        try {
+          await loadUserThemeFromFirebase(user.uid);
+        } catch (error) {
+          console.log('Error loading theme from Firebase:', error);
+        }
+        
         document.getElementById('loginScreen').classList.add('hidden');
         document.getElementById('profileContent').classList.remove('hidden');
         document.getElementById('publicProfileContent').classList.add('hidden');
@@ -517,6 +610,26 @@
           });
         };
       });
+
+      // Initialize
+      loadHistory();
+    });
+
+    // Listen for theme changes from other windows
+    window.addEventListener("message", function(event) {
+      if (event.data && event.data.type === 'carbon-theme-change') {
+        const theme = event.data.theme;
+        localStorage.setItem('carbon-theme', theme);
+        localStorage.setItem('carbon-theme-global', theme);
+        document.documentElement.setAttribute('data-theme', theme);
+        updateTailwindTheme(theme);
+        
+        // Save to Firebase if user is logged in
+        const currentUser = auth.currentUser;
+        if (currentUser) {
+          saveUserThemeToFirebase(currentUser.uid, theme);
+        }
+      }
     });
   </script>
 </body>

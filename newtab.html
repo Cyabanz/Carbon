@@ -4,6 +4,12 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>New Tab - Carbon</title>
+    
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+    
     <script defer async>
       function setConfig() {
         tailwind.config = {
@@ -518,6 +524,19 @@
           this.classList.add('active');
           currentTheme = this.dataset.theme;
           applyTheme(currentTheme);
+          
+          // Save to Firebase if user is logged in
+          if (currentUser) {
+            saveUserThemeToFirebase(currentUser.uid, currentTheme);
+          }
+          
+          // Notify parent frame of theme change
+          if (window.parent && window.parent !== window) {
+            window.parent.postMessage({
+              type: 'carbon-theme-change',
+              theme: currentTheme
+            }, '*');
+          }
         });
         if (preview.dataset.theme === currentTheme) preview.classList.add('active');
       });
@@ -529,6 +548,19 @@
           currentBackground = this.dataset.bg;
           localStorage.setItem('carbon-background', currentBackground);
           applyBackground();
+          
+          // Save to Firebase if user is logged in
+          if (currentUser) {
+            saveUserThemeToFirebase(currentUser.uid, currentTheme, currentBackground);
+          }
+          
+          // Notify parent frame of background change
+          if (window.parent && window.parent !== window) {
+            window.parent.postMessage({
+              type: 'carbon-background-change',
+              background: currentBackground
+            }, '*');
+          }
         });
         if (preview.dataset.bg === currentBackground) preview.classList.add('active');
       });
@@ -584,6 +616,20 @@
           updateSearchEngineUI();
         } else if (event.data && event.data.type === 'carbon-vertical-tabs-state') {
           adjustForVerticalTabs(event.data.enabled, true);
+        } else if (event.data && event.data.type === 'carbon-theme-change') {
+          const theme = event.data.theme;
+          if (theme !== currentTheme) {
+            currentTheme = theme;
+            localStorage.setItem('carbon-theme', currentTheme);
+            localStorage.setItem('carbon-theme-global', currentTheme);
+            
+            // Update UI
+            document.querySelectorAll('.theme-preview').forEach(el => el.classList.remove('active'));
+            const themePreview = document.querySelector(`[data-theme="${currentTheme}"]`);
+            if (themePreview) themePreview.classList.add('active');
+            
+            applyTheme(currentTheme);
+          }
         }
       });
 
@@ -926,6 +972,87 @@
           searchInput.focus();
         }
       });
+
+      // Firebase initialization and theme syncing
+      const firebaseConfig = {
+        apiKey: "AIzaSyC4ilHYP1T-kdXbWPoHJHhD2aj0pNWmMec",
+        authDomain: "carbon-services.firebaseapp.com",
+        projectId: "carbon-services",
+        storageBucket: "carbon-services.firebasestorage.app",
+        messagingSenderId: "288385472070",
+        appId: "1:288385472070:web:c4be3ff186e248fc645c47",
+        measurementId: "G-Y2K1RQYE74"
+      };
+      
+      firebase.initializeApp(firebaseConfig);
+      const auth = firebase.auth();
+      const db = firebase.firestore();
+
+      // Enhanced theme syncing with Firebase
+      let currentUser = null;
+
+      auth.onAuthStateChanged(async (user) => {
+        currentUser = user;
+        if (user) {
+          try {
+            await loadUserThemeFromFirebase(user.uid);
+          } catch (error) {
+            console.log('Error loading theme from Firebase:', error);
+          }
+        }
+      });
+
+      async function loadUserThemeFromFirebase(userId) {
+        try {
+          const userPrefsDoc = await db.collection('user-preferences').doc(userId).get();
+          if (userPrefsDoc.exists) {
+            const prefs = userPrefsDoc.data();
+            if (prefs.theme && prefs.theme !== currentTheme) {
+              currentTheme = prefs.theme;
+              localStorage.setItem('carbon-theme', currentTheme);
+              localStorage.setItem('carbon-theme-global', currentTheme);
+              
+              // Update UI
+              document.querySelectorAll('.theme-preview').forEach(el => el.classList.remove('active'));
+              const themePreview = document.querySelector(`[data-theme="${currentTheme}"]`);
+              if (themePreview) themePreview.classList.add('active');
+              
+              applyTheme(currentTheme);
+            }
+            if (prefs.background && prefs.background !== currentBackground) {
+              currentBackground = prefs.background;
+              localStorage.setItem('carbon-background', currentBackground);
+              
+              // Update UI
+              document.querySelectorAll('.bg-preview').forEach(el => el.classList.remove('active'));
+              const bgPreview = document.querySelector(`[data-bg="${currentBackground}"]`);
+              if (bgPreview) bgPreview.classList.add('active');
+              
+              applyBackground();
+            }
+            if (prefs.customBackground) {
+              localStorage.setItem('carbon-custom-bg', prefs.customBackground);
+              applyBackground();
+            }
+          }
+        } catch (error) {
+          console.error('Error loading user theme from Firebase:', error);
+        }
+      }
+
+      async function saveUserThemeToFirebase(userId, theme, background = null, customBackground = null) {
+        if (!userId) return;
+        
+        try {
+          const updateData = { theme };
+          if (background !== null) updateData.background = background;
+          if (customBackground !== null) updateData.customBackground = customBackground;
+          
+          await db.collection('user-preferences').doc(userId).set(updateData, { merge: true });
+        } catch (error) {
+          console.error('Error saving user theme to Firebase:', error);
+        }
+      }
     </script>
   </body>
 </html>
