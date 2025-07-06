@@ -889,9 +889,27 @@
       let groupIdCounter = 1;
       function createTab(url = "carbon://newtab") {
         const id = "tab-" + tabIdCounter++;
+        let title = "New Tab";
+        
+        if (url === "carbon://newtab") {
+          title = "New Tab";
+        } else if (url === "carbon://history") {
+          title = "History";
+        } else if (url === "carbon://account") {
+          title = "Account Profile";
+        } else if (url === "carbon://settings") {
+          title = "Settings";
+        } else if (url === "carbon://games") {
+          title = "Games";
+        } else if (url === "carbon://ai") {
+          title = "AI Assistant";
+        } else if (url) {
+          title = url;
+        }
+        
         return {
           id,
-          title: url === "carbon://newtab" ? "New Tab" : (url ? url : "New Tab"),
+          title,
           url,
           history: url ? [url] : ["carbon://newtab"],
           pointer: url ? 0 : 0,
@@ -1690,7 +1708,21 @@
         tab.url = url;
         // Only update title if no custom title is set
         if (!tab.customTitle) {
-          tab.title = url === "carbon://newtab" ? "New Tab" : (url === "carbon://history" ? "History" : (url ? url : "New Tab"));
+          if (url === "carbon://newtab") {
+            tab.title = "New Tab";
+          } else if (url === "carbon://history") {
+            tab.title = "History";
+          } else if (url === "carbon://account") {
+            tab.title = "Account Profile";
+          } else if (url === "carbon://settings") {
+            tab.title = "Settings";
+          } else if (url === "carbon://games") {
+            tab.title = "Games";
+          } else if (url === "carbon://ai") {
+            tab.title = "AI Assistant";
+          } else {
+            tab.title = url ? url : "New Tab";
+          }
         }
         
         // Add to global history (but not carbon:// URLs)
