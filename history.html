@@ -51,6 +51,10 @@
     />
     <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet" />
     <script src="carbon-theme.js"></script>
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 
     <style>
       .history-item {
@@ -173,6 +177,22 @@
 
     <script type="module">
       import { makeURL, getProxied } from '/lethal.mjs';
+      
+      // Firebase configuration
+      const firebaseConfig = {
+        apiKey: "AIzaSyC4ilHYP1T-kdXbWPoHJHhD2aj0pNWmMec",
+        authDomain: "carbon-services.firebaseapp.com",
+        projectId: "carbon-services",
+        storageBucket: "carbon-services.firebasestorage.app",
+        messagingSenderId: "288385472070",
+        appId: "1:288385472070:web:c4be3ff186e248fc645c47",
+        measurementId: "G-Y2K1RQYE74"
+      };
+      
+      // Initialize Firebase
+      firebase.initializeApp(firebaseConfig);
+      const auth = firebase.auth();
+      const db = firebase.firestore();
 
       // DOM Elements
       const historyList = document.getElementById('history-list');
@@ -185,6 +205,50 @@
       let allHistory = [];
       let filteredHistory = [];
       let currentFilter = 'all';
+      let currentUser = null;
+      
+      // Firebase sync functions
+      async function loadHistoryFromFirebase() {
+        if (!currentUser) return;
+        
+        try {
+          const userDoc = await db.collection('users').doc(currentUser.uid).get();
+          if (userDoc.exists) {
+            const userData = userDoc.data();
+            if (userData.history) {
+              allHistory = userData.history.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+              localStorage.setItem('carbon-history', JSON.stringify(allHistory));
+              filterHistory();
+              renderHistory();
+            }
+          }
+        } catch (error) {
+          console.error('Error loading history from Firebase:', error);
+        }
+      }
+      
+      async function saveHistoryToFirebase() {
+        if (!currentUser) return;
+        
+        try {
+          await db.collection('users').doc(currentUser.uid).set({
+            history: allHistory,
+            lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+          }, { merge: true });
+        } catch (error) {
+          console.error('Error saving history to Firebase:', error);
+        }
+      }
+      
+      // Authentication state observer
+      auth.onAuthStateChanged((user) => {
+        currentUser = user;
+        if (user) {
+          loadHistoryFromFirebase();
+        } else {
+          loadHistory();
+        }
+      });
 
       // Load history from localStorage
       function loadHistory() {
@@ -194,10 +258,11 @@
         renderHistory();
       }
 
-      // Save history to localStorage
-      function saveHistory() {
-        localStorage.setItem('carbon-history', JSON.stringify(allHistory));
-      }
+              // Save history to localStorage and Firebase
+        async function saveHistory() {
+          localStorage.setItem('carbon-history', JSON.stringify(allHistory));
+          await saveHistoryToFirebase();
+        }
 
       // Add item to history (called from parent frame)
       function addToHistory(url, title = '') {
@@ -372,23 +437,23 @@
         }
       }
 
-      // Delete single history item
-      function deleteHistoryItem(id) {
-        allHistory = allHistory.filter(item => item.id !== id);
-        saveHistory();
-        filterHistory();
-        renderHistory();
-      }
-
-      // Clear all history
-      function clearAllHistory() {
-        if (confirm('Are you sure you want to clear all history? This action cannot be undone.')) {
-          allHistory = [];
-          saveHistory();
+              // Delete single history item
+        async function deleteHistoryItem(id) {
+          allHistory = allHistory.filter(item => item.id !== id);
+          await saveHistory();
           filterHistory();
           renderHistory();
         }
-      }
+
+        // Clear all history
+        async function clearAllHistory() {
+          if (confirm('Are you sure you want to clear all history? This action cannot be undone.')) {
+            allHistory = [];
+            await saveHistory();
+            filterHistory();
+            renderHistory();
+          }
+        }
 
       // Event listeners
       historySearch.addEventListener('input', () => {

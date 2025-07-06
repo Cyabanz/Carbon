@@ -761,16 +761,159 @@
     </div>
 
     <script src="carbon-theme.js"></script>
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
     <script>
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyC4ilHYP1T-kdXbWPoHJHhD2aj0pNWmMec",
+            authDomain: "carbon-services.firebaseapp.com",
+            projectId: "carbon-services",
+            storageBucket: "carbon-services.firebasestorage.app",
+            messagingSenderId: "288385472070",
+            appId: "1:288385472070:web:c4be3ff186e248fc645c47",
+            measurementId: "G-Y2K1RQYE74"
+        };
+        
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+        
         let panicKey = null;
         let isRecordingPanicKey = false;
         let currentTheme = 'rose-pine';
         let currentBackground = 'gradient';
+        let currentUser = null;
+        
+        // Authentication state observer
+        auth.onAuthStateChanged((user) => {
+            currentUser = user;
+            if (user) {
+                loadSettingsFromFirebase();
+            } else {
+                loadSettings();
+            }
+        });
         
         // Load settings on page load
         document.addEventListener('DOMContentLoaded', function() {
-            loadSettings();
+            // Check if user is already authenticated
+            if (auth.currentUser) {
+                loadSettingsFromFirebase();
+            } else {
+                loadSettings();
+            }
         });
+
+        // Firebase settings sync
+        async function loadSettingsFromFirebase() {
+            if (!currentUser) {
+                loadSettings();
+                return;
+            }
+            
+            try {
+                const userSettingsDoc = await db.collection('users').doc(currentUser.uid).get();
+                if (userSettingsDoc.exists) {
+                    const userData = userSettingsDoc.data();
+                    const settings = userData.settings || {};
+                    
+                    // Load settings from Firebase
+                    if (settings.panicKey) {
+                        panicKey = settings.panicKey;
+                        document.getElementById('panic-key-display').textContent = panicKey.toUpperCase();
+                    }
+                    
+                    if (settings.panicUrl) {
+                        document.getElementById('panic-url').value = settings.panicUrl;
+                    }
+                    
+                    if (settings.theme) {
+                        currentTheme = settings.theme;
+                        document.querySelectorAll('.theme-preview').forEach(el => el.classList.remove('active'));
+                        document.querySelector(`[data-theme="${settings.theme}"]`)?.classList.add('active');
+                    }
+                    
+                    if (settings.background) {
+                        currentBackground = settings.background;
+                        document.querySelectorAll('.bg-preview').forEach(el => el.classList.remove('active'));
+                        document.querySelector(`[data-bg="${settings.background}"]`)?.classList.add('active');
+                    }
+                    
+                    if (settings.customBackground) {
+                        showCustomBgPreview(settings.customBackground);
+                    }
+                    
+                    // Load tab cloaking settings
+                    document.getElementById('tab-cloaking-enabled').checked = settings.cloakingEnabled || false;
+                    document.getElementById('cloak-title').value = settings.cloakTitle || '';
+                    document.getElementById('cloak-favicon').value = settings.cloakFavicon || '';
+                    
+                    // Load other settings
+                    document.getElementById('fullscreen-enabled').checked = settings.fullscreenEnabled || false;
+                    document.getElementById('close-prevention-enabled').checked = settings.closePreventionEnabled || false;
+                    document.getElementById('confirm-close').checked = settings.confirmClose || false;
+                    document.getElementById('close-message').value = settings.closeMessage || '';
+                    document.getElementById('disable-right-click').checked = settings.disableRightClick || false;
+                    document.getElementById('disable-devtools').checked = settings.disableDevtools || false;
+                    document.getElementById('disable-select').checked = settings.disableSelect || false;
+                    document.getElementById('hide-cursor').checked = settings.hideCursor || false;
+                    document.getElementById('blur-on-unfocus').checked = settings.blurOnUnfocus || false;
+                    
+                    // Apply settings immediately
+                    applySettings();
+                    toggleCloakingOptions();
+                    updateStatusIndicators();
+                    loadCustomThemes();
+                } else {
+                    // No Firebase settings found, load from localStorage
+                    loadSettings();
+                }
+            } catch (error) {
+                console.error('Error loading settings from Firebase:', error);
+                loadSettings(); // Fallback to localStorage
+            }
+        }
+        
+        async function saveSettingsToFirebase() {
+            if (!currentUser) {
+                return;
+            }
+            
+            try {
+                const settings = {
+                    panicKey: panicKey || '',
+                    panicUrl: document.getElementById('panic-url').value,
+                    theme: currentTheme,
+                    background: currentBackground,
+                    customBackground: localStorage.getItem('carbon-custom-bg-global') || '',
+                    cloakingEnabled: document.getElementById('tab-cloaking-enabled').checked,
+                    cloakTitle: document.getElementById('cloak-title').value,
+                    cloakFavicon: document.getElementById('cloak-favicon').value,
+                    fullscreenEnabled: document.getElementById('fullscreen-enabled').checked,
+                    closePreventionEnabled: document.getElementById('close-prevention-enabled').checked,
+                    confirmClose: document.getElementById('confirm-close').checked,
+                    closeMessage: document.getElementById('close-message').value,
+                    disableRightClick: document.getElementById('disable-right-click').checked,
+                    disableDevtools: document.getElementById('disable-devtools').checked,
+                    disableSelect: document.getElementById('disable-select').checked,
+                    hideCursor: document.getElementById('hide-cursor').checked,
+                    blurOnUnfocus: document.getElementById('blur-on-unfocus').checked,
+                    lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+                };
+                
+                await db.collection('users').doc(currentUser.uid).set({
+                    settings: settings
+                }, { merge: true });
+                
+                console.log('Settings saved to Firebase successfully');
+            } catch (error) {
+                console.error('Error saving settings to Firebase:', error);
+            }
+        }
 
         // Settings management
         function loadSettings() {
@@ -870,7 +1013,7 @@
             }
         }
 
-        function saveSettings() {
+        async function saveSettings() {
             // Save panic key
             localStorage.setItem('carbon-panic-key', panicKey || '');
             localStorage.setItem('carbon-panic-url', document.getElementById('panic-url').value);
@@ -898,6 +1041,11 @@
             localStorage.setItem('carbon-disable-select', document.getElementById('disable-select').checked);
             localStorage.setItem('carbon-hide-cursor', document.getElementById('hide-cursor').checked);
             localStorage.setItem('carbon-blur-unfocus', document.getElementById('blur-on-unfocus').checked);
+            
+            // Save to Firebase if user is authenticated
+            if (currentUser) {
+                await saveSettingsToFirebase();
+            }
             
             // Apply settings immediately
             applySettings();
