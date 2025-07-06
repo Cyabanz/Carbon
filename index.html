@@ -6,6 +6,25 @@
     <title>CARBON</title>
     <script defer async>
       function setConfig() {
+        // Default rose-pine colors for initial load
+        const defaultColors = {
+          base: "#191724",
+          surface: "#1f1d2e",
+          overlay: "#26233a",
+          muted: "#6e6a86",
+          subtle: "#908caa",
+          text: "#e0def4",
+          love: "#eb6f92",
+          gold: "#f6c177",
+          rose: "#ebbcba",
+          pine: "#31748f",
+          foam: "#9ccfd8",
+          iris: "#c4a7e7",
+          "highlight-low": "#21202e",
+          "highlight-med": "#403d52",
+          "highlight-high": "#524f67",
+        };
+        
         tailwind.config = {
           theme: {
             extend: {
@@ -13,26 +32,36 @@
                 display: ["Switzer", "Helvetica", "sans-serif"],
                 inter: ["Inter", "sans-serif"],
               },
-              colors: {
-                base: "#191724",
-                surface: "#1f1d2e",
-                overlay: "#26233a",
-                muted: "#6e6a86",
-                subtle: "#908caa",
-                text: "#e0def4",
-                love: "#eb6f92",
-                gold: "#f6c177",
-                rose: "#ebbcba",
-                pine: "#31748f",
-                foam: "#9ccfd8",
-                iris: "#c4a7e7",
-                "highlight-low": "#21202e",
-                "highlight-med": "#403d52",
-                "highlight-high": "#524f67",
-              },
+              colors: defaultColors,
             },
           },
         };
+      }
+      
+      // Function to update Tailwind config with theme colors
+      function updateTailwindConfig(theme) {
+        if (window.tailwind && window.tailwind.config) {
+          const colorMap = {
+            base: theme.base,
+            surface: theme.surface,
+            overlay: theme.overlay,
+            muted: theme.muted,
+            subtle: theme.subtle,
+            text: theme.text,
+            love: theme.love,
+            gold: theme.gold,
+            rose: theme.rose,
+            pine: theme.pine,
+            foam: theme.foam,
+            iris: theme.iris,
+            "highlight-low": theme.highlightLow,
+            "highlight-med": theme.highlightMed,
+            "highlight-high": theme.highlightHigh,
+          };
+          
+          Object.assign(window.tailwind.config.theme.extend.colors, colorMap);
+          console.log('🎨 Updated Tailwind config with theme colors');
+        }
       }
     </script>
 
@@ -2920,11 +2949,28 @@
              cloakTitle = settings.cloakTitle || '';
              cloakFavicon = settings.cloakFavicon || '';
              
+             // Load theme settings
+             if (settings.theme) {
+               localStorage.setItem('carbon-theme-global', settings.theme);
+             }
+             if (settings.customThemes && window.carbonTheme) {
+               window.carbonTheme.customThemes = settings.customThemes;
+               window.carbonTheme.saveCustomThemes();
+             }
+             if (settings.background) {
+               localStorage.setItem('carbon-background-global', settings.background);
+             }
+             if (settings.customBackground) {
+               localStorage.setItem('carbon-custom-bg-global', settings.customBackground);
+             }
+             
              console.log('Settings loaded from Firebase:', {
                panicKey: panicKey,
                panicUrl: settings.panicUrl,
                cloakingEnabled: tabCloakingEnabled,
-               cloakTitle: cloakTitle
+               cloakTitle: cloakTitle,
+               theme: settings.theme,
+               background: settings.background
              });
             
             // Apply settings
@@ -2965,8 +3011,29 @@
         applyTabCloaking();
         applyTeacherPrevention();
         applyClosePrevention();
+        applyThemeSettings();
         // Trigger Firebase sync when settings are applied
         triggerSettingsSync();
+      }
+      
+      // Apply theme settings
+      function applyThemeSettings() {
+        // Apply current theme if carbon theme system is available
+        if (window.carbonTheme) {
+          const currentTheme = localStorage.getItem('carbon-theme-global') || 'rose-pine';
+          console.log('🎨 Applying theme:', currentTheme);
+          window.carbonTheme.applyTheme(currentTheme);
+          
+          // Update Tailwind config with current theme colors
+          const themeData = window.carbonTheme.getTheme(currentTheme);
+          if (themeData && typeof updateTailwindConfig === 'function') {
+            updateTailwindConfig(themeData);
+          }
+        } else {
+          console.log('⚠️ Carbon theme system not yet available, retrying...');
+          // Retry after a short delay if theme system isn't ready
+          setTimeout(applyThemeSettings, 100);
+        }
       }
       
       // Manual reload function for debugging
@@ -3015,6 +3082,28 @@
         
         applyTabCloaking();
         console.log('✅ Manual tab cloaking applied');
+      };
+      
+      // Theme testing functions
+      window.testThemeSystem = function() {
+        console.log('🧪 Testing theme system:');
+        console.log('Theme system available:', !!window.carbonTheme);
+        if (window.carbonTheme) {
+          console.log('Current theme:', window.carbonTheme.getCurrentTheme());
+          console.log('Available themes:', Object.keys(window.carbonTheme.getAllThemes()));
+          console.log('Custom themes:', Object.keys(window.carbonTheme.customThemes));
+        }
+        console.log('Saved theme in localStorage:', localStorage.getItem('carbon-theme-global'));
+      };
+      
+      window.manualThemeChange = function(themeName) {
+        console.log('🎨 Manually changing theme to:', themeName);
+        if (window.carbonTheme) {
+          window.carbonTheme.applyTheme(themeName);
+          console.log('✅ Theme applied successfully');
+        } else {
+          console.log('❌ Theme system not available');
+        }
       };
       
       // Check settings every 5 seconds to ensure they're loaded
@@ -3163,12 +3252,18 @@
       auth.onAuthStateChanged((user) => {
         currentUser = user;
         if (user) {
+          console.log('👤 User signed in, loading all settings and data...');
           loadSettingsFromFirebase();
+          // Load themes from Firebase if theme system is available
+          if (window.carbonTheme) {
+            window.carbonTheme.loadThemesFromFirebase();
+          }
           // Also restore browser data from Firebase
           setTimeout(() => {
             restoreAllDataFromFirebase();
           }, 1000);
         } else {
+          console.log('👤 User signed out, using local settings...');
           loadLocalSettings();
         }
       });
@@ -3245,11 +3340,34 @@
             localStorage.setItem('carbon-panic-key', panicKey);
           }
           
+          // Handle theme changes
+          if (settings.theme && window.carbonTheme) {
+            console.log('🎨 Applying theme from settings:', settings.theme);
+            window.carbonTheme.applyTheme(settings.theme);
+          }
+          
+          // Handle custom themes
+          if (settings.customThemes && window.carbonTheme) {
+            console.log('🎨 Loading custom themes from settings');
+            window.carbonTheme.customThemes = settings.customThemes;
+            window.carbonTheme.saveCustomThemes();
+          }
+          
+          // Handle background settings
+          if (settings.background) {
+            localStorage.setItem('carbon-background-global', settings.background);
+          }
+          if (settings.customBackground) {
+            localStorage.setItem('carbon-custom-bg-global', settings.customBackground);
+          }
+          
           console.log('✅ Final parsed settings:', {
             panicKey: panicKey,
             tabCloakingEnabled: tabCloakingEnabled,
             cloakTitle: cloakTitle,
-            cloakFavicon: cloakFavicon
+            cloakFavicon: cloakFavicon,
+            theme: settings.theme,
+            background: settings.background
           });
           
           applyAllSettings();
@@ -3358,12 +3476,63 @@
       console.log('🚀 Initializing settings on page load...');
       loadLocalSettings(); // Load localStorage first for immediate effect
       
+      // Initialize theme system
+      console.log('🎨 Initializing theme system...');
+      initializeThemeSystem();
+      
       // Also load from Firebase if user is authenticated
       if (auth.currentUser) {
         console.log('👤 User already authenticated, loading from Firebase...');
         loadSettingsFromFirebase();
       } else {
         console.log('👤 No user authenticated, using localStorage settings only');
+      }
+      
+      // Initialize theme system connection to Firebase
+      function initializeThemeSystem() {
+        // Wait for carbon theme to be available
+        const checkThemeSystem = () => {
+          if (window.carbonTheme) {
+            console.log('✅ Carbon theme system available');
+            
+            // Connect theme system to Firebase auth
+            if (typeof firebase !== 'undefined' && firebase.auth) {
+              firebase.auth().onAuthStateChanged((user) => {
+                if (user && window.carbonTheme) {
+                  // Load themes from Firebase when user signs in
+                  window.carbonTheme.loadThemesFromFirebase();
+                }
+              });
+            }
+            
+            // Apply saved theme
+            const savedTheme = localStorage.getItem('carbon-theme-global') || 'rose-pine';
+            window.carbonTheme.applyTheme(savedTheme);
+            
+                         // Listen for theme changes and sync to Firebase
+             const originalApplyTheme = window.carbonTheme.applyTheme;
+             window.carbonTheme.applyTheme = function(themeName) {
+               const result = originalApplyTheme.call(this, themeName);
+               
+               // Update Tailwind config when theme changes
+               const themeData = this.getTheme(themeName);
+               if (themeData && typeof updateTailwindConfig === 'function') {
+                 updateTailwindConfig(themeData);
+               }
+               
+               // Sync theme change to Firebase if user is authenticated
+               if (currentUser) {
+                 setTimeout(() => syncAllDataToFirebase(), 500);
+               }
+               return result;
+             };
+            
+          } else {
+            console.log('⏳ Waiting for Carbon theme system...');
+            setTimeout(checkThemeSystem, 100);
+          }
+        };
+        checkThemeSystem();
       }
 
       // Initialize sortable for horizontal tabs
