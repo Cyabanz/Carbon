@@ -193,25 +193,26 @@
       let currentFilter = 'all';
       let currentUser = null;
 
-      function sanitizeHistoryItem(rawItem) {
-        const url = (typeof rawItem.url === 'string' && rawItem.url.trim()) ? rawItem.url.trim() : '';
+      // This sanitizer is the same as your working console fix!
+      function sanitizeHistoryItem(item) {
+        const url = (typeof item.url === 'string' && item.url.trim()) ? item.url.trim() : '';
         let title = '';
-        if (typeof rawItem.title === 'string' && rawItem.title.trim()) {
-          title = rawItem.title.trim();
+        if (typeof item.title === 'string' && item.title.trim()) {
+          title = item.title.trim();
         } else {
           title = url;
         }
         let timestamp = '';
-        if (typeof rawItem.timestamp === 'string' && !isNaN(Date.parse(rawItem.timestamp))) {
-          timestamp = rawItem.timestamp;
+        if (typeof item.timestamp === 'string' && !isNaN(Date.parse(item.timestamp))) {
+          timestamp = item.timestamp;
         } else {
           timestamp = new Date().toISOString();
         }
         let visits = 1;
-        if (typeof rawItem.visits === 'number' && Number.isFinite(rawItem.visits) && rawItem.visits > 0) {
-          visits = Math.floor(rawItem.visits);
+        if (typeof item.visits === 'number' && Number.isFinite(item.visits) && item.visits > 0) {
+          visits = Math.floor(item.visits);
         }
-        let id = (typeof rawItem.id === 'number' && Number.isFinite(rawItem.id)) ? rawItem.id : (Date.now() + Math.random());
+        let id = (typeof item.id === 'number' && Number.isFinite(item.id)) ? item.id : (Date.now() + Math.random());
         return { id, url, title, timestamp, visits };
       }
 
@@ -222,7 +223,8 @@
           if (userDoc.exists) {
             const userData = userDoc.data();
             if (userData.history && Array.isArray(userData.history)) {
-              allHistory = userData.history.map(sanitizeHistoryItem).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+              allHistory = userData.history.map(sanitizeHistoryItem).filter(item => item.url);
+              allHistory.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
               localStorage.setItem('carbon-history', JSON.stringify(allHistory));
               filterHistory();
               renderHistory();
@@ -240,8 +242,9 @@
       async function saveHistoryToFirebase() {
         if (!currentUser) return;
         try {
+          // Always sanitize before saving
           await db.collection('users').doc(currentUser.uid).set({
-            history: allHistory,
+            history: allHistory.map(sanitizeHistoryItem).filter(item => item.url),
             lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
           }, { merge: true });
         } catch (error) {
@@ -274,7 +277,8 @@
         renderHistory();
       }
       async function saveHistory() {
-        localStorage.setItem('carbon-history', JSON.stringify(allHistory));
+        // Always sanitize before saving
+        localStorage.setItem('carbon-history', JSON.stringify(allHistory.map(sanitizeHistoryItem).filter(item => item.url)));
         await saveHistoryToFirebase();
       }
       async function addToHistory(url, title) {
