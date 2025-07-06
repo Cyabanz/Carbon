@@ -388,6 +388,15 @@
                   </div>
                 </div>
 
+                <!-- Fullscreen Button -->
+                <button
+                  id="fullscreen-btn"
+                  class="w-8 h-8 rounded-md bg-transparent hover:bg-highlight-med text-muted hover:text-text transition-all flex items-center justify-center"
+                  title="Enter Fullscreen"
+                >
+                  <i class="bx bx-fullscreen text-lg"></i>
+                </button>
+
                 <!-- Browser Menu -->
                 <div class="relative">
                   <button
@@ -477,43 +486,17 @@
                       <span>Restore Tabs</span>
                     </button>
 
-                    <!-- Carbon Pages -->
-                    <div class="px-3 py-1 text-xs font-medium text-muted uppercase tracking-wide border-b border-highlight-med mb-2 mt-3">
-                      Carbon Pages
-                    </div>
-                    <button
-                      id="carbon-account-btn"
-                      class="w-full flex items-center gap-3 px-3 py-2 text-text hover:bg-highlight-med transition-colors text-sm"
-                    >
-                      <i class="bx bx-user text-foam"></i>
-                      <span>Account Profile</span>
-                    </button>
-                    <button
-                      id="carbon-settings-btn"
-                      class="w-full flex items-center gap-3 px-3 py-2 text-text hover:bg-highlight-med transition-colors text-sm"
-                    >
-                      <i class="bx bx-cog text-iris"></i>
-                      <span>Settings</span>
-                    </button>
-                    <button
-                      id="carbon-games-btn"
-                      class="w-full flex items-center gap-3 px-3 py-2 text-text hover:bg-highlight-med transition-colors text-sm"
-                    >
-                      <i class="bx bx-game text-gold"></i>
-                      <span>Games</span>
-                    </button>
-                    <button
-                      id="carbon-ai-btn"
-                      class="w-full flex items-center gap-3 px-3 py-2 text-text hover:bg-highlight-med transition-colors text-sm"
-                    >
-                      <i class="bx bx-brain text-rose"></i>
-                      <span>AI Assistant</span>
-                    </button>
-
                     <!-- Settings -->
                     <div class="px-3 py-1 text-xs font-medium text-muted uppercase tracking-wide border-b border-highlight-med mb-2 mt-3">
                       Settings
                     </div>
+                    <button
+                      id="carbon-settings-btn"
+                      class="w-full flex items-center gap-3 px-3 py-2 text-text hover:bg-highlight-med transition-colors text-sm"
+                    >
+                      <i class="bx bx-cog text-foam"></i>
+                      <span>Carbon Settings</span>
+                    </button>
                     <button
                       id="wisp-btn"
                       class="w-full flex items-center gap-3 px-3 py-2 text-text hover:bg-highlight-med transition-colors text-sm"
@@ -894,27 +877,9 @@
       let groupIdCounter = 1;
       function createTab(url = "carbon://newtab") {
         const id = "tab-" + tabIdCounter++;
-        let title = "New Tab";
-        
-        if (url === "carbon://newtab") {
-          title = "New Tab";
-        } else if (url === "carbon://history") {
-          title = "History";
-        } else if (url === "carbon://account") {
-          title = "Account Profile";
-        } else if (url === "carbon://settings") {
-          title = "Settings";
-        } else if (url === "carbon://games") {
-          title = "Games";
-        } else if (url === "carbon://ai") {
-          title = "AI Assistant";
-        } else if (url) {
-          title = url;
-        }
-        
         return {
           id,
-          title,
+          title: url === "carbon://newtab" ? "New Tab" : (url ? url : "New Tab"),
           url,
           history: url ? [url] : ["carbon://newtab"],
           pointer: url ? 0 : 0,
@@ -1316,17 +1281,14 @@
               } else if (url === "carbon://history") {
                 iframe.src = "/history.html";
                 iframe.dataset.loadedUrl = url;
-              } else if (url === "carbon://account") {
-                iframe.src = "/profile.html";
-                iframe.dataset.loadedUrl = url;
               } else if (url === "carbon://settings") {
                 iframe.src = "/settings.html";
                 iframe.dataset.loadedUrl = url;
-              } else if (url === "carbon://games") {
-                iframe.src = "/games.html";
-                iframe.dataset.loadedUrl = url;
               } else if (url === "carbon://ai") {
                 iframe.src = "/ai.html";
+                iframe.dataset.loadedUrl = url;
+              } else if (url === "carbon://games") {
+                iframe.src = "/games.html";
                 iframe.dataset.loadedUrl = url;
               }
               return;
@@ -1564,57 +1526,6 @@
         localStorage.setItem("tabs-data", JSON.stringify(tabs));
       }
       
-      // Firebase sync for browser data AND all settings
-      async function syncAllDataToFirebase() {
-        if (!currentUser) return;
-        
-        try {
-          const browserData = {
-            tabs: tabs.map(tab => ({
-              id: tab.id,
-              url: tab.history[tab.pointer] || 'carbon://newtab',
-              title: tab.title || 'New Tab',
-              timestamp: Date.now()
-            })),
-            history: JSON.parse(localStorage.getItem('carbon-history') || '[]'),
-            bookmarks: JSON.parse(localStorage.getItem('carbon-bookmarks') || '[]'),
-            lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
-          };
-          
-          // Sync all current settings as well
-          const settings = {
-            panicKey: panicKey || '',
-            panicUrl: localStorage.getItem('carbon-panic-url') || '',
-            theme: localStorage.getItem('carbon-theme-global') || 'rose-pine',
-            background: localStorage.getItem('carbon-background-global') || 'gradient',
-            customBackground: localStorage.getItem('carbon-custom-bg-global') || '',
-            cloakingEnabled: tabCloakingEnabled,
-            cloakTitle: cloakTitle,
-            cloakFavicon: cloakFavicon,
-            fullscreenEnabled: localStorage.getItem('carbon-fullscreen-enabled') === 'true',
-            closePreventionEnabled: localStorage.getItem('carbon-close-prevention') === 'true',
-            confirmClose: localStorage.getItem('carbon-confirm-close') === 'true',
-            closeMessage: localStorage.getItem('carbon-close-message') || '',
-            disableRightClick: localStorage.getItem('carbon-disable-right-click') === 'true',
-            disableDevtools: localStorage.getItem('carbon-disable-devtools') === 'true',
-            disableSelect: localStorage.getItem('carbon-disable-select') === 'true',
-            hideCursor: localStorage.getItem('carbon-hide-cursor') === 'true',
-            blurOnUnfocus: localStorage.getItem('carbon-blur-unfocus') === 'true',
-            lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
-          };
-          
-          await db.collection('users').doc(currentUser.uid).set({
-            browserData: browserData,
-            settings: settings,
-            lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
-          }, { merge: true });
-          
-          console.log('All data synced to Firebase successfully');
-        } catch (error) {
-          console.error('Error syncing data to Firebase:', error);
-        }
-      }
-      
       function loadTabsData() {
         const saved = localStorage.getItem("tabs-data");
         if (saved) {
@@ -1764,21 +1675,7 @@
         tab.url = url;
         // Only update title if no custom title is set
         if (!tab.customTitle) {
-          if (url === "carbon://newtab") {
-            tab.title = "New Tab";
-          } else if (url === "carbon://history") {
-            tab.title = "History";
-          } else if (url === "carbon://account") {
-            tab.title = "Account Profile";
-          } else if (url === "carbon://settings") {
-            tab.title = "Settings";
-          } else if (url === "carbon://games") {
-            tab.title = "Games";
-          } else if (url === "carbon://ai") {
-            tab.title = "AI Assistant";
-          } else {
-            tab.title = url ? url : "New Tab";
-          }
+          tab.title = url === "carbon://newtab" ? "New Tab" : (url === "carbon://history" ? "History" : (url ? url : "New Tab"));
         }
         
         // Add to global history (but not carbon:// URLs)
@@ -2159,7 +2056,6 @@
         const tab = getActiveTab();
         if (tab) {
           updateTabHistory(tab, "carbon://history");
-          updateAddressBar(tab);
           renderTabs();
           renderTabContent(tab);
         }
@@ -2169,51 +2065,6 @@
       document.getElementById("unpin-all-tabs-btn").onclick = function () {
         tabs.forEach(tab => tab.pinned = false);
         renderTabs();
-        dropdown.classList.add("hidden");
-      };
-
-      // Carbon Pages navigation
-      document.getElementById("carbon-account-btn").onclick = function () {
-        const tab = getActiveTab();
-        if (tab) {
-          updateTabHistory(tab, "carbon://account");
-          updateAddressBar(tab);
-          renderTabs();
-          renderTabContent(tab);
-        }
-        dropdown.classList.add("hidden");
-      };
-
-      document.getElementById("carbon-settings-btn").onclick = function () {
-        const tab = getActiveTab();
-        if (tab) {
-          updateTabHistory(tab, "carbon://settings");
-          updateAddressBar(tab);
-          renderTabs();
-          renderTabContent(tab);
-        }
-        dropdown.classList.add("hidden");
-      };
-
-      document.getElementById("carbon-games-btn").onclick = function () {
-        const tab = getActiveTab();
-        if (tab) {
-          updateTabHistory(tab, "carbon://games");
-          updateAddressBar(tab);
-          renderTabs();
-          renderTabContent(tab);
-        }
-        dropdown.classList.add("hidden");
-      };
-
-      document.getElementById("carbon-ai-btn").onclick = function () {
-        const tab = getActiveTab();
-        if (tab) {
-          updateTabHistory(tab, "carbon://ai");
-          updateAddressBar(tab);
-          renderTabs();
-          renderTabContent(tab);
-        }
         dropdown.classList.add("hidden");
       };
       
@@ -2484,53 +2335,219 @@
             type: 'carbon-vertical-tabs-state',
             enabled: verticalTabsMode
           }, '*');
+        } else if (event.data && event.data.type === 'carbon-settings-updated') {
+          // Handle settings updates from settings page
+          const settings = event.data.settings;
+          applyGlobalSettings(settings);
         }
       });
 
-      // -- Keyboard Shortcuts --
-      document.addEventListener("keydown", (e) => {
-        // PANIC KEY - Check this FIRST before any other shortcuts
-        if (panicKey && panicKey.trim() !== '') {
-          console.log('🔑 Key pressed:', e.key.toLowerCase(), 'Panic key set to:', panicKey);
-          if (e.key.toLowerCase() === panicKey.toLowerCase()) {
-            const panicUrl = localStorage.getItem('carbon-panic-url') || 'https://classroom.google.com';
-            console.log('🚨🚨🚨 PANIC KEY TRIGGERED! 🚨🚨🚨');
-            console.log('Redirecting to:', panicUrl);
-            e.preventDefault();
-            e.stopPropagation();
-            e.stopImmediatePropagation();
-            
-            // Alert to confirm it's working (remove in production)
-            alert('PANIC KEY ACTIVATED! Redirecting to: ' + panicUrl);
-            
-            // Immediately redirect the entire window
-            try {
-              window.top.location.href = panicUrl;
-            } catch (error) {
-              console.log('Top location failed, using window.location');
+      // -- Carbon Settings Functions --
+      function applyGlobalSettings(settings) {
+        if (settings.panicKey) {
+          localStorage.setItem('carbon-panic-key', settings.panicKey);
+        }
+        if (settings.panicUrl) {
+          localStorage.setItem('carbon-panic-url', settings.panicUrl);
+        }
+        if (settings.background) {
+          localStorage.setItem('carbon-background', settings.background);
+          applyBackgroundTheme(settings.background);
+        }
+        if (settings.cloaking) {
+          localStorage.setItem('carbon-cloak-enabled', settings.cloaking.enabled);
+          localStorage.setItem('carbon-cloak-title', settings.cloaking.title);
+          localStorage.setItem('carbon-cloak-favicon', settings.cloaking.favicon);
+          applyTabCloaking(settings.cloaking);
+        }
+      }
+
+      function applyBackgroundTheme(background) {
+        const body = document.body;
+        const customBg = localStorage.getItem('carbon-custom-bg');
+        
+        if (customBg) {
+          body.style.background = `url(${customBg}) center/cover fixed`;
+          body.style.backgroundAttachment = 'fixed';
+        } else {
+          switch (background) {
+            case 'black':
+              body.style.background = '#000000';
+              body.className = body.className.replace(/bg-gradient-to-br.*?overlay/, 'bg-black');
+              break;
+            case 'white':
+              body.style.background = '#ffffff';
+              body.className = body.className.replace(/bg-gradient-to-br.*?overlay/, 'bg-white');
+              break;
+            case 'mocha':
+              body.style.background = 'linear-gradient(135deg, #1e1e2e 0%, #313244 50%, #45475a 100%)';
+              break;
+            default:
+              body.style.background = '';
+              body.className = body.className.includes('bg-gradient-to-br') ? 
+                body.className : body.className + ' bg-gradient-to-br from-base via-surface to-overlay';
+              break;
+          }
+        }
+      }
+
+      function applyTabCloaking(cloaking) {
+        if (cloaking.enabled && cloaking.title) {
+          document.title = cloaking.title;
+          
+          if (cloaking.favicon) {
+            const existingFavicon = document.querySelector("link[rel*='icon']");
+            if (existingFavicon) {
+              existingFavicon.href = cloaking.favicon;
+            } else {
+              const link = document.createElement('link');
+              link.type = 'image/x-icon';
+              link.rel = 'shortcut icon';
+              link.href = cloaking.favicon;
+              document.head.appendChild(link);
+            }
+          }
+        }
+      }
+
+      function setupTeacherPrevention() {
+        // Disable right-click if enabled
+        if (localStorage.getItem('carbon-disable-right-click') === 'true') {
+          document.addEventListener('contextmenu', e => e.preventDefault());
+        }
+        
+        // Disable text selection if enabled
+        if (localStorage.getItem('carbon-disable-select') === 'true') {
+          document.body.style.userSelect = 'none';
+          document.body.style.webkitUserSelect = 'none';
+          document.body.style.mozUserSelect = 'none';
+        }
+        
+        // Hide cursor when idle if enabled
+        if (localStorage.getItem('carbon-hide-cursor') === 'true') {
+          let cursorTimer;
+          const hideCursor = () => {
+            document.body.style.cursor = 'none';
+          };
+          const showCursor = () => {
+            document.body.style.cursor = 'default';
+            clearTimeout(cursorTimer);
+            cursorTimer = setTimeout(hideCursor, 3000);
+          };
+          document.addEventListener('mousemove', showCursor);
+          document.addEventListener('mousedown', showCursor);
+        }
+        
+        // Blur on unfocus if enabled
+        if (localStorage.getItem('carbon-blur-unfocus') === 'true') {
+          window.addEventListener('blur', () => {
+            document.body.style.filter = 'blur(10px)';
+          });
+          window.addEventListener('focus', () => {
+            document.body.style.filter = 'none';
+          });
+        }
+      }
+
+      function setupClosePrevention() {
+        if (localStorage.getItem('carbon-close-prevention') === 'true') {
+          const confirmClose = localStorage.getItem('carbon-confirm-close') === 'true';
+          const closeMessage = localStorage.getItem('carbon-close-message') || 'Are you sure you want to close Carbon?';
+          
+          if (confirmClose) {
+            window.addEventListener('beforeunload', (e) => {
+              e.preventDefault();
+              e.returnValue = closeMessage;
+              return closeMessage;
+            });
+          }
+        }
+      }
+
+      function setupPanicKey() {
+        const panicKey = localStorage.getItem('carbon-panic-key');
+        if (panicKey) {
+          document.addEventListener('keydown', (e) => {
+            if (e.key.toLowerCase() === panicKey.toLowerCase()) {
+              const panicUrl = localStorage.getItem('carbon-panic-url') || 'https://classroom.google.com';
               window.location.href = panicUrl;
             }
-            return false;
-          }
+          });
+        }
+      }
+
+      function setupFullscreenToggle() {
+        const fullscreenBtn = document.getElementById('fullscreen-btn');
+        const isFullscreenEnabled = localStorage.getItem('carbon-fullscreen-enabled') === 'true';
+        
+        if (isFullscreenEnabled) {
+          fullscreenBtn.style.display = 'flex';
         } else {
-          // Only log occasionally to avoid spam
-          if (Math.random() < 0.01) {
-            console.log('⚠️ Panic key not set or empty. Current value:', panicKey);
-          }
+          fullscreenBtn.style.display = 'none';
         }
         
-        // Dev tools prevention
-        if (localStorage.getItem('carbon-disable-devtools') === 'true') {
-          if (e.key === 'F12' || 
-              (e.ctrlKey && e.shiftKey && e.key === 'I') || 
-              (e.ctrlKey && e.shiftKey && e.key === 'J') || 
-              (e.ctrlKey && e.key === 'U')) {
-            e.preventDefault();
-            return false;
+        fullscreenBtn.addEventListener('click', () => {
+          if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen().catch(err => {
+              console.log('Error attempting to enable fullscreen:', err);
+            });
+          } else {
+            document.exitFullscreen();
           }
+        });
+        
+        // Update button icon based on fullscreen state
+        document.addEventListener('fullscreenchange', () => {
+          const icon = fullscreenBtn.querySelector('i');
+          if (document.fullscreenElement) {
+            icon.className = 'bx bx-exit-fullscreen text-lg';
+            fullscreenBtn.title = 'Exit Fullscreen';
+          } else {
+            icon.className = 'bx bx-fullscreen text-lg';
+            fullscreenBtn.title = 'Enter Fullscreen';
+          }
+        });
+      }
+
+      // Add event listener for settings button
+      document.getElementById('carbon-settings-btn').addEventListener('click', function() {
+        const tab = getActiveTab();
+        if (tab) {
+          updateTabHistory(tab, 'carbon://settings');
+          renderTabs();
+          renderTabContent(tab);
+        }
+        dropdown.classList.add('hidden');
+      });
+
+      // Initialize Carbon features
+      function initializeCarbonFeatures() {
+        // Apply saved background theme
+        const savedBackground = localStorage.getItem('carbon-background');
+        if (savedBackground) {
+          applyBackgroundTheme(savedBackground);
         }
         
-        // Regular keyboard shortcuts
+        // Apply saved tab cloaking
+        const cloakingEnabled = localStorage.getItem('carbon-cloak-enabled') === 'true';
+        if (cloakingEnabled) {
+          const cloaking = {
+            enabled: true,
+            title: localStorage.getItem('carbon-cloak-title') || '',
+            favicon: localStorage.getItem('carbon-cloak-favicon') || ''
+          };
+          applyTabCloaking(cloaking);
+        }
+        
+        // Setup other features
+        setupTeacherPrevention();
+        setupClosePrevention();
+        setupPanicKey();
+        setupFullscreenToggle();
+      }
+
+      // -- Keyboard Shortcuts --
+      document.addEventListener("keydown", (e) => {
         if (
           (e.ctrlKey || e.metaKey) &&
           !e.shiftKey &&
@@ -2591,435 +2608,19 @@
           e.preventDefault();
           if (activeTab) openTabContextMenu(activeTab);
         }
-      });
-
-      // Firebase configuration and settings sync
-      const firebaseConfig = {
-        apiKey: "AIzaSyC4ilHYP1T-kdXbWPoHJHhD2aj0pNWmMec",
-        authDomain: "carbon-services.firebaseapp.com",
-        projectId: "carbon-services",
-        storageBucket: "carbon-services.firebasestorage.app",
-        messagingSenderId: "288385472070",
-        appId: "1:288385472070:web:c4be3ff186e248fc645c47",
-        measurementId: "G-Y2K1RQYE74"
-      };
-      
-      // Initialize Firebase
-      firebase.initializeApp(firebaseConfig);
-      const auth = firebase.auth();
-      const db = firebase.firestore();
-      
-      let currentUser = null;
-      let panicKey = null;
-      let tabCloakingEnabled = false;
-      let cloakTitle = '';
-      let cloakFavicon = '';
-      
-      // Settings sync from Firebase
-      async function loadSettingsFromFirebase() {
-        if (!currentUser) return;
         
-        try {
-          const userSettingsDoc = await db.collection('users').doc(currentUser.uid).get();
-          if (userSettingsDoc.exists) {
-            const userData = userSettingsDoc.data();
-            const settings = userData.settings || {};
-            
-                         // Load panic key and URL
-             panicKey = settings.panicKey || null;
-             if (settings.panicUrl) {
-               localStorage.setItem('carbon-panic-url', settings.panicUrl);
-             }
-             
-             // Load tab cloaking settings
-             tabCloakingEnabled = settings.cloakingEnabled || false;
-             cloakTitle = settings.cloakTitle || '';
-             cloakFavicon = settings.cloakFavicon || '';
-             
-             console.log('Settings loaded from Firebase:', {
-               panicKey: panicKey,
-               panicUrl: settings.panicUrl,
-               cloakingEnabled: tabCloakingEnabled,
-               cloakTitle: cloakTitle
-             });
-            
-            // Apply settings
-            applyAllSettings();
-          }
-        } catch (error) {
-          console.error('Error loading settings from Firebase:', error);
-        }
-      }
-      
-      // Load settings from localStorage (fallback)
-      function loadLocalSettings() {
-        // Debug: Log all localStorage values
-        console.log('🔍 Debugging localStorage values:');
-        console.log('carbon-panic-key:', localStorage.getItem('carbon-panic-key'));
-        console.log('carbon-cloak-enabled:', localStorage.getItem('carbon-cloak-enabled'));
-        console.log('carbon-cloak-title:', localStorage.getItem('carbon-cloak-title'));
-        console.log('carbon-cloak-favicon:', localStorage.getItem('carbon-cloak-favicon'));
-        
-        panicKey = localStorage.getItem('carbon-panic-key') || null;
-        tabCloakingEnabled = localStorage.getItem('carbon-cloak-enabled') === 'true';
-        cloakTitle = localStorage.getItem('carbon-cloak-title') || '';
-        cloakFavicon = localStorage.getItem('carbon-cloak-favicon') || '';
-        
-        console.log('📚 Settings loaded from localStorage:', {
-          panicKey: panicKey,
-          cloakingEnabled: tabCloakingEnabled,
-          cloakTitle: cloakTitle,
-          cloakFavicon: cloakFavicon
-        });
-        
-        applyAllSettings();
-      }
-      
-      // Apply all settings
-      function applyAllSettings() {
-        console.log('🔧 Applying all settings...');
-        applyTabCloaking();
-        applyTeacherPrevention();
-        applyClosePrevention();
-        // Trigger Firebase sync when settings are applied
-        triggerSettingsSync();
-      }
-      
-      // Manual reload function for debugging
-      window.reloadSettings = function() {
-        console.log('🔄 Manually reloading settings...');
-        loadLocalSettings();
-        if (currentUser) {
-          loadSettingsFromFirebase();
-        }
-      };
-      
-      // Debug functions for testing
-      window.testPanicKey = function() {
-        console.log('🧪 Testing panic key. Current panic key:', panicKey);
-        console.log('💾 localStorage panic key:', localStorage.getItem('carbon-panic-key'));
-        if (panicKey) {
-          console.log('✅ Panic key is set. Try pressing:', panicKey);
-        } else {
-          console.log('❌ No panic key set. Set one in settings first.');
-        }
-      };
-      
-      window.testTabCloaking = function() {
-        console.log('🧪 Testing tab cloaking:');
-        console.log('Enabled:', tabCloakingEnabled);
-        console.log('Title:', cloakTitle);
-        console.log('Favicon:', cloakFavicon);
-        console.log('Current document title:', document.title);
-        if (tabCloakingEnabled && cloakTitle) {
-          console.log('✅ Tab cloaking should be active');
-        } else {
-          console.log('❌ Tab cloaking not active. Enable in settings first.');
-        }
-      };
-      
-      // Manual trigger for testing
-      window.manualTabCloak = function(title, favicon) {
-        console.log('🎭 Manually triggering tab cloaking...');
-        tabCloakingEnabled = true;
-        cloakTitle = title || 'Google Classroom';
-        cloakFavicon = favicon || 'https://ssl.gstatic.com/classroom/favicon.png';
-        
-        localStorage.setItem('carbon-cloak-enabled', 'true');
-        localStorage.setItem('carbon-cloak-title', cloakTitle);
-        localStorage.setItem('carbon-cloak-favicon', cloakFavicon);
-        
-        applyTabCloaking();
-        console.log('✅ Manual tab cloaking applied');
-      };
-      
-      // Check settings every 5 seconds to ensure they're loaded
-      setInterval(() => {
-        if (!panicKey && !tabCloakingEnabled) {
-          const storedPanicKey = localStorage.getItem('carbon-panic-key');
-          const storedCloaking = localStorage.getItem('carbon-cloak-enabled');
-          if (storedPanicKey || storedCloaking === 'true') {
-            console.log('🔄 Settings found in localStorage but not loaded. Reloading...');
-            loadLocalSettings();
-          }
-        }
-      }, 5000);
-      
-      // Tab cloaking functionality
-      function applyTabCloaking() {
-        console.log('🎭 Applying tab cloaking with values:', {
-          enabled: tabCloakingEnabled,
-          enabledType: typeof tabCloakingEnabled,
-          title: cloakTitle,
-          titleType: typeof cloakTitle,
-          titleLength: cloakTitle ? cloakTitle.length : 0,
-          favicon: cloakFavicon,
-          faviconType: typeof cloakFavicon
-        });
-        
-        // More robust checking
-        const isEnabled = (tabCloakingEnabled === true || tabCloakingEnabled === 'true');
-        const hasTitle = cloakTitle && cloakTitle.trim() !== '';
-        
-        console.log('🔍 Cloaking checks:', {
-          isEnabled: isEnabled,
-          hasTitle: hasTitle,
-          willApplyCloak: isEnabled && hasTitle
-        });
-        
-        if (isEnabled && hasTitle) {
-          // Change the document title immediately
-          const newTitle = cloakTitle.trim();
-          document.title = newTitle;
-          console.log('✅ Document title changed from CARBON to:', document.title);
-          
-          if (cloakFavicon && cloakFavicon.trim() !== '') {
-            // Remove existing favicon links
-            const existingLinks = document.querySelectorAll("link[rel*='icon']");
-            console.log('🗑️ Removing', existingLinks.length, 'existing favicon links');
-            existingLinks.forEach(link => {
-              console.log('🗑️ Removing favicon:', link.href);
-              link.remove();
-            });
-            
-            // Add new favicon with multiple formats for better compatibility
-            const timestamp = new Date().getTime();
-            const faviconUrl = cloakFavicon.trim();
-            
-            // Primary favicon
-            const link = document.createElement('link');
-            link.type = 'image/x-icon';
-            link.rel = 'shortcut icon';
-            link.href = faviconUrl + '?v=' + timestamp;
-            document.head.appendChild(link);
-            
-            // Standard icon
-            const iconLink = document.createElement('link');
-            iconLink.rel = 'icon';
-            iconLink.type = 'image/x-icon';
-            iconLink.href = faviconUrl + '?v=' + timestamp;
-            document.head.appendChild(iconLink);
-            
-            // Apple touch icon for mobile
-            const appleLink = document.createElement('link');
-            appleLink.rel = 'apple-touch-icon';
-            appleLink.href = faviconUrl + '?v=' + timestamp;
-            document.head.appendChild(appleLink);
-            
-            console.log('✅ Added new favicon links for:', faviconUrl);
-          } else {
-            console.log('⚠️ No favicon URL provided or empty');
-          }
-        } else {
-          console.log('❌ Tab cloaking not applied - Enabled:', isEnabled, 'Has title:', hasTitle);
-          document.title = 'CARBON';
-          // Reset to default favicon if not cloaking
-          const existingLinks = document.querySelectorAll("link[rel*='icon']");
-          existingLinks.forEach(link => link.remove());
-        }
-      }
-      
-      // Teacher prevention (same as settings.html)
-      function applyTeacherPrevention() {
-        // Disable right-click
-        if (localStorage.getItem('carbon-disable-right-click') === 'true') {
-          document.addEventListener('contextmenu', e => e.preventDefault());
-        }
-        
-        // Disable text selection
-        if (localStorage.getItem('carbon-disable-select') === 'true') {
-          document.body.style.userSelect = 'none';
-          document.body.style.webkitUserSelect = 'none';
-          document.body.style.mozUserSelect = 'none';
-        }
-        
-        // Hide cursor when idle
-        if (localStorage.getItem('carbon-hide-cursor') === 'true') {
-          let cursorTimer;
-          document.addEventListener('mousemove', () => {
-            document.body.style.cursor = 'default';
-            clearTimeout(cursorTimer);
-            cursorTimer = setTimeout(() => {
-              document.body.style.cursor = 'none';
-            }, 3000);
-          });
-        }
-        
-        // Blur on unfocus
-        if (localStorage.getItem('carbon-blur-unfocus') === 'true') {
-          window.addEventListener('blur', () => {
-            document.body.style.filter = 'blur(10px)';
-          });
-          window.addEventListener('focus', () => {
-            document.body.style.filter = 'none';
-          });
-        }
-      }
-      
-      // Close prevention
-      function applyClosePrevention() {
-        const enabled = localStorage.getItem('carbon-close-prevention') === 'true';
-        const confirm = localStorage.getItem('carbon-confirm-close') === 'true';
-        const message = localStorage.getItem('carbon-close-message') || 'Are you sure you want to close Carbon?';
-        
-        if (enabled) {
-          window.addEventListener('beforeunload', (e) => {
-            if (confirm) {
-              e.preventDefault();
-              e.returnValue = message;
-              return message;
-            }
-          });
-        }
-      }
-      
-
-      
-      // Authentication state observer
-      auth.onAuthStateChanged((user) => {
-        currentUser = user;
-        if (user) {
-          loadSettingsFromFirebase();
-        } else {
-          loadLocalSettings();
-        }
-      });
-      
-      // Listen for settings changes from settings page
-      window.addEventListener('message', (event) => {
-        if (event.data && event.data.type === 'carbon-settings-updated') {
-          console.log('📨 Received settings update - Full data:', JSON.stringify(event.data, null, 2));
-          console.log('📨 Settings object:', JSON.stringify(event.data.settings, null, 2));
-          
-          const settings = event.data.settings;
-          
-          // Parse panic key
-          panicKey = settings.panicKey || null;
-          console.log('🔑 Parsed panic key:', panicKey);
-          
-          if (settings.panicUrl) {
-            localStorage.setItem('carbon-panic-url', settings.panicUrl);
-            console.log('🔗 Set panic URL:', settings.panicUrl);
-          }
-          
-          // Parse tab cloaking - try multiple possible structures
-          if (settings.cloaking) {
-            // Handle both boolean and string values
-            tabCloakingEnabled = (settings.cloaking.enabled === true || settings.cloaking.enabled === 'true');
-            cloakTitle = (settings.cloaking.title || '').toString();
-            cloakFavicon = (settings.cloaking.favicon || '').toString();
-            
-            // Also update localStorage to keep in sync
-            localStorage.setItem('carbon-cloak-enabled', tabCloakingEnabled.toString());
-            localStorage.setItem('carbon-cloak-title', cloakTitle);
-            localStorage.setItem('carbon-cloak-favicon', cloakFavicon);
-            
-            console.log('🎭 Parsed cloaking from settings.cloaking:', {
-              enabled: tabCloakingEnabled,
-              title: cloakTitle,
-              favicon: cloakFavicon
-            });
-          } else if (settings.tabCloaking) {
-            tabCloakingEnabled = settings.tabCloaking.enabled || false;
-            cloakTitle = settings.tabCloaking.title || '';
-            cloakFavicon = settings.tabCloaking.favicon || '';
-            
-            // Also update localStorage to keep in sync
-            localStorage.setItem('carbon-cloak-enabled', tabCloakingEnabled);
-            localStorage.setItem('carbon-cloak-title', cloakTitle);
-            localStorage.setItem('carbon-cloak-favicon', cloakFavicon);
-            
-            console.log('🎭 Parsed cloaking from settings.tabCloaking:', {
-              enabled: tabCloakingEnabled,
-              title: cloakTitle,
-              favicon: cloakFavicon
-            });
-          } else {
-            // Try direct properties
-            tabCloakingEnabled = settings.cloakingEnabled || settings.enabled || false;
-            cloakTitle = settings.cloakTitle || settings.title || '';
-            cloakFavicon = settings.cloakFavicon || settings.favicon || '';
-            
-            // Also update localStorage to keep in sync
-            localStorage.setItem('carbon-cloak-enabled', tabCloakingEnabled);
-            localStorage.setItem('carbon-cloak-title', cloakTitle);
-            localStorage.setItem('carbon-cloak-favicon', cloakFavicon);
-            
-            console.log('🎭 Parsed cloaking from direct properties:', {
-              enabled: tabCloakingEnabled,
-              title: cloakTitle,
-              favicon: cloakFavicon
-            });
-          }
-          
-          // Also update panic key in localStorage
-          if (panicKey) {
-            localStorage.setItem('carbon-panic-key', panicKey);
-          }
-          
-          console.log('✅ Final parsed settings:', {
-            panicKey: panicKey,
-            tabCloakingEnabled: tabCloakingEnabled,
-            cloakTitle: cloakTitle,
-            cloakFavicon: cloakFavicon
-          });
-          
-          applyAllSettings();
-        } else if (event.data && event.data.type === 'carbon-settings-refresh') {
-          console.log('Refreshing settings from Firebase/localStorage');
-          // Reload settings when settings page saves
-          if (currentUser) {
-            loadSettingsFromFirebase();
-          } else {
-            loadLocalSettings();
+        // Disable dev tools shortcuts if enabled
+        if (localStorage.getItem('carbon-disable-devtools') === 'true') {
+          if (e.key === 'F12' || 
+              (e.ctrlKey && e.shiftKey && e.key === 'I') || 
+              (e.ctrlKey && e.shiftKey && e.key === 'J') || 
+              (e.ctrlKey && e.shiftKey && e.key === 'C') ||
+              (e.ctrlKey && e.key === 'U')) {
+            e.preventDefault();
+            return false;
           }
         }
       });
-      
-
-      
-      // Auto-sync all data every 30 seconds if user is authenticated
-      setInterval(() => {
-        if (currentUser) {
-          syncAllDataToFirebase();
-        }
-      }, 30000);
-      
-      // Hook into tab operations and settings changes to sync data
-      const originalAddTab = addTab;
-      const originalRemoveTab = removeTab;
-      const originalUpdateTabHistory = updateTabHistory;
-      
-      addTab = function(...args) {
-        const result = originalAddTab.apply(this, args);
-        if (currentUser) {
-          setTimeout(() => syncAllDataToFirebase(), 1000);
-        }
-        return result;
-      };
-      
-      removeTab = function(...args) {
-        const result = originalRemoveTab.apply(this, args);
-        if (currentUser) {
-          setTimeout(() => syncAllDataToFirebase(), 1000);
-        }
-        return result;
-      };
-      
-      updateTabHistory = function(...args) {
-        const result = originalUpdateTabHistory.apply(this, args);
-        if (currentUser) {
-          setTimeout(() => syncAllDataToFirebase(), 2000);
-        }
-        return result;
-      };
-      
-      // Sync when settings change
-      function triggerSettingsSync() {
-        if (currentUser) {
-          setTimeout(() => syncAllDataToFirebase(), 500);
-        }
-      }
 
       // -- INIT --
       // Load saved data
@@ -3066,17 +2667,8 @@
       if (tabs.length === 0) addTab("carbon://newtab");
       else loadTabsData();
       
-      // Initialize settings immediately - try both methods to ensure we get settings
-      console.log('🚀 Initializing settings on page load...');
-      loadLocalSettings(); // Load localStorage first for immediate effect
-      
-      // Also load from Firebase if user is authenticated
-      if (auth.currentUser) {
-        console.log('👤 User already authenticated, loading from Firebase...');
-        loadSettingsFromFirebase();
-      } else {
-        console.log('👤 No user authenticated, using localStorage settings only');
-      }
+      // Initialize Carbon features
+      initializeCarbonFeatures();
 
       // Initialize sortable for horizontal tabs
       const tabsContainer = document.getElementById("tabs-bar");
@@ -3125,6 +2717,477 @@
           renderTabs();
         },
       });
-    </script>
-  </body>
-</html>
+           
+       // Firebase configuration and initialization
+       const firebaseConfig = {
+         apiKey: "AIzaSyC4ilHYP1T-kdXbWPoHJHhD2aj0pNWmMec",
+         authDomain: "carbon-services.firebaseapp.com",
+         projectId: "carbon-services",
+         storageBucket: "carbon-services.appspot.com",
+         messagingSenderId: "123456789",
+         appId: "1:123456789:web:abcdef123456789"
+       };
+       
+       // Initialize Firebase
+       firebase.initializeApp(firebaseConfig);
+       const auth = firebase.auth();
+       const db = firebase.firestore();
+       
+       let currentUser = null;
+       
+       // Firebase Auth state listener
+       auth.onAuthStateChanged(async (user) => {
+         if (user) {
+           currentUser = user;
+           console.log('Firebase user logged in:', user.uid);
+           
+           // Load data from Firebase when user logs in
+           await loadAllDataFromFirebase();
+           
+           // Set up real-time listeners for tab sync
+           setupTabSyncListeners();
+         } else {
+           currentUser = null;
+           console.log('Firebase user logged out');
+         }
+       });
+       
+       // Enhanced Firebase sync functions
+       async function syncAllTabsToFirebase() {
+         if (!currentUser) return;
+         
+         try {
+           const tabsData = {
+             tabs: tabs.map(tab => ({
+               id: tab.id,
+               title: tab.title,
+               url: tab.url,
+               history: tab.history,
+               pointer: tab.pointer,
+               pinned: tab.pinned,
+               locked: tab.locked,
+               color: tab.color,
+               customTitle: tab.customTitle,
+               groupId: tab.groupId,
+               notes: tab.notes,
+               timestamp: Date.now()
+             })),
+             activeTab: activeTab,
+             verticalTabsMode: verticalTabsMode,
+             tabBarHidden: tabBarHidden,
+             lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+           };
+           
+           await db.collection('user-tabs').doc(currentUser.uid).set(tabsData, { merge: true });
+           console.log('Tabs synced to Firebase successfully');
+         } catch (error) {
+           console.error('Error syncing tabs to Firebase:', error);
+         }
+       }
+       
+       async function syncTabGroupsToFirebase() {
+         if (!currentUser) return;
+         
+         try {
+           const groupsData = {
+             groups: tabGroups.map(group => ({
+               id: group.id,
+               name: group.name,
+               color: group.color,
+               timestamp: Date.now()
+             })),
+             groupIdCounter: groupIdCounter,
+             lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+           };
+           
+           await db.collection('user-tab-groups').doc(currentUser.uid).set(groupsData, { merge: true });
+           console.log('Tab groups synced to Firebase successfully');
+         } catch (error) {
+           console.error('Error syncing tab groups to Firebase:', error);
+         }
+       }
+       
+       async function syncTabHistoryToFirebase() {
+         if (!currentUser) return;
+         
+         try {
+           const historyData = {
+             globalHistory: JSON.parse(localStorage.getItem('carbon-history') || '[]'),
+             tabHistory: tabs.map(tab => ({
+               tabId: tab.id,
+               history: tab.history,
+               pointer: tab.pointer,
+               timestamp: Date.now()
+             })),
+             lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+           };
+           
+           await db.collection('user-tab-history').doc(currentUser.uid).set(historyData, { merge: true });
+           console.log('Tab history synced to Firebase successfully');
+         } catch (error) {
+           console.error('Error syncing tab history to Firebase:', error);
+         }
+       }
+       
+       async function syncTabRestoreDataToFirebase() {
+         if (!currentUser) return;
+         
+         try {
+           const restoreData = {
+             lastTabs: JSON.parse(localStorage.getItem('last-tabs') || '[]'),
+             closedTabsSnapshot: closedTabsSnapshot,
+             timestamp: Date.now(),
+             lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+           };
+           
+           await db.collection('user-tab-restore').doc(currentUser.uid).set(restoreData, { merge: true });
+           console.log('Tab restore data synced to Firebase successfully');
+         } catch (error) {
+           console.error('Error syncing tab restore data to Firebase:', error);
+         }
+       }
+       
+       async function loadAllDataFromFirebase() {
+         if (!currentUser) return;
+         
+         try {
+           // Load tabs
+           const tabsDoc = await db.collection('user-tabs').doc(currentUser.uid).get();
+           if (tabsDoc.exists) {
+             const tabsData = tabsDoc.data();
+             
+             // Restore tabs
+             if (tabsData.tabs && tabsData.tabs.length > 0) {
+               // Clear existing tabs
+               const iframeContainer = document.getElementById("iframe-container");
+               Array.from(iframeContainer.children).forEach(child => {
+                 if (child.tagName === 'IFRAME') {
+                   child.remove();
+                 }
+               });
+               
+               // Restore tabs from Firebase
+               tabs = tabsData.tabs.map(tabData => ({
+                 id: tabData.id || "tab-" + tabIdCounter++,
+                 title: tabData.title || "New Tab",
+                 url: tabData.url || "carbon://newtab",
+                 history: tabData.history || ["carbon://newtab"],
+                 pointer: tabData.pointer || 0,
+                 pinned: tabData.pinned || false,
+                 locked: tabData.locked || false,
+                 color: tabData.color || null,
+                 customTitle: tabData.customTitle || null,
+                 groupId: tabData.groupId || null,
+                 notes: tabData.notes || ""
+               }));
+               
+               // Restore active tab
+               if (tabsData.activeTab) {
+                 activeTab = tabsData.activeTab;
+               } else if (tabs.length > 0) {
+                 activeTab = tabs[0].id;
+               }
+               
+               // Restore UI state
+               if (tabsData.verticalTabsMode !== undefined) {
+                 verticalTabsMode = tabsData.verticalTabsMode;
+               }
+               if (tabsData.tabBarHidden !== undefined) {
+                 tabBarHidden = tabsData.tabBarHidden;
+               }
+               
+               // Update tab counter
+               const maxId = Math.max(...tabs.map(t => parseInt(t.id.replace("tab-", ""))));
+               tabIdCounter = maxId + 1;
+               
+               console.log('Tabs loaded from Firebase:', tabs.length);
+             }
+           }
+           
+           // Load tab groups
+           const groupsDoc = await db.collection('user-tab-groups').doc(currentUser.uid).get();
+           if (groupsDoc.exists) {
+             const groupsData = groupsDoc.data();
+             
+             if (groupsData.groups) {
+               tabGroups = groupsData.groups.map(groupData => ({
+                 id: groupData.id,
+                 name: groupData.name,
+                 color: groupData.color
+               }));
+               
+               if (groupsData.groupIdCounter) {
+                 groupIdCounter = groupsData.groupIdCounter;
+               }
+               
+               console.log('Tab groups loaded from Firebase:', tabGroups.length);
+             }
+           }
+           
+           // Load tab history
+           const historyDoc = await db.collection('user-tab-history').doc(currentUser.uid).get();
+           if (historyDoc.exists) {
+             const historyData = historyDoc.data();
+             
+             if (historyData.globalHistory) {
+               localStorage.setItem('carbon-history', JSON.stringify(historyData.globalHistory));
+             }
+             
+             if (historyData.tabHistory) {
+               // Restore individual tab histories
+               historyData.tabHistory.forEach(tabHistory => {
+                 const tab = tabs.find(t => t.id === tabHistory.tabId);
+                 if (tab) {
+                   tab.history = tabHistory.history || ["carbon://newtab"];
+                   tab.pointer = tabHistory.pointer || 0;
+                 }
+               });
+             }
+             
+             console.log('Tab history loaded from Firebase');
+           }
+           
+           // Load tab restore data
+           const restoreDoc = await db.collection('user-tab-restore').doc(currentUser.uid).get();
+           if (restoreDoc.exists) {
+             const restoreData = restoreDoc.data();
+             
+             if (restoreData.lastTabs) {
+               localStorage.setItem('last-tabs', JSON.stringify(restoreData.lastTabs));
+             }
+             
+             if (restoreData.closedTabsSnapshot) {
+               closedTabsSnapshot = restoreData.closedTabsSnapshot;
+             }
+             
+             console.log('Tab restore data loaded from Firebase');
+           }
+           
+           // Update UI after loading all data
+           renderTabs();
+           if (activeTab) {
+             const tab = tabs.find(t => t.id === activeTab);
+             if (tab) {
+               updateAddressBar(tab);
+               renderTabContent(tab);
+             }
+           }
+           
+           // Update UI state
+           if (verticalTabsMode) {
+             toggleVerticalTabs();
+           }
+           if (tabBarHidden) {
+             toggleTabBarVisibility();
+           }
+           
+         } catch (error) {
+           console.error('Error loading data from Firebase:', error);
+         }
+       }
+       
+       function setupTabSyncListeners() {
+         if (!currentUser) return;
+         
+         // Listen for tab changes from other devices
+         db.collection('user-tabs').doc(currentUser.uid).onSnapshot((doc) => {
+           if (doc.exists) {
+             const data = doc.data();
+             
+             // Check if this update is from another device
+             if (data.lastUpdated && data.lastUpdated.toMillis() > Date.now() - 5000) {
+               console.log('Tab sync update received from another device');
+               // Optionally reload tabs from Firebase
+               // loadAllDataFromFirebase();
+             }
+           }
+         });
+         
+         // Listen for tab groups changes
+         db.collection('user-tab-groups').doc(currentUser.uid).onSnapshot((doc) => {
+           if (doc.exists) {
+             const data = doc.data();
+             
+             if (data.lastUpdated && data.lastUpdated.toMillis() > Date.now() - 5000) {
+               console.log('Tab groups sync update received from another device');
+               // Optionally reload tab groups from Firebase
+             }
+           }
+         });
+       }
+       
+       // Enhanced tab management functions with Firebase sync
+       function duplicateTabWithSync(tabId) {
+         duplicateTab(tabId);
+         syncAllTabsToFirebase();
+         saveTabsData();
+       }
+       
+       function renameTabWithSync(tabId, newTitle) {
+         renameTab(tabId, newTitle);
+         syncAllTabsToFirebase();
+         saveTabsData();
+       }
+       
+       function setTabColorWithSync(tabId, color) {
+         setTabColor(tabId, color);
+         syncAllTabsToFirebase();
+         saveTabsData();
+       }
+       
+       function toggleTabLockWithSync(tabId) {
+         toggleTabLock(tabId);
+         syncAllTabsToFirebase();
+         saveTabsData();
+       }
+       
+       function togglePinTabWithSync(tabId) {
+         togglePinTab(tabId);
+         syncAllTabsToFirebase();
+         saveTabsData();
+       }
+       
+       function assignTabToGroupWithSync(tabId, groupId) {
+         assignTabToGroup(tabId, groupId);
+         syncAllTabsToFirebase();
+         saveTabsData();
+       }
+       
+       function updateTabNotesWithSync(tabId, notes) {
+         updateTabNotes(tabId, notes);
+         syncAllTabsToFirebase();
+         saveTabsData();
+       }
+       
+       function createTabGroupWithSync(name, color) {
+         const group = createTabGroup(name, color);
+         syncTabGroupsToFirebase();
+         return group;
+       }
+       
+       function deleteTabGroupWithSync(groupId) {
+         deleteTabGroup(groupId);
+         syncTabGroupsToFirebase();
+         saveTabsData();
+         syncAllTabsToFirebase();
+       }
+       
+       function addTabWithSync(url = "carbon://newtab") {
+         addTab(url);
+         syncAllTabsToFirebase();
+       }
+       
+       function removeTabWithSync(tabId) {
+         // Take snapshot before removing
+         takeTabsSnapshot();
+         syncTabRestoreDataToFirebase();
+         
+         removeTab(tabId);
+         syncAllTabsToFirebase();
+       }
+       
+       function setActiveTabWithSync(tabId) {
+         setActiveTab(tabId);
+         syncAllTabsToFirebase();
+       }
+       
+       function updateTabHistoryWithSync(tab, url) {
+         updateTabHistory(tab, url);
+         syncAllTabsToFirebase();
+         syncTabHistoryToFirebase();
+       }
+       
+       function restoreTabsFromFirebase() {
+         loadAllDataFromFirebase();
+       }
+       
+       function restoreTabsFromSnapshotWithSync() {
+         restoreTabsFromSnapshot();
+         syncAllTabsToFirebase();
+       }
+       
+       // Auto-sync functions
+       async function autoSyncTabs() {
+         if (!currentUser) return;
+         
+         try {
+           await syncAllTabsToFirebase();
+           await syncTabGroupsToFirebase();
+           await syncTabHistoryToFirebase();
+         } catch (error) {
+           console.error('Error in auto-sync:', error);
+         }
+       }
+       
+       // Set up periodic sync
+       setInterval(autoSyncTabs, 30000); // Sync every 30 seconds
+       
+       // Sync on page unload
+       window.addEventListener('beforeunload', () => {
+         if (currentUser) {
+           // Use sendBeacon for reliable sync on page unload
+           navigator.sendBeacon('/sync-tabs', JSON.stringify({
+             userId: currentUser.uid,
+             tabs: tabs,
+             tabGroups: tabGroups,
+             timestamp: Date.now()
+           }));
+         }
+       });
+       
+       // Hook into existing tab functions to add Firebase sync
+       const originalAddTab = window.addTab;
+       const originalRemoveTab = window.removeTab;
+       const originalTogglePinTab = window.togglePinTab;
+       const originalUpdateTabHistory = window.updateTabHistory;
+       
+       if (originalAddTab) {
+         window.addTab = function(...args) {
+           const result = originalAddTab.apply(this, args);
+           if (currentUser) {
+             setTimeout(() => syncAllTabsToFirebase(), 1000);
+           }
+           return result;
+         };
+       }
+       
+       if (originalRemoveTab) {
+         window.removeTab = function(...args) {
+           if (currentUser) {
+             takeTabsSnapshot();
+             syncTabRestoreDataToFirebase();
+           }
+           const result = originalRemoveTab.apply(this, args);
+           if (currentUser) {
+             setTimeout(() => syncAllTabsToFirebase(), 1000);
+           }
+           return result;
+         };
+       }
+       
+       if (originalTogglePinTab) {
+         window.togglePinTab = function(...args) {
+           const result = originalTogglePinTab.apply(this, args);
+           if (currentUser) {
+             setTimeout(() => syncAllTabsToFirebase(), 1000);
+           }
+           return result;
+         };
+       }
+       
+       if (originalUpdateTabHistory) {
+         window.updateTabHistory = function(...args) {
+           const result = originalUpdateTabHistory.apply(this, args);
+           if (currentUser) {
+             setTimeout(() => {
+               syncAllTabsToFirebase();
+               syncTabHistoryToFirebase();
+             }, 2000);
+           }
+           return result;
+         };
+       }
+       
+     </script>
+   </body>
+ </html>
