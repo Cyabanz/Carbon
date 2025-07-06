@@ -1340,7 +1340,13 @@
             // Handle carbon:// protocol URLs
             if (url.startsWith("carbon://")) {
               if (url === "carbon://newtab") {
-                iframe.src = "/newtab.html";
+                // Conditionally load vertical-newtab.html for vertical tabs mode
+                if (verticalTabsMode) {
+                  iframe.src = "/vertical-newtab.html";
+                  console.log('🔄 Loading vertical new tab layout');
+                } else {
+                  iframe.src = "/newtab.html";
+                }
                 iframe.dataset.loadedUrl = url;
               } else if (url === "carbon://history") {
                 iframe.src = "/history.html";
@@ -2054,8 +2060,17 @@
         renderTabs();
         localStorage.setItem("vertical-tabs-mode", verticalTabsMode);
         
-        // Notify all iframes about vertical tabs state change
-        setTimeout(notifyIframesVerticalTabsState, 200);
+              // Notify all iframes about vertical tabs state change
+      setTimeout(notifyIframesVerticalTabsState, 200);
+      
+      // Refresh current newtab to switch between regular and vertical layouts
+      setTimeout(() => {
+        const currentTab = tabs.find(t => t.id === activeTab);
+        if (currentTab && currentTab.history[currentTab.pointer] === 'carbon://newtab') {
+          console.log('🔄 Refreshing newtab to switch layout mode');
+          renderTabContent(currentTab, true);
+        }
+      }, 300);
       }
       
       let tabBarHidden = localStorage.getItem("tab-bar-hidden") === "true";
@@ -2797,6 +2812,11 @@
             type: 'carbon-vertical-tabs-state',
             enabled: verticalTabsMode
           }, '*');
+        } else if (event.data && event.data.type === 'carbon-navigate') {
+          // Handle navigation requests from vertical-newtab.html
+          if (event.data.url) {
+            addTab(event.data.url);
+          }
         }
       });
 
