@@ -57,39 +57,212 @@
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 
     <style>
+      /* Theme Color Variables */
+      :root {
+        --text-color: #e0def4;
+        --surface-color: #1f1d2e;
+        --overlay-color: #26233a;
+        --highlight-med: #403d52;
+        --highlight-high: #524f67;
+        --foam: #9ccfd8;
+        --love: #eb6f92;
+        --gold: #f6c177;
+        --pine: #31748f;
+        --iris: #c4a7e7;
+        --muted: #6e6a86;
+        --subtle: #908caa;
+
+        /* Theme variables - Rose Pine (default) */
+        --theme-base: #191724;
+        --theme-surface: #1f1d2e;
+        --theme-overlay: #26233a;
+        --theme-muted: #6e6a86;
+        --theme-subtle: #908caa;
+        --theme-text: #e0def4;
+        --theme-love: #eb6f92;
+        --theme-gold: #f6c177;
+        --theme-rose: #ebbcba;
+        --theme-pine: #31748f;
+        --theme-foam: #9ccfd8;
+        --theme-iris: #c4a7e7;
+        --theme-highlight-low: #21202e;
+        --theme-highlight-med: #403d52;
+        --theme-highlight-high: #524f67;
+        --theme-gradient: linear-gradient(135deg, #191724 0%, #1f1d2e 50%, #26233a 100%);
+      }
+      
+      /* Add all theme variations */
+      [data-theme="dark"] {
+        --theme-base: #0f172a;
+        --theme-surface: #1e293b;
+        --theme-overlay: #334155;
+        --theme-muted: #64748b;
+        --theme-subtle: #94a3b8;
+        --theme-text: #f1f5f9;
+        --theme-love: #ef4444;
+        --theme-gold: #f59e0b;
+        --theme-rose: #f97316;
+        --theme-pine: #059669;
+        --theme-foam: #06b6d4;
+        --theme-iris: #8b5cf6;
+        --theme-highlight-low: #1e293b;
+        --theme-highlight-med: #475569;
+        --theme-highlight-high: #64748b;
+        --theme-gradient: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
+      }
+      
+      [data-theme="light"] {
+        --theme-base: #f8fafc;
+        --theme-surface: #e2e8f0;
+        --theme-overlay: #cbd5e1;
+        --theme-muted: #64748b;
+        --theme-subtle: #475569;
+        --theme-text: #0f172a;
+        --theme-love: #dc2626;
+        --theme-gold: #d97706;
+        --theme-rose: #ea580c;
+        --theme-pine: #047857;
+        --theme-foam: #0891b2;
+        --theme-iris: #7c3aed;
+        --theme-highlight-low: #f1f5f9;
+        --theme-highlight-med: #e2e8f0;
+        --theme-highlight-high: #cbd5e1;
+        --theme-gradient: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 50%, #cbd5e1 100%);
+      }
+      
+      [data-theme="catppuccin"] {
+        --theme-base: #1e1e2e;
+        --theme-surface: #313244;
+        --theme-overlay: #45475a;
+        --theme-muted: #6c7086;
+        --theme-subtle: #9399b2;
+        --theme-text: #cdd6f4;
+        --theme-love: #f38ba8;
+        --theme-gold: #f9e2af;
+        --theme-rose: #fab387;
+        --theme-pine: #a6e3a1;
+        --theme-foam: #89dceb;
+        --theme-iris: #cba6f7;
+        --theme-highlight-low: #181825;
+        --theme-highlight-med: #313244;
+        --theme-highlight-high: #45475a;
+        --theme-gradient: linear-gradient(135deg, #1e1e2e 0%, #313244 50%, #45475a 100%);
+      }
+      
+      [data-theme="nord"] {
+        --theme-base: #2e3440;
+        --theme-surface: #3b4252;
+        --theme-overlay: #434c5e;
+        --theme-muted: #4c566a;
+        --theme-subtle: #d8dee9;
+        --theme-text: #eceff4;
+        --theme-love: #bf616a;
+        --theme-gold: #ebcb8b;
+        --theme-rose: #d08770;
+        --theme-pine: #a3be8c;
+        --theme-foam: #88c0d0;
+        --theme-iris: #b48ead;
+        --theme-highlight-low: #2e3440;
+        --theme-highlight-med: #434c5e;
+        --theme-highlight-high: #4c566a;
+        --theme-gradient: linear-gradient(135deg, #2e3440 0%, #3b4252 50%, #434c5e 100%);
+      }
+      
+      [data-theme="gruvbox"] {
+        --theme-base: #282828;
+        --theme-surface: #3c3836;
+        --theme-overlay: #504945;
+        --theme-muted: #665c54;
+        --theme-subtle: #a89984;
+        --theme-text: #ebdbb2;
+        --theme-love: #fb4934;
+        --theme-gold: #fabd2f;
+        --theme-rose: #fe8019;
+        --theme-pine: #b8bb26;
+        --theme-foam: #8ec07c;
+        --theme-iris: #d3869b;
+        --theme-highlight-low: #1d2021;
+        --theme-highlight-med: #3c3836;
+        --theme-highlight-high: #504945;
+        --theme-gradient: linear-gradient(135deg, #282828 0%, #3c3836 50%, #504945 100%);
+      }
+      
+      [data-theme="tokyo-night"] {
+        --theme-base: #1a1b26;
+        --theme-surface: #24283b;
+        --theme-overlay: #414868;
+        --theme-muted: #565f89;
+        --theme-subtle: #a9b1d6;
+        --theme-text: #c0caf5;
+        --theme-love: #f7768e;
+        --theme-gold: #e0af68;
+        --theme-rose: #ff9e64;
+        --theme-pine: #9ece6a;
+        --theme-foam: #7dcfff;
+        --theme-iris: #bb9af7;
+        --theme-highlight-low: #16161e;
+        --theme-highlight-med: #24283b;
+        --theme-highlight-high: #414868;
+        --theme-gradient: linear-gradient(135deg, #1a1b26 0%, #24283b 50%, #414868 100%);
+      }
+      
+      [data-theme="dracula"] {
+        --theme-base: #282a36;
+        --theme-surface: #44475a;
+        --theme-overlay: #6272a4;
+        --theme-muted: #6272a4;
+        --theme-subtle: #f8f8f2;
+        --theme-text: #f8f8f2;
+        --theme-love: #ff5555;
+        --theme-gold: #f1fa8c;
+        --theme-rose: #ffb86c;
+        --theme-pine: #50fa7b;
+        --theme-foam: #8be9fd;
+        --theme-iris: #bd93f9;
+        --theme-highlight-low: #21222c;
+        --theme-highlight-med: #44475a;
+        --theme-highlight-high: #6272a4;
+        --theme-gradient: linear-gradient(135deg, #282a36 0%, #44475a 50%, #6272a4 100%);
+      }
+
+      body {
+        background: var(--theme-gradient);
+        background-attachment: fixed;
+      }
+
       .history-item {
-        background: #1f1d2e;
-        border: 1px solid #26233a;
+        background: var(--theme-surface);
+        border: 1px solid var(--theme-overlay);
         border-radius: 0.5rem;
         padding: 1rem;
         cursor: pointer;
         transition: all 0.3s ease;
       }
       .history-item:hover {
-        background: #26233a;
-        border-color: #9ccfd8;
+        background: var(--theme-overlay);
+        border-color: var(--theme-foam);
         transform: translateY(-1px);
         box-shadow: 0 2px 8px rgba(156, 207, 216, 0.1);
       }
       .search-container {
         position: sticky;
         top: 0;
-        background: rgba(25, 23, 36, 0.95);
+        background: var(--theme-base);
         backdrop-filter: blur(10px);
         z-index: 10;
-        border-bottom: 1px solid #26233a;
+        border-bottom: 1px solid var(--theme-overlay);
       }
     </style>
   </head>
-  <body class="font-inter bg-gradient-to-br from-base via-surface to-overlay min-h-screen text-text">
+  <body class="font-inter min-h-screen" style="background: var(--theme-gradient); color: var(--theme-text);">
     <div class="min-h-screen">
       <!-- Header -->
       <header class="p-6 text-center">
-        <h1 class="text-4xl font-bold text-text mb-2 flex items-center justify-center gap-3">
-          <i class="bx bx-history text-iris"></i>
+        <h1 class="text-4xl font-bold mb-2 flex items-center justify-center gap-3" style="color: var(--theme-text);">
+          <i class="bx bx-history" style="color: var(--theme-iris);"></i>
           History
         </h1>
-        <p class="text-muted text-sm">Your browsing history</p>
+        <p class="text-sm" style="color: var(--theme-muted);">Your browsing history</p>
       </header>
 
       <!-- Search and Controls -->
@@ -102,12 +275,12 @@
                 id="history-search"
                 type="text"
                 placeholder="Search history..."
-                class="w-full pl-10 pr-4 py-2 bg-surface border border-overlay rounded-lg text-text focus:outline-none focus:ring-2 focus:ring-foam focus:border-foam placeholder-muted"
+                class="w-full pl-10 pr-4 py-2 rounded-lg focus:outline-none transition-colors history-search-input"
               />
             </div>
             <button
               id="clear-all-history"
-              class="px-4 py-2 bg-love hover:bg-love/80 text-white rounded-lg transition-colors flex items-center gap-2"
+              class="px-4 py-2 rounded-lg transition-colors flex items-center gap-2 text-white clear-history-btn"
             >
               <i class="bx bx-trash"></i>
               Clear All
@@ -151,28 +324,51 @@
     </div>
 
     <style>
-      .filter-tab {
-        padding: 0.5rem 1rem;
-        background: transparent;
-        border: 1px solid #26233a;
-        border-radius: 0.5rem;
-        color: #908caa;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        font-size: 0.875rem;
-      }
-      .filter-tab:hover {
-        background: #26233a;
-        color: #e0def4;
-      }
-      .filter-tab.active {
-        background: #9ccfd8;
-        color: #191724;
-        border-color: #9ccfd8;
-      }
+              .filter-tab {
+          padding: 0.5rem 1rem;
+          background: transparent;
+          border: 1px solid var(--theme-overlay);
+          border-radius: 0.5rem;
+          color: var(--theme-subtle);
+          cursor: pointer;
+          transition: all 0.3s ease;
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          font-size: 0.875rem;
+        }
+        .filter-tab:hover {
+          background: var(--theme-overlay);
+          color: var(--theme-text);
+        }
+        .filter-tab.active {
+          background: var(--theme-foam);
+          color: var(--theme-base);
+          border-color: var(--theme-foam);
+        }
+        
+        .history-search-input {
+          background: var(--theme-surface);
+          border: 1px solid var(--theme-overlay);
+          color: var(--theme-text);
+        }
+        
+        .history-search-input:focus {
+          border-color: var(--theme-foam);
+          box-shadow: 0 0 0 2px rgba(156, 207, 216, 0.2);
+        }
+        
+        .history-search-input::placeholder {
+          color: var(--theme-muted);
+        }
+        
+        .clear-history-btn {
+          background: var(--theme-love);
+        }
+        
+        .clear-history-btn:hover {
+          opacity: 0.8;
+        }
     </style>
 
     <script type="module">
