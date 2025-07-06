@@ -193,97 +193,95 @@
       let currentFilter = 'all';
       let currentUser = null;
 
-      // This sanitizer is the same as your working console fix!
+      // Robust sanitizer: also removes the literal "undefined"
       function sanitizeHistoryItem(item) {
-        const url = (typeof item.url === 'string' && item.url.trim()) ? item.url.trim() : '';
-        let title = '';
-        if (typeof item.title === 'string' && item.title.trim()) {
-          title = item.title.trim();
-        } else {
-          title = url;
+        function clean(val) {
+          return (typeof val === "string" && val.trim() && val !== "undefined") ? val.trim() : "";
         }
-        let timestamp = '';
-        if (typeof item.timestamp === 'string' && !isNaN(Date.parse(item.timestamp))) {
+        const url = clean(item.url);
+        let title = clean(item.title);
+        if (!title) title = url;
+        let timestamp = "";
+        if (typeof item.timestamp === "string" && !isNaN(Date.parse(item.timestamp))) {
           timestamp = item.timestamp;
         } else {
           timestamp = new Date().toISOString();
         }
         let visits = 1;
-        if (typeof item.visits === 'number' && Number.isFinite(item.visits) && item.visits > 0) {
+        if (typeof item.visits === "number" && Number.isFinite(item.visits) && item.visits > 0) {
           visits = Math.floor(item.visits);
         }
-        let id = (typeof item.id === 'number' && Number.isFinite(item.id)) ? item.id : (Date.now() + Math.random());
+        let id = (typeof item.id === "number" && Number.isFinite(item.id)) ? item.id : (Date.now() + Math.random());
         return { id, url, title, timestamp, visits };
       }
 
-      async function loadHistoryFromFirebase() {
-        if (!currentUser) return;
-        try {
-          const userDoc = await db.collection('users').doc(currentUser.uid).get();
-          if (userDoc.exists) {
-            const userData = userDoc.data();
-            if (userData.history && Array.isArray(userData.history)) {
-              allHistory = userData.history.map(sanitizeHistoryItem).filter(item => item.url);
-              allHistory.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-              localStorage.setItem('carbon-history', JSON.stringify(allHistory));
-              filterHistory();
-              renderHistory();
-            } else {
-              allHistory = [];
-              localStorage.setItem('carbon-history', '[]');
-              filterHistory();
-              renderHistory();
-            }
+      // Merge and deduplicate two history arrays, most recent timestamp wins.
+      function mergeHistories(histA, histB) {
+        const map = new Map();
+        [...histA, ...histB].forEach(item => {
+          const sanitized = sanitizeHistoryItem(item);
+          if (!sanitized.url) return;
+          const existing = map.get(sanitized.url);
+          if (!existing || new Date(sanitized.timestamp) > new Date(existing.timestamp)) {
+            map.set(sanitized.url, sanitized);
           }
-        } catch (error) {
-          console.error('Error loading history from Firebase:', error);
-        }
+        });
+        // Sort by most recent timestamp
+        return Array.from(map.values()).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
       }
-      async function saveHistoryToFirebase() {
-        if (!currentUser) return;
-        try {
-          // Always sanitize before saving
-          await db.collection('users').doc(currentUser.uid).set({
-            history: allHistory.map(sanitizeHistoryItem).filter(item => item.url),
-            lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
-          }, { merge: true });
-        } catch (error) {
-          console.error('Error saving history to Firebase:', error);
-        }
-      }
-      auth.onAuthStateChanged((user) => {
-        currentUser = user;
-        if (user) {
-          loadHistoryFromFirebase();
-        } else {
-          loadHistory();
-        }
-      });
-      function loadHistory() {
-        let history = [];
+
+      // Load and merge from Firebase and localStorage
+      async function loadAndMergeHistory() {
+        let localHist = [];
         try {
           const raw = localStorage.getItem('carbon-history');
           if (raw) {
             const parsed = JSON.parse(raw);
             if (Array.isArray(parsed)) {
-              history = parsed.map(sanitizeHistoryItem).filter(item => item.url);
+              localHist = parsed.map(sanitizeHistoryItem).filter(item => item.url);
             }
           }
         } catch (e) {
-          history = [];
+          localHist = [];
         }
-        allHistory = history.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+        let firebaseHist = [];
+        if (currentUser) {
+          try {
+            const userDoc = await db.collection('users').doc(currentUser.uid).get();
+            if (userDoc.exists) {
+              const userData = userDoc.data();
+              if (userData.history && Array.isArray(userData.history)) {
+                firebaseHist = userData.history.map(sanitizeHistoryItem).filter(item => item.url);
+              }
+            }
+          } catch (error) {
+            firebaseHist = [];
+          }
+        }
+        // Merge and dedupe all history
+        allHistory = mergeHistories(localHist, firebaseHist);
+        localStorage.setItem('carbon-history', JSON.stringify(allHistory));
+        if (currentUser) {
+          await db.collection('users').doc(currentUser.uid).set({history: allHistory, lastUpdated: firebase.firestore.FieldValue.serverTimestamp()}, {merge: true});
+        }
         filterHistory();
         renderHistory();
       }
+
+      // Save to both storage and firebase
       async function saveHistory() {
-        // Always sanitize before saving
         localStorage.setItem('carbon-history', JSON.stringify(allHistory.map(sanitizeHistoryItem).filter(item => item.url)));
-        await saveHistoryToFirebase();
+        if (currentUser) {
+          await db.collection('users').doc(currentUser.uid).set({
+            history: allHistory.map(sanitizeHistoryItem).filter(item => item.url),
+            lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+          }, { merge: true });
+        }
       }
+
       async function addToHistory(url, title) {
-        if (typeof url !== 'string' || !url.trim() || url.startsWith('carbon://')) return;
-        let safeTitle = (typeof title === 'string' && title.trim()) ? title.trim() : url;
+        if (typeof url !== 'string' || !url.trim() || url === "undefined" || url.startsWith('carbon://')) return;
+        let safeTitle = (typeof title === 'string' && title.trim() && title !== "undefined") ? title.trim() : url;
         const now = new Date().toISOString();
         const id = Date.now() + Math.random();
         const existingIndex = allHistory.findIndex(h => h.url === url);
@@ -307,6 +305,7 @@
         filterHistory();
         renderHistory();
       }
+
       function filterHistory() {
         const searchTerm = historySearch.value.toLowerCase();
         const now = new Date();
@@ -323,12 +322,13 @@
         }
         if (searchTerm) {
           filtered = filtered.filter(item =>
-            item.url.toLowerCase().includes(searchTerm) ||
-            item.title.toLowerCase().includes(searchTerm)
+            (item.url && item.url.toLowerCase().includes(searchTerm)) ||
+            (item.title && item.title.toLowerCase().includes(searchTerm))
           );
         }
         filteredHistory = filtered;
       }
+
       function renderHistory() {
         if (filteredHistory.length === 0) {
           historyList.classList.add('hidden');
@@ -339,11 +339,14 @@
         noHistory.classList.add('hidden');
         const groupedHistory = {};
         filteredHistory.forEach(item => {
+          // Always sanitize just in case
+          const url = (typeof item.url === 'string' && item.url.trim() && item.url !== "undefined") ? item.url.trim() : '';
+          const title = (typeof item.title === 'string' && item.title.trim() && item.title !== "undefined") ? item.title.trim() : url;
+          const displayUrl = url ? url : 'Unknown URL';
+          const displayTitle = title ? title : 'Unknown';
           const date = new Date(item.timestamp).toDateString();
-          if (!groupedHistory[date]) {
-            groupedHistory[date] = [];
-          }
-          groupedHistory[date].push(item);
+          if (!groupedHistory[date]) groupedHistory[date] = [];
+          groupedHistory[date].push({...item, displayUrl, displayTitle});
         });
         historyList.innerHTML = Object.entries(groupedHistory).map(([date, items]) => {
           const isToday = date === new Date().toDateString();
@@ -359,15 +362,15 @@
               </h3>
               <div class="space-y-2">
                 ${items.map(item => `
-                  <div class="history-item" data-url="${item.url || ''}">
+                  <div class="history-item" data-url="${item.displayUrl}">
                     <div class="flex items-start justify-between">
                       <div class="flex-1 min-w-0">
                         <div class="flex items-center gap-2 mb-1">
                           <i class="bx bx-world text-foam flex-shrink-0"></i>
-                          <h4 class="font-medium text-text truncate">${item.title || item.url || 'Unknown'}</h4>
+                          <h4 class="font-medium text-text truncate">${item.displayTitle}</h4>
                           ${(item.visits || 1) > 1 ? `<span class="text-xs bg-highlight-med px-2 py-0.5 rounded text-muted">${item.visits || 1} visits</span>` : ''}
                         </div>
-                        <p class="text-sm text-muted truncate">${item.url || 'Unknown URL'}</p>
+                        <p class="text-sm text-muted truncate">${item.displayUrl}</p>
                         <p class="text-xs text-subtle mt-1">${formatTime(item.timestamp || new Date().toISOString())}</p>
                       </div>
                       <div class="flex items-center gap-1 ml-2">
@@ -406,6 +409,7 @@
           });
         });
       }
+
       function formatTime(timestamp) {
         const date = new Date(timestamp);
         const now = new Date();
@@ -421,6 +425,7 @@
           return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
         }
       }
+
       async function deleteHistoryItem(id) {
         allHistory = allHistory.filter(item => item.id !== id);
         await saveHistory();
@@ -473,7 +478,15 @@
           }
         }
       });
-      loadHistory();
+
+      // Auth observer: on load, always merge and show all history from both sources
+      auth.onAuthStateChanged((user) => {
+        currentUser = user;
+        loadAndMergeHistory();
+      });
+
+      // On initial load, show all history even if not logged in
+      loadAndMergeHistory();
     </script>
   </body>
 </html>
