@@ -168,7 +168,7 @@
     </div>
     <script type="module">
       import { makeURL, getProxied } from '/lethal.mjs';
-      // Firebase configuration
+      // Firebase config and init
       const firebaseConfig = {
         apiKey: "AIzaSyC4ilHYP1T-kdXbWPoHJHhD2aj0pNWmMec",
         authDomain: "carbon-services.firebaseapp.com",
@@ -178,7 +178,6 @@
         appId: "1:288385472070:web:c4be3ff186e248fc645c47",
         measurementId: "G-Y2K1RQYE74"
       };
-      // Initialize Firebase
       if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
       const auth = firebase.auth();
       const db = firebase.firestore();
@@ -193,7 +192,7 @@
       let filteredHistory = [];
       let currentFilter = 'all';
       let currentUser = null;
-      // --- Sanitize a history item for robustness
+
       function sanitizeHistoryItem(rawItem) {
         const url = (typeof rawItem.url === 'string' && rawItem.url.trim()) ? rawItem.url.trim() : '';
         let title = '';
@@ -215,7 +214,7 @@
         let id = (typeof rawItem.id === 'number' && Number.isFinite(rawItem.id)) ? rawItem.id : (Date.now() + Math.random());
         return { id, url, title, timestamp, visits };
       }
-      // --- Firebase sync
+
       async function loadHistoryFromFirebase() {
         if (!currentUser) return;
         try {
@@ -249,7 +248,6 @@
           console.error('Error saving history to Firebase:', error);
         }
       }
-      // Auth state observer
       auth.onAuthStateChanged((user) => {
         currentUser = user;
         if (user) {
@@ -258,7 +256,6 @@
           loadHistory();
         }
       });
-      // Load history from localStorage
       function loadHistory() {
         let history = [];
         try {
@@ -276,12 +273,10 @@
         filterHistory();
         renderHistory();
       }
-      // Save history to localStorage and Firebase
       async function saveHistory() {
         localStorage.setItem('carbon-history', JSON.stringify(allHistory));
         await saveHistoryToFirebase();
       }
-      // Add item to history, always robust
       async function addToHistory(url, title) {
         if (typeof url !== 'string' || !url.trim() || url.startsWith('carbon://')) return;
         let safeTitle = (typeof title === 'string' && title.trim()) ? title.trim() : url;
@@ -308,7 +303,6 @@
         filterHistory();
         renderHistory();
       }
-      // Filter history
       function filterHistory() {
         const searchTerm = historySearch.value.toLowerCase();
         const now = new Date();
@@ -331,7 +325,6 @@
         }
         filteredHistory = filtered;
       }
-      // Render history
       function renderHistory() {
         if (filteredHistory.length === 0) {
           historyList.classList.add('hidden');
@@ -409,7 +402,6 @@
           });
         });
       }
-      // Format timestamp
       function formatTime(timestamp) {
         const date = new Date(timestamp);
         const now = new Date();
@@ -425,14 +417,12 @@
           return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
         }
       }
-      // Delete single history item
       async function deleteHistoryItem(id) {
         allHistory = allHistory.filter(item => item.id !== id);
         await saveHistory();
         filterHistory();
         renderHistory();
       }
-      // Clear all history
       async function clearAllHistory() {
         if (confirm('Are you sure you want to clear all history? This action cannot be undone.')) {
           allHistory = [];
@@ -441,7 +431,6 @@
           renderHistory();
         }
       }
-      // Event listeners
       historySearch.addEventListener('input', () => {
         filterHistory();
         renderHistory();
@@ -456,15 +445,12 @@
           renderHistory();
         });
       });
-      // Listen for history updates from parent frame
       window.addEventListener('message', (event) => {
         if (event.data && event.data.type === 'carbon-add-history') {
           addToHistory(event.data.url, event.data.title);
         }
       });
-      // Expose addToHistory for external use
       window.addToHistory = addToHistory;
-      // Theme sync functionality
       function initThemeSync() {
         if (window.carbonTheme) {
           const savedTheme = localStorage.getItem('carbon-theme-global') || 'rose-pine';
@@ -483,7 +469,6 @@
           }
         }
       });
-      // Initial load for guest until auth triggers
       loadHistory();
     </script>
   </body>
