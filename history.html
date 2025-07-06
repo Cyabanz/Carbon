@@ -50,219 +50,71 @@
       rel="stylesheet"
     />
     <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet" />
-    <script src="carbon-theme.js"></script>
-    <!-- Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+    
+    <!-- Theme System -->
+    <script src="/carbon-theme.js"></script>
+    
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
     <style>
-      /* Theme Color Variables */
-      :root {
-        --text-color: #e0def4;
-        --surface-color: #1f1d2e;
-        --overlay-color: #26233a;
-        --highlight-med: #403d52;
-        --highlight-high: #524f67;
-        --foam: #9ccfd8;
-        --love: #eb6f92;
-        --gold: #f6c177;
-        --pine: #31748f;
-        --iris: #c4a7e7;
-        --muted: #6e6a86;
-        --subtle: #908caa;
-
-        /* Theme variables - Rose Pine (default) */
-        --theme-base: #191724;
-        --theme-surface: #1f1d2e;
-        --theme-overlay: #26233a;
-        --theme-muted: #6e6a86;
-        --theme-subtle: #908caa;
-        --theme-text: #e0def4;
-        --theme-love: #eb6f92;
-        --theme-gold: #f6c177;
-        --theme-rose: #ebbcba;
-        --theme-pine: #31748f;
-        --theme-foam: #9ccfd8;
-        --theme-iris: #c4a7e7;
-        --theme-highlight-low: #21202e;
-        --theme-highlight-med: #403d52;
-        --theme-highlight-high: #524f67;
-        --theme-gradient: linear-gradient(135deg, #191724 0%, #1f1d2e 50%, #26233a 100%);
-      }
-      
-      /* Add all theme variations */
-      [data-theme="dark"] {
-        --theme-base: #0f172a;
-        --theme-surface: #1e293b;
-        --theme-overlay: #334155;
-        --theme-muted: #64748b;
-        --theme-subtle: #94a3b8;
-        --theme-text: #f1f5f9;
-        --theme-love: #ef4444;
-        --theme-gold: #f59e0b;
-        --theme-rose: #f97316;
-        --theme-pine: #059669;
-        --theme-foam: #06b6d4;
-        --theme-iris: #8b5cf6;
-        --theme-highlight-low: #1e293b;
-        --theme-highlight-med: #475569;
-        --theme-highlight-high: #64748b;
-        --theme-gradient: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
-      }
-      
-      [data-theme="light"] {
-        --theme-base: #f8fafc;
-        --theme-surface: #e2e8f0;
-        --theme-overlay: #cbd5e1;
-        --theme-muted: #64748b;
-        --theme-subtle: #475569;
-        --theme-text: #0f172a;
-        --theme-love: #dc2626;
-        --theme-gold: #d97706;
-        --theme-rose: #ea580c;
-        --theme-pine: #047857;
-        --theme-foam: #0891b2;
-        --theme-iris: #7c3aed;
-        --theme-highlight-low: #f1f5f9;
-        --theme-highlight-med: #e2e8f0;
-        --theme-highlight-high: #cbd5e1;
-        --theme-gradient: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 50%, #cbd5e1 100%);
-      }
-      
-      [data-theme="catppuccin"] {
-        --theme-base: #1e1e2e;
-        --theme-surface: #313244;
-        --theme-overlay: #45475a;
-        --theme-muted: #6c7086;
-        --theme-subtle: #9399b2;
-        --theme-text: #cdd6f4;
-        --theme-love: #f38ba8;
-        --theme-gold: #f9e2af;
-        --theme-rose: #fab387;
-        --theme-pine: #a6e3a1;
-        --theme-foam: #89dceb;
-        --theme-iris: #cba6f7;
-        --theme-highlight-low: #181825;
-        --theme-highlight-med: #313244;
-        --theme-highlight-high: #45475a;
-        --theme-gradient: linear-gradient(135deg, #1e1e2e 0%, #313244 50%, #45475a 100%);
-      }
-      
-      [data-theme="nord"] {
-        --theme-base: #2e3440;
-        --theme-surface: #3b4252;
-        --theme-overlay: #434c5e;
-        --theme-muted: #4c566a;
-        --theme-subtle: #d8dee9;
-        --theme-text: #eceff4;
-        --theme-love: #bf616a;
-        --theme-gold: #ebcb8b;
-        --theme-rose: #d08770;
-        --theme-pine: #a3be8c;
-        --theme-foam: #88c0d0;
-        --theme-iris: #b48ead;
-        --theme-highlight-low: #2e3440;
-        --theme-highlight-med: #434c5e;
-        --theme-highlight-high: #4c566a;
-        --theme-gradient: linear-gradient(135deg, #2e3440 0%, #3b4252 50%, #434c5e 100%);
-      }
-      
-      [data-theme="gruvbox"] {
-        --theme-base: #282828;
-        --theme-surface: #3c3836;
-        --theme-overlay: #504945;
-        --theme-muted: #665c54;
-        --theme-subtle: #a89984;
-        --theme-text: #ebdbb2;
-        --theme-love: #fb4934;
-        --theme-gold: #fabd2f;
-        --theme-rose: #fe8019;
-        --theme-pine: #b8bb26;
-        --theme-foam: #8ec07c;
-        --theme-iris: #d3869b;
-        --theme-highlight-low: #1d2021;
-        --theme-highlight-med: #3c3836;
-        --theme-highlight-high: #504945;
-        --theme-gradient: linear-gradient(135deg, #282828 0%, #3c3836 50%, #504945 100%);
-      }
-      
-      [data-theme="tokyo-night"] {
-        --theme-base: #1a1b26;
-        --theme-surface: #24283b;
-        --theme-overlay: #414868;
-        --theme-muted: #565f89;
-        --theme-subtle: #a9b1d6;
-        --theme-text: #c0caf5;
-        --theme-love: #f7768e;
-        --theme-gold: #e0af68;
-        --theme-rose: #ff9e64;
-        --theme-pine: #9ece6a;
-        --theme-foam: #7dcfff;
-        --theme-iris: #bb9af7;
-        --theme-highlight-low: #16161e;
-        --theme-highlight-med: #24283b;
-        --theme-highlight-high: #414868;
-        --theme-gradient: linear-gradient(135deg, #1a1b26 0%, #24283b 50%, #414868 100%);
-      }
-      
-      [data-theme="dracula"] {
-        --theme-base: #282a36;
-        --theme-surface: #44475a;
-        --theme-overlay: #6272a4;
-        --theme-muted: #6272a4;
-        --theme-subtle: #f8f8f2;
-        --theme-text: #f8f8f2;
-        --theme-love: #ff5555;
-        --theme-gold: #f1fa8c;
-        --theme-rose: #ffb86c;
-        --theme-pine: #50fa7b;
-        --theme-foam: #8be9fd;
-        --theme-iris: #bd93f9;
-        --theme-highlight-low: #21222c;
-        --theme-highlight-med: #44475a;
-        --theme-highlight-high: #6272a4;
-        --theme-gradient: linear-gradient(135deg, #282a36 0%, #44475a 50%, #6272a4 100%);
-      }
-
-      body {
-        background: var(--theme-gradient);
-        background-attachment: fixed;
-      }
-
       .history-item {
-        background: var(--theme-surface);
-        border: 1px solid var(--theme-overlay);
+        background: #1f1d2e;
+        border: 1px solid #26233a;
         border-radius: 0.5rem;
         padding: 1rem;
         cursor: pointer;
         transition: all 0.3s ease;
       }
       .history-item:hover {
-        background: var(--theme-overlay);
-        border-color: var(--theme-foam);
+        background: #26233a;
+        border-color: #9ccfd8;
         transform: translateY(-1px);
         box-shadow: 0 2px 8px rgba(156, 207, 216, 0.1);
       }
       .search-container {
         position: sticky;
         top: 0;
-        background: var(--theme-base);
+        background: rgba(25, 23, 36, 0.95);
         backdrop-filter: blur(10px);
         z-index: 10;
-        border-bottom: 1px solid var(--theme-overlay);
+        border-bottom: 1px solid #26233a;
+      }
+      .filter-tab {
+        padding: 0.5rem 1rem;
+        background: transparent;
+        border: 1px solid #26233a;
+        border-radius: 0.5rem;
+        color: #908caa;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.875rem;
+      }
+      .filter-tab:hover {
+        background: #26233a;
+        color: #e0def4;
+      }
+      .filter-tab.active {
+        background: #9ccfd8;
+        color: #191724;
+        border-color: #9ccfd8;
       }
     </style>
   </head>
-  <body class="font-inter min-h-screen" style="background: var(--theme-gradient); color: var(--theme-text);">
+  <body class="font-inter bg-gradient-to-br from-base via-surface to-overlay min-h-screen text-text">
     <div class="min-h-screen">
       <!-- Header -->
       <header class="p-6 text-center">
-        <h1 class="text-4xl font-bold mb-2 flex items-center justify-center gap-3" style="color: var(--theme-text);">
-          <i class="bx bx-history" style="color: var(--theme-iris);"></i>
+        <h1 class="text-4xl font-bold text-text mb-2 flex items-center justify-center gap-3">
+          <i class="bx bx-history text-iris"></i>
           History
         </h1>
-        <p class="text-sm" style="color: var(--theme-muted);">Your browsing history</p>
+        <p class="text-muted text-sm">Your browsing history</p>
       </header>
 
       <!-- Search and Controls -->
@@ -270,17 +122,17 @@
         <div class="max-w-4xl mx-auto">
           <div class="flex items-center gap-4 mb-4">
             <div class="flex-1 relative">
-              <i class="bx bx-search absolute left-3 top-1/2 transform -translate-y-1/2" style="color: var(--theme-muted);"></i>
+              <i class="bx bx-search absolute left-3 top-1/2 transform -translate-y-1/2 text-muted"></i>
               <input
                 id="history-search"
                 type="text"
                 placeholder="Search history..."
-                class="w-full pl-10 pr-4 py-2 rounded-lg focus:outline-none transition-colors history-search-input"
+                class="w-full pl-10 pr-4 py-2 bg-surface border border-overlay rounded-lg text-text focus:outline-none focus:ring-2 focus:ring-foam focus:border-foam placeholder-muted"
               />
             </div>
             <button
               id="clear-all-history"
-              class="px-4 py-2 rounded-lg transition-colors flex items-center gap-2 text-white clear-history-btn"
+              class="px-4 py-2 bg-love hover:bg-love/80 text-white rounded-lg transition-colors flex items-center gap-2"
             >
               <i class="bx bx-trash"></i>
               Clear All
@@ -316,80 +168,12 @@
         </div>
         
         <div id="no-history" class="text-center py-12 hidden">
-          <i class="bx bx-history text-6xl mb-4" style="color: var(--theme-muted);"></i>
-          <h3 class="text-xl font-semibold mb-2" style="color: var(--theme-text);">No History Found</h3>
-          <p style="color: var(--theme-muted);">Your browsing history will appear here as you navigate.</p>
+          <i class="bx bx-history text-6xl text-muted mb-4"></i>
+          <h3 class="text-xl font-semibold text-text mb-2">No History Found</h3>
+          <p class="text-muted">Your browsing history will appear here as you navigate.</p>
         </div>
       </main>
     </div>
-
-    <style>
-              .filter-tab {
-          padding: 0.5rem 1rem;
-          background: transparent;
-          border: 1px solid var(--theme-overlay);
-          border-radius: 0.5rem;
-          color: var(--theme-subtle);
-          cursor: pointer;
-          transition: all 0.3s ease;
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-          font-size: 0.875rem;
-        }
-        .filter-tab:hover {
-          background: var(--theme-overlay);
-          color: var(--theme-text);
-        }
-        .filter-tab.active {
-          background: var(--theme-foam);
-          color: var(--theme-base);
-          border-color: var(--theme-foam);
-        }
-        
-        .history-search-input {
-          background: var(--theme-surface);
-          border: 1px solid var(--theme-overlay);
-          color: var(--theme-text);
-        }
-        
-        .history-search-input:focus {
-          border-color: var(--theme-foam);
-          box-shadow: 0 0 0 2px rgba(156, 207, 216, 0.2);
-        }
-        
-        .history-search-input::placeholder {
-          color: var(--theme-muted);
-        }
-        
-        .clear-history-btn {
-          background: var(--theme-love);
-        }
-        
-        .clear-history-btn:hover {
-          opacity: 0.8;
-        }
-        
-        .delete-history-item-btn:hover {
-          background: var(--theme-love);
-          color: white;
-          opacity: 0.8;
-        }
-        
-        /* Map Tailwind classes to theme variables */
-        .text-text { color: var(--theme-text) !important; }
-        .text-muted { color: var(--theme-muted) !important; }
-        .text-subtle { color: var(--theme-subtle) !important; }
-        .text-foam { color: var(--theme-foam) !important; }
-        .text-love { color: var(--theme-love) !important; }
-        .text-iris { color: var(--theme-iris) !important; }
-        .bg-highlight-med { background-color: var(--theme-highlight-med) !important; }
-        .delete-item:hover { 
-          background-color: var(--theme-love) !important; 
-          color: white !important;
-          opacity: 0.8; 
-        }
-    </style>
 
     <script type="module">
       import { makeURL, getProxied } from '/lethal.mjs';
@@ -474,14 +258,14 @@
         renderHistory();
       }
 
-              // Save history to localStorage and Firebase
-        async function saveHistory() {
-          localStorage.setItem('carbon-history', JSON.stringify(allHistory));
-          await saveHistoryToFirebase();
-        }
+      // Save history to localStorage and Firebase
+      async function saveHistory() {
+        localStorage.setItem('carbon-history', JSON.stringify(allHistory));
+        await saveHistoryToFirebase();
+      }
 
       // Add item to history (called from parent frame)
-      function addToHistory(url, title = '') {
+      async function addToHistory(url, title = '') {
         // Don't add carbon:// URLs to history
         if (url.startsWith('carbon://')) return;
         
@@ -508,7 +292,7 @@
           allHistory = allHistory.slice(0, 1000);
         }
 
-        saveHistory();
+        await saveHistory();
         filterHistory();
         renderHistory();
       }
@@ -580,7 +364,7 @@
               </h3>
               <div class="space-y-2">
                 ${items.map(item => `
-                  <div class="history-item" data-url="${item.url}">
+                  <div class="history-item" data-url="${item.url || ''}">
                     <div class="flex items-start justify-between">
                       <div class="flex-1 min-w-0">
                         <div class="flex items-center gap-2 mb-1">
@@ -610,6 +394,7 @@
             if (e.target.closest('.delete-item')) return;
             
             const url = item.dataset.url;
+            if (!url) return;
             
             // Check if we're in an iframe (within the proxy browser)
             if (window.parent && window.parent !== window) {
@@ -653,23 +438,23 @@
         }
       }
 
-              // Delete single history item
-        async function deleteHistoryItem(id) {
-          allHistory = allHistory.filter(item => item.id !== id);
+      // Delete single history item
+      async function deleteHistoryItem(id) {
+        allHistory = allHistory.filter(item => item.id !== id);
+        await saveHistory();
+        filterHistory();
+        renderHistory();
+      }
+
+      // Clear all history
+      async function clearAllHistory() {
+        if (confirm('Are you sure you want to clear all history? This action cannot be undone.')) {
+          allHistory = [];
           await saveHistory();
           filterHistory();
           renderHistory();
         }
-
-        // Clear all history
-        async function clearAllHistory() {
-          if (confirm('Are you sure you want to clear all history? This action cannot be undone.')) {
-            allHistory = [];
-            await saveHistory();
-            filterHistory();
-            renderHistory();
-          }
-        }
+      }
 
       // Event listeners
       historySearch.addEventListener('input', () => {
@@ -698,6 +483,33 @@
 
       // Expose addToHistory for external use
       window.addToHistory = addToHistory;
+      
+      // Theme sync functionality
+      function initThemeSync() {
+        // Wait for theme system to be ready
+        if (window.carbonTheme) {
+          // Load saved theme
+          const savedTheme = localStorage.getItem('carbon-theme-global') || 'rose-pine';
+          window.carbonTheme.setTheme(savedTheme);
+          console.log('🎨 Theme applied:', savedTheme);
+        } else {
+          // Retry after a short delay
+          setTimeout(initThemeSync, 100);
+        }
+      }
+
+      // Initialize theme sync
+      initThemeSync();
+      
+      // Listen for theme changes from other pages
+      window.addEventListener('storage', (e) => {
+        if (e.key === 'carbon-theme-global') {
+          if (window.carbonTheme) {
+            window.carbonTheme.setTheme(e.newValue);
+            console.log('🎨 Theme updated from storage:', e.newValue);
+          }
+        }
+      });
 
       // Initialize
       loadHistory();
