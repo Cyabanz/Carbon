@@ -462,18 +462,24 @@
       </div>
     </div>
 
+    <script src="carbon-theme.js"></script>
     <script type="module">
       import { makeURL, getProxied, setProxy, getProxy } from '/lethal.mjs';
-      // THEME & BACKGROUND STATE
-      let currentTheme = localStorage.getItem('carbon-theme') || 'rose-pine';
-      let currentBackground = localStorage.getItem('carbon-background') || 'gradient';
+      // THEME & BACKGROUND STATE - Now managed by enhanced theme system
+      let currentTheme = localStorage.getItem('carbon-theme-global') || 'rose-pine';
+      let currentBackground = localStorage.getItem('carbon-background-global') || 'gradient';
 
       // Apply theme and background on load
       function applyTheme(theme) {
-        document.documentElement.setAttribute('data-theme', theme);
+        // Use enhanced theme system
+        if (window.carbonTheme) {
+          window.carbonTheme.setTheme(theme);
+        } else {
+          document.documentElement.setAttribute('data-theme', theme);
+        }
         updateBackgroundPreviews();
         applyBackground();
-        localStorage.setItem('carbon-theme', theme);
+        localStorage.setItem('carbon-theme-global', theme);
       }
       function updateBackgroundPreviews() {
         document.querySelectorAll('.bg-preview').forEach(preview => {
@@ -487,7 +493,7 @@
       }
       function applyBackground() {
         const body = document.body;
-        const customBg = localStorage.getItem('carbon-custom-bg');
+        const customBg = localStorage.getItem('carbon-custom-bg-global');
         if (customBg) {
           body.style.background = `url(${customBg}) center/cover`;
           body.style.backgroundAttachment = 'fixed';
@@ -527,7 +533,7 @@
           document.querySelectorAll('.bg-preview').forEach(el => el.classList.remove('active'));
           this.classList.add('active');
           currentBackground = this.dataset.bg;
-          localStorage.setItem('carbon-background', currentBackground);
+          localStorage.setItem('carbon-background-global', currentBackground);
           applyBackground();
         });
         if (preview.dataset.bg === currentBackground) preview.classList.add('active');

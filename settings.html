@@ -523,6 +523,25 @@
                     <div class="theme-preview" data-theme="dracula" style="background: linear-gradient(135deg, #282a36 0%, #44475a 50%, #6272a4 100%); border: 2px solid transparent;">
                         <div class="text-center text-xs p-2 text-white">Dracula</div>
                     </div>
+                    <div class="theme-preview color-wheel-trigger" style="background: linear-gradient(135deg, #9ccfd8 0%, #c4a7e7 50%, #eb6f92 100%); border: 2px solid transparent; cursor: pointer;">
+                        <div class="text-center text-xs p-2 text-white flex items-center justify-center gap-1">
+                            <i class="bx bx-palette"></i>
+                            Custom
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Custom Themes Display -->
+                <div id="custom-themes-section" class="mt-4 hidden">
+                    <h4 class="text-sm font-medium mb-3 text-text">Your Custom Themes</h4>
+                    <div id="custom-themes-grid" class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                        <!-- Custom themes will be populated here -->
+                    </div>
+                </div>
+                
+                <!-- Color Wheel Container -->
+                <div id="color-wheel-container" class="mt-6 hidden">
+                    <!-- Color wheel will be created here -->
                 </div>
             </div>
             
@@ -741,6 +760,7 @@
         </div>
     </div>
 
+    <script src="carbon-theme.js"></script>
     <script>
         let panicKey = null;
         let isRecordingPanicKey = false;
@@ -767,12 +787,14 @@
                 document.getElementById('panic-url').value = savedPanicUrl;
             }
             
-            // Load theme
-            const savedTheme = localStorage.getItem('carbon-theme') || 'rose-pine';
+            // Load theme using enhanced theme system
+            const savedTheme = localStorage.getItem('carbon-theme-global') || 'rose-pine';
             currentTheme = savedTheme;
             document.querySelectorAll('.theme-preview').forEach(el => el.classList.remove('active'));
             document.querySelector(`[data-theme="${savedTheme}"]`)?.classList.add('active');
-            applyTheme(savedTheme);
+            
+            // Load custom themes
+            loadCustomThemes();
             
             // Load background
             const savedBg = localStorage.getItem('carbon-background') || 'gradient';
@@ -781,7 +803,7 @@
             document.querySelector(`[data-bg="${savedBg}"]`)?.classList.add('active');
             
             // Load custom background
-            const savedCustomBg = localStorage.getItem('carbon-custom-bg');
+            const savedCustomBg = localStorage.getItem('carbon-custom-bg-global');
             if (savedCustomBg) {
                 showCustomBgPreview(savedCustomBg);
             }
@@ -813,14 +835,49 @@
             updateStatusIndicators();
         }
 
+        function loadCustomThemes() {
+            if (!window.carbonTheme) {
+                setTimeout(loadCustomThemes, 100);
+                return;
+            }
+
+            const customThemes = window.carbonTheme.customThemes;
+            const customThemesGrid = document.getElementById('custom-themes-grid');
+            const customThemesSection = document.getElementById('custom-themes-section');
+            
+            // Clear existing custom themes
+            customThemesGrid.innerHTML = '';
+            
+            if (Object.keys(customThemes).length > 0) {
+                customThemesSection.classList.remove('hidden');
+                
+                Object.entries(customThemes).forEach(([name, theme]) => {
+                    const themeDiv = document.createElement('div');
+                    themeDiv.className = 'theme-preview custom-theme-preview';
+                    themeDiv.dataset.theme = name;
+                    themeDiv.style.background = `linear-gradient(135deg, ${theme.base} 0%, ${theme.surface} 50%, ${theme.overlay} 100%)`;
+                    themeDiv.style.border = currentTheme === name ? '2px solid #9ccfd8' : '2px solid transparent';
+                    themeDiv.innerHTML = `
+                        <div class="text-center text-xs p-2 text-white flex items-center justify-center gap-1">
+                            <span class="truncate">${name}</span>
+                            <button class="delete-custom-theme ml-1 text-red-400 hover:text-red-300" data-theme="${name}">×</button>
+                        </div>
+                    `;
+                    customThemesGrid.appendChild(themeDiv);
+                });
+            } else {
+                customThemesSection.classList.add('hidden');
+            }
+        }
+
         function saveSettings() {
             // Save panic key
             localStorage.setItem('carbon-panic-key', panicKey || '');
             localStorage.setItem('carbon-panic-url', document.getElementById('panic-url').value);
             
-            // Save theme and background
-            localStorage.setItem('carbon-theme', currentTheme);
-            localStorage.setItem('carbon-background', currentBackground);
+            // Save theme and background using global keys
+            localStorage.setItem('carbon-theme-global', currentTheme);
+            localStorage.setItem('carbon-background-global', currentBackground);
             
             // Save tab cloaking
             localStorage.setItem('carbon-cloak-enabled', document.getElementById('tab-cloaking-enabled').checked);
@@ -920,13 +977,16 @@
         }
 
         function applyTheme(theme) {
-            document.documentElement.setAttribute('data-theme', theme);
+            // Use the enhanced theme system
+            if (window.carbonTheme) {
+                window.carbonTheme.setTheme(theme);
+            } else {
+                // Fallback if theme system not ready
+                document.documentElement.setAttribute('data-theme', theme);
+            }
             
             // Update background preview styles based on theme
             updateBackgroundPreviews();
-            
-            // Broadcast theme change to all Carbon pages
-            broadcastThemeChange(theme);
         }
 
         function updateBackgroundPreviews() {
@@ -946,32 +1006,11 @@
             }
         }
 
-        function broadcastThemeChange(theme) {
-            // Store theme globally for other pages
-            window.localStorage.setItem('carbon-theme-global', theme);
-            
-            // Broadcast to parent and other windows
-            try {
-                window.parent.postMessage({
-                    type: 'carbon-theme-change',
-                    theme: theme
-                }, '*');
-                
-                // Try to notify all Carbon windows
-                if (window.opener) {
-                    window.opener.postMessage({
-                        type: 'carbon-theme-change',
-                        theme: theme
-                    }, '*');
-                }
-            } catch (e) {
-                console.log('Could not broadcast theme change:', e);
-            }
-        }
+
 
         function applyBackground() {
             const body = document.body;
-            const customBg = localStorage.getItem('carbon-custom-bg');
+            const customBg = localStorage.getItem('carbon-custom-bg-global');
             
             if (customBg) {
                 body.style.background = `url(${customBg}) center/cover`;
@@ -1102,13 +1141,54 @@
         });
 
         // Theme selection
-        document.querySelectorAll('.theme-preview').forEach(preview => {
-            preview.addEventListener('click', function() {
-                document.querySelectorAll('.theme-preview').forEach(el => el.classList.remove('active'));
-                this.classList.add('active');
-                currentTheme = this.dataset.theme;
-                applyTheme(currentTheme);
-            });
+        document.addEventListener('click', function(e) {
+            // Handle theme preview clicks
+            if (e.target.closest('.theme-preview:not(.color-wheel-trigger)')) {
+                const preview = e.target.closest('.theme-preview');
+                const themeName = preview.dataset.theme;
+                
+                if (themeName) {
+                    document.querySelectorAll('.theme-preview').forEach(el => el.classList.remove('active'));
+                    preview.classList.add('active');
+                    currentTheme = themeName;
+                    applyTheme(currentTheme);
+                }
+            }
+            
+            // Handle color wheel trigger
+            if (e.target.closest('.color-wheel-trigger')) {
+                const container = document.getElementById('color-wheel-container');
+                container.classList.remove('hidden');
+                container.innerHTML = '';
+                
+                window.carbonTheme.createColorWheel(container, (themeName, theme) => {
+                    container.classList.add('hidden');
+                    loadCustomThemes();
+                    // Select the new theme
+                    currentTheme = themeName;
+                    document.querySelectorAll('.theme-preview').forEach(el => el.classList.remove('active'));
+                    document.querySelector(`[data-theme="${themeName}"]`)?.classList.add('active');
+                });
+            }
+            
+            // Handle custom theme deletion
+            if (e.target.closest('.delete-custom-theme')) {
+                e.stopPropagation();
+                const themeName = e.target.closest('.delete-custom-theme').dataset.theme;
+                
+                if (confirm(`Delete custom theme "${themeName}"?`)) {
+                    window.carbonTheme.deleteCustomTheme(themeName);
+                    loadCustomThemes();
+                    
+                    // If deleted theme was active, switch to default
+                    if (currentTheme === themeName) {
+                        currentTheme = 'rose-pine';
+                        applyTheme(currentTheme);
+                        document.querySelectorAll('.theme-preview').forEach(el => el.classList.remove('active'));
+                        document.querySelector(`[data-theme="rose-pine"]`)?.classList.add('active');
+                    }
+                }
+            }
         });
 
         // Background selection
@@ -1132,7 +1212,7 @@
                 const reader = new FileReader();
                 reader.onload = function(e) {
                     const dataUrl = e.target.result;
-                    localStorage.setItem('carbon-custom-bg', dataUrl);
+                    localStorage.setItem('carbon-custom-bg-global', dataUrl);
                     showCustomBgPreview(dataUrl);
                     applyBackground();
                 };
@@ -1148,7 +1228,7 @@
         }
 
         document.getElementById('remove-bg').addEventListener('click', function() {
-            localStorage.removeItem('carbon-custom-bg');
+            localStorage.removeItem('carbon-custom-bg-global');
             document.getElementById('custom-bg-preview').classList.add('hidden');
             applyBackground();
         });
