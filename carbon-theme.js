@@ -140,6 +140,159 @@ class CarbonTheme {
                 highlightLow: '#21222c',
                 highlightMed: '#44475a',
                 highlightHigh: '#6272a4'
+            },
+            'cyberpunk': {
+                base: '#0a0a0a',
+                surface: '#1a1a2e',
+                overlay: '#16213e',
+                muted: '#533483',
+                subtle: '#e94560',
+                text: '#ffffff',
+                love: '#ff0080',
+                gold: '#ffff00',
+                rose: '#ff8c00',
+                pine: '#00ff80',
+                foam: '#00ffff',
+                iris: '#8000ff',
+                highlightLow: '#0f0f23',
+                highlightMed: '#1a1a2e',
+                highlightHigh: '#16213e'
+            },
+            'sunset': {
+                base: '#2d1b69',
+                surface: '#11052c',
+                overlay: '#3c096c',
+                muted: '#5a189a',
+                subtle: '#7b2cbf',
+                text: '#ffffff',
+                love: '#f72585',
+                gold: '#f9844a',
+                rose: '#ff9500',
+                pine: '#06ffa5',
+                foam: '#40e0d0',
+                iris: '#c77dff',
+                highlightLow: '#240046',
+                highlightMed: '#3c096c',
+                highlightHigh: '#5a189a'
+            },
+            'ocean': {
+                base: '#001845',
+                surface: '#003d82',
+                overlay: '#0353a4',
+                muted: '#457b9d',
+                subtle: '#f1faee',
+                text: '#ffffff',
+                love: '#e63946',
+                gold: '#f77f00',
+                rose: '#fcbf49',
+                pine: '#38a3a5',
+                foam: '#57cc99',
+                iris: '#80b918',
+                highlightLow: '#001233',
+                highlightMed: '#023047',
+                highlightHigh: '#219ebc'
+            },
+            'forest': {
+                base: '#1b4332',
+                surface: '#2d5016',
+                overlay: '#3e7317',
+                muted: '#4c956c',
+                subtle: '#a7c957',
+                text: '#ffffff',
+                love: '#f77f00',
+                gold: '#fcbf49',
+                rose: '#eae2b7',
+                pine: '#2f9b69',
+                foam: '#4c956c',
+                iris: '#a7c957',
+                highlightLow: '#081c15',
+                highlightMed: '#1b4332',
+                highlightHigh: '#2d5016'
+            },
+            'neon': {
+                base: '#0c0c0c',
+                surface: '#1a1a1a',
+                overlay: '#2d2d2d',
+                muted: '#4a4a4a',
+                subtle: '#ffffff',
+                text: '#ffffff',
+                love: '#ff073a',
+                gold: '#ffff00',
+                rose: '#ff6b35',
+                pine: '#39ff14',
+                foam: '#00ffff',
+                iris: '#bf40bf',
+                highlightLow: '#0f0f0f',
+                highlightMed: '#1f1f1f',
+                highlightHigh: '#2f2f2f'
+            },
+            'vintage': {
+                base: '#2c1810',
+                surface: '#3e2723',
+                overlay: '#5d4037',
+                muted: '#795548',
+                subtle: '#bcaaa4',
+                text: '#efebe9',
+                love: '#d32f2f',
+                gold: '#f57c00',
+                rose: '#ff5722',
+                pine: '#388e3c',
+                foam: '#0097a7',
+                iris: '#7b1fa2',
+                highlightLow: '#1e0e08',
+                highlightMed: '#3e2723',
+                highlightHigh: '#5d4037'
+            },
+            'midnight': {
+                base: '#0d1117',
+                surface: '#161b22',
+                overlay: '#21262d',
+                muted: '#484f58',
+                subtle: '#b1bac4',
+                text: '#f0f6fc',
+                love: '#f85149',
+                gold: '#d29922',
+                rose: '#ff8700',
+                pine: '#56d364',
+                foam: '#79c0ff',
+                iris: '#a5a5ff',
+                highlightLow: '#0d1117',
+                highlightMed: '#161b22',
+                highlightHigh: '#21262d'
+            },
+            'aurora': {
+                base: '#2e1065',
+                surface: '#3730a3',
+                overlay: '#4338ca',
+                muted: '#6366f1',
+                subtle: '#c7d2fe',
+                text: '#ffffff',
+                love: '#f43f5e',
+                gold: '#eab308',
+                rose: '#f97316',
+                pine: '#22c55e',
+                foam: '#06b6d4',
+                iris: '#8b5cf6',
+                highlightLow: '#1e1b4b',
+                highlightMed: '#312e81',
+                highlightHigh: '#3730a3'
+            },
+            'cherry-blossom': {
+                base: '#4a1c40',
+                surface: '#6b2c5c',
+                overlay: '#8b3a5c',
+                muted: '#a04668',
+                subtle: '#d4a5a5',
+                text: '#ffffff',
+                love: '#ff6b9d',
+                gold: '#ffb347',
+                rose: '#ffcccb',
+                pine: '#90ee90',
+                foam: '#add8e6',
+                iris: '#dda0dd',
+                highlightLow: '#2c1a2b',
+                highlightMed: '#4a1c40',
+                highlightHigh: '#6b2c5c'
             }
         };
         
@@ -159,6 +312,16 @@ class CarbonTheme {
         setTimeout(() => {
             this.applyTheme(this.currentTheme);
         }, 50);
+        
+        // Listen for Firebase auth state changes to sync themes
+        if (typeof firebase !== 'undefined' && firebase.auth) {
+            firebase.auth().onAuthStateChanged((user) => {
+                if (user) {
+                    // Load themes from Firebase when user signs in
+                    this.loadThemesFromFirebase();
+                }
+            });
+        }
         
         // Listen for theme changes from other windows/tabs
         window.addEventListener('message', (event) => {
@@ -209,14 +372,55 @@ class CarbonTheme {
         // Broadcast the theme change
         this.broadcastThemeChange(name, theme);
         
+        // Sync to Firebase if available
+        this.syncThemesToFirebase();
+        
         return theme;
+    }
+    
+    async syncThemesToFirebase() {
+        // Check if Firebase is available and user is authenticated
+        if (typeof firebase !== 'undefined' && firebase.auth && firebase.auth().currentUser) {
+            try {
+                const user = firebase.auth().currentUser;
+                const db = firebase.firestore();
+                
+                await db.collection('users').doc(user.uid).set({
+                    customThemes: this.customThemes,
+                    lastThemeSync: firebase.firestore.FieldValue.serverTimestamp()
+                }, { merge: true });
+                
+                console.log('Custom themes synced to Firebase');
+            } catch (error) {
+                console.error('Error syncing themes to Firebase:', error);
+            }
+        }
+    }
+    
+    async loadThemesFromFirebase() {
+        // Check if Firebase is available and user is authenticated
+        if (typeof firebase !== 'undefined' && firebase.auth && firebase.auth().currentUser) {
+            try {
+                const user = firebase.auth().currentUser;
+                const db = firebase.firestore();
+                
+                const doc = await db.collection('users').doc(user.uid).get();
+                if (doc.exists && doc.data().customThemes) {
+                    this.customThemes = doc.data().customThemes;
+                    this.saveCustomThemes();
+                    console.log('Custom themes loaded from Firebase');
+                }
+            } catch (error) {
+                console.error('Error loading themes from Firebase:', error);
+            }
+        }
     }
 
     generateThemeFromColor(hexColor) {
         const hsl = this.hexToHsl(hexColor);
         const isDark = hsl.l < 0.5;
         
-        // Generate a complete theme palette from the base color
+        // Generate a complete theme palette from the base color using advanced color theory
         const theme = {
             base: this.adjustColor(hexColor, isDark ? 0 : -0.4, isDark ? 0 : -0.1),
             surface: this.adjustColor(hexColor, isDark ? 0.05 : -0.35, isDark ? 0.05 : -0.08),
@@ -224,18 +428,52 @@ class CarbonTheme {
             muted: this.adjustColor(hexColor, isDark ? 0.15 : -0.15, isDark ? 0.2 : 0.1),
             subtle: this.adjustColor(hexColor, isDark ? 0.25 : -0.05, isDark ? 0.35 : 0.2),
             text: isDark ? '#ffffff' : '#000000',
-            love: this.adjustColor(hexColor, 0.3, 0.1, 15), // Shift hue slightly
-            gold: this.adjustColor(hexColor, 0.2, 0.15, 45),
-            rose: this.adjustColor(hexColor, 0.25, 0.2, 30),
-            pine: this.adjustColor(hexColor, 0.1, 0.05, -60),
-            foam: this.adjustColor(hexColor, 0.3, 0.25, -30),
-            iris: this.adjustColor(hexColor, 0.2, 0.3, 60),
+            // Use complementary and triadic color schemes for better harmony
+            love: this.generateHarmoniousColor(hexColor, 'complementary', 0.1, 0.1), // Complementary
+            gold: this.generateHarmoniousColor(hexColor, 'triadic', 0.2, 0.15), // Triadic
+            rose: this.generateHarmoniousColor(hexColor, 'analogous', 0.25, 0.2), // Analogous
+            pine: this.generateHarmoniousColor(hexColor, 'split-complementary', 0.1, 0.05), // Split-complementary
+            foam: this.generateHarmoniousColor(hexColor, 'tetradic', 0.3, 0.25), // Tetradic
+            iris: this.generateHarmoniousColor(hexColor, 'monochromatic', 0.2, 0.3), // Monochromatic
             highlightLow: this.adjustColor(hexColor, isDark ? 0.02 : -0.38, isDark ? 0.02 : -0.12),
             highlightMed: this.adjustColor(hexColor, isDark ? 0.08 : -0.2, isDark ? 0.15 : 0.05),
             highlightHigh: this.adjustColor(hexColor, isDark ? 0.15 : -0.1, isDark ? 0.25 : 0.15)
         };
         
         return theme;
+    }
+    
+    generateHarmoniousColor(baseColor, harmonyType, lightness = 0, saturation = 0) {
+        const hsl = this.hexToHsl(baseColor);
+        let newHue = hsl.h;
+        
+        switch (harmonyType) {
+            case 'complementary':
+                newHue = (hsl.h + 0.5) % 1;
+                break;
+            case 'triadic':
+                newHue = (hsl.h + 0.333) % 1;
+                break;
+            case 'analogous':
+                newHue = (hsl.h + 0.083) % 1; // 30 degrees
+                break;
+            case 'split-complementary':
+                newHue = (hsl.h + 0.417) % 1; // 150 degrees
+                break;
+            case 'tetradic':
+                newHue = (hsl.h + 0.25) % 1; // 90 degrees
+                break;
+            case 'monochromatic':
+                newHue = hsl.h; // Same hue, different lightness/saturation
+                break;
+            default:
+                newHue = hsl.h;
+        }
+        
+        const newSaturation = Math.max(0, Math.min(1, hsl.s + saturation));
+        const newLightness = Math.max(0, Math.min(1, hsl.l + lightness));
+        
+        return this.hslToHex(newHue, newSaturation, newLightness);
     }
 
     hexToHsl(hex) {
@@ -513,6 +751,9 @@ class CarbonTheme {
             if (this.currentTheme === themeName) {
                 this.applyTheme('rose-pine');
             }
+            
+            // Sync to Firebase if available
+            this.syncThemesToFirebase();
         }
     }
 
