@@ -5,123 +5,200 @@
   <title>Your Profile - CARBON</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
   <!-- Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            'rp-base': '#191724',
+            'rp-surface': '#1f1d2e',
+            'rp-overlay': '#26233a',
+            'rp-muted': '#6e6a86',
+            'rp-subtle': '#908caa',
+            'rp-text': '#e0def4',
+            'rp-love': '#eb6f92',
+            'rp-gold': '#f6c177',
+            'rp-rose': '#ebbcba',
+            'rp-pine': '#31748f',
+            'rp-foam': '#9ccfd8',
+            'rp-iris': '#c4a7e7',
+            'rp-highlight-low': '#21202e',
+            'rp-highlight-med': '#403d52',
+            'rp-highlight-high': '#524f67'
+          }
+        }
+      }
+    }
+  </script>
 </head>
-<body class="bg-gradient-to-br from-[#0f0f23] via-[#1a1a2e] to-[#16213e] min-h-screen text-white font-[Inter]">
+<body class="bg-rp-base min-h-screen text-rp-text font-[Inter] antialiased">
 
   <!-- Navbar -->
-  <nav class="flex items-center justify-between px-8 py-4 bg-[#0f0f23cc] border-b border-white/10 backdrop-blur-md fixed top-0 left-0 right-0 z-50">
-    <a href="index.html" class="text-2xl font-extrabold bg-gradient-to-r from-cyan-400 to-indigo-500 bg-clip-text text-transparent tracking-tighter">CARBON</a>
+  <nav class="flex items-center justify-between px-6 py-4 bg-rp-surface/80 border-b border-rp-overlay backdrop-blur-sm fixed top-0 left-0 right-0 z-50">
+    <a href="index.html" class="text-xl font-bold text-rp-foam tracking-tight">CARBON</a>
     <div class="flex items-center gap-4">
       <div id="userSection"></div>
     </div>
   </nav>
 
   <!-- LOGIN SCREEN -->
-  <div id="loginScreen" class="flex flex-col items-center justify-center h-screen w-full bg-gradient-to-br from-[#0f0f23] via-[#1a1a2e] to-[#16213e] fixed left-0 top-0 z-50">
-    <div class="bg-[#1a1a2e] rounded-2xl shadow-2xl p-12 border border-cyan-600/30 flex flex-col items-center">
-      <div class="text-3xl font-bold bg-gradient-to-r from-cyan-400 to-indigo-500 bg-clip-text text-transparent mb-6">Sign In to View Profile</div>
-      <button onclick="googleSignIn()" class="flex items-center gap-3 bg-cyan-500 hover:bg-cyan-400 text-black font-bold px-6 py-3 rounded-lg text-lg transition">
-        <i class='bx bxl-google text-2xl'></i> Sign in with Google
+  <div id="loginScreen" class="flex flex-col items-center justify-center h-screen w-full bg-rp-base fixed left-0 top-0 z-50">
+    <div class="bg-rp-surface rounded-xl shadow-2xl p-8 border border-rp-overlay max-w-md w-full mx-4">
+      <div class="text-center mb-8">
+        <h1 class="text-2xl font-bold text-rp-foam mb-2">Welcome Back</h1>
+        <p class="text-rp-subtle">Sign in to view your profile</p>
+      </div>
+      <button onclick="googleSignIn()" class="w-full flex items-center justify-center gap-3 bg-rp-foam hover:bg-rp-foam/90 text-rp-base font-medium px-6 py-3 rounded-lg transition-all duration-200">
+        <i class='bx bxl-google text-xl'></i>
+        Continue with Google
       </button>
-      <div id="loginError" class="text-pink-400 mt-6 hidden"></div>
+      <div id="loginError" class="text-rp-love mt-4 text-sm text-center hidden"></div>
     </div>
   </div>
 
-  <main class="pt-28 max-w-5xl mx-auto px-4">
+  <main class="pt-20 pb-12 max-w-4xl mx-auto px-4">
     <!-- PRIVATE PROFILE -->
     <div id="profileContent" class="hidden">
-      <div class="mb-12 text-center">
-        <img id="profilePhoto" class="w-20 h-20 rounded-full mx-auto mb-4 border-4 border-cyan-400 shadow" src="" alt="Profile Photo">
-        <div id="profileName" class="text-3xl font-extrabold text-cyan-300 mb-1"></div>
-        <div id="profileEmail" class="text-white/70"></div>
-        <!-- Public Profile Link Section -->
-        <div class="mt-6 flex flex-col items-center">
-          <div class="flex items-center gap-2">
-            <input id="publicProfileLink" type="text" class="w-[350px] max-w-full px-3 py-2 rounded bg-white/10 border border-cyan-400 text-white text-sm font-mono select-all" readonly>
-            <button id="copyProfileLinkBtn" class="bg-cyan-500 hover:bg-cyan-400 text-black font-bold px-3 py-2 rounded transition flex items-center gap-1">
+      <!-- Profile Header -->
+      <div class="bg-rp-surface rounded-xl p-6 mb-8 border border-rp-overlay">
+        <div class="flex flex-col sm:flex-row items-center gap-6">
+          <img id="profilePhoto" class="w-16 h-16 rounded-full ring-2 ring-rp-foam/50" src="" alt="Profile Photo">
+          <div class="flex-1 text-center sm:text-left">
+            <h1 id="profileName" class="text-2xl font-bold text-rp-text mb-1"></h1>
+            <p id="profileEmail" class="text-rp-subtle text-sm"></p>
+          </div>
+          <button onclick="signOut()" class="text-rp-subtle hover:text-rp-love transition-colors text-sm">
+            Sign Out
+          </button>
+        </div>
+        
+        <!-- Public Profile Link -->
+        <div class="mt-6 pt-6 border-t border-rp-overlay">
+          <label class="block text-sm font-medium text-rp-text mb-2">Your Public Profile</label>
+          <div class="flex gap-2">
+            <input id="publicProfileLink" type="text" class="flex-1 px-3 py-2 bg-rp-overlay border border-rp-highlight-med rounded-lg text-rp-text text-sm font-mono focus:outline-none focus:ring-2 focus:ring-rp-foam/50" readonly>
+            <button id="copyProfileLinkBtn" class="px-4 py-2 bg-rp-foam hover:bg-rp-foam/90 text-rp-base rounded-lg transition-colors">
               <i class='bx bx-copy'></i>
-              Copy
             </button>
           </div>
-          <div id="copyFeedback" class="text-green-400 mt-2 text-sm opacity-0 transition-opacity duration-300">Copied!</div>
-          <div class="text-xs text-white/60 mt-1">Share your public profile link</div>
+          <div id="copyFeedback" class="text-rp-foam mt-2 text-sm opacity-0 transition-opacity duration-300">Copied to clipboard!</div>
         </div>
-        <button onclick="signOut()" class="mt-5 bg-white/10 px-4 py-2 rounded hover:bg-pink-600 text-white">Sign Out</button>
       </div>
-      <!-- Recent Games Section -->
-      <div id="recentGamesContainer" class="mb-12">
-        <h2 class="text-2xl font-bold mb-4 bg-gradient-to-r from-yellow-300 to-cyan-400 bg-clip-text text-transparent">Recently Played</h2>
-        <div id="recentGamesList" class="grid gap-4"></div>
+
+      <!-- Recent Games -->
+      <div id="recentGamesContainer" class="mb-8">
+        <h2 class="text-xl font-semibold text-rp-text mb-4 flex items-center gap-2">
+          <i class='bx bx-time text-rp-gold'></i>
+          Recently Played
+        </h2>
+        <div id="recentGamesList" class="space-y-3"></div>
       </div>
-      <div class="grid md:grid-cols-2 gap-12">
+
+      <!-- Games Grid -->
+      <div class="grid lg:grid-cols-2 gap-8 mb-8">
         <!-- Favorite Games -->
         <div>
-          <h2 class="text-2xl font-bold mb-4 bg-gradient-to-r from-pink-400 to-pink-600 bg-clip-text text-transparent">Favorite Games</h2>
-          <div id="favoriteGamesList" class="grid gap-4"></div>
+          <h2 class="text-xl font-semibold text-rp-text mb-4 flex items-center gap-2">
+            <i class='bx bx-heart text-rp-love'></i>
+            Favorite Games
+          </h2>
+          <div id="favoriteGamesList" class="space-y-3"></div>
         </div>
+
         <!-- Liked Games -->
         <div>
-          <h2 class="text-2xl font-bold mb-4 bg-gradient-to-r from-cyan-400 to-indigo-500 bg-clip-text text-transparent">Liked Games</h2>
-          <div id="likedGamesList" class="grid gap-4"></div>
+          <h2 class="text-xl font-semibold text-rp-text mb-4 flex items-center gap-2">
+            <i class='bx bx-like text-rp-iris'></i>
+            Liked Games
+          </h2>
+          <div id="likedGamesList" class="space-y-3"></div>
         </div>
       </div>
-      <!-- User Activity Feed Section -->
-      <div id="activityFeedSection" class="mb-12 animate-[fadeInUp_1s_ease-out_0.7s_both]">
-        <h2 class="text-2xl font-bold mb-6 bg-gradient-to-r from-cyan-400 to-indigo-500 bg-clip-text text-transparent flex items-center gap-3">
-          <i class='bx bx-activity text-green-400'></i>
-          Your Activity
+
+      <!-- Activity Feed -->
+      <div id="activityFeedSection" class="mb-8">
+        <h2 class="text-xl font-semibold text-rp-text mb-4 flex items-center gap-2">
+          <i class='bx bx-activity text-rp-pine'></i>
+          Recent Activity
         </h2>
-        <div id="activityFeed" class="bg-white/5 border border-white/10 rounded-2xl p-6 max-h-64 overflow-y-auto"></div>
+        <div class="bg-rp-surface rounded-xl border border-rp-overlay p-4">
+          <div id="activityFeed" class="max-h-64 overflow-y-auto"></div>
+        </div>
       </div>
     </div>
 
     <!-- PUBLIC PROFILE -->
     <div id="publicProfileContent" class="hidden">
-      <div class="mb-12 text-center">
-        <img id="publicProfilePhoto" class="w-20 h-20 rounded-full mx-auto mb-4 border-4 border-cyan-400 shadow" src="" alt="Profile Photo">
-        <div id="publicProfileName" class="text-3xl font-extrabold text-cyan-300 mb-1"></div>
-        <div id="publicProfileUsername" class="text-white/60 text-base"></div>
-        <div class="mt-4">
-          <input id="publicProfileUrl" type="text" class="w-[350px] max-w-full px-3 py-2 rounded bg-white/10 border border-cyan-400 text-white text-sm font-mono select-all" readonly>
-          <button id="copyPublicProfileUrlBtn" class="ml-2 bg-cyan-500 hover:bg-cyan-400 text-black font-bold px-3 py-2 rounded transition flex items-center gap-1">
-            <i class='bx bx-copy'></i>
-            Copy
-          </button>
-          <div id="copyPublicFeedback" class="text-green-400 mt-2 text-sm opacity-0 transition-opacity duration-300 text-center">Copied!</div>
-          <div class="text-xs text-white/60 mt-1">Copy this public profile link!</div>
+      <!-- Public Profile Header -->
+      <div class="bg-rp-surface rounded-xl p-6 mb-8 border border-rp-overlay">
+        <div class="flex flex-col sm:flex-row items-center gap-6">
+          <img id="publicProfilePhoto" class="w-16 h-16 rounded-full ring-2 ring-rp-foam/50" src="" alt="Profile Photo">
+          <div class="flex-1 text-center sm:text-left">
+            <h1 id="publicProfileName" class="text-2xl font-bold text-rp-text mb-1"></h1>
+            <p id="publicProfileUsername" class="text-rp-subtle text-sm"></p>
+          </div>
+        </div>
+        
+        <!-- Share Profile -->
+        <div class="mt-6 pt-6 border-t border-rp-overlay">
+          <label class="block text-sm font-medium text-rp-text mb-2">Share this profile</label>
+          <div class="flex gap-2">
+            <input id="publicProfileUrl" type="text" class="flex-1 px-3 py-2 bg-rp-overlay border border-rp-highlight-med rounded-lg text-rp-text text-sm font-mono focus:outline-none focus:ring-2 focus:ring-rp-foam/50" readonly>
+            <button id="copyPublicProfileUrlBtn" class="px-4 py-2 bg-rp-foam hover:bg-rp-foam/90 text-rp-base rounded-lg transition-colors">
+              <i class='bx bx-copy'></i>
+            </button>
+          </div>
+          <div id="copyPublicFeedback" class="text-rp-foam mt-2 text-sm opacity-0 transition-opacity duration-300">Copied to clipboard!</div>
         </div>
       </div>
-      <div id="publicRecentGamesContainer" class="mb-12">
-        <h2 class="text-2xl font-bold mb-4 bg-gradient-to-r from-yellow-300 to-cyan-400 bg-clip-text text-transparent">Recently Played</h2>
-        <div id="publicRecentGamesList" class="grid gap-4"></div>
+
+      <!-- Public Recent Games -->
+      <div id="publicRecentGamesContainer" class="mb-8">
+        <h2 class="text-xl font-semibold text-rp-text mb-4 flex items-center gap-2">
+          <i class='bx bx-time text-rp-gold'></i>
+          Recently Played
+        </h2>
+        <div id="publicRecentGamesList" class="space-y-3"></div>
       </div>
-      <div class="grid md:grid-cols-2 gap-12">
-        <!-- Favorite Games -->
+
+      <!-- Public Games Grid -->
+      <div class="grid lg:grid-cols-2 gap-8 mb-8">
+        <!-- Public Favorite Games -->
         <div>
-          <h2 class="text-2xl font-bold mb-4 bg-gradient-to-r from-pink-400 to-pink-600 bg-clip-text text-transparent">Favorite Games</h2>
-          <div id="publicFavoriteGamesList" class="grid gap-4"></div>
+          <h2 class="text-xl font-semibold text-rp-text mb-4 flex items-center gap-2">
+            <i class='bx bx-heart text-rp-love'></i>
+            Favorite Games
+          </h2>
+          <div id="publicFavoriteGamesList" class="space-y-3"></div>
         </div>
-        <!-- Liked Games -->
+
+        <!-- Public Liked Games -->
         <div>
-          <h2 class="text-2xl font-bold mb-4 bg-gradient-to-r from-cyan-400 to-indigo-500 bg-clip-text text-transparent">Liked Games</h2>
-          <div id="publicLikedGamesList" class="grid gap-4"></div>
+          <h2 class="text-xl font-semibold text-rp-text mb-4 flex items-center gap-2">
+            <i class='bx bx-like text-rp-iris'></i>
+            Liked Games
+          </h2>
+          <div id="publicLikedGamesList" class="space-y-3"></div>
         </div>
       </div>
-      <div id="publicActivityFeedSection" class="mb-12 animate-[fadeInUp_1s_ease-out_0.7s_both]">
-        <h2 class="text-2xl font-bold mb-6 bg-gradient-to-r from-cyan-400 to-indigo-500 bg-clip-text text-transparent flex items-center gap-3">
-          <i class='bx bx-activity text-green-400'></i>
+
+      <!-- Public Activity Feed -->
+      <div id="publicActivityFeedSection" class="mb-8">
+        <h2 class="text-xl font-semibold text-rp-text mb-4 flex items-center gap-2">
+          <i class='bx bx-activity text-rp-pine'></i>
           Recent Activity
         </h2>
-        <div id="publicActivityFeed" class="bg-white/5 border border-white/10 rounded-2xl p-6 max-h-64 overflow-y-auto"></div>
+        <div class="bg-rp-surface rounded-xl border border-rp-overlay p-4">
+          <div id="publicActivityFeed" class="max-h-64 overflow-y-auto"></div>
+        </div>
       </div>
     </div>
-    <!-- END PUBLIC PROFILE -->
   </main>
 
   <script>
@@ -178,7 +255,6 @@
       return null;
     }
 
-    // Ensures user doc exists with displayName for public profile
     async function ensureUserDoc(user) {
       const userRef = db.collection('users').doc(user.uid);
       const doc = await userRef.get();
@@ -193,7 +269,6 @@
           history: [],
         });
       } else {
-        // If displayName or photoURL is ever missing (legacy), update it
         let needsUpdate = false;
         const data = doc.data();
         const updateFields = {};
@@ -215,9 +290,10 @@
         section.innerHTML = '';
       } else {
         section.innerHTML = `
-          <img src="${user.photoURL}" class="w-8 h-8 rounded-full inline mr-2" title="${user.displayName}">
-          <span class="mr-3">${user.displayName}</span>
-          <button onclick="signOut()" class="bg-white/10 px-3 py-1 rounded hover:bg-pink-600 text-white">Sign Out</button>
+          <div class="flex items-center gap-3">
+            <img src="${user.photoURL}" class="w-8 h-8 rounded-full ring-1 ring-rp-foam/30">
+            <span class="text-rp-text font-medium">${user.displayName}</span>
+          </div>
         `;
       }
     }
@@ -225,7 +301,7 @@
     function renderGamesList(listId, gameIds, label) {
       const listEl = document.getElementById(listId);
       if (!Array.isArray(gameIds) || gameIds.length === 0) {
-        listEl.innerHTML = `<div class="text-white/50 italic">No ${label} yet.</div>`;
+        listEl.innerHTML = `<div class="text-rp-subtle text-sm italic py-4 text-center">No ${label} yet</div>`;
         return;
       }
       const seen = {};
@@ -240,21 +316,23 @@
         const game = gamesData.find(g => String(g.id) === String(id));
         if (!game) return '';
         return `
-          <a href="play.html?id=${game.id}" class="flex items-center gap-4 bg-white/5 border border-white/10 rounded-xl p-3 hover:border-cyan-400/40 transition group shadow-sm">
-            <div class="relative w-20 h-16 flex-shrink-0 rounded-lg overflow-hidden">
-              <img src="${game.image}" alt="${game.title}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
-            </div>
-            <div class="flex-1">
-              <div class="font-bold text-lg text-cyan-300">${game.title}</div>
-              <div class="text-sm text-white/70">${game.description}</div>
-              <div class="flex gap-2 mt-1 text-xs">
-                <span class="bg-cyan-400/20 text-cyan-300 px-2 py-0.5 rounded">${game.category}</span>
-                ${game.featured ? '<span class="bg-indigo-400/20 text-indigo-300 px-2 py-0.5 rounded">Featured</span>' : ''}
+          <a href="play.html?id=${game.id}" class="group block bg-rp-surface border border-rp-overlay rounded-lg p-4 hover:border-rp-foam/50 transition-all duration-200">
+            <div class="flex items-center gap-4">
+              <div class="w-16 h-12 flex-shrink-0 rounded-lg overflow-hidden bg-rp-overlay">
+                <img src="${game.image}" alt="${game.title}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+              </div>
+              <div class="flex-1 min-w-0">
+                <h3 class="font-medium text-rp-text truncate">${game.title}</h3>
+                <p class="text-sm text-rp-subtle truncate">${game.description}</p>
+                <div class="flex items-center gap-2 mt-1">
+                  <span class="text-xs px-2 py-1 bg-rp-foam/20 text-rp-foam rounded">${game.category}</span>
+                  ${game.featured ? '<span class="text-xs px-2 py-1 bg-rp-iris/20 text-rp-iris rounded">Featured</span>' : ''}
+                </div>
+              </div>
+              <div class="flex items-center text-rp-foam group-hover:text-rp-foam/80 transition-colors">
+                <i class='bx bx-play-circle text-xl'></i>
               </div>
             </div>
-            <button class="ml-auto px-5 py-2 rounded-lg bg-gradient-to-r from-cyan-400 to-indigo-500 text-black font-bold hover:scale-105 transition-transform">
-              Play
-            </button>
           </a>
         `;
       }).join('');
@@ -282,6 +360,7 @@
           return 'Unknown activity';
       }
     }
+
     function getActivityIcon(action) {
       switch (action) {
         case 'play':
@@ -300,6 +379,7 @@
           return 'bx-activity';
       }
     }
+
     function getTimeAgo(timestamp) {
       const now = Date.now();
       const diff = now - timestamp;
@@ -311,26 +391,30 @@
       if (minutes > 0) return `${minutes}m ago`;
       return 'Just now';
     }
+
     function renderActivityFeed(activities, feedId) {
       const feed = document.getElementById(feedId);
       if (!activities || activities.length === 0) {
-        feed.innerHTML = '<p class="text-white/60 text-center">No recent activity</p>';
+        feed.innerHTML = '<p class="text-rp-subtle text-sm text-center py-4">No recent activity</p>';
         return;
       }
       feed.innerHTML = activities.map(activity => {
         const timeAgo = getTimeAgo(activity.timestamp);
         const description = getActivityDescription(activity);
         return `
-          <div class="activity-item flex items-center gap-3 py-2 border-b border-white/10 last:border-0">
-            <i class='bx ${getActivityIcon(activity.action)} text-cyan-400'></i>
-            <div class="flex-1">
-              <p class="text-white/90 text-sm">${description}</p>
-              <p class="text-white/50 text-xs">${timeAgo}</p>
+          <div class="flex items-start gap-3 py-3 border-b border-rp-overlay last:border-0">
+            <div class="w-8 h-8 rounded-full bg-rp-overlay flex items-center justify-center flex-shrink-0">
+              <i class='bx ${getActivityIcon(activity.action)} text-rp-foam text-sm'></i>
+            </div>
+            <div class="flex-1 min-w-0">
+              <p class="text-rp-text text-sm">${description}</p>
+              <p class="text-rp-muted text-xs mt-1">${timeAgo}</p>
             </div>
           </div>
         `;
       }).join('');
     }
+
     async function loadActivityFeed(uid, feedId) {
       const doc = await db.collection('user-activity').doc(uid).get();
       if (doc.exists) {
@@ -350,7 +434,15 @@
       await loadGamesData();
       const userProfile = await getUserPublicProfile(uid);
       if (!userProfile || !userProfile.displayName) {
-        document.getElementById('publicProfileContent').innerHTML = `<div class="text-center text-xl text-pink-400 font-bold py-16">User not found</div>`;
+        document.getElementById('publicProfileContent').innerHTML = `
+          <div class="text-center py-16">
+            <div class="bg-rp-surface rounded-xl p-8 border border-rp-overlay">
+              <i class='bx bx-user-x text-4xl text-rp-muted mb-4'></i>
+              <h2 class="text-xl font-semibold text-rp-text mb-2">User not found</h2>
+              <p class="text-rp-subtle">This profile doesn't exist or has been removed.</p>
+            </div>
+          </div>
+        `;
         document.getElementById('publicProfileContent').classList.remove('hidden');
         return;
       }
@@ -361,7 +453,7 @@
       renderGamesList('publicFavoriteGamesList', userProfile.favoriteGames, 'favorite games');
       renderGamesList('publicLikedGamesList', userProfile.likedGames, 'liked games');
       await loadActivityFeed(uid, 'publicActivityFeed');
-      // Set public profile link and enable copy
+      
       const url = `${window.location.origin}${window.location.pathname}?uid=${encodeURIComponent(uid)}`;
       const urlInput = document.getElementById('publicProfileUrl');
       urlInput.value = url;
@@ -410,7 +502,7 @@
         renderGamesList('favoriteGamesList', lists.favoriteGames, 'favorite games');
         renderGamesList('likedGamesList', lists.likedGames, 'liked games');
         await loadActivityFeed(user.uid, 'activityFeed');
-        // Set public profile link and enable copy
+        
         const url = `${window.location.origin}${window.location.pathname}?uid=${encodeURIComponent(user.uid)}`;
         const linkInput = document.getElementById('publicProfileLink');
         linkInput.value = url;
@@ -426,7 +518,6 @@
         };
       });
     });
-
   </script>
 </body>
 </html>
