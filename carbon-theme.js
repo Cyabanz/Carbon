@@ -1,4 +1,4 @@
-// Carbon Theme System
+/ Carbon Theme System
 // Enhanced shared theme management for all Carbon pages with color wheel support
 
 class CarbonTheme {
