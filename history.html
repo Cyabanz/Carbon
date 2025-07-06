@@ -1,3 +1,4 @@
+
 <!doctype html>
 <html lang="en">
   <head>
@@ -35,6 +36,7 @@
         };
       }
     </script>
+
     <link rel="preconnect" href="https://unpkg.com" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://cdn.tailwindcss.com" />
@@ -45,124 +47,187 @@
       onload="setConfig()"
     ></script>
     <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap"
       rel="stylesheet"
     />
     <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet" />
-    <!-- Theme System -->
-    <script src="/carbon-theme.js"></script>
-    <!-- Firebase -->
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+
     <style>
+      body {
+        font-weight: 300;
+        letter-spacing: 0.01em;
+      }
+      
       .history-item {
-        background: #1f1d2e;
-        border: 1px solid #26233a;
-        border-radius: 0.5rem;
-        padding: 1rem;
+        background: rgba(31, 29, 46, 0.4);
+        border: 1px solid rgba(38, 35, 58, 0.6);
+        border-radius: 12px;
+        padding: 20px;
         cursor: pointer;
-        transition: all 0.3s ease;
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        backdrop-filter: blur(20px);
       }
+      
       .history-item:hover {
-        background: #26233a;
-        border-color: #9ccfd8;
-        transform: translateY(-1px);
-        box-shadow: 0 2px 8px rgba(156, 207, 216, 0.1);
+        background: rgba(38, 35, 58, 0.6);
+        border-color: rgba(156, 207, 216, 0.3);
+        transform: translateY(-2px);
+        box-shadow: 0 8px 32px rgba(156, 207, 216, 0.08);
       }
-      .search-container {
-        position: sticky;
-        top: 0;
-        background: rgba(25, 23, 36, 0.95);
-        backdrop-filter: blur(10px);
-        z-index: 10;
-        border-bottom: 1px solid #26233a;
+      
+      .search-bar {
+        background: rgba(31, 29, 46, 0.8);
+        border: 1px solid rgba(38, 35, 58, 0.8);
+        border-radius: 16px;
+        backdrop-filter: blur(20px);
+        transition: all 0.25s ease;
       }
+      
+      .search-bar:focus-within {
+        border-color: rgba(156, 207, 216, 0.5);
+        box-shadow: 0 0 0 3px rgba(156, 207, 216, 0.1);
+      }
+      
       .filter-tab {
-        padding: 0.5rem 1rem;
         background: transparent;
-        border: 1px solid #26233a;
-        border-radius: 0.5rem;
+        border: 1px solid rgba(38, 35, 58, 0.6);
+        border-radius: 10px;
+        padding: 8px 16px;
         color: #908caa;
+        font-size: 14px;
+        font-weight: 400;
         cursor: pointer;
-        transition: all 0.3s ease;
+        transition: all 0.2s ease;
         display: flex;
         align-items: center;
-        gap: 0.5rem;
-        font-size: 0.875rem;
+        gap: 6px;
       }
+      
       .filter-tab:hover {
-        background: #26233a;
+        background: rgba(38, 35, 58, 0.4);
         color: #e0def4;
       }
+      
       .filter-tab.active {
-        background: #9ccfd8;
-        color: #191724;
-        border-color: #9ccfd8;
+        background: rgba(156, 207, 216, 0.15);
+        border-color: rgba(156, 207, 216, 0.3);
+        color: #9ccfd8;
+      }
+      
+      .clear-btn {
+        background: rgba(235, 111, 146, 0.1);
+        border: 1px solid rgba(235, 111, 146, 0.3);
+        border-radius: 10px;
+        padding: 8px 16px;
+        color: #eb6f92;
+        font-size: 14px;
+        font-weight: 400;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      
+      .clear-btn:hover {
+        background: rgba(235, 111, 146, 0.2);
+        border-color: rgba(235, 111, 146, 0.5);
+      }
+      
+      .page-header {
+        background: linear-gradient(135deg, rgba(25, 23, 36, 0.95) 0%, rgba(31, 29, 46, 0.9) 100%);
+        backdrop-filter: blur(20px);
+        border-bottom: 1px solid rgba(38, 35, 58, 0.3);
+      }
+      
+      .glass-container {
+        background: rgba(31, 29, 46, 0.3);
+        border: 1px solid rgba(38, 35, 58, 0.5);
+        border-radius: 20px;
+        backdrop-filter: blur(20px);
       }
     </style>
   </head>
   <body class="font-inter bg-gradient-to-br from-base via-surface to-overlay min-h-screen text-text">
     <div class="min-h-screen">
-      <!-- Header -->
-      <header class="p-6 text-center">
-        <h1 class="text-4xl font-bold text-text mb-2 flex items-center justify-center gap-3">
-          <i class="bx bx-history text-iris"></i>
-          History
-        </h1>
-        <p class="text-muted text-sm">Your browsing history</p>
-      </header>
-      <!-- Search and Controls -->
-      <div class="search-container px-6 py-4">
-        <div class="max-w-4xl mx-auto">
-          <div class="flex items-center gap-4 mb-4">
-            <div class="flex-1 relative">
-              <i class="bx bx-search absolute left-3 top-1/2 transform -translate-y-1/2 text-muted"></i>
-              <input
-                id="history-search"
-                type="text"
-                placeholder="Search history..."
-                class="w-full pl-10 pr-4 py-2 bg-surface border border-overlay rounded-lg text-text focus:outline-none focus:ring-2 focus:ring-foam focus:border-foam placeholder-muted"
-              />
+      <!-- Clean Header -->
+      <header class="page-header sticky top-0 z-50 px-6 py-6">
+        <div class="max-w-5xl mx-auto">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-4">
+              <div class="w-10 h-10 rounded-full bg-gradient-to-br from-iris to-foam flex items-center justify-center">
+                <i class="bx bx-history text-base text-lg"></i>
+              </div>
+              <div>
+                <h1 class="text-2xl font-medium text-text">History</h1>
+                <p class="text-sm text-subtle">Your browsing activity</p>
+              </div>
             </div>
             <button
               id="clear-all-history"
-              class="px-4 py-2 bg-love hover:bg-love/80 text-white rounded-lg transition-colors flex items-center gap-2"
+              class="clear-btn"
             >
-              <i class="bx bx-trash"></i>
+              <i class="bx bx-trash text-sm"></i>
               Clear All
             </button>
           </div>
-          <!-- Filter Tabs -->
-          <div class="flex gap-2">
-            <button class="filter-tab active" data-filter="all">
-              <i class="bx bx-globe"></i>
-              All History
-            </button>
-            <button class="filter-tab" data-filter="today">
-              <i class="bx bx-calendar-day"></i>
-              Today
-            </button>
-            <button class="filter-tab" data-filter="week">
-              <i class="bx bx-calendar-week"></i>
-              This Week
-            </button>
-            <button class="filter-tab" data-filter="month">
-              <i class="bx bx-calendar"></i>
-              This Month
-            </button>
+        </div>
+      </header>
+
+      <!-- Search and Filters -->
+      <div class="px-6 py-8">
+        <div class="max-w-5xl mx-auto">
+          <div class="glass-container p-6 mb-8">
+            <div class="flex flex-col gap-6">
+              <!-- Search Bar -->
+              <div class="search-bar p-4">
+                <div class="flex items-center gap-3">
+                  <i class="bx bx-search text-subtle text-lg"></i>
+                  <input
+                    id="history-search"
+                    type="text"
+                    placeholder="Search your history..."
+                    class="flex-1 bg-transparent border-none outline-none text-text placeholder-subtle text-sm"
+                  />
+                </div>
+              </div>
+              
+              <!-- Filter Tabs -->
+              <div class="flex flex-wrap gap-3">
+                <button class="filter-tab active" data-filter="all">
+                  <i class="bx bx-globe text-xs"></i>
+                  All
+                </button>
+                <button class="filter-tab" data-filter="today">
+                  <i class="bx bx-calendar-day text-xs"></i>
+                  Today
+                </button>
+                <button class="filter-tab" data-filter="week">
+                  <i class="bx bx-calendar-week text-xs"></i>
+                  This Week
+                </button>
+                <button class="filter-tab" data-filter="month">
+                  <i class="bx bx-calendar text-xs"></i>
+                  This Month
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
+
       <!-- History Content -->
-      <main class="max-w-4xl mx-auto px-6 pb-6">
-        <div id="history-list" class="space-y-3">
+      <main class="max-w-5xl mx-auto px-6 pb-12">
+        <div id="history-list" class="space-y-4">
           <!-- History items will be populated here -->
         </div>
-        <div id="no-history" class="text-center py-12 hidden">
-          <i class="bx bx-history text-6xl text-muted mb-4"></i>
-          <h3 class="text-xl font-semibold text-text mb-2">No History Found</h3>
-          <p class="text-muted">Your browsing history will appear here as you navigate.</p>
+        
+        <div id="no-history" class="text-center py-16 hidden">
+          <div class="w-20 h-20 rounded-full bg-gradient-to-br from-overlay to-highlight-med flex items-center justify-center mx-auto mb-6">
+            <i class="bx bx-history text-3xl text-muted"></i>
+          </div>
+          <h3 class="text-lg font-medium text-text mb-2">No History Found</h3>
+          <p class="text-subtle text-sm">Your browsing history will appear here as you navigate.</p>
         </div>
       </main>
     </div>
