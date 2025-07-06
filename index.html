@@ -1,4 +1,4 @@
-<!doctype html>
+THIS SHOULD BE A LINTER ERROR<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -1564,7 +1564,7 @@
         localStorage.setItem("tabs-data", JSON.stringify(tabs));
       }
       
-      // Firebase sync for browser data AND all settings
+      // Enhanced Firebase sync for browser data AND all settings
       async function syncAllDataToFirebase() {
         if (!currentUser) return;
         
@@ -1574,10 +1574,36 @@
               id: tab.id,
               url: tab.history[tab.pointer] || 'carbon://newtab',
               title: tab.title || 'New Tab',
+              customTitle: tab.customTitle || null,
+              history: tab.history || [],
+              pointer: tab.pointer || 0,
+              groupId: tab.groupId || null,
+              pinned: tab.pinned || false,
+              locked: tab.locked || false,
+              color: tab.color || null,
+              notes: tab.notes || null,
               timestamp: Date.now()
             })),
-            history: JSON.parse(localStorage.getItem('carbon-history') || '[]'),
+            tabGroups: tabGroups.map(group => ({
+              id: group.id,
+              name: group.name,
+              color: group.color,
+              timestamp: Date.now()
+            })),
+            pinnedTabs: tabs.filter(tab => tab.pinned).map(tab => ({
+              id: tab.id,
+              url: tab.history[tab.pointer] || 'carbon://newtab',
+              title: tab.title || 'New Tab',
+              customTitle: tab.customTitle || null,
+              groupId: tab.groupId || null,
+              timestamp: Date.now()
+            })),
+            tabHistory: JSON.parse(localStorage.getItem('carbon-history') || '[]'),
+            tabSnapshots: JSON.parse(localStorage.getItem('carbon-tab-snapshots') || '[]'),
             bookmarks: JSON.parse(localStorage.getItem('carbon-bookmarks') || '[]'),
+            activeTabId: activeTab,
+            verticalTabsMode: verticalTabsMode,
+            tabBarHidden: tabBarHidden,
             lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
           };
           
@@ -1588,6 +1614,7 @@
             theme: localStorage.getItem('carbon-theme-global') || 'rose-pine',
             background: localStorage.getItem('carbon-background-global') || 'gradient',
             customBackground: localStorage.getItem('carbon-custom-bg-global') || '',
+            customThemes: JSON.parse(localStorage.getItem('carbon-custom-themes') || '{}'),
             cloakingEnabled: tabCloakingEnabled,
             cloakTitle: cloakTitle,
             cloakFavicon: cloakFavicon,
@@ -1609,9 +1636,121 @@
             lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
           }, { merge: true });
           
-          console.log('All data synced to Firebase successfully');
+          console.log('Enhanced data synced to Firebase successfully');
         } catch (error) {
           console.error('Error syncing data to Firebase:', error);
+        }
+      }
+      
+      // Enhanced function to restore all data from Firebase
+      async function restoreAllDataFromFirebase() {
+        if (!currentUser) return;
+        
+        try {
+          const doc = await db.collection('users').doc(currentUser.uid).get();
+          if (doc.exists) {
+            const data = doc.data();
+            
+            // Restore browser data
+            if (data.browserData) {
+              const browserData = data.browserData;
+              
+              // Restore tabs
+              if (browserData.tabs && browserData.tabs.length > 0) {
+                tabs = browserData.tabs.map(tabData => ({
+                  id: tabData.id,
+                  url: tabData.url,
+                  title: tabData.title,
+                  customTitle: tabData.customTitle,
+                  history: tabData.history || [tabData.url],
+                  pointer: tabData.pointer || 0,
+                  groupId: tabData.groupId,
+                  pinned: tabData.pinned || false,
+                  locked: tabData.locked || false,
+                  color: tabData.color,
+                  notes: tabData.notes
+                }));
+              }
+              
+              // Restore tab groups
+              if (browserData.tabGroups) {
+                tabGroups = browserData.tabGroups.map(groupData => ({
+                  id: groupData.id,
+                  name: groupData.name,
+                  color: groupData.color
+                }));
+                saveTabGroups();
+              }
+              
+              // Restore tab history
+              if (browserData.tabHistory) {
+                localStorage.setItem('carbon-history', JSON.stringify(browserData.tabHistory));
+              }
+              
+              // Restore tab snapshots
+              if (browserData.tabSnapshots) {
+                localStorage.setItem('carbon-tab-snapshots', JSON.stringify(browserData.tabSnapshots));
+              }
+              
+              // Restore bookmarks
+              if (browserData.bookmarks) {
+                localStorage.setItem('carbon-bookmarks', JSON.stringify(browserData.bookmarks));
+              }
+              
+              // Restore active tab
+              if (browserData.activeTabId) {
+                activeTab = browserData.activeTabId;
+              }
+              
+              // Restore vertical tabs mode
+              if (browserData.verticalTabsMode !== undefined) {
+                verticalTabsMode = browserData.verticalTabsMode;
+                localStorage.setItem("vertical-tabs-mode", verticalTabsMode);
+              }
+              
+              // Restore tab bar visibility
+              if (browserData.tabBarHidden !== undefined) {
+                tabBarHidden = browserData.tabBarHidden;
+                localStorage.setItem("tab-bar-hidden", tabBarHidden);
+              }
+            }
+            
+            // Restore settings
+            if (data.settings) {
+              const settings = data.settings;
+              
+              if (settings.panicKey) panicKey = settings.panicKey;
+              if (settings.panicUrl) localStorage.setItem('carbon-panic-url', settings.panicUrl);
+              if (settings.theme) localStorage.setItem('carbon-theme-global', settings.theme);
+              if (settings.background) localStorage.setItem('carbon-background-global', settings.background);
+              if (settings.customBackground) localStorage.setItem('carbon-custom-bg-global', settings.customBackground);
+              if (settings.customThemes) localStorage.setItem('carbon-custom-themes', JSON.stringify(settings.customThemes));
+              
+              if (settings.cloakingEnabled !== undefined) tabCloakingEnabled = settings.cloakingEnabled;
+              if (settings.cloakTitle) cloakTitle = settings.cloakTitle;
+              if (settings.cloakFavicon) cloakFavicon = settings.cloakFavicon;
+              
+              // Restore all boolean settings
+              if (settings.fullscreenEnabled !== undefined) localStorage.setItem('carbon-fullscreen-enabled', settings.fullscreenEnabled);
+              if (settings.closePreventionEnabled !== undefined) localStorage.setItem('carbon-close-prevention', settings.closePreventionEnabled);
+              if (settings.confirmClose !== undefined) localStorage.setItem('carbon-confirm-close', settings.confirmClose);
+              if (settings.closeMessage) localStorage.setItem('carbon-close-message', settings.closeMessage);
+              if (settings.disableRightClick !== undefined) localStorage.setItem('carbon-disable-right-click', settings.disableRightClick);
+              if (settings.disableDevtools !== undefined) localStorage.setItem('carbon-disable-devtools', settings.disableDevtools);
+              if (settings.disableSelect !== undefined) localStorage.setItem('carbon-disable-select', settings.disableSelect);
+              if (settings.hideCursor !== undefined) localStorage.setItem('carbon-hide-cursor', settings.hideCursor);
+              if (settings.blurOnUnfocus !== undefined) localStorage.setItem('carbon-blur-unfocus', settings.blurOnUnfocus);
+            }
+            
+            // Re-render everything
+            renderTabs();
+            saveTabsData();
+            applyAllSettings();
+            
+            console.log('All data restored from Firebase successfully');
+          }
+        } catch (error) {
+          console.error('Error restoring data from Firebase:', error);
         }
       }
       
@@ -2093,10 +2232,106 @@
         }
       };
       function takeTabsSnapshot() {
+        const snapshot = {
+          tabs: tabs.map(tab => ({
+            id: tab.id,
+            url: tab.history[tab.pointer] || 'carbon://newtab',
+            title: tab.title || 'New Tab',
+            customTitle: tab.customTitle || null,
+            history: tab.history || [],
+            pointer: tab.pointer || 0,
+            groupId: tab.groupId || null,
+            pinned: tab.pinned || false,
+            locked: tab.locked || false,
+            color: tab.color || null,
+            notes: tab.notes || null,
+            timestamp: Date.now()
+          })),
+          tabGroups: tabGroups.map(group => ({
+            id: group.id,
+            name: group.name,
+            color: group.color
+          })),
+          activeTabId: activeTab,
+          verticalTabsMode: verticalTabsMode,
+          tabBarHidden: tabBarHidden,
+          timestamp: Date.now(),
+          sessionId: Date.now() + Math.random().toString(36).substr(2, 9)
+        };
+        
+        // Store in legacy format for backward compatibility
         closedTabsSnapshot = JSON.parse(JSON.stringify(tabs));
         localStorage.setItem("last-tabs", JSON.stringify(closedTabsSnapshot));
+        
+        // Store enhanced snapshot
+        const snapshots = JSON.parse(localStorage.getItem('carbon-tab-snapshots') || '[]');
+        snapshots.unshift(snapshot);
+        if (snapshots.length > 20) snapshots.pop(); // Keep more snapshots
+        localStorage.setItem('carbon-tab-snapshots', JSON.stringify(snapshots));
+        
+        // Also sync to Firebase if user is authenticated
+        if (currentUser) {
+          syncAllDataToFirebase();
+        }
       }
+      
       function restoreTabsFromSnapshot() {
+        // Try enhanced snapshots first
+        const snapshots = JSON.parse(localStorage.getItem('carbon-tab-snapshots') || '[]');
+        if (snapshots.length > 0) {
+          const snapshot = snapshots.shift();
+          localStorage.setItem('carbon-tab-snapshots', JSON.stringify(snapshots));
+          
+          // Close all current tabs
+          tabs.forEach(tab => {
+            const iframe = document.getElementById(`iframe-${tab.id}`);
+            if (iframe) iframe.remove();
+          });
+          
+          // Restore tabs from snapshot with full data
+          tabs = snapshot.tabs.map(tabData => ({
+            id: tabData.id,
+            url: tabData.url,
+            title: tabData.title,
+            customTitle: tabData.customTitle,
+            history: tabData.history || [tabData.url],
+            pointer: tabData.pointer || 0,
+            groupId: tabData.groupId,
+            pinned: tabData.pinned || false,
+            locked: tabData.locked || false,
+            color: tabData.color,
+            notes: tabData.notes
+          }));
+          
+          // Restore tab groups
+          if (snapshot.tabGroups) {
+            tabGroups = snapshot.tabGroups.map(groupData => ({
+              id: groupData.id,
+              name: groupData.name,
+              color: groupData.color
+            }));
+            saveTabGroups();
+          }
+          
+          // Restore UI state
+          activeTab = snapshot.activeTabId;
+          if (snapshot.verticalTabsMode !== undefined) {
+            verticalTabsMode = snapshot.verticalTabsMode;
+            localStorage.setItem("vertical-tabs-mode", verticalTabsMode);
+          }
+          if (snapshot.tabBarHidden !== undefined) {
+            tabBarHidden = snapshot.tabBarHidden;
+            localStorage.setItem("tab-bar-hidden", tabBarHidden);
+          }
+          
+          renderTabs();
+          saveTabsData();
+          
+          alert(`Tabs restored from snapshot (${new Date(snapshot.timestamp).toLocaleString()}).`);
+          return;
+        }
+        
+        // Fall back to legacy snapshot format
         let fromLS = localStorage.getItem("last-tabs");
         let snapshot = closedTabsSnapshot.length
           ? closedTabsSnapshot
@@ -2104,6 +2339,7 @@
             ? JSON.parse(fromLS)
             : [];
         if (!snapshot.length) return;
+        
         tabs = snapshot.map((tab) => ({
           ...tab,
           id: "tab-" + tabIdCounter++,
@@ -2114,6 +2350,54 @@
         setActiveTab(activeTab);
         closedTabsSnapshot = [];
         localStorage.removeItem("last-tabs");
+      }
+      
+      // Enhanced restore function for Firebase data
+      async function restoreTabsFromFirebase() {
+        if (!currentUser) {
+          alert('Please sign in to restore tabs from cloud.');
+          return;
+        }
+        
+        try {
+          await restoreAllDataFromFirebase();
+          alert('Tabs and settings restored from cloud successfully!');
+        } catch (error) {
+          console.error('Error restoring from Firebase:', error);
+          alert('Failed to restore from cloud. Please try again.');
+        }
+      }
+      
+      // Function to show restore options
+      function showRestoreOptions() {
+        const localSnapshots = JSON.parse(localStorage.getItem('carbon-tab-snapshots') || '[]');
+        const hasFirebaseData = currentUser !== null;
+        
+        let message = 'Choose restore option:\n\n';
+        
+        if (localSnapshots.length > 0) {
+          message += `1. Restore from local snapshot (${localSnapshots.length} available)\n`;
+          message += `   Latest: ${new Date(localSnapshots[0].timestamp).toLocaleString()}\n\n`;
+        }
+        
+        if (hasFirebaseData) {
+          message += '2. Restore from cloud backup\n\n';
+        }
+        
+        if (localSnapshots.length === 0 && !hasFirebaseData) {
+          alert('No snapshots or cloud backup available to restore.');
+          return;
+        }
+        
+        const choice = prompt(message + 'Enter your choice (1 or 2):');
+        
+        if (choice === '1' && localSnapshots.length > 0) {
+          restoreTabsFromSnapshot();
+        } else if (choice === '2' && hasFirebaseData) {
+          restoreTabsFromFirebase();
+        } else {
+          alert('Invalid choice or option not available.');
+        }
       }
       const menuBtn = document.getElementById("menu-btn");
       const dropdown = document.getElementById("dropdown-menu");
