@@ -472,6 +472,39 @@
                       <span>Restore Tabs</span>
                     </button>
 
+                    <!-- Carbon Pages -->
+                    <div class="px-3 py-1 text-xs font-medium text-muted uppercase tracking-wide border-b border-highlight-med mb-2 mt-3">
+                      Carbon Pages
+                    </div>
+                    <button
+                      id="carbon-account-btn"
+                      class="w-full flex items-center gap-3 px-3 py-2 text-text hover:bg-highlight-med transition-colors text-sm"
+                    >
+                      <i class="bx bx-user text-foam"></i>
+                      <span>Account Profile</span>
+                    </button>
+                    <button
+                      id="carbon-settings-btn"
+                      class="w-full flex items-center gap-3 px-3 py-2 text-text hover:bg-highlight-med transition-colors text-sm"
+                    >
+                      <i class="bx bx-cog text-iris"></i>
+                      <span>Settings</span>
+                    </button>
+                    <button
+                      id="carbon-games-btn"
+                      class="w-full flex items-center gap-3 px-3 py-2 text-text hover:bg-highlight-med transition-colors text-sm"
+                    >
+                      <i class="bx bx-game text-gold"></i>
+                      <span>Games</span>
+                    </button>
+                    <button
+                      id="carbon-ai-btn"
+                      class="w-full flex items-center gap-3 px-3 py-2 text-text hover:bg-highlight-med transition-colors text-sm"
+                    >
+                      <i class="bx bx-brain text-rose"></i>
+                      <span>AI Assistant</span>
+                    </button>
+
                     <!-- Settings -->
                     <div class="px-3 py-1 text-xs font-medium text-muted uppercase tracking-wide border-b border-highlight-med mb-2 mt-3">
                       Settings
@@ -1269,6 +1302,9 @@
               } else if (url === "carbon://games") {
                 iframe.src = "/games.html";
                 iframe.dataset.loadedUrl = url;
+              } else if (url === "carbon://ai") {
+                iframe.src = "/ai.html";
+                iframe.dataset.loadedUrl = url;
               }
               return;
             }
@@ -2044,6 +2080,47 @@
       document.getElementById("unpin-all-tabs-btn").onclick = function () {
         tabs.forEach(tab => tab.pinned = false);
         renderTabs();
+        dropdown.classList.add("hidden");
+      };
+
+      // Carbon Pages navigation
+      document.getElementById("carbon-account-btn").onclick = function () {
+        const tab = getActiveTab();
+        if (tab) {
+          updateTabHistory(tab, "carbon://account");
+          renderTabs();
+          renderTabContent(tab);
+        }
+        dropdown.classList.add("hidden");
+      };
+
+      document.getElementById("carbon-settings-btn").onclick = function () {
+        const tab = getActiveTab();
+        if (tab) {
+          updateTabHistory(tab, "carbon://settings");
+          renderTabs();
+          renderTabContent(tab);
+        }
+        dropdown.classList.add("hidden");
+      };
+
+      document.getElementById("carbon-games-btn").onclick = function () {
+        const tab = getActiveTab();
+        if (tab) {
+          updateTabHistory(tab, "carbon://games");
+          renderTabs();
+          renderTabContent(tab);
+        }
+        dropdown.classList.add("hidden");
+      };
+
+      document.getElementById("carbon-ai-btn").onclick = function () {
+        const tab = getActiveTab();
+        if (tab) {
+          updateTabHistory(tab, "carbon://ai");
+          renderTabs();
+          renderTabContent(tab);
+        }
         dropdown.classList.add("hidden");
       };
       
