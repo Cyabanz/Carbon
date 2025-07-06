@@ -51,6 +51,7 @@
     />
     <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet" />
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+    <script src="carbon-theme.js"></script>
 
     <style>
       .suggestion-box {
@@ -472,6 +473,39 @@
                       <span>Restore Tabs</span>
                     </button>
 
+                    <!-- Carbon Pages -->
+                    <div class="px-3 py-1 text-xs font-medium text-muted uppercase tracking-wide border-b border-highlight-med mb-2 mt-3">
+                      Carbon Pages
+                    </div>
+                    <button
+                      id="carbon-account-btn"
+                      class="w-full flex items-center gap-3 px-3 py-2 text-text hover:bg-highlight-med transition-colors text-sm"
+                    >
+                      <i class="bx bx-user text-foam"></i>
+                      <span>Account Profile</span>
+                    </button>
+                    <button
+                      id="carbon-settings-btn"
+                      class="w-full flex items-center gap-3 px-3 py-2 text-text hover:bg-highlight-med transition-colors text-sm"
+                    >
+                      <i class="bx bx-cog text-iris"></i>
+                      <span>Settings</span>
+                    </button>
+                    <button
+                      id="carbon-games-btn"
+                      class="w-full flex items-center gap-3 px-3 py-2 text-text hover:bg-highlight-med transition-colors text-sm"
+                    >
+                      <i class="bx bx-game text-gold"></i>
+                      <span>Games</span>
+                    </button>
+                    <button
+                      id="carbon-ai-btn"
+                      class="w-full flex items-center gap-3 px-3 py-2 text-text hover:bg-highlight-med transition-colors text-sm"
+                    >
+                      <i class="bx bx-brain text-rose"></i>
+                      <span>AI Assistant</span>
+                    </button>
+
                     <!-- Settings -->
                     <div class="px-3 py-1 text-xs font-medium text-muted uppercase tracking-wide border-b border-highlight-med mb-2 mt-3">
                       Settings
@@ -856,9 +890,27 @@
       let groupIdCounter = 1;
       function createTab(url = "carbon://newtab") {
         const id = "tab-" + tabIdCounter++;
+        let title = "New Tab";
+        
+        if (url === "carbon://newtab") {
+          title = "New Tab";
+        } else if (url === "carbon://history") {
+          title = "History";
+        } else if (url === "carbon://account") {
+          title = "Account Profile";
+        } else if (url === "carbon://settings") {
+          title = "Settings";
+        } else if (url === "carbon://games") {
+          title = "Games";
+        } else if (url === "carbon://ai") {
+          title = "AI Assistant";
+        } else if (url) {
+          title = url;
+        }
+        
         return {
           id,
-          title: url === "carbon://newtab" ? "New Tab" : (url ? url : "New Tab"),
+          title,
           url,
           history: url ? [url] : ["carbon://newtab"],
           pointer: url ? 0 : 0,
@@ -1260,6 +1312,18 @@
               } else if (url === "carbon://history") {
                 iframe.src = "/history.html";
                 iframe.dataset.loadedUrl = url;
+              } else if (url === "carbon://account") {
+                iframe.src = "/profile.html";
+                iframe.dataset.loadedUrl = url;
+              } else if (url === "carbon://settings") {
+                iframe.src = "/settings.html";
+                iframe.dataset.loadedUrl = url;
+              } else if (url === "carbon://games") {
+                iframe.src = "/games.html";
+                iframe.dataset.loadedUrl = url;
+              } else if (url === "carbon://ai") {
+                iframe.src = "/ai.html";
+                iframe.dataset.loadedUrl = url;
               }
               return;
             }
@@ -1645,7 +1709,21 @@
         tab.url = url;
         // Only update title if no custom title is set
         if (!tab.customTitle) {
-          tab.title = url === "carbon://newtab" ? "New Tab" : (url === "carbon://history" ? "History" : (url ? url : "New Tab"));
+          if (url === "carbon://newtab") {
+            tab.title = "New Tab";
+          } else if (url === "carbon://history") {
+            tab.title = "History";
+          } else if (url === "carbon://account") {
+            tab.title = "Account Profile";
+          } else if (url === "carbon://settings") {
+            tab.title = "Settings";
+          } else if (url === "carbon://games") {
+            tab.title = "Games";
+          } else if (url === "carbon://ai") {
+            tab.title = "AI Assistant";
+          } else {
+            tab.title = url ? url : "New Tab";
+          }
         }
         
         // Add to global history (but not carbon:// URLs)
@@ -2026,6 +2104,7 @@
         const tab = getActiveTab();
         if (tab) {
           updateTabHistory(tab, "carbon://history");
+          updateAddressBar(tab);
           renderTabs();
           renderTabContent(tab);
         }
@@ -2035,6 +2114,51 @@
       document.getElementById("unpin-all-tabs-btn").onclick = function () {
         tabs.forEach(tab => tab.pinned = false);
         renderTabs();
+        dropdown.classList.add("hidden");
+      };
+
+      // Carbon Pages navigation
+      document.getElementById("carbon-account-btn").onclick = function () {
+        const tab = getActiveTab();
+        if (tab) {
+          updateTabHistory(tab, "carbon://account");
+          updateAddressBar(tab);
+          renderTabs();
+          renderTabContent(tab);
+        }
+        dropdown.classList.add("hidden");
+      };
+
+      document.getElementById("carbon-settings-btn").onclick = function () {
+        const tab = getActiveTab();
+        if (tab) {
+          updateTabHistory(tab, "carbon://settings");
+          updateAddressBar(tab);
+          renderTabs();
+          renderTabContent(tab);
+        }
+        dropdown.classList.add("hidden");
+      };
+
+      document.getElementById("carbon-games-btn").onclick = function () {
+        const tab = getActiveTab();
+        if (tab) {
+          updateTabHistory(tab, "carbon://games");
+          updateAddressBar(tab);
+          renderTabs();
+          renderTabContent(tab);
+        }
+        dropdown.classList.add("hidden");
+      };
+
+      document.getElementById("carbon-ai-btn").onclick = function () {
+        const tab = getActiveTab();
+        if (tab) {
+          updateTabHistory(tab, "carbon://ai");
+          updateAddressBar(tab);
+          renderTabs();
+          renderTabContent(tab);
+        }
         dropdown.classList.add("hidden");
       };
       
