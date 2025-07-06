@@ -4,6 +4,12 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>CARBON</title>
+    
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+    
     <script defer async>
       function setConfig() {
         tailwind.config = {
@@ -2587,6 +2593,147 @@
           tabs = sortedTabs;
           renderTabs();
         },
+      });
+
+      // Firebase initialization and theme syncing
+      const firebaseConfig = {
+        apiKey: "AIzaSyC4ilHYP1T-kdXbWPoHJHhD2aj0pNWmMec",
+        authDomain: "carbon-services.firebaseapp.com",
+        projectId: "carbon-services",
+        storageBucket: "carbon-services.firebasestorage.app",
+        messagingSenderId: "288385472070",
+        appId: "1:288385472070:web:c4be3ff186e248fc645c47",
+        measurementId: "G-Y2K1RQYE74"
+      };
+      
+      firebase.initializeApp(firebaseConfig);
+      const auth = firebase.auth();
+      const db = firebase.firestore();
+
+      // Theme syncing with Firebase
+      let currentUser = null;
+
+      auth.onAuthStateChanged(async (user) => {
+        currentUser = user;
+        if (user) {
+          try {
+            await loadUserThemeFromFirebase(user.uid);
+          } catch (error) {
+            console.log('Error loading theme from Firebase:', error);
+          }
+        }
+      });
+
+      async function loadUserThemeFromFirebase(userId) {
+        try {
+          const userPrefsDoc = await db.collection('user-preferences').doc(userId).get();
+          if (userPrefsDoc.exists) {
+            const prefs = userPrefsDoc.data();
+            if (prefs.theme) {
+              localStorage.setItem('carbon-theme', prefs.theme);
+              localStorage.setItem('carbon-theme-global', prefs.theme);
+              // Apply theme to current page if carbon-theme.js is available
+              if (window.CarbonTheme) {
+                window.CarbonTheme.setTheme(prefs.theme);
+              }
+              // Broadcast theme change to all iframes
+              broadcastThemeChangeToIframes(prefs.theme);
+            }
+            if (prefs.background) {
+              localStorage.setItem('carbon-background', prefs.background);
+            }
+            if (prefs.customBackground) {
+              localStorage.setItem('carbon-custom-bg', prefs.customBackground);
+            }
+          }
+        } catch (error) {
+          console.error('Error loading user theme from Firebase:', error);
+        }
+      }
+
+      async function saveUserThemeToFirebase(userId, theme, background = null, customBackground = null) {
+        if (!userId) return;
+        
+        try {
+          const updateData = { theme };
+          if (background !== null) updateData.background = background;
+          if (customBackground !== null) updateData.customBackground = customBackground;
+          
+          await db.collection('user-preferences').doc(userId).set(updateData, { merge: true });
+        } catch (error) {
+          console.error('Error saving user theme to Firebase:', error);
+        }
+      }
+
+      function broadcastThemeChangeToIframes(theme) {
+        const iframes = document.querySelectorAll('#iframe-container iframe');
+        iframes.forEach(iframe => {
+          try {
+            iframe.contentWindow.postMessage({
+              type: 'carbon-theme-change',
+              theme: theme
+            }, '*');
+          } catch (e) {
+            // Ignore cross-origin errors
+          }
+        });
+      }
+
+      // Listen for theme changes from iframes and sync to Firebase
+      window.addEventListener("message", function(event) {
+        if (event.data && event.data.type === 'carbon-theme-change') {
+          const theme = event.data.theme;
+          localStorage.setItem('carbon-theme', theme);
+          localStorage.setItem('carbon-theme-global', theme);
+          
+          // Save to Firebase if user is logged in
+          if (currentUser) {
+            saveUserThemeToFirebase(currentUser.uid, theme);
+          }
+          
+          // Broadcast to all other iframes
+          broadcastThemeChangeToIframes(theme);
+        } else if (event.data && event.data.type === 'carbon-background-change') {
+          const background = event.data.background;
+          const customBackground = event.data.customBackground;
+          
+          localStorage.setItem('carbon-background', background);
+          if (customBackground !== undefined) {
+            if (customBackground) {
+              localStorage.setItem('carbon-custom-bg', customBackground);
+            } else {
+              localStorage.removeItem('carbon-custom-bg');
+            }
+          }
+          
+          // Save to Firebase if user is logged in
+          if (currentUser) {
+            saveUserThemeToFirebase(currentUser.uid, localStorage.getItem('carbon-theme'), background, customBackground);
+          }
+        } else if (event.data && event.data.type === 'carbon-navigate') {
+          const tab = getActiveTab();
+          if (tab) {
+            const url = event.data.url;
+            updateTabHistory(tab, url);
+            renderTabs();
+            renderTabContent(tab);
+          }
+        } else if (event.data && event.data.type === 'carbon-proxy-sync') {
+          // Sync proxy state from newtab iframe
+          const proxy = event.data.proxy;
+          setCurrentProxy(proxy);
+          setProxy(proxy);
+        } else if (event.data && event.data.type === 'carbon-search-engine-sync') {
+          // Sync search engine state from newtab iframe
+          const searchEngine = event.data.searchEngine;
+          setCurrentSearchEngine(searchEngine);
+        } else if (event.data && event.data.type === 'carbon-request-vertical-tabs-state') {
+          // Send current vertical tabs state to requesting iframe
+          event.source.postMessage({
+            type: 'carbon-vertical-tabs-state',
+            enabled: verticalTabsMode
+          }, '*');
+        }
       });
     </script>
   </body>

@@ -4,6 +4,12 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Settings - Carbon</title>
+    
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+    
     <script defer async>
         function setConfig() {
             tailwind.config = {
@@ -523,6 +529,13 @@
                     <div class="theme-preview" data-theme="dracula" style="background: linear-gradient(135deg, #282a36 0%, #44475a 50%, #6272a4 100%); border: 2px solid transparent;">
                         <div class="text-center text-xs p-2 text-white">Dracula</div>
                     </div>
+                    <!-- Custom Theme Creator -->
+                    <div class="theme-preview" id="create-custom-theme" style="background: linear-gradient(135deg, #333 0%, #555 50%, #777 100%); border: 2px dashed var(--highlight-med); cursor: pointer;">
+                        <div class="text-center text-xs p-2 text-white flex flex-col items-center">
+                            <i class="bx bx-plus text-lg mb-1"></i>
+                            <span>Create Custom</span>
+                        </div>
+                    </div>
                 </div>
             </div>
             
@@ -741,7 +754,269 @@
         </div>
     </div>
 
+    <!-- Custom Theme Creator Modal -->
+    <div id="custom-theme-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center opacity-0 pointer-events-none transition-opacity duration-300 z-50">
+        <div class="bg-surface border border-overlay rounded-xl shadow-2xl max-w-md w-[90vw] p-6">
+            <h3 class="text-xl font-semibold mb-4 text-text">Create Custom Theme</h3>
+            <form id="custom-theme-form">
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-text mb-2">Theme Name</label>
+                    <input
+                        id="custom-theme-name"
+                        type="text"
+                        class="w-full px-3 py-2 bg-highlight-med border border-overlay rounded-lg text-text focus:outline-none focus:ring-2 focus:ring-foam"
+                        placeholder="My Custom Theme"
+                        required
+                    />
+                </div>
+                <div class="grid grid-cols-2 gap-3 mb-4">
+                    <div>
+                        <label class="block text-xs font-medium text-text mb-1">Base Color</label>
+                        <input type="color" id="custom-base" value="#191724" class="w-full h-8 rounded border border-overlay">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-text mb-1">Surface Color</label>
+                        <input type="color" id="custom-surface" value="#1f1d2e" class="w-full h-8 rounded border border-overlay">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-text mb-1">Overlay Color</label>
+                        <input type="color" id="custom-overlay" value="#26233a" class="w-full h-8 rounded border border-overlay">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-text mb-1">Text Color</label>
+                        <input type="color" id="custom-text" value="#e0def4" class="w-full h-8 rounded border border-overlay">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-text mb-1">Accent Color</label>
+                        <input type="color" id="custom-foam" value="#9ccfd8" class="w-full h-8 rounded border border-overlay">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-text mb-1">Love Color</label>
+                        <input type="color" id="custom-love" value="#eb6f92" class="w-full h-8 rounded border border-overlay">
+                    </div>
+                </div>
+                <div class="flex gap-2">
+                    <button
+                        type="submit"
+                        class="flex-1 px-4 py-2 bg-foam text-base rounded-lg hover:bg-foam/80 transition-colors"
+                    >
+                        Create Theme
+                    </button>
+                    <button
+                        type="button"
+                        id="cancel-custom-theme"
+                        class="flex-1 px-4 py-2 bg-highlight-med text-text rounded-lg hover:bg-highlight-high transition-colors"
+                    >
+                        Cancel
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <script>
+        // Firebase initialization
+        const firebaseConfig = {
+            apiKey: "AIzaSyC4ilHYP1T-kdXbWPoHJHhD2aj0pNWmMec",
+            authDomain: "carbon-services.firebaseapp.com",
+            projectId: "carbon-services",
+            storageBucket: "carbon-services.firebasestorage.app",
+            messagingSenderId: "288385472070",
+            appId: "1:288385472070:web:c4be3ff186e248fc645c47",
+            measurementId: "G-Y2K1RQYE74"
+        };
+        
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+
+        // Theme syncing with Firebase
+        let currentUser = null;
+
+        auth.onAuthStateChanged(async (user) => {
+            currentUser = user;
+            if (user) {
+                try {
+                    await loadUserThemeFromFirebase(user.uid);
+                } catch (error) {
+                    console.log('Error loading theme from Firebase:', error);
+                }
+            }
+        });
+
+        async function loadUserThemeFromFirebase(userId) {
+            try {
+                const userPrefsDoc = await db.collection('user-preferences').doc(userId).get();
+                if (userPrefsDoc.exists) {
+                    const prefs = userPrefsDoc.data();
+                    if (prefs.theme) {
+                        currentTheme = prefs.theme;
+                        localStorage.setItem('carbon-theme', currentTheme);
+                        localStorage.setItem('carbon-theme-global', currentTheme);
+                        
+                        // Update UI
+                        document.querySelectorAll('.theme-preview').forEach(el => el.classList.remove('active'));
+                        const themePreview = document.querySelector(`[data-theme="${currentTheme}"]`);
+                        if (themePreview) themePreview.classList.add('active');
+                        
+                        applyTheme(currentTheme);
+                    }
+                    if (prefs.background) {
+                        currentBackground = prefs.background;
+                        localStorage.setItem('carbon-background', currentBackground);
+                        
+                        // Update UI
+                        document.querySelectorAll('.bg-preview').forEach(el => el.classList.remove('active'));
+                        const bgPreview = document.querySelector(`[data-bg="${currentBackground}"]`);
+                        if (bgPreview) bgPreview.classList.add('active');
+                        
+                        applyBackground();
+                    }
+                    if (prefs.customBackground) {
+                        localStorage.setItem('carbon-custom-bg', prefs.customBackground);
+                        showCustomBgPreview(prefs.customBackground);
+                        applyBackground();
+                    }
+                    if (prefs.customTheme) {
+                        // Load custom theme if it exists
+                        loadCustomTheme(prefs.customTheme);
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading user theme from Firebase:', error);
+            }
+        }
+
+        async function saveUserThemeToFirebase(userId, theme, background = null, customBackground = null, customTheme = null) {
+            if (!userId) return;
+            
+            try {
+                const updateData = { theme };
+                if (background !== null) updateData.background = background;
+                if (customBackground !== null) updateData.customBackground = customBackground;
+                if (customTheme !== null) updateData.customTheme = customTheme;
+                
+                await db.collection('user-preferences').doc(userId).set(updateData, { merge: true });
+            } catch (error) {
+                console.error('Error saving user theme to Firebase:', error);
+            }
+        }
+
+        // Custom theme functionality
+        function createCustomTheme(name, colors) {
+            const customTheme = {
+                name: name,
+                colors: colors,
+                id: 'custom-' + Date.now()
+            };
+            
+            // Save to localStorage
+            const customThemes = JSON.parse(localStorage.getItem('carbon-custom-themes') || '[]');
+            customThemes.push(customTheme);
+            localStorage.setItem('carbon-custom-themes', JSON.stringify(customThemes));
+            
+            // Save to Firebase if user is logged in
+            if (currentUser) {
+                saveUserThemeToFirebase(currentUser.uid, currentTheme, currentBackground, null, customThemes);
+            }
+            
+            // Add to theme selector
+            addCustomThemeToSelector(customTheme);
+            
+            return customTheme;
+        }
+
+        function loadCustomTheme(customTheme) {
+            if (typeof customTheme === 'string') {
+                try {
+                    customTheme = JSON.parse(customTheme);
+                } catch (e) {
+                    console.error('Error parsing custom theme:', e);
+                    return;
+                }
+            }
+            
+            // Apply custom theme colors to CSS variables
+            const root = document.documentElement;
+            Object.entries(customTheme.colors).forEach(([key, value]) => {
+                root.style.setProperty(`--theme-${key}`, value);
+            });
+            
+            // Add to theme selector if not already present
+            if (!document.querySelector(`[data-theme="${customTheme.id}"]`)) {
+                addCustomThemeToSelector(customTheme);
+            }
+        }
+
+        function addCustomThemeToSelector(customTheme) {
+            const themeContainer = document.querySelector('.theme-preview').parentElement;
+            const customThemeElement = document.createElement('div');
+            customThemeElement.className = 'theme-preview';
+            customThemeElement.dataset.theme = customTheme.id;
+            customThemeElement.style.background = `linear-gradient(135deg, ${customTheme.colors.base} 0%, ${customTheme.colors.surface} 50%, ${customTheme.colors.overlay} 100%)`;
+            customThemeElement.style.border = '2px solid transparent';
+            customThemeElement.innerHTML = `
+                <div class="text-center text-xs p-2 text-white">${customTheme.name}</div>
+                <button class="delete-custom-theme" style="position: absolute; top: 2px; right: 2px; background: rgba(0,0,0,0.5); border: none; color: white; width: 16px; height: 16px; border-radius: 50%; font-size: 10px; cursor: pointer;">&times;</button>
+            `;
+            
+            // Add click event
+            customThemeElement.addEventListener('click', function(e) {
+                if (e.target.classList.contains('delete-custom-theme')) {
+                    deleteCustomTheme(customTheme.id);
+                    return;
+                }
+                
+                document.querySelectorAll('.theme-preview').forEach(el => el.classList.remove('active'));
+                this.classList.add('active');
+                currentTheme = customTheme.id;
+                loadCustomTheme(customTheme);
+                applyTheme(currentTheme);
+                
+                // Save to Firebase if user is logged in
+                if (currentUser) {
+                    saveUserThemeToFirebase(currentUser.uid, currentTheme);
+                }
+            });
+            
+            themeContainer.appendChild(customThemeElement);
+        }
+
+        function deleteCustomTheme(themeId) {
+            if (!confirm('Delete this custom theme?')) return;
+            
+            // Remove from localStorage
+            const customThemes = JSON.parse(localStorage.getItem('carbon-custom-themes') || '[]');
+            const filteredThemes = customThemes.filter(theme => theme.id !== themeId);
+            localStorage.setItem('carbon-custom-themes', JSON.stringify(filteredThemes));
+            
+            // Remove from UI
+            const themeElement = document.querySelector(`[data-theme="${themeId}"]`);
+            if (themeElement) {
+                themeElement.remove();
+            }
+            
+            // If this was the active theme, switch to default
+            if (currentTheme === themeId) {
+                currentTheme = 'rose-pine';
+                document.querySelector('[data-theme="rose-pine"]').classList.add('active');
+                applyTheme(currentTheme);
+            }
+            
+            // Save to Firebase if user is logged in
+            if (currentUser) {
+                saveUserThemeToFirebase(currentUser.uid, currentTheme, currentBackground, null, filteredThemes);
+            }
+        }
+
+        // Load custom themes on startup
+        function loadCustomThemes() {
+            const customThemes = JSON.parse(localStorage.getItem('carbon-custom-themes') || '[]');
+            customThemes.forEach(theme => {
+                addCustomThemeToSelector(theme);
+            });
+        }
+
         let panicKey = null;
         let isRecordingPanicKey = false;
         let currentTheme = 'rose-pine';
@@ -754,6 +1029,9 @@
 
         // Settings management
         function loadSettings() {
+            // Load custom themes first
+            loadCustomThemes();
+            
             // Load panic key
             const savedPanicKey = localStorage.getItem('carbon-panic-key');
             if (savedPanicKey) {
@@ -1108,6 +1386,11 @@
                 this.classList.add('active');
                 currentTheme = this.dataset.theme;
                 applyTheme(currentTheme);
+                
+                // Save to Firebase if user is logged in
+                if (currentUser) {
+                    saveUserThemeToFirebase(currentUser.uid, currentTheme);
+                }
             });
         });
 
@@ -1118,6 +1401,11 @@
                 this.classList.add('active');
                 currentBackground = this.dataset.bg;
                 applyBackground();
+                
+                // Save to Firebase if user is logged in
+                if (currentUser) {
+                    saveUserThemeToFirebase(currentUser.uid, currentTheme, currentBackground);
+                }
             });
         });
 
@@ -1135,6 +1423,11 @@
                     localStorage.setItem('carbon-custom-bg', dataUrl);
                     showCustomBgPreview(dataUrl);
                     applyBackground();
+                    
+                    // Save to Firebase if user is logged in
+                    if (currentUser) {
+                        saveUserThemeToFirebase(currentUser.uid, currentTheme, currentBackground, dataUrl);
+                    }
                 };
                 reader.readAsDataURL(file);
             }
@@ -1214,6 +1507,78 @@
 
         // Apply settings on load
         applySettings();
+
+        // Custom theme creator event listeners
+        document.getElementById('create-custom-theme').addEventListener('click', () => {
+            const modal = document.getElementById('custom-theme-modal');
+            modal.classList.remove('opacity-0', 'pointer-events-none');
+            modal.classList.add('opacity-100', 'pointer-events-auto');
+        });
+
+        document.getElementById('cancel-custom-theme').addEventListener('click', () => {
+            const modal = document.getElementById('custom-theme-modal');
+            modal.classList.add('opacity-0', 'pointer-events-none');
+            modal.classList.remove('opacity-100', 'pointer-events-auto');
+        });
+
+        document.getElementById('custom-theme-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            
+            const name = document.getElementById('custom-theme-name').value.trim();
+            const colors = {
+                base: document.getElementById('custom-base').value,
+                surface: document.getElementById('custom-surface').value,
+                overlay: document.getElementById('custom-overlay').value,
+                text: document.getElementById('custom-text').value,
+                foam: document.getElementById('custom-foam').value,
+                love: document.getElementById('custom-love').value,
+                muted: '#6e6a86',
+                subtle: '#908caa',
+                gold: '#f6c177',
+                rose: '#ebbcba',
+                pine: '#31748f',
+                iris: '#c4a7e7',
+                'highlight-low': document.getElementById('custom-surface').value,
+                'highlight-med': document.getElementById('custom-overlay').value,
+                'highlight-high': '#524f67'
+            };
+            
+            if (name) {
+                const customTheme = createCustomTheme(name, colors);
+                
+                // Apply the new theme immediately
+                currentTheme = customTheme.id;
+                document.querySelectorAll('.theme-preview').forEach(el => el.classList.remove('active'));
+                document.querySelector(`[data-theme="${customTheme.id}"]`).classList.add('active');
+                loadCustomTheme(customTheme);
+                applyTheme(currentTheme);
+                
+                // Close modal and reset form
+                const modal = document.getElementById('custom-theme-modal');
+                modal.classList.add('opacity-0', 'pointer-events-none');
+                modal.classList.remove('opacity-100', 'pointer-events-auto');
+                document.getElementById('custom-theme-form').reset();
+            }
+        });
+
+        // Listen for theme changes from parent/other windows
+        window.addEventListener("message", function(event) {
+            if (event.data && event.data.type === 'carbon-theme-change') {
+                const theme = event.data.theme;
+                if (theme !== currentTheme) {
+                    currentTheme = theme;
+                    localStorage.setItem('carbon-theme', currentTheme);
+                    localStorage.setItem('carbon-theme-global', currentTheme);
+                    
+                    // Update UI
+                    document.querySelectorAll('.theme-preview').forEach(el => el.classList.remove('active'));
+                    const themePreview = document.querySelector(`[data-theme="${currentTheme}"]`);
+                    if (themePreview) themePreview.classList.add('active');
+                    
+                    applyTheme(currentTheme);
+                }
+            }
+        });
     </script>
 </body>
 </html>
