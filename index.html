@@ -51,6 +51,11 @@
     />
     <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet" />
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+    <script src="carbon-theme.js"></script>
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 
     <style>
       .suggestion-box {
@@ -100,17 +105,19 @@
       
       /* Browser-style vertical tabs */
       .vertical-tabs-container {
-        position: absolute;
+        position: fixed;
         left: 0;
         top: 0;
         bottom: 0;
         width: 280px;
         background: #1f1d2e;
         border-right: 1px solid #26233a;
-        z-index: 100;
+        z-index: 1000;
         transform: translateX(-100%);
         transition: transform 0.3s ease;
         box-shadow: 2px 0 10px rgba(0, 0, 0, 0.5);
+        display: flex;
+        flex-direction: column;
       }
       
       .vertical-tabs-container.open {
@@ -118,12 +125,12 @@
       }
       
       .content-with-vertical-tabs {
-        margin-left: 280px;
+        margin-left: 0;
         transition: margin-left 0.3s ease;
       }
       
-      .content-with-vertical-tabs.collapsed {
-        margin-left: 0;
+      .content-with-vertical-tabs.with-vertical-tabs {
+        margin-left: 280px;
       }
       
       /* Browser-style scrollbar */
@@ -150,27 +157,27 @@
       <!-- Browser Window -->
       <div class="flex-1 flex flex-col bg-surface shadow-2xl border border-overlay rounded-t-lg overflow-hidden">
         <!-- Browser Title Bar -->
-        <div class="bg-overlay border-b border-highlight-med px-4 py-2 flex items-center justify-between">
-          <div class="flex items-center gap-2">
-            <div class="flex gap-1.5">
-              <div class="w-3 h-3 bg-love rounded-full"></div>
-              <div class="w-3 h-3 bg-gold rounded-full"></div>
-              <div class="w-3 h-3 bg-foam rounded-full"></div>
-            </div>
-            <span class="ml-4 text-sm font-medium text-text">Carbon Browser</span>
-          </div>
-          <div class="flex items-center gap-2">
-            <button class="p-1 hover:bg-highlight-med rounded">
-              <i class="bx bx-minus text-muted"></i>
-            </button>
-            <button class="p-1 hover:bg-highlight-med rounded">
-              <i class="bx bx-square text-muted"></i>
-            </button>
-            <button class="p-1 hover:bg-highlight-med rounded">
-              <i class="bx bx-x text-muted"></i>
-            </button>
-          </div>
-        </div>
+        <!-- <div class="bg-overlay border-b border-highlight-med px-4 py-2 flex items-center justify-between"> -->
+        <!--   <div class="flex items-center gap-2"> -->
+        <!--     <div class="flex gap-1.5"> -->
+        <!--       <div class="w-3 h-3 bg-love rounded-full"></div> -->
+        <!--       <div class="w-3 h-3 bg-gold rounded-full"></div> -->
+        <!--       <div class="w-3 h-3 bg-foam rounded-full"></div> -->
+        <!--     </div> -->
+        <!--     <span class="ml-4 text-sm font-medium text-text">Carbon Browser</span> -->
+        <!--   </div> -->
+        <!--   <div class="flex items-center gap-2"> -->
+        <!--     <button class="p-1 hover:bg-highlight-med rounded"> -->
+        <!--       <i class="bx bx-minus text-muted"></i> -->
+        <!--     </button> -->
+        <!--     <button class="p-1 hover:bg-highlight-med rounded"> -->
+        <!--       <i class="bx bx-square text-muted"></i> -->
+        <!--     </button> -->
+        <!--     <button class="p-1 hover:bg-highlight-med rounded"> -->
+        <!--       <i class="bx bx-x text-muted"></i> -->
+        <!--     </button> -->
+        <!--   </div> -->
+        <!-- </div> -->
           <!-- Vertical Tabs Sidebar -->
           <div id="vertical-tabs-container" class="vertical-tabs-container">
             <div class="p-4 border-b border-highlight-med bg-surface">
@@ -180,6 +187,45 @@
               </h3>
             </div>
             <div id="vertical-tabs-list" class="overflow-y-auto flex-1 bg-overlay/50"></div>
+            <!-- Vertical Tab Controls -->
+            <div id="vertical-tab-controls" class="p-4 border-t border-highlight-med bg-surface hidden">
+              <div class="grid grid-cols-2 gap-2 mb-3">
+                <button
+                  id="vertical-new-tab-btn"
+                  class="w-full p-2 rounded-md bg-transparent hover:bg-highlight-med text-muted hover:text-text transition-all flex items-center justify-center gap-2"
+                  title="New Tab (Ctrl+T)"
+                >
+                  <i class="bx bx-plus text-sm"></i>
+                  <span class="text-xs">New Tab</span>
+                </button>
+                <button
+                  id="vertical-hide-tab-bar-toggle"
+                  class="w-full p-2 rounded-md bg-transparent hover:bg-highlight-med text-muted hover:text-text transition-all flex items-center justify-center gap-2"
+                  title="Hide Tab Bar"
+                >
+                  <i class="bx bx-show text-sm"></i>
+                  <span class="text-xs">Hide Bar</span>
+                </button>
+              </div>
+              <div class="grid grid-cols-2 gap-2 mb-3">
+                <button
+                  id="vertical-tab-groups-toggle"
+                  class="w-full p-2 rounded-md bg-transparent hover:bg-highlight-med text-muted hover:text-text transition-all flex items-center justify-center gap-2"
+                  title="Manage Tab Groups"
+                >
+                  <i class="bx bx-collection text-sm"></i>
+                  <span class="text-xs">Groups</span>
+                </button>
+                <button
+                  id="vertical-tabs-layout-toggle"
+                  class="w-full p-2 rounded-md bg-transparent hover:bg-highlight-med text-muted hover:text-text transition-all flex items-center justify-center gap-2"
+                  title="Hide Vertical Tabs"
+                >
+                  <i class="bx bx-sidebar text-sm rotate-180"></i>
+                  <span class="text-xs">Hide Vertical</span>
+                </button>
+              </div>
+            </div>
           </div>
           <!-- Main Content Wrapper -->
           <div id="main-content-wrapper" class="content-with-vertical-tabs collapsed">
@@ -194,7 +240,7 @@
             ></div>
             
             <!-- Tab Controls -->
-            <div class="flex items-center gap-1 px-2 pb-1">
+            <div id="horizontal-tab-controls" class="flex items-center gap-1 px-2 pb-1">
               <button
                 id="new-tab-btn"
                 class="w-8 h-8 rounded-md bg-transparent hover:bg-highlight-med text-muted hover:text-text transition-all flex items-center justify-center"
@@ -255,18 +301,17 @@
               </div>
 
               <!-- Address Bar -->
-              <form id="address-bar-form" class="flex-1 relative max-w-2xl">
+              <form id="address-bar-form" class="max-w-7xl full relative mx-auto flex justify-center">
                 <div class="relative">
                   <i class="bx bx-lock-alt absolute left-3 top-1/2 transform -translate-y-1/2 text-foam text-sm"></i>
-                  <input
-                    id="address-bar-input"
-                    type="text"
-                    spellcheck="false"
-                    autocomplete="off"
-                    placeholder="Search or enter website URL"
-                    class="w-full h-10 pl-9 pr-12 bg-highlight-med border border-overlay text-text rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-foam focus:border-transparent placeholder-muted"
-                  />
-                  <button type="submit" class="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted hover:text-text">
+<input
+                     id="address-bar-input"
+                     type="text"
+                     spellcheck="false"
+                     autocomplete="off"
+                     placeholder="Search or enter website URL"
+                     class="w-[36rem] max-w-2xl h-10 pl-9 pr-12 bg-highlight-med border border-overlay text-text rounded-full text-base focus:outline-none focus:ring-2 focus:ring-foam focus:border-transparent placeholder-muted"
+                   />                  <button type="submit" class="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted hover:text-text">
                     <i class="bx bx-search text-sm"></i>
                   </button>
                 </div>
@@ -408,7 +453,14 @@
                       class="w-full flex items-center gap-3 px-3 py-2 text-text hover:bg-highlight-med transition-colors text-sm"
                     >
                       <i class="bx bx-history text-iris"></i>
-                      <span>Show History</span>
+                      <span>Show Tab History</span>
+                    </button>
+                    <button
+                      id="global-history-btn"
+                      class="w-full flex items-center gap-3 px-3 py-2 text-text hover:bg-highlight-med transition-colors text-sm"
+                    >
+                      <i class="bx bx-time text-iris"></i>
+                      <span>Browse All History</span>
                     </button>
                     <button
                       id="clear-history-btn"
@@ -423,6 +475,39 @@
                     >
                       <i class="bx bx-history text-pine"></i>
                       <span>Restore Tabs</span>
+                    </button>
+
+                    <!-- Carbon Pages -->
+                    <div class="px-3 py-1 text-xs font-medium text-muted uppercase tracking-wide border-b border-highlight-med mb-2 mt-3">
+                      Carbon Pages
+                    </div>
+                    <button
+                      id="carbon-account-btn"
+                      class="w-full flex items-center gap-3 px-3 py-2 text-text hover:bg-highlight-med transition-colors text-sm"
+                    >
+                      <i class="bx bx-user text-foam"></i>
+                      <span>Account Profile</span>
+                    </button>
+                    <button
+                      id="carbon-settings-btn"
+                      class="w-full flex items-center gap-3 px-3 py-2 text-text hover:bg-highlight-med transition-colors text-sm"
+                    >
+                      <i class="bx bx-cog text-iris"></i>
+                      <span>Settings</span>
+                    </button>
+                    <button
+                      id="carbon-games-btn"
+                      class="w-full flex items-center gap-3 px-3 py-2 text-text hover:bg-highlight-med transition-colors text-sm"
+                    >
+                      <i class="bx bx-game text-gold"></i>
+                      <span>Games</span>
+                    </button>
+                    <button
+                      id="carbon-ai-btn"
+                      class="w-full flex items-center gap-3 px-3 py-2 text-text hover:bg-highlight-med transition-colors text-sm"
+                    >
+                      <i class="bx bx-brain text-rose"></i>
+                      <span>AI Assistant</span>
                     </button>
 
                     <!-- Settings -->
@@ -443,14 +528,8 @@
           </div>
 
           <!-- Content Area -->
-          <div class="flex-1 bg-gradient-to-br from-base to-surface relative overflow-hidden min-h-0">
+          <div id="iframe-container" class="flex-1 bg-gradient-to-br from-base to-surface relative overflow-hidden min-h-0">
             <div class="absolute inset-0 bg-gradient-to-br from-foam/5 via-transparent to-iris/5"></div>
-            <iframe
-              id="proxy-iframe"
-              title="Browser Content"
-              class="w-full h-full border-0 bg-transparent relative z-10"
-              style="min-height: 0; height: 100%; width: 100%;"
-            ></iframe>
           </div>
           
       </div> <!-- End Main Content Wrapper -->
@@ -813,14 +892,32 @@
       // --- Tab Groups Logic ---
       let tabGroups = [];
       let groupIdCounter = 1;
-      function createTab(url = "") {
+      function createTab(url = "carbon://newtab") {
         const id = "tab-" + tabIdCounter++;
+        let title = "New Tab";
+        
+        if (url === "carbon://newtab") {
+          title = "New Tab";
+        } else if (url === "carbon://history") {
+          title = "History";
+        } else if (url === "carbon://account") {
+          title = "Account Profile";
+        } else if (url === "carbon://settings") {
+          title = "Settings";
+        } else if (url === "carbon://games") {
+          title = "Games";
+        } else if (url === "carbon://ai") {
+          title = "AI Assistant";
+        } else if (url) {
+          title = url;
+        }
+        
         return {
           id,
-          title: url ? url : "New Tab",
+          title,
           url,
-          history: url ? [url] : [],
-          pointer: url ? 0 : -1,
+          history: url ? [url] : ["carbon://newtab"],
+          pointer: url ? 0 : 0,
           pinned: false,
           locked: false,
           color: null,
@@ -1116,11 +1213,89 @@
         document.getElementById("tabs-bar").innerHTML = "";
       }
       function updateAddressBar(tab) {
-        document.getElementById("address-bar-input").value =
-          tab.history[tab.pointer] || "";
+        let url = tab.history[tab.pointer] || "";
+        
+        // Keep carbon:// URLs in the address bar instead of showing the actual HTML file
+        if (url.startsWith("carbon://")) {
+          document.getElementById("address-bar-input").value = url;
+        } else {
+          document.getElementById("address-bar-input").value = url;
+        }
       }
-      function renderTabContent(tab) {
-        const iframe = document.getElementById("proxy-iframe");
+      function renderTabContent(tab, forceReload = false) {
+        const iframeContainer = document.getElementById("iframe-container");
+
+        // Hide all iframes
+        Array.from(iframeContainer.children).forEach(child => {
+            if (child.tagName === 'IFRAME') {
+                child.classList.add('hidden');
+            }
+        });
+
+        let iframe = document.getElementById(`iframe-${tab.id}`);
+
+        if (!iframe) {
+            iframe = document.createElement('iframe');
+            iframe.id = `iframe-${tab.id}`;
+            iframe.title = "Browser Content";
+            iframe.className = "w-full h-full border-0 fixed";
+            iframe.style.minHeight = '0';
+            iframe.style.height = '100%';
+            iframe.style.width = '100%';
+           iframe.onload = () => {
+               try {
+                   const url = iframe.contentWindow.location.href;
+                   if (url === 'about:blank') return;
+                   
+                   // Don't update history for carbon:// URLs - they're already correct
+                   if (tab.history[tab.pointer] && tab.history[tab.pointer].startsWith('carbon://')) {
+                       // Try to get the real title from the iframe for carbon pages
+                       let realTitle = null;
+                       try {
+                           realTitle = iframe.contentDocument?.title || iframe.contentWindow?.document?.title;
+                       } catch (e) {}
+                       if (realTitle && !tab.customTitle && realTitle !== 'New Tab - Carbon' && realTitle !== 'History - Carbon') {
+                           tab.title = realTitle;
+                           renderTabs();
+                       }
+                       return;
+                   }
+                   
+                   // For regular URLs, decode and update normally
+                   const decodedUrl = Ultraviolet.codec.plain.decode(url.split('/').pop());
+                   updateTabHistory(tab, decodedUrl);
+                   updateAddressBar(tab);
+                   // Try to get the real title from the iframe
+                   let realTitle = null;
+                   try {
+                       realTitle = iframe.contentDocument?.title || iframe.contentWindow?.document?.title;
+                   } catch (e) {}
+                   if (realTitle && !tab.customTitle) {
+                       tab.title = realTitle;
+                       renderTabs();
+                   } else {
+                       renderTabs();
+                   }
+               } catch (e) {
+                   console.error('Error decoding URL:', e);
+               }
+           };            iframeContainer.appendChild(iframe);
+            
+            // Notify new iframe about vertical tabs state
+            setTimeout(() => {
+              try {
+                iframe.contentWindow.postMessage({
+                  type: 'carbon-vertical-tabs-state',
+                  enabled: verticalTabsMode
+                }, '*');
+              } catch (e) {
+                // Ignore cross-origin errors
+              }
+            }, 500);
+        }
+
+        iframe.classList.remove('hidden');
+
         if (
           !tab ||
           typeof tab.pointer !== "number" ||
@@ -1128,13 +1303,41 @@
           !tab.history[tab.pointer]
         ) {
           iframe.src = "";
+          delete iframe.dataset.loadedUrl;
           return;
         }
         let url = tab.history[tab.pointer];
-        let search = getCurrentSearchEngine();
-        makeURLAndProxied(url, search).then((src) => {
-          iframe.src = src;
-        });
+        if (iframe.dataset.loadedUrl !== url || forceReload) {
+            // Handle carbon:// protocol URLs
+            if (url.startsWith("carbon://")) {
+              if (url === "carbon://newtab") {
+                iframe.src = "/newtab.html";
+                iframe.dataset.loadedUrl = url;
+              } else if (url === "carbon://history") {
+                iframe.src = "/history.html";
+                iframe.dataset.loadedUrl = url;
+              } else if (url === "carbon://account") {
+                iframe.src = "/profile.html";
+                iframe.dataset.loadedUrl = url;
+              } else if (url === "carbon://settings") {
+                iframe.src = "/settings.html";
+                iframe.dataset.loadedUrl = url;
+              } else if (url === "carbon://games") {
+                iframe.src = "/games.html";
+                iframe.dataset.loadedUrl = url;
+              } else if (url === "carbon://ai") {
+                iframe.src = "/ai.html";
+                iframe.dataset.loadedUrl = url;
+              }
+              return;
+            }
+            
+            let search = getCurrentSearchEngine();
+            makeURLAndProxied(url, search).then((src) => {
+              iframe.src = src;
+              iframe.dataset.loadedUrl = url;
+            });
+        }
       }
       async function makeURLAndProxied(url, search) {
         try {
@@ -1151,7 +1354,7 @@
         updateAddressBar(tab);
         renderTabContent(tab);
       }
-      function addTab(url = "") {
+      function addTab(url = "carbon://newtab") {
         const tab = createTab(url);
         tabs.push(tab);
         setActiveTab(tab.id);
@@ -1361,6 +1564,57 @@
         localStorage.setItem("tabs-data", JSON.stringify(tabs));
       }
       
+      // Firebase sync for browser data AND all settings
+      async function syncAllDataToFirebase() {
+        if (!currentUser) return;
+        
+        try {
+          const browserData = {
+            tabs: tabs.map(tab => ({
+              id: tab.id,
+              url: tab.history[tab.pointer] || 'carbon://newtab',
+              title: tab.title || 'New Tab',
+              timestamp: Date.now()
+            })),
+            history: JSON.parse(localStorage.getItem('carbon-history') || '[]'),
+            bookmarks: JSON.parse(localStorage.getItem('carbon-bookmarks') || '[]'),
+            lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+          };
+          
+          // Sync all current settings as well
+          const settings = {
+            panicKey: panicKey || '',
+            panicUrl: localStorage.getItem('carbon-panic-url') || '',
+            theme: localStorage.getItem('carbon-theme-global') || 'rose-pine',
+            background: localStorage.getItem('carbon-background-global') || 'gradient',
+            customBackground: localStorage.getItem('carbon-custom-bg-global') || '',
+            cloakingEnabled: tabCloakingEnabled,
+            cloakTitle: cloakTitle,
+            cloakFavicon: cloakFavicon,
+            fullscreenEnabled: localStorage.getItem('carbon-fullscreen-enabled') === 'true',
+            closePreventionEnabled: localStorage.getItem('carbon-close-prevention') === 'true',
+            confirmClose: localStorage.getItem('carbon-confirm-close') === 'true',
+            closeMessage: localStorage.getItem('carbon-close-message') || '',
+            disableRightClick: localStorage.getItem('carbon-disable-right-click') === 'true',
+            disableDevtools: localStorage.getItem('carbon-disable-devtools') === 'true',
+            disableSelect: localStorage.getItem('carbon-disable-select') === 'true',
+            hideCursor: localStorage.getItem('carbon-hide-cursor') === 'true',
+            blurOnUnfocus: localStorage.getItem('carbon-blur-unfocus') === 'true',
+            lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+          };
+          
+          await db.collection('users').doc(currentUser.uid).set({
+            browserData: browserData,
+            settings: settings,
+            lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+          }, { merge: true });
+          
+          console.log('All data synced to Firebase successfully');
+        } catch (error) {
+          console.error('Error syncing data to Firebase:', error);
+        }
+      }
+      
       function loadTabsData() {
         const saved = localStorage.getItem("tabs-data");
         if (saved) {
@@ -1439,16 +1693,21 @@
       }
       
       function reloadAllTabs() {
-        const iframe = document.getElementById("proxy-iframe");
-        // Reload current active tab
-        if (activeTab) {
-          const tab = getActiveTab();
-          if (tab && tab.history[tab.pointer]) {
-            renderTabContent(tab);
+        tabs.forEach(tab => {
+          const iframe = document.getElementById(`iframe-${tab.id}`);
+          if (iframe && tab.history[tab.pointer]) {
+            const url = tab.history[tab.pointer];
+            if (iframe.dataset.loadedUrl !== url) {
+              // Only reload if URL changed
+              let search = getCurrentSearchEngine();
+              makeURLAndProxied(url, search).then((src) => {
+                iframe.src = src;
+                iframe.dataset.loadedUrl = url;
+              });
+            }
           }
-        }
-        // Note: We can only reload the currently visible tab since we have one iframe
-        alert(`Reloaded active tab. Switch to other tabs to reload them individually.`);
+        });
+        alert(`Reloaded all tabs that changed.`);
       }
 
       function removeTab(tabId) {
@@ -1458,9 +1717,30 @@
           return;
         }
         
+        // Don't allow closing the last tab
+        if (tabs.length <= 1) {
+          // Instead of closing, navigate to new tab page
+          const lastTab = tabs[0];
+          if (lastTab) {
+            lastTab.url = "carbon://newtab";
+            lastTab.title = "New Tab";
+            lastTab.history = ["carbon://newtab"];
+            lastTab.pointer = 0;
+            lastTab.customTitle = null;
+            updateAddressBar(lastTab);
+            renderTabContent(lastTab);
+            renderTabs();
+          }
+          return;
+        }
+        
         const idx = tabs.findIndex((t) => t.id === tabId);
         if (idx !== -1) {
           takeTabsSnapshot();
+          const iframe = document.getElementById(`iframe-${tabId}`);
+          if (iframe) {
+            iframe.remove();
+          }
           tabs.splice(idx, 1);
           if (activeTab === tabId) {
             if (tabs[idx - 1]) setActiveTab(tabs[idx - 1].id);
@@ -1468,7 +1748,6 @@
             else {
               activeTab = null;
               renderTabs();
-              document.getElementById("proxy-iframe").src = "";
               document.getElementById("address-bar-input").value = "";
             }
           } else {
@@ -1485,7 +1764,76 @@
         tab.url = url;
         // Only update title if no custom title is set
         if (!tab.customTitle) {
-          tab.title = url ? url : "New Tab";
+          if (url === "carbon://newtab") {
+            tab.title = "New Tab";
+          } else if (url === "carbon://history") {
+            tab.title = "History";
+          } else if (url === "carbon://account") {
+            tab.title = "Account Profile";
+          } else if (url === "carbon://settings") {
+            tab.title = "Settings";
+          } else if (url === "carbon://games") {
+            tab.title = "Games";
+          } else if (url === "carbon://ai") {
+            tab.title = "AI Assistant";
+          } else {
+            tab.title = url ? url : "New Tab";
+          }
+        }
+        
+        // Add to global history (but not carbon:// URLs)
+        addToGlobalHistory(url, tab.title);
+      }
+      
+      function addToGlobalHistory(url, title = '') {
+        // Don't add carbon:// URLs to global history
+        if (url.startsWith('carbon://')) return;
+        
+        try {
+          // Get existing history
+          const history = JSON.parse(localStorage.getItem('carbon-history') || '[]');
+          
+          const item = {
+            id: Date.now() + Math.random(),
+            url: url,
+            title: title || url,
+            timestamp: new Date().toISOString(),
+            visits: 1
+          };
+          
+          // Check if URL already exists
+          const existingIndex = history.findIndex(h => h.url === url);
+          if (existingIndex !== -1) {
+            history[existingIndex].timestamp = item.timestamp;
+            history[existingIndex].visits++;
+            history[existingIndex].title = title || history[existingIndex].title;
+          } else {
+            history.unshift(item);
+          }
+          
+          // Limit history to 1000 items
+          if (history.length > 1000) {
+            history.splice(1000);
+          }
+          
+          // Save history
+          localStorage.setItem('carbon-history', JSON.stringify(history));
+          
+          // Send to history page if it's open
+          const historyIframes = document.querySelectorAll('iframe[src="/history.html"]');
+          historyIframes.forEach(iframe => {
+            try {
+              iframe.contentWindow.postMessage({
+                type: 'carbon-add-history',
+                url: url,
+                title: title
+              }, '*');
+            } catch (e) {
+              // Ignore cross-origin errors
+            }
+          });
+        } catch (e) {
+          console.error('Error adding to global history:', e);
         }
       }
       function getActiveTab() {
@@ -1502,24 +1850,44 @@
       
       function toggleVerticalTabs() {
         verticalTabsMode = !verticalTabsMode;
+        
         const verticalContainer = document.getElementById("vertical-tabs-container");
+        const verticalControls = document.getElementById("vertical-tab-controls");
+        const horizontalControls = document.getElementById("horizontal-tab-controls");
         const mainContent = document.getElementById("main-content-wrapper");
         const toggleBtn = document.getElementById("tabs-layout-toggle");
+        const verticalToggleBtn = document.getElementById("vertical-tabs-layout-toggle");
         
         if (verticalTabsMode) {
           verticalContainer.classList.add("open");
-          mainContent.classList.remove("collapsed");
+          verticalControls.classList.remove("hidden");
+          horizontalControls.classList.add("hidden");
+          mainContent.classList.add("with-vertical-tabs");
           toggleBtn.innerHTML = '<i class="bx bx-sidebar text-lg rotate-180"></i>';
           toggleBtn.title = "Hide Vertical Tabs";
+          if (verticalToggleBtn) {
+            verticalToggleBtn.innerHTML = '<i class="bx bx-sidebar text-sm rotate-180"></i><span class="text-xs">Hide Vertical</span>';
+          }
+          
+          // Attach event listeners for vertical tab controls
+          setTimeout(attachVerticalTabListeners, 150);
         } else {
           verticalContainer.classList.remove("open");
-          mainContent.classList.add("collapsed");
+          verticalControls.classList.add("hidden");
+          horizontalControls.classList.remove("hidden");
+          mainContent.classList.remove("with-vertical-tabs");
           toggleBtn.innerHTML = '<i class="bx bx-sidebar text-lg"></i>';
           toggleBtn.title = "Show Vertical Tabs";
+          if (verticalToggleBtn) {
+            verticalToggleBtn.innerHTML = '<i class="bx bx-sidebar text-sm"></i><span class="text-xs">Show Vertical</span>';
+          }
         }
         
         renderTabs();
         localStorage.setItem("vertical-tabs-mode", verticalTabsMode);
+        
+        // Notify all iframes about vertical tabs state change
+        setTimeout(notifyIframesVerticalTabsState, 200);
       }
       
       let tabBarHidden = localStorage.getItem("tab-bar-hidden") === "true";
@@ -1528,15 +1896,24 @@
         tabBarHidden = !tabBarHidden;
         const tabsBar = document.getElementById("tabs-bar");
         const toggleBtn = document.getElementById("hide-tab-bar-toggle");
+        const verticalToggleBtn = document.getElementById("vertical-hide-tab-bar-toggle");
         
         if (tabBarHidden) {
           tabsBar.style.display = "none";
           toggleBtn.innerHTML = '<i class="bx bx-hide text-lg"></i>';
           toggleBtn.title = "Show Tab Bar";
+          if (verticalToggleBtn) {
+            verticalToggleBtn.innerHTML = '<i class="bx bx-hide text-sm"></i><span class="text-xs">Show Bar</span>';
+            verticalToggleBtn.title = "Show Tab Bar";
+          }
         } else {
           tabsBar.style.display = "";
           toggleBtn.innerHTML = '<i class="bx bx-show text-lg"></i>';
           toggleBtn.title = "Hide Tab Bar";
+          if (verticalToggleBtn) {
+            verticalToggleBtn.innerHTML = '<i class="bx bx-show text-sm"></i><span class="text-xs">Hide Bar</span>';
+            verticalToggleBtn.title = "Hide Tab Bar";
+          }
         }
         
         localStorage.setItem("tab-bar-hidden", tabBarHidden);
@@ -1680,6 +2057,15 @@
           if (!tab) return;
           let url = addressInput.value.trim();
           if (!url) return;
+          
+          // Handle carbon:// protocol URLs
+          if (url.startsWith("carbon://")) {
+            updateTabHistory(tab, url);
+            renderTabs();
+            renderTabContent(tab);
+            return;
+          }
+          
           updateTabHistory(tab, url);
           renderTabs();
           renderTabContent(tab);
@@ -1700,8 +2086,11 @@
       };
       document.getElementById("refresh-btn").onclick = function () {
         const tab = getActiveTab();
-        if (!tab || typeof tab.pointer !== "number" || tab.pointer < 0) return;
-        renderTabContent(tab);
+        if (!tab) return;
+        const iframe = document.getElementById(`iframe-${tab.id}`);
+        if (iframe) {
+          iframe.contentWindow.location.reload();
+        }
       };
       function takeTabsSnapshot() {
         closedTabsSnapshot = JSON.parse(JSON.stringify(tabs));
@@ -1749,11 +2138,16 @@
       };
       document.getElementById("close-all-tabs-btn").onclick = function () {
         if (tabs.length > 0) takeTabsSnapshot();
+        const iframeContainer = document.getElementById("iframe-container");
+        Array.from(iframeContainer.children).forEach(child => {
+            if (child.tagName === 'IFRAME') {
+                child.remove();
+            }
+        });
+        // Always keep at least one tab open
         tabs = [];
         activeTab = null;
-        renderTabs();
-        document.getElementById("proxy-iframe").src = "";
-        document.getElementById("address-bar-input").value = "";
+        addTab("carbon://newtab"); // This will create a new tab with newtab
         dropdown.classList.add("hidden");
       };
       document.getElementById("restore-tabs-btn").onclick = function () {
@@ -1761,9 +2155,65 @@
         dropdown.classList.add("hidden");
       };
       
+      document.getElementById("global-history-btn").onclick = function () {
+        const tab = getActiveTab();
+        if (tab) {
+          updateTabHistory(tab, "carbon://history");
+          updateAddressBar(tab);
+          renderTabs();
+          renderTabContent(tab);
+        }
+        dropdown.classList.add("hidden");
+      };
+      
       document.getElementById("unpin-all-tabs-btn").onclick = function () {
         tabs.forEach(tab => tab.pinned = false);
         renderTabs();
+        dropdown.classList.add("hidden");
+      };
+
+      // Carbon Pages navigation
+      document.getElementById("carbon-account-btn").onclick = function () {
+        const tab = getActiveTab();
+        if (tab) {
+          updateTabHistory(tab, "carbon://account");
+          updateAddressBar(tab);
+          renderTabs();
+          renderTabContent(tab);
+        }
+        dropdown.classList.add("hidden");
+      };
+
+      document.getElementById("carbon-settings-btn").onclick = function () {
+        const tab = getActiveTab();
+        if (tab) {
+          updateTabHistory(tab, "carbon://settings");
+          updateAddressBar(tab);
+          renderTabs();
+          renderTabContent(tab);
+        }
+        dropdown.classList.add("hidden");
+      };
+
+      document.getElementById("carbon-games-btn").onclick = function () {
+        const tab = getActiveTab();
+        if (tab) {
+          updateTabHistory(tab, "carbon://games");
+          updateAddressBar(tab);
+          renderTabs();
+          renderTabContent(tab);
+        }
+        dropdown.classList.add("hidden");
+      };
+
+      document.getElementById("carbon-ai-btn").onclick = function () {
+        const tab = getActiveTab();
+        if (tab) {
+          updateTabHistory(tab, "carbon://ai");
+          updateAddressBar(tab);
+          renderTabs();
+          renderTabContent(tab);
+        }
         dropdown.classList.add("hidden");
       };
       
@@ -1902,6 +2352,49 @@
         .getElementById("tabs-layout-toggle")
         .addEventListener("click", toggleVerticalTabs);
 
+      // Add event listeners for vertical tab controls
+      function attachVerticalTabListeners() {
+        const verticalNewTabBtn = document.getElementById("vertical-new-tab-btn");
+        const verticalHideTabBarToggle = document.getElementById("vertical-hide-tab-bar-toggle");
+        const verticalTabGroupsToggle = document.getElementById("vertical-tab-groups-toggle");
+        const verticalTabsLayoutToggle = document.getElementById("vertical-tabs-layout-toggle");
+        
+        if (verticalNewTabBtn && !verticalNewTabBtn.hasAttribute('data-listener-attached')) {
+          verticalNewTabBtn.addEventListener("click", () => addTab("carbon://newtab"));
+          verticalNewTabBtn.setAttribute('data-listener-attached', 'true');
+        }
+        
+        if (verticalHideTabBarToggle && !verticalHideTabBarToggle.hasAttribute('data-listener-attached')) {
+          verticalHideTabBarToggle.addEventListener("click", toggleTabBarVisibility);
+          verticalHideTabBarToggle.setAttribute('data-listener-attached', 'true');
+        }
+        
+        if (verticalTabGroupsToggle && !verticalTabGroupsToggle.hasAttribute('data-listener-attached')) {
+          verticalTabGroupsToggle.addEventListener("click", openTabGroupsModal);
+          verticalTabGroupsToggle.setAttribute('data-listener-attached', 'true');
+        }
+        
+        if (verticalTabsLayoutToggle && !verticalTabsLayoutToggle.hasAttribute('data-listener-attached')) {
+          verticalTabsLayoutToggle.addEventListener("click", toggleVerticalTabs);
+          verticalTabsLayoutToggle.setAttribute('data-listener-attached', 'true');
+        }
+      }
+      
+      function notifyIframesVerticalTabsState() {
+        // Send vertical tabs state to all iframes
+        const iframes = document.querySelectorAll('#iframe-container iframe');
+        iframes.forEach(iframe => {
+          try {
+            iframe.contentWindow.postMessage({
+              type: 'carbon-vertical-tabs-state',
+              enabled: verticalTabsMode
+            }, '*');
+          } catch (e) {
+            // Ignore cross-origin errors
+          }
+        });
+      }
+
       const historyBtn = document.getElementById("history-btn");
       const historyModalBg = document.getElementById("history-modal-bg");
       const historyModal = document.getElementById("history-modal");
@@ -1966,8 +2459,78 @@
         });
       }
 
+      // -- Message Listener for iframe communication --
+      window.addEventListener("message", function(event) {
+        if (event.data && event.data.type === 'carbon-navigate') {
+          const tab = getActiveTab();
+          if (tab) {
+            const url = event.data.url;
+            updateTabHistory(tab, url);
+            renderTabs();
+            renderTabContent(tab);
+          }
+        } else if (event.data && event.data.type === 'carbon-proxy-sync') {
+          // Sync proxy state from newtab iframe
+          const proxy = event.data.proxy;
+          setCurrentProxy(proxy);
+          setProxy(proxy);
+        } else if (event.data && event.data.type === 'carbon-search-engine-sync') {
+          // Sync search engine state from newtab iframe
+          const searchEngine = event.data.searchEngine;
+          setCurrentSearchEngine(searchEngine);
+        } else if (event.data && event.data.type === 'carbon-request-vertical-tabs-state') {
+          // Send current vertical tabs state to requesting iframe
+          event.source.postMessage({
+            type: 'carbon-vertical-tabs-state',
+            enabled: verticalTabsMode
+          }, '*');
+        }
+      });
+
       // -- Keyboard Shortcuts --
       document.addEventListener("keydown", (e) => {
+        // PANIC KEY - Check this FIRST before any other shortcuts
+        if (panicKey && panicKey.trim() !== '') {
+          console.log('🔑 Key pressed:', e.key.toLowerCase(), 'Panic key set to:', panicKey);
+          if (e.key.toLowerCase() === panicKey.toLowerCase()) {
+            const panicUrl = localStorage.getItem('carbon-panic-url') || 'https://classroom.google.com';
+            console.log('🚨🚨🚨 PANIC KEY TRIGGERED! 🚨🚨🚨');
+            console.log('Redirecting to:', panicUrl);
+            e.preventDefault();
+            e.stopPropagation();
+            e.stopImmediatePropagation();
+            
+            // Alert to confirm it's working (remove in production)
+            alert('PANIC KEY ACTIVATED! Redirecting to: ' + panicUrl);
+            
+            // Immediately redirect the entire window
+            try {
+              window.top.location.href = panicUrl;
+            } catch (error) {
+              console.log('Top location failed, using window.location');
+              window.location.href = panicUrl;
+            }
+            return false;
+          }
+        } else {
+          // Only log occasionally to avoid spam
+          if (Math.random() < 0.01) {
+            console.log('⚠️ Panic key not set or empty. Current value:', panicKey);
+          }
+        }
+        
+        // Dev tools prevention
+        if (localStorage.getItem('carbon-disable-devtools') === 'true') {
+          if (e.key === 'F12' || 
+              (e.ctrlKey && e.shiftKey && e.key === 'I') || 
+              (e.ctrlKey && e.shiftKey && e.key === 'J') || 
+              (e.ctrlKey && e.key === 'U')) {
+            e.preventDefault();
+            return false;
+          }
+        }
+        
+        // Regular keyboard shortcuts
         if (
           (e.ctrlKey || e.metaKey) &&
           !e.shiftKey &&
@@ -2030,6 +2593,434 @@
         }
       });
 
+      // Firebase configuration and settings sync
+      const firebaseConfig = {
+        apiKey: "AIzaSyC4ilHYP1T-kdXbWPoHJHhD2aj0pNWmMec",
+        authDomain: "carbon-services.firebaseapp.com",
+        projectId: "carbon-services",
+        storageBucket: "carbon-services.firebasestorage.app",
+        messagingSenderId: "288385472070",
+        appId: "1:288385472070:web:c4be3ff186e248fc645c47",
+        measurementId: "G-Y2K1RQYE74"
+      };
+      
+      // Initialize Firebase
+      firebase.initializeApp(firebaseConfig);
+      const auth = firebase.auth();
+      const db = firebase.firestore();
+      
+      let currentUser = null;
+      let panicKey = null;
+      let tabCloakingEnabled = false;
+      let cloakTitle = '';
+      let cloakFavicon = '';
+      
+      // Settings sync from Firebase
+      async function loadSettingsFromFirebase() {
+        if (!currentUser) return;
+        
+        try {
+          const userSettingsDoc = await db.collection('users').doc(currentUser.uid).get();
+          if (userSettingsDoc.exists) {
+            const userData = userSettingsDoc.data();
+            const settings = userData.settings || {};
+            
+                         // Load panic key and URL
+             panicKey = settings.panicKey || null;
+             if (settings.panicUrl) {
+               localStorage.setItem('carbon-panic-url', settings.panicUrl);
+             }
+             
+             // Load tab cloaking settings
+             tabCloakingEnabled = settings.cloakingEnabled || false;
+             cloakTitle = settings.cloakTitle || '';
+             cloakFavicon = settings.cloakFavicon || '';
+             
+             console.log('Settings loaded from Firebase:', {
+               panicKey: panicKey,
+               panicUrl: settings.panicUrl,
+               cloakingEnabled: tabCloakingEnabled,
+               cloakTitle: cloakTitle
+             });
+            
+            // Apply settings
+            applyAllSettings();
+          }
+        } catch (error) {
+          console.error('Error loading settings from Firebase:', error);
+        }
+      }
+      
+      // Load settings from localStorage (fallback)
+      function loadLocalSettings() {
+        // Debug: Log all localStorage values
+        console.log('🔍 Debugging localStorage values:');
+        console.log('carbon-panic-key:', localStorage.getItem('carbon-panic-key'));
+        console.log('carbon-cloak-enabled:', localStorage.getItem('carbon-cloak-enabled'));
+        console.log('carbon-cloak-title:', localStorage.getItem('carbon-cloak-title'));
+        console.log('carbon-cloak-favicon:', localStorage.getItem('carbon-cloak-favicon'));
+        
+        panicKey = localStorage.getItem('carbon-panic-key') || null;
+        tabCloakingEnabled = localStorage.getItem('carbon-cloak-enabled') === 'true';
+        cloakTitle = localStorage.getItem('carbon-cloak-title') || '';
+        cloakFavicon = localStorage.getItem('carbon-cloak-favicon') || '';
+        
+        console.log('📚 Settings loaded from localStorage:', {
+          panicKey: panicKey,
+          cloakingEnabled: tabCloakingEnabled,
+          cloakTitle: cloakTitle,
+          cloakFavicon: cloakFavicon
+        });
+        
+        applyAllSettings();
+      }
+      
+      // Apply all settings
+      function applyAllSettings() {
+        console.log('🔧 Applying all settings...');
+        applyTabCloaking();
+        applyTeacherPrevention();
+        applyClosePrevention();
+        // Trigger Firebase sync when settings are applied
+        triggerSettingsSync();
+      }
+      
+      // Manual reload function for debugging
+      window.reloadSettings = function() {
+        console.log('🔄 Manually reloading settings...');
+        loadLocalSettings();
+        if (currentUser) {
+          loadSettingsFromFirebase();
+        }
+      };
+      
+      // Debug functions for testing
+      window.testPanicKey = function() {
+        console.log('🧪 Testing panic key. Current panic key:', panicKey);
+        console.log('💾 localStorage panic key:', localStorage.getItem('carbon-panic-key'));
+        if (panicKey) {
+          console.log('✅ Panic key is set. Try pressing:', panicKey);
+        } else {
+          console.log('❌ No panic key set. Set one in settings first.');
+        }
+      };
+      
+      window.testTabCloaking = function() {
+        console.log('🧪 Testing tab cloaking:');
+        console.log('Enabled:', tabCloakingEnabled);
+        console.log('Title:', cloakTitle);
+        console.log('Favicon:', cloakFavicon);
+        console.log('Current document title:', document.title);
+        if (tabCloakingEnabled && cloakTitle) {
+          console.log('✅ Tab cloaking should be active');
+        } else {
+          console.log('❌ Tab cloaking not active. Enable in settings first.');
+        }
+      };
+      
+      // Manual trigger for testing
+      window.manualTabCloak = function(title, favicon) {
+        console.log('🎭 Manually triggering tab cloaking...');
+        tabCloakingEnabled = true;
+        cloakTitle = title || 'Google Classroom';
+        cloakFavicon = favicon || 'https://ssl.gstatic.com/classroom/favicon.png';
+        
+        localStorage.setItem('carbon-cloak-enabled', 'true');
+        localStorage.setItem('carbon-cloak-title', cloakTitle);
+        localStorage.setItem('carbon-cloak-favicon', cloakFavicon);
+        
+        applyTabCloaking();
+        console.log('✅ Manual tab cloaking applied');
+      };
+      
+      // Check settings every 5 seconds to ensure they're loaded
+      setInterval(() => {
+        if (!panicKey && !tabCloakingEnabled) {
+          const storedPanicKey = localStorage.getItem('carbon-panic-key');
+          const storedCloaking = localStorage.getItem('carbon-cloak-enabled');
+          if (storedPanicKey || storedCloaking === 'true') {
+            console.log('🔄 Settings found in localStorage but not loaded. Reloading...');
+            loadLocalSettings();
+          }
+        }
+      }, 5000);
+      
+      // Tab cloaking functionality
+      function applyTabCloaking() {
+        console.log('🎭 Applying tab cloaking with values:', {
+          enabled: tabCloakingEnabled,
+          enabledType: typeof tabCloakingEnabled,
+          title: cloakTitle,
+          titleType: typeof cloakTitle,
+          titleLength: cloakTitle ? cloakTitle.length : 0,
+          favicon: cloakFavicon,
+          faviconType: typeof cloakFavicon
+        });
+        
+        // More robust checking
+        const isEnabled = (tabCloakingEnabled === true || tabCloakingEnabled === 'true');
+        const hasTitle = cloakTitle && cloakTitle.trim() !== '';
+        
+        console.log('🔍 Cloaking checks:', {
+          isEnabled: isEnabled,
+          hasTitle: hasTitle,
+          willApplyCloak: isEnabled && hasTitle
+        });
+        
+        if (isEnabled && hasTitle) {
+          // Change the document title immediately
+          const newTitle = cloakTitle.trim();
+          document.title = newTitle;
+          console.log('✅ Document title changed from CARBON to:', document.title);
+          
+          if (cloakFavicon && cloakFavicon.trim() !== '') {
+            // Remove existing favicon links
+            const existingLinks = document.querySelectorAll("link[rel*='icon']");
+            console.log('🗑️ Removing', existingLinks.length, 'existing favicon links');
+            existingLinks.forEach(link => {
+              console.log('🗑️ Removing favicon:', link.href);
+              link.remove();
+            });
+            
+            // Add new favicon with multiple formats for better compatibility
+            const timestamp = new Date().getTime();
+            const faviconUrl = cloakFavicon.trim();
+            
+            // Primary favicon
+            const link = document.createElement('link');
+            link.type = 'image/x-icon';
+            link.rel = 'shortcut icon';
+            link.href = faviconUrl + '?v=' + timestamp;
+            document.head.appendChild(link);
+            
+            // Standard icon
+            const iconLink = document.createElement('link');
+            iconLink.rel = 'icon';
+            iconLink.type = 'image/x-icon';
+            iconLink.href = faviconUrl + '?v=' + timestamp;
+            document.head.appendChild(iconLink);
+            
+            // Apple touch icon for mobile
+            const appleLink = document.createElement('link');
+            appleLink.rel = 'apple-touch-icon';
+            appleLink.href = faviconUrl + '?v=' + timestamp;
+            document.head.appendChild(appleLink);
+            
+            console.log('✅ Added new favicon links for:', faviconUrl);
+          } else {
+            console.log('⚠️ No favicon URL provided or empty');
+          }
+        } else {
+          console.log('❌ Tab cloaking not applied - Enabled:', isEnabled, 'Has title:', hasTitle);
+          document.title = 'CARBON';
+          // Reset to default favicon if not cloaking
+          const existingLinks = document.querySelectorAll("link[rel*='icon']");
+          existingLinks.forEach(link => link.remove());
+        }
+      }
+      
+      // Teacher prevention (same as settings.html)
+      function applyTeacherPrevention() {
+        // Disable right-click
+        if (localStorage.getItem('carbon-disable-right-click') === 'true') {
+          document.addEventListener('contextmenu', e => e.preventDefault());
+        }
+        
+        // Disable text selection
+        if (localStorage.getItem('carbon-disable-select') === 'true') {
+          document.body.style.userSelect = 'none';
+          document.body.style.webkitUserSelect = 'none';
+          document.body.style.mozUserSelect = 'none';
+        }
+        
+        // Hide cursor when idle
+        if (localStorage.getItem('carbon-hide-cursor') === 'true') {
+          let cursorTimer;
+          document.addEventListener('mousemove', () => {
+            document.body.style.cursor = 'default';
+            clearTimeout(cursorTimer);
+            cursorTimer = setTimeout(() => {
+              document.body.style.cursor = 'none';
+            }, 3000);
+          });
+        }
+        
+        // Blur on unfocus
+        if (localStorage.getItem('carbon-blur-unfocus') === 'true') {
+          window.addEventListener('blur', () => {
+            document.body.style.filter = 'blur(10px)';
+          });
+          window.addEventListener('focus', () => {
+            document.body.style.filter = 'none';
+          });
+        }
+      }
+      
+      // Close prevention
+      function applyClosePrevention() {
+        const enabled = localStorage.getItem('carbon-close-prevention') === 'true';
+        const confirm = localStorage.getItem('carbon-confirm-close') === 'true';
+        const message = localStorage.getItem('carbon-close-message') || 'Are you sure you want to close Carbon?';
+        
+        if (enabled) {
+          window.addEventListener('beforeunload', (e) => {
+            if (confirm) {
+              e.preventDefault();
+              e.returnValue = message;
+              return message;
+            }
+          });
+        }
+      }
+      
+
+      
+      // Authentication state observer
+      auth.onAuthStateChanged((user) => {
+        currentUser = user;
+        if (user) {
+          loadSettingsFromFirebase();
+        } else {
+          loadLocalSettings();
+        }
+      });
+      
+      // Listen for settings changes from settings page
+      window.addEventListener('message', (event) => {
+        if (event.data && event.data.type === 'carbon-settings-updated') {
+          console.log('📨 Received settings update - Full data:', JSON.stringify(event.data, null, 2));
+          console.log('📨 Settings object:', JSON.stringify(event.data.settings, null, 2));
+          
+          const settings = event.data.settings;
+          
+          // Parse panic key
+          panicKey = settings.panicKey || null;
+          console.log('🔑 Parsed panic key:', panicKey);
+          
+          if (settings.panicUrl) {
+            localStorage.setItem('carbon-panic-url', settings.panicUrl);
+            console.log('🔗 Set panic URL:', settings.panicUrl);
+          }
+          
+          // Parse tab cloaking - try multiple possible structures
+          if (settings.cloaking) {
+            // Handle both boolean and string values
+            tabCloakingEnabled = (settings.cloaking.enabled === true || settings.cloaking.enabled === 'true');
+            cloakTitle = (settings.cloaking.title || '').toString();
+            cloakFavicon = (settings.cloaking.favicon || '').toString();
+            
+            // Also update localStorage to keep in sync
+            localStorage.setItem('carbon-cloak-enabled', tabCloakingEnabled.toString());
+            localStorage.setItem('carbon-cloak-title', cloakTitle);
+            localStorage.setItem('carbon-cloak-favicon', cloakFavicon);
+            
+            console.log('🎭 Parsed cloaking from settings.cloaking:', {
+              enabled: tabCloakingEnabled,
+              title: cloakTitle,
+              favicon: cloakFavicon
+            });
+          } else if (settings.tabCloaking) {
+            tabCloakingEnabled = settings.tabCloaking.enabled || false;
+            cloakTitle = settings.tabCloaking.title || '';
+            cloakFavicon = settings.tabCloaking.favicon || '';
+            
+            // Also update localStorage to keep in sync
+            localStorage.setItem('carbon-cloak-enabled', tabCloakingEnabled);
+            localStorage.setItem('carbon-cloak-title', cloakTitle);
+            localStorage.setItem('carbon-cloak-favicon', cloakFavicon);
+            
+            console.log('🎭 Parsed cloaking from settings.tabCloaking:', {
+              enabled: tabCloakingEnabled,
+              title: cloakTitle,
+              favicon: cloakFavicon
+            });
+          } else {
+            // Try direct properties
+            tabCloakingEnabled = settings.cloakingEnabled || settings.enabled || false;
+            cloakTitle = settings.cloakTitle || settings.title || '';
+            cloakFavicon = settings.cloakFavicon || settings.favicon || '';
+            
+            // Also update localStorage to keep in sync
+            localStorage.setItem('carbon-cloak-enabled', tabCloakingEnabled);
+            localStorage.setItem('carbon-cloak-title', cloakTitle);
+            localStorage.setItem('carbon-cloak-favicon', cloakFavicon);
+            
+            console.log('🎭 Parsed cloaking from direct properties:', {
+              enabled: tabCloakingEnabled,
+              title: cloakTitle,
+              favicon: cloakFavicon
+            });
+          }
+          
+          // Also update panic key in localStorage
+          if (panicKey) {
+            localStorage.setItem('carbon-panic-key', panicKey);
+          }
+          
+          console.log('✅ Final parsed settings:', {
+            panicKey: panicKey,
+            tabCloakingEnabled: tabCloakingEnabled,
+            cloakTitle: cloakTitle,
+            cloakFavicon: cloakFavicon
+          });
+          
+          applyAllSettings();
+        } else if (event.data && event.data.type === 'carbon-settings-refresh') {
+          console.log('Refreshing settings from Firebase/localStorage');
+          // Reload settings when settings page saves
+          if (currentUser) {
+            loadSettingsFromFirebase();
+          } else {
+            loadLocalSettings();
+          }
+        }
+      });
+      
+
+      
+      // Auto-sync all data every 30 seconds if user is authenticated
+      setInterval(() => {
+        if (currentUser) {
+          syncAllDataToFirebase();
+        }
+      }, 30000);
+      
+      // Hook into tab operations and settings changes to sync data
+      const originalAddTab = addTab;
+      const originalRemoveTab = removeTab;
+      const originalUpdateTabHistory = updateTabHistory;
+      
+      addTab = function(...args) {
+        const result = originalAddTab.apply(this, args);
+        if (currentUser) {
+          setTimeout(() => syncAllDataToFirebase(), 1000);
+        }
+        return result;
+      };
+      
+      removeTab = function(...args) {
+        const result = originalRemoveTab.apply(this, args);
+        if (currentUser) {
+          setTimeout(() => syncAllDataToFirebase(), 1000);
+        }
+        return result;
+      };
+      
+      updateTabHistory = function(...args) {
+        const result = originalUpdateTabHistory.apply(this, args);
+        if (currentUser) {
+          setTimeout(() => syncAllDataToFirebase(), 2000);
+        }
+        return result;
+      };
+      
+      // Sync when settings change
+      function triggerSettingsSync() {
+        if (currentUser) {
+          setTimeout(() => syncAllDataToFirebase(), 500);
+        }
+      }
+
       // -- INIT --
       // Load saved data
       loadTabGroups();
@@ -2039,26 +3030,53 @@
       if (savedVerticalMode === "true") {
         verticalTabsMode = true;
         const verticalContainer = document.getElementById("vertical-tabs-container");
+        const verticalControls = document.getElementById("vertical-tab-controls");
+        const horizontalControls = document.getElementById("horizontal-tab-controls");
         const mainContent = document.getElementById("main-content-wrapper");
         const toggleBtn = document.getElementById("tabs-layout-toggle");
         
         verticalContainer.classList.add("open");
-        mainContent.classList.remove("collapsed");
+        verticalControls.classList.remove("hidden");
+        horizontalControls.classList.add("hidden");
+        mainContent.classList.add("with-vertical-tabs");
         toggleBtn.innerHTML = '<i class="bx bx-sidebar text-lg rotate-180"></i>';
         toggleBtn.title = "Hide Vertical Tabs";
+        
+        // Attach vertical tab event listeners
+        setTimeout(attachVerticalTabListeners, 100);
+        
+        // Notify existing iframes about vertical tabs state
+        setTimeout(notifyIframesVerticalTabsState, 600);
       }
       
       // Restore tab bar visibility from localStorage
       if (tabBarHidden) {
         const tabsBar = document.getElementById("tabs-bar");
         const toggleBtn = document.getElementById("hide-tab-bar-toggle");
+        const verticalToggleBtn = document.getElementById("vertical-hide-tab-bar-toggle");
         tabsBar.style.display = "none";
         toggleBtn.innerHTML = '<i class="bx bx-hide text-lg"></i>';
         toggleBtn.title = "Show Tab Bar";
+        if (verticalToggleBtn) {
+          verticalToggleBtn.innerHTML = '<i class="bx bx-hide text-sm"></i><span class="text-xs">Show Bar</span>';
+          verticalToggleBtn.title = "Show Tab Bar";
+        }
       }
       
-      if (tabs.length === 0) addTab();
+      if (tabs.length === 0) addTab("carbon://newtab");
       else loadTabsData();
+      
+      // Initialize settings immediately - try both methods to ensure we get settings
+      console.log('🚀 Initializing settings on page load...');
+      loadLocalSettings(); // Load localStorage first for immediate effect
+      
+      // Also load from Firebase if user is authenticated
+      if (auth.currentUser) {
+        console.log('👤 User already authenticated, loading from Firebase...');
+        loadSettingsFromFirebase();
+      } else {
+        console.log('👤 No user authenticated, using localStorage settings only');
+      }
 
       // Initialize sortable for horizontal tabs
       const tabsContainer = document.getElementById("tabs-bar");
