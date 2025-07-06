@@ -1,0 +1,694 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>New Tab - Carbon</title>
+    <script defer async>
+      function setConfig() {
+        tailwind.config = {
+          theme: {
+            extend: {
+              fontFamily: {
+                display: ["Switzer", "Helvetica", "sans-serif"],
+                inter: ["Inter", "sans-serif"],
+              },
+              colors: {
+                base: "#191724",
+                surface: "#1f1d2e",
+                overlay: "#26233a",
+                muted: "#6e6a86",
+                subtle: "#908caa",
+                text: "#e0def4",
+                love: "#eb6f92",
+                gold: "#f6c177",
+                rose: "#ebbcba",
+                pine: "#31748f",
+                foam: "#9ccfd8",
+                iris: "#c4a7e7",
+                "highlight-low": "#21202e",
+                "highlight-med": "#403d52",
+                "highlight-high": "#524f67",
+              },
+            },
+          },
+        };
+      }
+    </script>
+
+    <link rel="preconnect" href="https://unpkg.com" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://cdn.tailwindcss.com" />
+    <script
+      defer
+      async
+      src="https://cdn.tailwindcss.com"
+      onload="setConfig()"
+    ></script>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet" />
+
+    <style>
+      /* Theme Color Variables for Vertical Layout */
+      :root {
+        --text-color: #e0def4;
+        --surface-color: #1f1d2e;
+        --overlay-color: #26233a;
+        --highlight-med: #403d52;
+        --highlight-high: #524f67;
+        --foam: #9ccfd8;
+        --love: #eb6f92;
+        --gold: #f6c177;
+        --pine: #31748f;
+        --iris: #c4a7e7;
+        --muted: #6e6a86;
+        --subtle: #908caa;
+
+        /* Carbon theme variables */
+        --carbon-border-radius: 0.5rem;
+        --carbon-transition-fast: 0.15s ease;
+        --carbon-transition-normal: 0.3s ease;
+        --carbon-font-size-base: 16px;
+
+        /* Theme variables - Rose Pine (default) */
+        --theme-base: #191724;
+        --theme-surface: #1f1d2e;
+        --theme-overlay: #26233a;
+        --theme-muted: #6e6a86;
+        --theme-subtle: #908caa;
+        --theme-text: #e0def4;
+        --theme-love: #eb6f92;
+        --theme-gold: #f6c177;
+        --theme-rose: #ebbcba;
+        --theme-pine: #31748f;
+        --theme-foam: #9ccfd8;
+        --theme-iris: #c4a7e7;
+        --theme-highlight-low: #21202e;
+        --theme-highlight-med: #403d52;
+        --theme-highlight-high: #524f67;
+        --theme-gradient: linear-gradient(135deg, #191724 0%, #1f1d2e 50%, #26233a 100%);
+      }
+
+      /* Vertical Layout Specific Styles */
+      .vertical-layout {
+        padding-left: 280px; /* Account for vertical tabs sidebar */
+        transition: padding-left var(--carbon-transition-normal);
+      }
+
+      /* Quick Actions Grid */
+      .quick-action {
+        background: var(--theme-surface);
+        border: 1px solid var(--theme-overlay);
+        border-radius: 0.75rem;
+        padding: 1rem;
+        text-align: center;
+        transition: all 0.3s ease;
+        cursor: pointer;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.25rem;
+      }
+
+      .quick-action:hover {
+        background: var(--theme-overlay);
+        border-color: var(--theme-foam);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(156, 207, 216, 0.2);
+      }
+
+      /* Bookmark Grid - Same as newtab.html */
+      .bookmark-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 1rem;
+      }
+
+      .bookmark-item {
+        background: var(--theme-surface);
+        border: 1px solid var(--theme-overlay);
+        border-radius: 0.75rem;
+        padding: 1rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .bookmark-item:hover {
+        background: var(--theme-overlay);
+        border-color: var(--theme-foam);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(156, 207, 216, 0.2);
+      }
+
+      .bookmark-item.editing {
+        border-color: var(--theme-gold);
+        background: var(--theme-highlight-med);
+      }
+
+      .suggestion-box {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 100%;
+        z-index: 1200;
+        background: var(--theme-surface);
+        border-radius: 0 0 var(--carbon-border-radius) var(--carbon-border-radius);
+        border: 1px solid var(--theme-overlay);
+        border-top: none;
+        max-height: 200px;
+        overflow-y: auto;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        color: var(--theme-text);
+        font-size: 0.9rem;
+      }
+
+      .suggestion-item {
+        padding: 0.6rem 0.9rem;
+        cursor: pointer;
+        transition: background var(--carbon-transition-fast);
+        border-bottom: 1px solid var(--theme-overlay);
+      }
+
+      .suggestion-item:last-child {
+        border-bottom: none;
+      }
+
+      .suggestion-item:hover,
+      .suggestion-item.active {
+        background: var(--theme-overlay);
+        color: var(--theme-foam);
+      }
+
+      /* Responsive adjustments for vertical layout */
+      @media (max-width: 768px) {
+        .vertical-layout {
+          padding-left: 0;
+        }
+        
+        .bookmark-grid {
+          grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+        }
+      }
+
+      /* Theme switching */
+      body {
+        background: var(--theme-gradient);
+        background-attachment: fixed;
+      }
+
+      /* Modal styles - Clean design */
+    </style>
+  </head>
+  <body class="font-inter bg-gradient-to-br from-base via-surface to-overlay min-h-screen text-text">
+    <div class="vertical-layout min-h-screen flex flex-col">
+      <!-- Clean Header for Vertical Layout -->
+      <header class="p-4 text-center">
+        <h1 class="text-2xl font-bold text-text mb-1 flex items-center justify-center gap-2">
+          <i class="bx bx-atom text-foam"></i>
+          Carbon
+        </h1>
+        <p class="text-muted text-xs">New Tab</p>
+      </header>
+
+      <!-- Main Content -->
+      <main class="flex-1 max-w-4xl mx-auto w-full px-4">
+        <!-- Search Section -->
+        <section class="mb-8">
+          <div class="max-w-xl mx-auto">
+            <form id="search-form" class="relative">
+              <div class="relative">
+                <i class="bx bx-search absolute left-4 top-1/2 transform -translate-y-1/2 text-muted text-lg"></i>
+                <input
+                  id="search-input"
+                  type="text"
+                  spellcheck="false"
+                  autocomplete="off"
+                  placeholder="Search or enter website URL"
+                  class="w-full h-12 pl-12 pr-20 bg-surface border-2 border-overlay text-text rounded-full text-base focus:outline-none focus:ring-2 focus:ring-foam focus:border-foam placeholder-muted transition-all"
+                />
+                <div class="absolute right-3 top-1/2 transform -translate-y-1/2 flex items-center gap-2">
+                  <!-- Proxy Toggle -->
+                  <button
+                    id="proxy-toggle"
+                    type="button"
+                    class="w-8 h-8 rounded-full bg-highlight-med hover:bg-highlight-high border-2 border-foam flex items-center justify-center transition-all"
+                    title="UV Proxy"
+                  >
+                    <i id="proxy-icon" class="bx bx-cloud text-sm"></i>
+                  </button>
+                  <!-- Search Engine -->
+                  <button
+                    id="search-engine-toggle"
+                    type="button"
+                    class="w-8 h-8 rounded-full bg-highlight-med hover:bg-highlight-high border-2 border-overlay flex items-center justify-center transition-all"
+                    title="Search Engine"
+                  >
+                    <i id="search-engine-icon" class="bx bxl-brave text-sm"></i>
+                  </button>
+                </div>
+              </div>
+              <div id="suggestion-box" class="suggestion-box hidden"></div>
+            </form>
+          </div>
+        </section>
+
+        <!-- Quick Actions -->
+        <section class="mb-8">
+          <div class="text-center mb-4">
+            <h2 class="text-lg font-semibold text-text flex items-center justify-center gap-2">
+              <i class="bx bx-flash text-gold"></i>
+              Quick Actions
+            </h2>
+          </div>
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 max-w-md mx-auto">
+            <button class="quick-action" onclick="navigateToCarbon('carbon://games')">
+              <i class="bx bx-game text-foam text-xl mb-1"></i>
+              <span class="text-xs">Games</span>
+            </button>
+            <button class="quick-action" onclick="navigateToCarbon('carbon://history')">
+              <i class="bx bx-history text-iris text-xl mb-1"></i>
+              <span class="text-xs">History</span>
+            </button>
+            <button class="quick-action" onclick="navigateToCarbon('carbon://settings')">
+              <i class="bx bx-cog text-gold text-xl mb-1"></i>
+              <span class="text-xs">Settings</span>
+            </button>
+            <button class="quick-action" onclick="navigateToCarbon('carbon://account')">
+              <i class="bx bx-user text-pine text-xl mb-1"></i>
+              <span class="text-xs">Profile</span>
+            </button>
+          </div>
+        </section>
+
+        <!-- Bookmarks Section -->
+        <section>
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="text-lg font-semibold text-text flex items-center gap-2">
+              <i class="bx bx-bookmark text-foam"></i>
+              Bookmarks
+            </h2>
+            <button
+              id="add-bookmark-btn"
+              class="px-3 py-2 bg-foam text-base rounded-lg hover:bg-foam/80 transition-colors flex items-center gap-1 text-sm"
+            >
+              <i class="bx bx-plus"></i>
+              Add Bookmark
+            </button>
+          </div>
+          
+          <div id="bookmarks-grid" class="bookmark-grid">
+            <!-- Bookmarks will be populated here -->
+          </div>
+        </section>
+      </main>
+
+      <!-- Footer -->
+      <footer class="p-4 text-center text-muted text-xs">
+        <p>Press <kbd class="bg-highlight-med px-2 py-1 rounded text-xs">Ctrl+T</kbd> for new tab</p>
+      </footer>
+    </div>
+
+    <!-- Add Bookmark Modal -->
+    <div id="bookmark-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center opacity-0 pointer-events-none transition-opacity duration-300 z-50">
+      <div class="bg-surface border border-overlay rounded-xl shadow-2xl max-w-md w-[90vw] p-6">
+        <h3 class="text-xl font-semibold mb-4 text-text">Add Bookmark</h3>
+        <form id="bookmark-form">
+          <div class="mb-4">
+            <label class="block text-sm font-medium text-text mb-2">Title</label>
+            <input
+              id="bookmark-title"
+              type="text"
+              class="w-full px-3 py-2 bg-highlight-med border border-overlay rounded-lg text-text focus:outline-none focus:ring-2 focus:ring-foam"
+              placeholder="Bookmark title"
+            />
+          </div>
+          <div class="mb-4">
+            <label class="block text-sm font-medium text-text mb-2">URL</label>
+            <input
+              id="bookmark-url"
+              type="url"
+              class="w-full px-3 py-2 bg-highlight-med border border-overlay rounded-lg text-text focus:outline-none focus:ring-2 focus:ring-foam"
+              placeholder="https://example.com"
+            />
+          </div>
+          <div class="flex gap-2">
+            <button
+              type="submit"
+              class="flex-1 px-4 py-2 bg-foam text-base rounded-lg hover:bg-foam/80 transition-colors"
+            >
+              Add
+            </button>
+            <button
+              type="button"
+              id="cancel-bookmark"
+              class="flex-1 px-4 py-2 bg-highlight-med text-text rounded-lg hover:bg-highlight-high transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <script src="carbon-theme.js"></script>
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+    <script type="module">
+      import { makeURL, getProxied, setProxy, getProxy } from '/lethal.mjs';
+      
+      // Firebase configuration
+      const firebaseConfig = {
+        apiKey: "AIzaSyC4ilHYP1T-kdXbWPoHJHhD2aj0pNWmMec",
+        authDomain: "carbon-services.firebaseapp.com",
+        projectId: "carbon-services",
+        storageBucket: "carbon-services.firebasestorage.app",
+        messagingSenderId: "288385472070",
+        appId: "1:288385472070:web:c4be3ff186e248fc645c47",
+        measurementId: "G-Y2K1RQYE74"
+      };
+      
+      // Initialize Firebase
+      firebase.initializeApp(firebaseConfig);
+      const auth = firebase.auth();
+      const db = firebase.firestore();
+
+      // Search Engine Configuration
+      const searchEngines = {
+        'https://search.brave.com/search?q=%s': ['Brave', 'bxl-brave'],
+        'https://duckduckgo.com/?q=%s': ['DuckDuckGo', 'bxl-duckduckgo'],
+        'https://www.google.com/search?q=%s': ['Google', 'bxl-google'],
+        'https://www.bing.com/search?q=%s': ['Bing', 'bxl-microsoft'],
+        'https://search.yahoo.com/search?p=%s': ['Yahoo', 'bxl-yahoo'],
+      };
+
+      // State Management
+      let currentSearchEngine = localStorage.getItem('search-engine') || 'https://search.brave.com/search?q=%s';
+      let currentProxy = localStorage.getItem('proxy-backend') || 'uv';
+      let bookmarks = JSON.parse(localStorage.getItem('carbon-bookmarks') || '[]');
+      let currentUser = null;
+      
+      // Authentication state observer
+      auth.onAuthStateChanged((user) => {
+        currentUser = user;
+        if (user) {
+          loadBookmarksFromFirebase();
+        }
+      });
+
+      // Navigation function for Carbon pages
+      function navigateToCarbon(url) {
+        window.parent.postMessage({
+          type: 'carbon-navigate',
+          url: url
+        }, '*');
+      }
+
+      // Theme integration
+      window.addEventListener('storage', (event) => {
+        if (event.key === 'carbon-theme-global' && event.newValue) {
+          if (window.carbonTheme) {
+            window.carbonTheme.applyTheme(event.newValue);
+          }
+        }
+      });
+
+      window.addEventListener('message', (event) => {
+        if (event.data && event.data.type === 'carbon-theme-change') {
+          if (window.carbonTheme) {
+            window.carbonTheme.applyTheme(event.data.theme);
+          }
+        } else if (event.data && event.data.type === 'carbon-vertical-tabs-state') {
+          // Adjust layout based on vertical tabs state
+          const layout = document.querySelector('.vertical-layout');
+          if (event.data.enabled) {
+            layout.classList.add('vertical-layout');
+          } else {
+            layout.classList.remove('vertical-layout');
+          }
+        }
+      });
+
+      // Proxy Management
+      function toggleProxy() {
+        const proxies = ['uv', 'scram'];
+        const currentIndex = proxies.indexOf(currentProxy);
+        const nextIndex = (currentIndex + 1) % proxies.length;
+        currentProxy = proxies[nextIndex];
+        
+        localStorage.setItem('proxy-backend', currentProxy);
+        setProxy(currentProxy);
+        updateProxyUI();
+        
+        // Broadcast proxy change
+        window.parent.postMessage({
+          type: 'carbon-proxy-sync',
+          proxy: currentProxy
+        }, '*');
+      }
+
+      function updateProxyUI() {
+        const proxyIcon = document.getElementById('proxy-icon');
+        const proxyToggle = document.getElementById('proxy-toggle');
+        
+        if (currentProxy === 'uv') {
+          proxyIcon.className = 'bx bx-cloud';
+          proxyToggle.title = 'UV Proxy';
+          proxyToggle.style.borderColor = 'var(--theme-foam)';
+        } else {
+          proxyIcon.className = 'bx bx-network-chart';
+          proxyToggle.title = 'Scramjet Proxy';
+          proxyToggle.style.borderColor = 'var(--theme-pine)';
+        }
+      }
+
+      // Search Engine Management
+      function toggleSearchEngine() {
+        const engines = Object.keys(searchEngines);
+        const currentIndex = engines.indexOf(currentSearchEngine);
+        const nextIndex = (currentIndex + 1) % engines.length;
+        currentSearchEngine = engines[nextIndex];
+        
+        localStorage.setItem('search-engine', currentSearchEngine);
+        updateSearchEngineUI();
+        
+        // Broadcast search engine change
+        window.parent.postMessage({
+          type: 'carbon-search-engine-sync',
+          searchEngine: currentSearchEngine
+        }, '*');
+      }
+
+      function updateSearchEngineUI() {
+        const engineIcon = document.getElementById('search-engine-icon');
+        const engineToggle = document.getElementById('search-engine-toggle');
+        const [name, icon] = searchEngines[currentSearchEngine];
+        
+        engineIcon.className = `bx ${icon}`;
+        engineToggle.title = name;
+      }
+
+      // Bookmark Management
+      async function loadBookmarksFromFirebase() {
+        if (!currentUser) return;
+        
+        try {
+          const userDoc = await db.collection('users').doc(currentUser.uid).get();
+          if (userDoc.exists) {
+            const userData = userDoc.data();
+            if (userData.bookmarks) {
+              bookmarks = userData.bookmarks;
+              localStorage.setItem('carbon-bookmarks', JSON.stringify(bookmarks));
+              renderBookmarks();
+            }
+          }
+        } catch (error) {
+          console.error('Error loading bookmarks from Firebase:', error);
+        }
+      }
+
+      async function saveBookmarksToFirebase() {
+        if (!currentUser) return;
+        
+        try {
+          await db.collection('users').doc(currentUser.uid).set({
+            bookmarks: bookmarks,
+            lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+          }, { merge: true });
+        } catch (error) {
+          console.error('Error saving bookmarks to Firebase:', error);
+        }
+      }
+
+      function renderBookmarks() {
+        const grid = document.getElementById('bookmarks-grid');
+        
+        if (bookmarks.length === 0) {
+          grid.innerHTML = `
+            <div class="col-span-full text-center text-muted py-8">
+              <i class="bx bx-bookmark text-4xl mb-2"></i>
+              <p>No bookmarks yet. Click "Add Bookmark" to get started!</p>
+            </div>
+          `;
+          return;
+        }
+        
+        grid.innerHTML = bookmarks.map((bookmark, index) => `
+          <div class="bookmark-item" data-index="${index}">
+            <div class="flex items-start justify-between mb-3">
+              <div class="w-8 h-8 rounded-lg bg-foam/20 flex items-center justify-center flex-shrink-0">
+                <i class="bx bx-bookmark text-foam"></i>
+              </div>
+              <div class="flex gap-1">
+                <button class="edit-bookmark w-6 h-6 rounded hover:bg-highlight-med flex items-center justify-center text-muted hover:text-text transition-colors">
+                  <i class="bx bx-edit text-xs"></i>
+                </button>
+                <button class="delete-bookmark w-6 h-6 rounded hover:bg-love/20 flex items-center justify-center text-muted hover:text-love transition-colors">
+                  <i class="bx bx-trash text-xs"></i>
+                </button>
+              </div>
+            </div>
+            <h3 class="font-medium text-text mb-1 leading-tight line-clamp-2">${bookmark.title}</h3>
+            <p class="text-xs text-muted truncate">${bookmark.url}</p>
+          </div>
+        `).join('');
+
+        // Add event listeners for bookmark interactions
+        grid.querySelectorAll('.bookmark-item').forEach((item, index) => {
+          const bookmark = bookmarks[index];
+          
+          item.addEventListener('click', (e) => {
+            if (!e.target.closest('button')) {
+              openBookmark(bookmark.url);
+            }
+          });
+          
+          const deleteBtn = item.querySelector('.delete-bookmark');
+          deleteBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            removeBookmark(bookmark.id);
+          });
+          
+          const editBtn = item.querySelector('.edit-bookmark');
+          editBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            editBookmark(index);
+          });
+        });
+      }
+
+      function openBookmark(url) {
+        window.parent.postMessage({
+          type: 'carbon-navigate',
+          url: url
+        }, '*');
+      }
+
+      function addBookmark(title, url) {
+        const bookmark = {
+          id: Date.now().toString(),
+          title: title.trim(),
+          url: url.trim(),
+          created: new Date().toISOString()
+        };
+        
+        bookmarks.unshift(bookmark);
+        localStorage.setItem('carbon-bookmarks', JSON.stringify(bookmarks));
+        saveBookmarksToFirebase();
+        renderBookmarks();
+      }
+
+      function removeBookmark(id) {
+        bookmarks = bookmarks.filter(b => b.id !== id);
+        localStorage.setItem('carbon-bookmarks', JSON.stringify(bookmarks));
+        saveBookmarksToFirebase();
+        renderBookmarks();
+      }
+
+      function editBookmark(index) {
+        const bookmark = bookmarks[index];
+        const newTitle = prompt('Edit bookmark title:', bookmark.title);
+        const newUrl = prompt('Edit bookmark URL:', bookmark.url);
+        
+        if (newTitle !== null && newUrl !== null && newTitle.trim() && newUrl.trim()) {
+          bookmarks[index] = {
+            ...bookmark,
+            title: newTitle.trim(),
+            url: newUrl.trim()
+          };
+          localStorage.setItem('carbon-bookmarks', JSON.stringify(bookmarks));
+          saveBookmarksToFirebase();
+          renderBookmarks();
+        }
+      }
+
+      // Search functionality
+      function handleSearch(query) {
+        if (!query.trim()) return;
+        
+        const url = makeURL(query, currentSearchEngine);
+        window.parent.postMessage({
+          type: 'carbon-navigate',
+          url: url
+        }, '*');
+      }
+
+      // Event Listeners
+      document.getElementById('proxy-toggle').addEventListener('click', toggleProxy);
+      document.getElementById('search-engine-toggle').addEventListener('click', toggleSearchEngine);
+
+      document.getElementById('search-form').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const query = document.getElementById('search-input').value;
+        handleSearch(query);
+      });
+
+      document.getElementById('add-bookmark-btn').addEventListener('click', () => {
+        const modal = document.getElementById('bookmark-modal');
+        modal.classList.remove('opacity-0', 'pointer-events-none');
+        modal.classList.add('opacity-100', 'pointer-events-auto');
+        document.getElementById('bookmark-title').focus();
+      });
+
+      document.getElementById('cancel-bookmark').addEventListener('click', () => {
+        const modal = document.getElementById('bookmark-modal');
+        modal.classList.add('opacity-0', 'pointer-events-none');
+        modal.classList.remove('opacity-100', 'pointer-events-auto');
+        document.getElementById('bookmark-form').reset();
+      });
+
+      document.getElementById('bookmark-form').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const title = document.getElementById('bookmark-title').value;
+        const url = document.getElementById('bookmark-url').value;
+        
+        if (title && url) {
+          addBookmark(title, url);
+          document.getElementById('cancel-bookmark').click();
+        }
+      });
+
+      // Initialize
+      setProxy(currentProxy);
+      updateProxyUI();
+      updateSearchEngineUI();
+      renderBookmarks();
+
+      // Request vertical tabs state from parent
+      window.parent.postMessage({
+        type: 'carbon-request-vertical-tabs-state'
+      }, '*');
+
+      // Expose functions globally for onclick handlers
+      window.navigateToCarbon = navigateToCarbon;
+      window.removeBookmark = removeBookmark;
+      window.editBookmark = editBookmark;
+    </script>
+  </body>
+</html>
