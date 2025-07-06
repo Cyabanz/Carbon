@@ -784,8 +784,8 @@
         <!-- Save Settings -->
         <div class="text-center">
             <button id="save-settings" class="px-8 py-4 btn-primary text-base rounded-lg font-medium transition-all text-lg">
-                <i class="bx bx-save mr-2"></i>
-                Save All Settings
+                <i class="bx bx-check mr-2"></i>
+                Auto-Save Enabled
             </button>
         </div>
     </div>
@@ -1482,7 +1482,152 @@
         document.getElementById('google-signin-btn').addEventListener('click', googleSignIn);
         document.getElementById('sign-out-btn').addEventListener('click', signOut);
 
-        // Save settings button
+        // Auto save functionality
+        let autoSaveTimeout;
+        let isAutoSaving = false;
+        
+        function triggerAutoSave() {
+            if (isAutoSaving) return;
+            
+            // Clear existing timeout
+            if (autoSaveTimeout) {
+                clearTimeout(autoSaveTimeout);
+            }
+            
+            // Set new timeout for auto save (debounced)
+            autoSaveTimeout = setTimeout(async () => {
+                try {
+                    isAutoSaving = true;
+                    await autoSaveSettings();
+                    showAutoSaveStatus('✓ Auto-saved', 'success');
+                } catch (error) {
+                    console.error('Auto save failed:', error);
+                    showAutoSaveStatus('⚠ Auto-save failed', 'error');
+                } finally {
+                    isAutoSaving = false;
+                }
+            }, 1000); // 1 second delay
+            
+            // Show saving indicator
+            showAutoSaveStatus('💾 Saving...', 'saving');
+        }
+        
+        async function autoSaveSettings() {
+            // Save panic key
+            localStorage.setItem('carbon-panic-key', panicKey || '');
+            localStorage.setItem('carbon-panic-url', document.getElementById('panic-url').value);
+            
+            // Save theme and background using global keys
+            localStorage.setItem('carbon-theme-global', currentTheme);
+            localStorage.setItem('carbon-background-global', currentBackground);
+            
+            // Save tab cloaking
+            localStorage.setItem('carbon-cloak-enabled', document.getElementById('tab-cloaking-enabled').checked);
+            localStorage.setItem('carbon-cloak-title', document.getElementById('cloak-title').value);
+            localStorage.setItem('carbon-cloak-favicon', document.getElementById('cloak-favicon').value);
+            
+            // Save fullscreen
+            localStorage.setItem('carbon-fullscreen-enabled', document.getElementById('fullscreen-enabled').checked);
+            
+            // Save close prevention
+            localStorage.setItem('carbon-close-prevention', document.getElementById('close-prevention-enabled').checked);
+            localStorage.setItem('carbon-confirm-close', document.getElementById('confirm-close').checked);
+            localStorage.setItem('carbon-close-message', document.getElementById('close-message').value);
+            
+            // Save teacher prevention
+            localStorage.setItem('carbon-disable-right-click', document.getElementById('disable-right-click').checked);
+            localStorage.setItem('carbon-disable-devtools', document.getElementById('disable-devtools').checked);
+            localStorage.setItem('carbon-disable-select', document.getElementById('disable-select').checked);
+            localStorage.setItem('carbon-hide-cursor', document.getElementById('hide-cursor').checked);
+            localStorage.setItem('carbon-blur-unfocus', document.getElementById('blur-on-unfocus').checked);
+            
+            // Save to Firebase if user is authenticated
+            if (currentUser) {
+                await saveSettingsToFirebase();
+            }
+            
+            // Apply settings immediately
+            applySettings();
+            
+            // Notify parent window to refresh settings
+            if (window.parent && window.parent !== window) {
+                window.parent.postMessage({
+                    type: 'carbon-settings-refresh'
+                }, '*');
+            }
+            
+            // Update status indicators
+            updateStatusIndicators();
+        }
+        
+        function showAutoSaveStatus(message, type) {
+            const btn = document.getElementById('save-settings');
+            const originalText = btn.innerHTML;
+            
+            btn.innerHTML = message;
+            btn.classList.remove('bg-foam', 'bg-pine', 'bg-love', 'bg-gold');
+            
+            if (type === 'success') {
+                btn.classList.add('bg-pine');
+            } else if (type === 'error') {
+                btn.classList.add('bg-love');
+            } else if (type === 'saving') {
+                btn.classList.add('bg-gold');
+            }
+            
+            if (type !== 'saving') {
+                setTimeout(() => {
+                    btn.innerHTML = originalText;
+                    btn.classList.remove('bg-pine', 'bg-love', 'bg-gold');
+                    btn.classList.add('bg-foam');
+                }, 2000);
+            }
+        }
+        
+        // Add auto save listeners to all form elements
+        function setupAutoSaveListeners() {
+            // Text inputs
+            const textInputs = [
+                'panic-url', 'cloak-title', 'cloak-favicon', 'close-message'
+            ];
+            textInputs.forEach(id => {
+                const element = document.getElementById(id);
+                if (element) {
+                    element.addEventListener('input', triggerAutoSave);
+                    element.addEventListener('blur', triggerAutoSave);
+                }
+            });
+            
+            // Checkboxes
+            const checkboxes = [
+                'tab-cloaking-enabled', 'fullscreen-enabled', 'close-prevention-enabled',
+                'confirm-close', 'disable-right-click', 'disable-devtools', 
+                'disable-select', 'hide-cursor', 'blur-on-unfocus'
+            ];
+            checkboxes.forEach(id => {
+                const element = document.getElementById(id);
+                if (element) {
+                    element.addEventListener('change', triggerAutoSave);
+                }
+            });
+            
+            // Theme and background changes
+            document.addEventListener('click', function(e) {
+                if (e.target.closest('.theme-preview') || e.target.closest('.bg-preview')) {
+                    setTimeout(triggerAutoSave, 100); // Small delay to ensure state is updated
+                }
+            });
+            
+            // Custom background upload
+            document.getElementById('bg-file-input').addEventListener('change', function() {
+                setTimeout(triggerAutoSave, 500); // Delay for file processing
+            });
+        }
+        
+        // Initialize auto save
+        setupAutoSaveListeners();
+        
+        // Save settings button (now manual save)
         document.getElementById('save-settings').addEventListener('click', saveSettings);
 
         // Note: Panic key works globally in proxy.html, not in settings

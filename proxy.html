@@ -2490,21 +2490,33 @@
       // -- Keyboard Shortcuts --
       document.addEventListener("keydown", (e) => {
         // PANIC KEY - Check this FIRST before any other shortcuts
-        console.log('Main keyboard handler - Key pressed:', e.key.toLowerCase(), 'Panic key:', panicKey);
-        if (panicKey && e.key.toLowerCase() === panicKey.toLowerCase()) {
-          const panicUrl = localStorage.getItem('carbon-panic-url') || 'https://classroom.google.com';
-          console.log('🚨 PANIC KEY TRIGGERED! Redirecting to:', panicUrl);
-          e.preventDefault();
-          e.stopPropagation();
-          e.stopImmediatePropagation();
-          
-          // Immediately redirect the entire window
-          try {
-            window.top.location.href = panicUrl;
-          } catch (error) {
-            window.location.href = panicUrl;
+        if (panicKey && panicKey.trim() !== '') {
+          console.log('🔑 Key pressed:', e.key.toLowerCase(), 'Panic key set to:', panicKey);
+          if (e.key.toLowerCase() === panicKey.toLowerCase()) {
+            const panicUrl = localStorage.getItem('carbon-panic-url') || 'https://classroom.google.com';
+            console.log('🚨🚨🚨 PANIC KEY TRIGGERED! 🚨🚨🚨');
+            console.log('Redirecting to:', panicUrl);
+            e.preventDefault();
+            e.stopPropagation();
+            e.stopImmediatePropagation();
+            
+            // Alert to confirm it's working (remove in production)
+            alert('PANIC KEY ACTIVATED! Redirecting to: ' + panicUrl);
+            
+            // Immediately redirect the entire window
+            try {
+              window.top.location.href = panicUrl;
+            } catch (error) {
+              console.log('Top location failed, using window.location');
+              window.location.href = panicUrl;
+            }
+            return false;
           }
-          return false;
+        } else {
+          // Only log occasionally to avoid spam
+          if (Math.random() < 0.01) {
+            console.log('⚠️ Panic key not set or empty. Current value:', panicKey);
+          }
         }
         
         // Dev tools prevention
@@ -2641,15 +2653,23 @@
       
       // Load settings from localStorage (fallback)
       function loadLocalSettings() {
+        // Debug: Log all localStorage values
+        console.log('🔍 Debugging localStorage values:');
+        console.log('carbon-panic-key:', localStorage.getItem('carbon-panic-key'));
+        console.log('carbon-cloak-enabled:', localStorage.getItem('carbon-cloak-enabled'));
+        console.log('carbon-cloak-title:', localStorage.getItem('carbon-cloak-title'));
+        console.log('carbon-cloak-favicon:', localStorage.getItem('carbon-cloak-favicon'));
+        
         panicKey = localStorage.getItem('carbon-panic-key') || null;
         tabCloakingEnabled = localStorage.getItem('carbon-cloak-enabled') === 'true';
         cloakTitle = localStorage.getItem('carbon-cloak-title') || '';
         cloakFavicon = localStorage.getItem('carbon-cloak-favicon') || '';
         
-        console.log('Settings loaded from localStorage:', {
+        console.log('📚 Settings loaded from localStorage:', {
           panicKey: panicKey,
           cloakingEnabled: tabCloakingEnabled,
-          cloakTitle: cloakTitle
+          cloakTitle: cloakTitle,
+          cloakFavicon: cloakFavicon
         });
         
         applyAllSettings();
@@ -2657,6 +2677,7 @@
       
       // Apply all settings
       function applyAllSettings() {
+        console.log('🔧 Applying all settings...');
         applyTabCloaking();
         applyTeacherPrevention();
         applyClosePrevention();
@@ -2664,54 +2685,133 @@
         triggerSettingsSync();
       }
       
+      // Manual reload function for debugging
+      window.reloadSettings = function() {
+        console.log('🔄 Manually reloading settings...');
+        loadLocalSettings();
+        if (currentUser) {
+          loadSettingsFromFirebase();
+        }
+      };
+      
+      // Debug functions for testing
+      window.testPanicKey = function() {
+        console.log('🧪 Testing panic key. Current panic key:', panicKey);
+        console.log('💾 localStorage panic key:', localStorage.getItem('carbon-panic-key'));
+        if (panicKey) {
+          console.log('✅ Panic key is set. Try pressing:', panicKey);
+        } else {
+          console.log('❌ No panic key set. Set one in settings first.');
+        }
+      };
+      
+      window.testTabCloaking = function() {
+        console.log('🧪 Testing tab cloaking:');
+        console.log('Enabled:', tabCloakingEnabled);
+        console.log('Title:', cloakTitle);
+        console.log('Favicon:', cloakFavicon);
+        console.log('Current document title:', document.title);
+        if (tabCloakingEnabled && cloakTitle) {
+          console.log('✅ Tab cloaking should be active');
+        } else {
+          console.log('❌ Tab cloaking not active. Enable in settings first.');
+        }
+      };
+      
+      // Manual trigger for testing
+      window.manualTabCloak = function(title, favicon) {
+        console.log('🎭 Manually triggering tab cloaking...');
+        tabCloakingEnabled = true;
+        cloakTitle = title || 'Google Classroom';
+        cloakFavicon = favicon || 'https://ssl.gstatic.com/classroom/favicon.png';
+        
+        localStorage.setItem('carbon-cloak-enabled', 'true');
+        localStorage.setItem('carbon-cloak-title', cloakTitle);
+        localStorage.setItem('carbon-cloak-favicon', cloakFavicon);
+        
+        applyTabCloaking();
+        console.log('✅ Manual tab cloaking applied');
+      };
+      
+      // Check settings every 5 seconds to ensure they're loaded
+      setInterval(() => {
+        if (!panicKey && !tabCloakingEnabled) {
+          const storedPanicKey = localStorage.getItem('carbon-panic-key');
+          const storedCloaking = localStorage.getItem('carbon-cloak-enabled');
+          if (storedPanicKey || storedCloaking === 'true') {
+            console.log('🔄 Settings found in localStorage but not loaded. Reloading...');
+            loadLocalSettings();
+          }
+        }
+      }, 5000);
+      
       // Tab cloaking functionality
       function applyTabCloaking() {
-        console.log('🎭 Applying tab cloaking:', {
+        console.log('🎭 Applying tab cloaking with values:', {
           enabled: tabCloakingEnabled,
+          enabledType: typeof tabCloakingEnabled,
           title: cloakTitle,
-          favicon: cloakFavicon
+          titleType: typeof cloakTitle,
+          titleLength: cloakTitle ? cloakTitle.length : 0,
+          favicon: cloakFavicon,
+          faviconType: typeof cloakFavicon
         });
         
-        if (tabCloakingEnabled && cloakTitle) {
+        // More robust checking
+        const isEnabled = (tabCloakingEnabled === true || tabCloakingEnabled === 'true');
+        const hasTitle = cloakTitle && cloakTitle.trim() !== '';
+        
+        console.log('🔍 Cloaking checks:', {
+          isEnabled: isEnabled,
+          hasTitle: hasTitle,
+          willApplyCloak: isEnabled && hasTitle
+        });
+        
+        if (isEnabled && hasTitle) {
           // Change the document title immediately
-          document.title = cloakTitle;
-          console.log('✅ Document title changed to:', document.title);
+          const newTitle = cloakTitle.trim();
+          document.title = newTitle;
+          console.log('✅ Document title changed from CARBON to:', document.title);
           
-          if (cloakFavicon) {
+          if (cloakFavicon && cloakFavicon.trim() !== '') {
             // Remove existing favicon links
             const existingLinks = document.querySelectorAll("link[rel*='icon']");
+            console.log('🗑️ Removing', existingLinks.length, 'existing favicon links');
             existingLinks.forEach(link => {
-              console.log('🗑️ Removing existing favicon link:', link.href);
+              console.log('🗑️ Removing favicon:', link.href);
               link.remove();
             });
             
             // Add new favicon with multiple formats for better compatibility
             const timestamp = new Date().getTime();
+            const faviconUrl = cloakFavicon.trim();
             
             // Primary favicon
             const link = document.createElement('link');
             link.type = 'image/x-icon';
             link.rel = 'shortcut icon';
-            link.href = cloakFavicon + '?v=' + timestamp;
+            link.href = faviconUrl + '?v=' + timestamp;
             document.head.appendChild(link);
             
             // Standard icon
             const iconLink = document.createElement('link');
             iconLink.rel = 'icon';
             iconLink.type = 'image/x-icon';
-            iconLink.href = cloakFavicon + '?v=' + timestamp;
+            iconLink.href = faviconUrl + '?v=' + timestamp;
             document.head.appendChild(iconLink);
             
             // Apple touch icon for mobile
             const appleLink = document.createElement('link');
             appleLink.rel = 'apple-touch-icon';
-            appleLink.href = cloakFavicon + '?v=' + timestamp;
+            appleLink.href = faviconUrl + '?v=' + timestamp;
             document.head.appendChild(appleLink);
             
-            console.log('✅ Added new favicon:', cloakFavicon);
+            console.log('✅ Added new favicon links for:', faviconUrl);
+          } else {
+            console.log('⚠️ No favicon URL provided or empty');
           }
         } else {
-          console.log('❌ Tab cloaking disabled or no title set');
+          console.log('❌ Tab cloaking not applied - Enabled:', isEnabled, 'Has title:', hasTitle);
           document.title = 'CARBON';
           // Reset to default favicon if not cloaking
           const existingLinks = document.querySelectorAll("link[rel*='icon']");
@@ -2788,22 +2888,82 @@
       // Listen for settings changes from settings page
       window.addEventListener('message', (event) => {
         if (event.data && event.data.type === 'carbon-settings-updated') {
-          console.log('Received settings update:', event.data.settings);
+          console.log('📨 Received settings update - Full data:', JSON.stringify(event.data, null, 2));
+          console.log('📨 Settings object:', JSON.stringify(event.data.settings, null, 2));
+          
           const settings = event.data.settings;
-          panicKey = settings.panicKey;
+          
+          // Parse panic key
+          panicKey = settings.panicKey || null;
+          console.log('🔑 Parsed panic key:', panicKey);
+          
           if (settings.panicUrl) {
             localStorage.setItem('carbon-panic-url', settings.panicUrl);
+            console.log('🔗 Set panic URL:', settings.panicUrl);
           }
+          
+          // Parse tab cloaking - try multiple possible structures
           if (settings.cloaking) {
-            tabCloakingEnabled = settings.cloaking.enabled;
-            cloakTitle = settings.cloaking.title;
-            cloakFavicon = settings.cloaking.favicon;
+            // Handle both boolean and string values
+            tabCloakingEnabled = (settings.cloaking.enabled === true || settings.cloaking.enabled === 'true');
+            cloakTitle = (settings.cloaking.title || '').toString();
+            cloakFavicon = (settings.cloaking.favicon || '').toString();
+            
+            // Also update localStorage to keep in sync
+            localStorage.setItem('carbon-cloak-enabled', tabCloakingEnabled.toString());
+            localStorage.setItem('carbon-cloak-title', cloakTitle);
+            localStorage.setItem('carbon-cloak-favicon', cloakFavicon);
+            
+            console.log('🎭 Parsed cloaking from settings.cloaking:', {
+              enabled: tabCloakingEnabled,
+              title: cloakTitle,
+              favicon: cloakFavicon
+            });
+          } else if (settings.tabCloaking) {
+            tabCloakingEnabled = settings.tabCloaking.enabled || false;
+            cloakTitle = settings.tabCloaking.title || '';
+            cloakFavicon = settings.tabCloaking.favicon || '';
+            
+            // Also update localStorage to keep in sync
+            localStorage.setItem('carbon-cloak-enabled', tabCloakingEnabled);
+            localStorage.setItem('carbon-cloak-title', cloakTitle);
+            localStorage.setItem('carbon-cloak-favicon', cloakFavicon);
+            
+            console.log('🎭 Parsed cloaking from settings.tabCloaking:', {
+              enabled: tabCloakingEnabled,
+              title: cloakTitle,
+              favicon: cloakFavicon
+            });
+          } else {
+            // Try direct properties
+            tabCloakingEnabled = settings.cloakingEnabled || settings.enabled || false;
+            cloakTitle = settings.cloakTitle || settings.title || '';
+            cloakFavicon = settings.cloakFavicon || settings.favicon || '';
+            
+            // Also update localStorage to keep in sync
+            localStorage.setItem('carbon-cloak-enabled', tabCloakingEnabled);
+            localStorage.setItem('carbon-cloak-title', cloakTitle);
+            localStorage.setItem('carbon-cloak-favicon', cloakFavicon);
+            
+            console.log('🎭 Parsed cloaking from direct properties:', {
+              enabled: tabCloakingEnabled,
+              title: cloakTitle,
+              favicon: cloakFavicon
+            });
           }
-          console.log('Updated settings applied:', {
+          
+          // Also update panic key in localStorage
+          if (panicKey) {
+            localStorage.setItem('carbon-panic-key', panicKey);
+          }
+          
+          console.log('✅ Final parsed settings:', {
             panicKey: panicKey,
             tabCloakingEnabled: tabCloakingEnabled,
-            cloakTitle: cloakTitle
+            cloakTitle: cloakTitle,
+            cloakFavicon: cloakFavicon
           });
+          
           applyAllSettings();
         } else if (event.data && event.data.type === 'carbon-settings-refresh') {
           console.log('Refreshing settings from Firebase/localStorage');
