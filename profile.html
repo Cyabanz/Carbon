@@ -34,6 +34,7 @@
   </div>
 
   <main class="pt-28 max-w-5xl mx-auto px-4">
+    <!-- PRIVATE PROFILE -->
     <div id="profileContent" class="hidden">
       <div class="mb-12 text-center">
         <img id="profilePhoto" class="w-20 h-20 rounded-full mx-auto mb-4 border-4 border-cyan-400 shadow" src="" alt="Profile Photo">
@@ -41,13 +42,11 @@
         <div id="profileEmail" class="text-white/70"></div>
         <button onclick="signOut()" class="mt-5 bg-white/10 px-4 py-2 rounded hover:bg-pink-600 text-white">Sign Out</button>
       </div>
-
       <!-- Recent Games Section -->
       <div id="recentGamesContainer" class="mb-12">
         <h2 class="text-2xl font-bold mb-4 bg-gradient-to-r from-yellow-300 to-cyan-400 bg-clip-text text-transparent">Recently Played</h2>
         <div id="recentGamesList" class="grid gap-4"></div>
       </div>
-
       <div class="grid md:grid-cols-2 gap-12">
         <!-- Favorite Games -->
         <div>
@@ -60,7 +59,6 @@
           <div id="likedGamesList" class="grid gap-4"></div>
         </div>
       </div>
-
       <!-- User Activity Feed Section -->
       <div id="activityFeedSection" class="mb-12 animate-[fadeInUp_1s_ease-out_0.7s_both]">
         <h2 class="text-2xl font-bold mb-6 bg-gradient-to-r from-cyan-400 to-indigo-500 bg-clip-text text-transparent flex items-center gap-3">
@@ -72,6 +70,41 @@
         </div>
       </div>
     </div>
+
+    <!-- PUBLIC PROFILE -->
+    <div id="publicProfileContent" class="hidden">
+      <div class="mb-12 text-center">
+        <img id="publicProfilePhoto" class="w-20 h-20 rounded-full mx-auto mb-4 border-4 border-cyan-400 shadow" src="" alt="Profile Photo">
+        <div id="publicProfileName" class="text-3xl font-extrabold text-cyan-300 mb-1"></div>
+        <div id="publicProfileUsername" class="text-white/60 text-base"></div>
+      </div>
+      <div id="publicRecentGamesContainer" class="mb-12">
+        <h2 class="text-2xl font-bold mb-4 bg-gradient-to-r from-yellow-300 to-cyan-400 bg-clip-text text-transparent">Recently Played</h2>
+        <div id="publicRecentGamesList" class="grid gap-4"></div>
+      </div>
+      <div class="grid md:grid-cols-2 gap-12">
+        <!-- Favorite Games -->
+        <div>
+          <h2 class="text-2xl font-bold mb-4 bg-gradient-to-r from-pink-400 to-pink-600 bg-clip-text text-transparent">Favorite Games</h2>
+          <div id="publicFavoriteGamesList" class="grid gap-4"></div>
+        </div>
+        <!-- Liked Games -->
+        <div>
+          <h2 class="text-2xl font-bold mb-4 bg-gradient-to-r from-cyan-400 to-indigo-500 bg-clip-text text-transparent">Liked Games</h2>
+          <div id="publicLikedGamesList" class="grid gap-4"></div>
+        </div>
+      </div>
+      <div id="publicActivityFeedSection" class="mb-12 animate-[fadeInUp_1s_ease-out_0.7s_both]">
+        <h2 class="text-2xl font-bold mb-6 bg-gradient-to-r from-cyan-400 to-indigo-500 bg-clip-text text-transparent flex items-center gap-3">
+          <i class='bx bx-activity text-green-400'></i>
+          Recent Activity
+        </h2>
+        <div id="publicActivityFeed" class="bg-white/5 border border-white/10 rounded-2xl p-6 max-h-64 overflow-y-auto">
+          <!-- Public activity feed items will be populated by JavaScript -->
+        </div>
+      </div>
+    </div>
+    <!-- END PUBLIC PROFILE -->
   </main>
 
   <script>
@@ -112,6 +145,24 @@
       return doc.exists ? doc.data() : { likedGames: [], favoriteGames: [], playlist: [], history: [] };
     }
 
+    async function getUserPublicProfile(uid) {
+      // To support both legacy and new schemas
+      const doc = await db.collection('users').doc(uid).get();
+      if (doc.exists) {
+        const user = doc.data();
+        // For public profile, we intentionally do not return email
+        return {
+          displayName: user.displayName || '',
+          username: user.username || '', // optional field you might want to set
+          photoURL: user.photoURL || '',
+          likedGames: user.likedGames || [],
+          favoriteGames: user.favoriteGames || [],
+          history: user.history || [],
+        };
+      }
+      return null;
+    }
+
     function renderUserSection(user) {
       const section = document.getElementById('userSection');
       if (!user) {
@@ -131,7 +182,6 @@
         listEl.innerHTML = `<div class="text-white/50 italic">No ${label} yet.</div>`;
         return;
       }
-      // Remove duplicates, preserve order
       const seen = {};
       const uniqueIds = [];
       for (const id of gameIds) {
@@ -166,7 +216,7 @@
 
     // --- Activity Feed Logic for Profile Page ---
     function getActivityDescription(activity) {
-      const gameTitle = activity.data && activity.data.gameId ? 
+      const gameTitle = activity.data && activity.data.gameId ?
         (gamesData.find(g => g.id === String(activity.data.gameId))?.title || 'Unknown Game') : '';
       switch (activity.action) {
         case 'play':
@@ -216,8 +266,8 @@
       if (minutes > 0) return `${minutes}m ago`;
       return 'Just now';
     }
-    function renderActivityFeed(activities) {
-      const feed = document.getElementById('activityFeed');
+    function renderActivityFeed(activities, feedId) {
+      const feed = document.getElementById(feedId);
       if (!activities || activities.length === 0) {
         feed.innerHTML = '<p class="text-white/60 text-center">No recent activity</p>';
         return;
@@ -236,17 +286,52 @@
         `;
       }).join('');
     }
-    async function loadActivityFeed(uid) {
+    async function loadActivityFeed(uid, feedId) {
       const doc = await db.collection('user-activity').doc(uid).get();
       if (doc.exists) {
         const activities = doc.data().activities || [];
-        renderActivityFeed(activities.slice(-10).reverse());
+        renderActivityFeed(activities.slice(-10).reverse(), feedId);
       } else {
-        renderActivityFeed([]);
+        renderActivityFeed([], feedId);
       }
     }
 
+    // -------- PUBLIC PROFILE LOGIC --------
+    function getUidFromUrl() {
+      const params = new URLSearchParams(window.location.search);
+      return params.get('uid');
+    }
+
+    async function showPublicProfile(uid) {
+      await loadGamesData();
+      const userProfile = await getUserPublicProfile(uid);
+      if (!userProfile) {
+        document.getElementById('publicProfileContent').innerHTML = `<div class="text-center text-xl text-pink-400 font-bold py-16">User not found</div>`;
+        document.getElementById('publicProfileContent').classList.remove('hidden');
+        return;
+      }
+      document.getElementById('publicProfilePhoto').src = userProfile.photoURL;
+      document.getElementById('publicProfileName').textContent = userProfile.displayName || "Unknown User";
+      document.getElementById('publicProfileUsername').textContent = userProfile.username ? `@${userProfile.username}` : '';
+      renderGamesList('publicRecentGamesList', (userProfile.history || []).slice().reverse(), 'recent games');
+      renderGamesList('publicFavoriteGamesList', userProfile.favoriteGames, 'favorite games');
+      renderGamesList('publicLikedGamesList', userProfile.likedGames, 'liked games');
+      await loadActivityFeed(uid, 'publicActivityFeed');
+      document.getElementById('publicProfileContent').classList.remove('hidden');
+    }
+
+    // -------- PRIVATE PROFILE LOGIC --------
     document.addEventListener('DOMContentLoaded', async () => {
+      const publicUid = getUidFromUrl();
+      if (publicUid) {
+        // Viewing public profile
+        document.getElementById('loginScreen').classList.add('hidden');
+        document.getElementById('profileContent').classList.add('hidden');
+        document.getElementById('publicProfileContent').classList.remove('hidden');
+        await showPublicProfile(publicUid);
+        return;
+      }
+
       document.getElementById('profileContent').classList.add('hidden');
       document.getElementById('loginScreen').classList.remove('hidden');
       await loadGamesData();
@@ -255,10 +340,12 @@
         if (!user) {
           document.getElementById('loginScreen').classList.remove('hidden');
           document.getElementById('profileContent').classList.add('hidden');
+          document.getElementById('publicProfileContent').classList.add('hidden');
           return;
         }
         document.getElementById('loginScreen').classList.add('hidden');
         document.getElementById('profileContent').classList.remove('hidden');
+        document.getElementById('publicProfileContent').classList.add('hidden');
         document.getElementById('profilePhoto').src = user.photoURL;
         document.getElementById('profileName').textContent = user.displayName;
         document.getElementById('profileEmail').textContent = user.email;
@@ -266,9 +353,10 @@
         renderGamesList('recentGamesList', (lists.history || []).slice().reverse(), 'recent games');
         renderGamesList('favoriteGamesList', lists.favoriteGames, 'favorite games');
         renderGamesList('likedGamesList', lists.likedGames, 'liked games');
-        await loadActivityFeed(user.uid);
+        await loadActivityFeed(user.uid, 'activityFeed');
       });
     });
+
   </script>
 </body>
 </html>
