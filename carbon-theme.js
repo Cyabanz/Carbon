@@ -1,10 +1,11 @@
-// Carbon Theme System
+// Carbon Theme System - Enhanced Version
 // Enhanced shared theme management for all Carbon pages with color wheel support
 
 class CarbonTheme {
     constructor() {
         this.currentTheme = 'rose-pine';
         this.themes = {
+            // Enhanced Rose Pine theme
             'rose-pine': {
                 base: '#191724',
                 surface: '#1f1d2e',
@@ -22,46 +23,49 @@ class CarbonTheme {
                 highlightMed: '#403d52',
                 highlightHigh: '#524f67'
             },
+            // Enhanced Dark theme
             'dark': {
-                base: '#0f172a',
-                surface: '#1e293b',
-                overlay: '#334155',
-                muted: '#64748b',
-                subtle: '#94a3b8',
-                text: '#f1f5f9',
+                base: '#0a0a0a',
+                surface: '#1a1a1a',
+                overlay: '#2a2a2a',
+                muted: '#6b7280',
+                subtle: '#9ca3af',
+                text: '#f9fafb',
                 love: '#ef4444',
                 gold: '#f59e0b',
                 rose: '#f97316',
-                pine: '#059669',
+                pine: '#10b981',
                 foam: '#06b6d4',
                 iris: '#8b5cf6',
-                highlightLow: '#1e293b',
-                highlightMed: '#475569',
-                highlightHigh: '#64748b'
+                highlightLow: '#111111',
+                highlightMed: '#333333',
+                highlightHigh: '#555555'
             },
+            // Enhanced Light theme
             'light': {
-                base: '#f8fafc',
-                surface: '#e2e8f0',
-                overlay: '#cbd5e1',
-                muted: '#64748b',
-                subtle: '#475569',
-                text: '#0f172a',
+                base: '#fafafa',
+                surface: '#f5f5f5',
+                overlay: '#e5e5e5',
+                muted: '#71717a',
+                subtle: '#52525b',
+                text: '#18181b',
                 love: '#dc2626',
                 gold: '#d97706',
                 rose: '#ea580c',
-                pine: '#047857',
+                pine: '#16a34a',
                 foam: '#0891b2',
                 iris: '#7c3aed',
-                highlightLow: '#f1f5f9',
-                highlightMed: '#e2e8f0',
-                highlightHigh: '#cbd5e1'
+                highlightLow: '#f8f8f8',
+                highlightMed: '#eeeeee',
+                highlightHigh: '#e0e0e0'
             },
+            // Enhanced Catppuccin theme
             'catppuccin': {
                 base: '#1e1e2e',
                 surface: '#313244',
                 overlay: '#45475a',
                 muted: '#6c7086',
-                subtle: '#9399b2',
+                subtle: '#a6adc8',
                 text: '#cdd6f4',
                 love: '#f38ba8',
                 gold: '#f9e2af',
@@ -73,6 +77,7 @@ class CarbonTheme {
                 highlightMed: '#313244',
                 highlightHigh: '#45475a'
             },
+            // Enhanced Nord theme
             'nord': {
                 base: '#2e3440',
                 surface: '#3b4252',
@@ -90,13 +95,14 @@ class CarbonTheme {
                 highlightMed: '#434c5e',
                 highlightHigh: '#4c566a'
             },
+            // Enhanced Gruvbox theme
             'gruvbox': {
                 base: '#282828',
                 surface: '#3c3836',
                 overlay: '#504945',
                 muted: '#665c54',
-                subtle: '#a89984',
-                text: '#ebdbb2',
+                subtle: '#bdae93',
+                text: '#fbf1c7',
                 love: '#fb4934',
                 gold: '#fabd2f',
                 rose: '#fe8019',
@@ -107,6 +113,7 @@ class CarbonTheme {
                 highlightMed: '#3c3836',
                 highlightHigh: '#504945'
             },
+            // Enhanced Tokyo Night theme
             'tokyo-night': {
                 base: '#1a1b26',
                 surface: '#24283b',
@@ -124,6 +131,7 @@ class CarbonTheme {
                 highlightMed: '#24283b',
                 highlightHigh: '#414868'
             },
+            // Enhanced Dracula theme
             'dracula': {
                 base: '#282a36',
                 surface: '#44475a',
@@ -140,6 +148,186 @@ class CarbonTheme {
                 highlightLow: '#21222c',
                 highlightMed: '#44475a',
                 highlightHigh: '#6272a4'
+            },
+            // NEW: Solarized Dark theme
+            'solarized-dark': {
+                base: '#002b36',
+                surface: '#073642',
+                overlay: '#586e75',
+                muted: '#657b83',
+                subtle: '#839496',
+                text: '#fdf6e3',
+                love: '#dc322f',
+                gold: '#b58900',
+                rose: '#cb4b16',
+                pine: '#859900',
+                foam: '#2aa198',
+                iris: '#6c71c4',
+                highlightLow: '#002b36',
+                highlightMed: '#073642',
+                highlightHigh: '#586e75'
+            },
+            // NEW: Solarized Light theme
+            'solarized-light': {
+                base: '#fdf6e3',
+                surface: '#eee8d5',
+                overlay: '#93a1a1',
+                muted: '#839496',
+                subtle: '#657b83',
+                text: '#002b36',
+                love: '#dc322f',
+                gold: '#b58900',
+                rose: '#cb4b16',
+                pine: '#859900',
+                foam: '#2aa198',
+                iris: '#6c71c4',
+                highlightLow: '#fdf6e3',
+                highlightMed: '#eee8d5',
+                highlightHigh: '#93a1a1'
+            },
+            // NEW: Monokai theme
+            'monokai': {
+                base: '#272822',
+                surface: '#383830',
+                overlay: '#49483e',
+                muted: '#75715e',
+                subtle: '#a59f85',
+                text: '#f8f8f2',
+                love: '#f92672',
+                gold: '#f4bf75',
+                rose: '#fd971f',
+                pine: '#a6e22e',
+                foam: '#66d9ef',
+                iris: '#ae81ff',
+                highlightLow: '#1e1f1c',
+                highlightMed: '#383830',
+                highlightHigh: '#49483e'
+            },
+            // NEW: One Dark theme
+            'one-dark': {
+                base: '#1e2127',
+                surface: '#282c34',
+                overlay: '#3e4451',
+                muted: '#5c6370',
+                subtle: '#abb2bf',
+                text: '#abb2bf',
+                love: '#e06c75',
+                gold: '#d19a66',
+                rose: '#e5c07b',
+                pine: '#98c379',
+                foam: '#56b6c2',
+                iris: '#c678dd',
+                highlightLow: '#1e2127',
+                highlightMed: '#282c34',
+                highlightHigh: '#3e4451'
+            },
+            // NEW: Cyberpunk theme
+            'cyberpunk': {
+                base: '#0a0a0a',
+                surface: '#1a1a2e',
+                overlay: '#16213e',
+                muted: '#0f3460',
+                subtle: '#e94560',
+                text: '#00d4ff',
+                love: '#ff073a',
+                gold: '#ffb700',
+                rose: '#ff6b35',
+                pine: '#39ff14',
+                foam: '#00d4ff',
+                iris: '#bf00ff',
+                highlightLow: '#0a0a0a',
+                highlightMed: '#1a1a2e',
+                highlightHigh: '#16213e'
+            },
+            // NEW: Sunset theme
+            'sunset': {
+                base: '#2d1b69',
+                surface: '#11235a',
+                overlay: '#0b2545',
+                muted: '#8b5a3c',
+                subtle: '#f18867',
+                text: '#ffeaa7',
+                love: '#ff7675',
+                gold: '#fdcb6e',
+                rose: '#e17055',
+                pine: '#00b894',
+                foam: '#74b9ff',
+                iris: '#a29bfe',
+                highlightLow: '#2d1b69',
+                highlightMed: '#11235a',
+                highlightHigh: '#0b2545'
+            },
+            // NEW: Forest theme
+            'forest': {
+                base: '#1e2124',
+                surface: '#2f3136',
+                overlay: '#36393f',
+                muted: '#4f545c',
+                subtle: '#b9bbbe',
+                text: '#dcddde',
+                love: '#ed4245',
+                gold: '#faa61a',
+                rose: '#f57c00',
+                pine: '#57f287',
+                foam: '#5865f2',
+                iris: '#9c59b6',
+                highlightLow: '#1e2124',
+                highlightMed: '#2f3136',
+                highlightHigh: '#36393f'
+            },
+            // NEW: Ocean theme
+            'ocean': {
+                base: '#0f1419',
+                surface: '#1f2937',
+                overlay: '#374151',
+                muted: '#6b7280',
+                subtle: '#9ca3af',
+                text: '#f9fafb',
+                love: '#ef4444',
+                gold: '#f59e0b',
+                rose: '#f97316',
+                pine: '#10b981',
+                foam: '#06b6d4',
+                iris: '#8b5cf6',
+                highlightLow: '#0f1419',
+                highlightMed: '#1f2937',
+                highlightHigh: '#374151'
+            },
+            // NEW: Retro theme
+            'retro': {
+                base: '#2e2e2e',
+                surface: '#3e3e3e',
+                overlay: '#4e4e4e',
+                muted: '#777777',
+                subtle: '#cccccc',
+                text: '#ffffff',
+                love: '#ff6b6b',
+                gold: '#ffd93d',
+                rose: '#ff8e53',
+                pine: '#6bcf7f',
+                foam: '#4ecdc4',
+                iris: '#a8e6cf',
+                highlightLow: '#2e2e2e',
+                highlightMed: '#3e3e3e',
+                highlightHigh: '#4e4e4e'
+            },
+            // NEW: Neon theme
+            'neon': {
+                base: '#0d0d0d',
+                surface: '#1a1a1a',
+                overlay: '#262626',
+                muted: '#525252',
+                subtle: '#a3a3a3',
+                text: '#ffffff',
+                love: '#ff0080',
+                gold: '#ffff00',
+                rose: '#ff8000',
+                pine: '#00ff80',
+                foam: '#0080ff',
+                iris: '#8000ff',
+                highlightLow: '#0d0d0d',
+                highlightMed: '#1a1a1a',
+                highlightHigh: '#262626'
             }
         };
         
@@ -471,6 +659,10 @@ class CarbonTheme {
                 break;
             case 'particles':
                 document.body.style.background = theme.base;
+                this.initParticleBackground(theme);
+                break;
+            case 'animated':
+                this.initAnimatedBackground(theme);
                 break;
             case 'gradient':
             default:
@@ -485,6 +677,358 @@ class CarbonTheme {
         }
         
         document.body.style.backgroundAttachment = 'fixed';
+        
+        // Add theme transition effect
+        document.body.style.transition = 'background 0.3s ease, color 0.3s ease';
+    }
+
+    // Enhanced particle background
+    initParticleBackground(theme) {
+        if (document.getElementById('particle-canvas')) {
+            document.getElementById('particle-canvas').remove();
+        }
+        
+        const canvas = document.createElement('canvas');
+        canvas.id = 'particle-canvas';
+        canvas.style.position = 'fixed';
+        canvas.style.top = '0';
+        canvas.style.left = '0';
+        canvas.style.width = '100%';
+        canvas.style.height = '100%';
+        canvas.style.zIndex = '-1';
+        canvas.style.pointerEvents = 'none';
+        document.body.appendChild(canvas);
+        
+        const ctx = canvas.getContext('2d');
+        const particles = [];
+        const particleCount = 50;
+        
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        
+        function createParticle() {
+            return {
+                x: Math.random() * canvas.width,
+                y: Math.random() * canvas.height,
+                dx: (Math.random() - 0.5) * 0.5,
+                dy: (Math.random() - 0.5) * 0.5,
+                size: Math.random() * 2 + 1,
+                color: theme.foam + '40',
+                opacity: Math.random() * 0.5 + 0.2
+            };
+        }
+        
+        function animate() {
+            ctx.fillStyle = theme.base;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            particles.forEach(particle => {
+                particle.x += particle.dx;
+                particle.y += particle.dy;
+                
+                if (particle.x < 0 || particle.x > canvas.width) particle.dx = -particle.dx;
+                if (particle.y < 0 || particle.y > canvas.height) particle.dy = -particle.dy;
+                
+                ctx.globalAlpha = particle.opacity;
+                ctx.fillStyle = particle.color;
+                ctx.beginPath();
+                ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
+                ctx.fill();
+            });
+            
+            ctx.globalAlpha = 1;
+            requestAnimationFrame(animate);
+        }
+        
+        resizeCanvas();
+        for (let i = 0; i < particleCount; i++) {
+            particles.push(createParticle());
+        }
+        animate();
+        
+        window.addEventListener('resize', resizeCanvas);
+    }
+
+    // Animated gradient background
+    initAnimatedBackground(theme) {
+        const style = document.createElement('style');
+        style.id = 'animated-bg-style';
+        style.textContent = `
+            @keyframes gradientShift {
+                0% { background-position: 0% 50%; }
+                50% { background-position: 100% 50%; }
+                100% { background-position: 0% 50%; }
+            }
+            body {
+                background: linear-gradient(-45deg, ${theme.base}, ${theme.surface}, ${theme.overlay}, ${theme.foam}) !important;
+                background-size: 400% 400% !important;
+                animation: gradientShift 15s ease infinite !important;
+            }
+        `;
+        
+        // Remove existing animated background
+        const existing = document.getElementById('animated-bg-style');
+        if (existing) existing.remove();
+        
+        document.head.appendChild(style);
+    }
+
+    // Theme import/export functionality
+    exportTheme(themeName) {
+        const theme = this.getTheme(themeName);
+        if (!theme) {
+            throw new Error(`Theme "${themeName}" not found`);
+        }
+        
+        const exportData = {
+            name: themeName,
+            theme: theme,
+            version: '1.0',
+            exportDate: new Date().toISOString(),
+            isCustom: !!this.customThemes[themeName]
+        };
+        
+        const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `carbon-theme-${themeName}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
+
+    importTheme(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const importData = JSON.parse(e.target.result);
+                    
+                    if (!importData.name || !importData.theme) {
+                        reject(new Error('Invalid theme file format'));
+                        return;
+                    }
+                    
+                    // Validate theme structure
+                    const requiredKeys = ['base', 'surface', 'overlay', 'text'];
+                    const hasRequiredKeys = requiredKeys.every(key => importData.theme.hasOwnProperty(key));
+                    
+                    if (!hasRequiredKeys) {
+                        reject(new Error('Invalid theme structure'));
+                        return;
+                    }
+                    
+                    // Add to custom themes
+                    this.customThemes[importData.name] = importData.theme;
+                    this.saveCustomThemes();
+                    
+                    resolve(importData.name);
+                } catch (error) {
+                    reject(new Error('Error parsing theme file: ' + error.message));
+                }
+            };
+            reader.readAsText(file);
+        });
+    }
+
+    // Theme preview functionality
+    previewTheme(themeName, duration = 3000) {
+        const originalTheme = this.currentTheme;
+        this.applyTheme(themeName);
+        
+        // Show preview notification
+        this.showNotification(`Previewing theme: ${themeName}`, duration);
+        
+        setTimeout(() => {
+            this.applyTheme(originalTheme);
+        }, duration);
+    }
+
+    // Notification system
+    showNotification(message, duration = 3000) {
+        // Remove existing notification
+        const existing = document.getElementById('carbon-theme-notification');
+        if (existing) existing.remove();
+        
+        const notification = document.createElement('div');
+        notification.id = 'carbon-theme-notification';
+        notification.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: var(--theme-surface);
+            color: var(--theme-text);
+            padding: 12px 20px;
+            border-radius: 8px;
+            border: 1px solid var(--theme-overlay);
+            z-index: 10000;
+            font-family: 'Inter', sans-serif;
+            font-size: 14px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            transform: translateX(100%);
+            transition: transform 0.3s ease;
+        `;
+        notification.textContent = message;
+        
+        document.body.appendChild(notification);
+        
+        // Animate in
+        setTimeout(() => {
+            notification.style.transform = 'translateX(0)';
+        }, 10);
+        
+        // Auto remove
+        setTimeout(() => {
+            notification.style.transform = 'translateX(100%)';
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.parentNode.removeChild(notification);
+                }
+            }, 300);
+        }, duration);
+    }
+
+    // Advanced color manipulation
+    generateComplementaryTheme(baseTheme) {
+        const theme = this.getTheme(baseTheme);
+        if (!theme) return null;
+        
+        const complementaryTheme = {};
+        
+        // Generate complementary colors
+        Object.keys(theme).forEach(key => {
+            const color = theme[key];
+            if (color.startsWith('#')) {
+                const hsl = this.hexToHsl(color);
+                // Shift hue by 180 degrees for complementary
+                hsl.h = (hsl.h + 0.5) % 1;
+                complementaryTheme[key] = this.hslToHex(hsl.h, hsl.s, hsl.l);
+            } else {
+                complementaryTheme[key] = color;
+            }
+        });
+        
+        return complementaryTheme;
+    }
+
+    generateAnalogousTheme(baseTheme, shift = 30) {
+        const theme = this.getTheme(baseTheme);
+        if (!theme) return null;
+        
+        const analogousTheme = {};
+        
+        // Generate analogous colors
+        Object.keys(theme).forEach(key => {
+            const color = theme[key];
+            if (color.startsWith('#')) {
+                const hsl = this.hexToHsl(color);
+                // Shift hue by specified degrees for analogous
+                hsl.h = (hsl.h + shift / 360) % 1;
+                analogousTheme[key] = this.hslToHex(hsl.h, hsl.s, hsl.l);
+            } else {
+                analogousTheme[key] = color;
+            }
+        });
+        
+        return analogousTheme;
+    }
+
+    // Enhanced color accessibility
+    getColorAccessibility(color1, color2) {
+        const luminance1 = this.getLuminance(color1);
+        const luminance2 = this.getLuminance(color2);
+        
+        const brighter = Math.max(luminance1, luminance2);
+        const darker = Math.min(luminance1, luminance2);
+        
+        return (brighter + 0.05) / (darker + 0.05);
+    }
+
+    getLuminance(hex) {
+        const rgb = this.hexToRgb(hex);
+        const rsRGB = rgb.r / 255;
+        const gsRGB = rgb.g / 255;
+        const bsRGB = rgb.b / 255;
+
+        const r = rsRGB <= 0.03928 ? rsRGB / 12.92 : Math.pow((rsRGB + 0.055) / 1.055, 2.4);
+        const g = gsRGB <= 0.03928 ? gsRGB / 12.92 : Math.pow((gsRGB + 0.055) / 1.055, 2.4);
+        const b = bsRGB <= 0.03928 ? bsRGB / 12.92 : Math.pow((bsRGB + 0.055) / 1.055, 2.4);
+
+        return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+    }
+
+    hexToRgb(hex) {
+        const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+        return result ? {
+            r: parseInt(result[1], 16),
+            g: parseInt(result[2], 16),
+            b: parseInt(result[3], 16)
+        } : null;
+    }
+
+    // Theme validation
+    validateTheme(theme) {
+        const requiredKeys = [
+            'base', 'surface', 'overlay', 'muted', 'subtle', 'text',
+            'love', 'gold', 'rose', 'pine', 'foam', 'iris',
+            'highlightLow', 'highlightMed', 'highlightHigh'
+        ];
+        
+        const missingKeys = requiredKeys.filter(key => !theme.hasOwnProperty(key));
+        
+        if (missingKeys.length > 0) {
+            return {
+                valid: false,
+                errors: [`Missing required keys: ${missingKeys.join(', ')}`]
+            };
+        }
+        
+        // Validate color formats
+        const invalidColors = [];
+        Object.keys(theme).forEach(key => {
+            const color = theme[key];
+            if (typeof color === 'string' && color.startsWith('#') && !/^#[0-9A-F]{6}$/i.test(color)) {
+                invalidColors.push(key);
+            }
+        });
+        
+        if (invalidColors.length > 0) {
+            return {
+                valid: false,
+                errors: [`Invalid color format for: ${invalidColors.join(', ')}`]
+            };
+        }
+        
+        return { valid: true, errors: [] };
+    }
+
+    // Batch theme operations
+    importMultipleThemes(files) {
+        const promises = Array.from(files).map(file => this.importTheme(file));
+        return Promise.allSettled(promises);
+    }
+
+    exportAllCustomThemes() {
+        const exportData = {
+            themes: this.customThemes,
+            version: '1.0',
+            exportDate: new Date().toISOString(),
+            count: Object.keys(this.customThemes).length
+        };
+        
+        const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `carbon-custom-themes-${new Date().toISOString().split('T')[0]}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
     }
 
     getTheme(themeName = null) {
