@@ -35,7 +35,6 @@
         };
       }
     </script>
-
     <link rel="preconnect" href="https://unpkg.com" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://cdn.tailwindcss.com" />
@@ -46,190 +45,123 @@
       onload="setConfig()"
     ></script>
     <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
     <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet" />
-
+    <!-- Theme System -->
+    <script src="/carbon-theme.js"></script>
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
     <style>
-      body {
-        font-weight: 300;
-        letter-spacing: 0.01em;
-      }
-      
       .history-item {
-        background: rgba(31, 29, 46, 0.4);
-        border: 1px solid rgba(38, 35, 58, 0.6);
-        border-radius: 12px;
-        padding: 20px;
-        cursor: pointer;
-        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-        backdrop-filter: blur(20px);
+        border-bottom: 1px solid rgba(38, 35, 58, 0.5);
+        transition: all 0.2s ease;
       }
-      
       .history-item:hover {
-        background: rgba(38, 35, 58, 0.6);
-        border-color: rgba(156, 207, 216, 0.3);
-        transform: translateY(-2px);
-        box-shadow: 0 8px 32px rgba(156, 207, 216, 0.08);
+        background: rgba(38, 35, 58, 0.3);
       }
-      
+      .history-item:last-child {
+        border-bottom: none;
+      }
       .search-bar {
         background: rgba(31, 29, 46, 0.8);
-        border: 1px solid rgba(38, 35, 58, 0.8);
-        border-radius: 16px;
-        backdrop-filter: blur(20px);
-        transition: all 0.25s ease;
+        backdrop-filter: blur(12px);
+        border: 1px solid rgba(38, 35, 58, 0.6);
       }
-      
       .search-bar:focus-within {
-        border-color: rgba(156, 207, 216, 0.5);
+        border-color: #9ccfd8;
         box-shadow: 0 0 0 3px rgba(156, 207, 216, 0.1);
       }
-      
-      .filter-tab {
-        background: transparent;
-        border: 1px solid rgba(38, 35, 58, 0.6);
-        border-radius: 10px;
-        padding: 8px 16px;
-        color: #908caa;
-        font-size: 14px;
-        font-weight: 400;
-        cursor: pointer;
-        transition: all 0.2s ease;
-        display: flex;
-        align-items: center;
-        gap: 6px;
-      }
-      
-      .filter-tab:hover {
+      .filter-pill {
         background: rgba(38, 35, 58, 0.4);
-        color: #e0def4;
+        border: 1px solid rgba(38, 35, 58, 0.6);
+        transition: all 0.2s ease;
       }
-      
-      .filter-tab.active {
+      .filter-pill:hover {
+        background: rgba(38, 35, 58, 0.6);
+        border-color: rgba(156, 207, 216, 0.5);
+      }
+      .filter-pill.active {
         background: rgba(156, 207, 216, 0.15);
-        border-color: rgba(156, 207, 216, 0.3);
+        border-color: #9ccfd8;
         color: #9ccfd8;
       }
-      
-      .clear-btn {
-        background: rgba(235, 111, 146, 0.1);
-        border: 1px solid rgba(235, 111, 146, 0.3);
-        border-radius: 10px;
-        padding: 8px 16px;
-        color: #eb6f92;
-        font-size: 14px;
-        font-weight: 400;
-        cursor: pointer;
-        transition: all 0.2s ease;
-        display: flex;
-        align-items: center;
-        gap: 6px;
+      .fade-in {
+        animation: fadeIn 0.3s ease-out;
       }
-      
-      .clear-btn:hover {
-        background: rgba(235, 111, 146, 0.2);
-        border-color: rgba(235, 111, 146, 0.5);
-      }
-      
-      .page-header {
-        background: linear-gradient(135deg, rgba(25, 23, 36, 0.95) 0%, rgba(31, 29, 46, 0.9) 100%);
-        backdrop-filter: blur(20px);
-        border-bottom: 1px solid rgba(38, 35, 58, 0.3);
-      }
-      
-      .glass-container {
-        background: rgba(31, 29, 46, 0.3);
-        border: 1px solid rgba(38, 35, 58, 0.5);
-        border-radius: 20px;
-        backdrop-filter: blur(20px);
+      @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
       }
     </style>
   </head>
-  <body class="font-inter bg-gradient-to-br from-base via-surface to-overlay min-h-screen text-text">
-    <div class="min-h-screen">
-      <!-- Clean Header -->
-      <header class="page-header sticky top-0 z-50 px-6 py-6">
-        <div class="max-w-5xl mx-auto">
-          <div class="flex items-center justify-between">
-            <div class="flex items-center gap-4">
-              <div class="w-10 h-10 rounded-full bg-gradient-to-br from-iris to-foam flex items-center justify-center">
-                <i class="bx bx-history text-base text-lg"></i>
-              </div>
-              <div>
-                <h1 class="text-2xl font-medium text-text">History</h1>
-                <p class="text-sm text-subtle">Your browsing activity</p>
-              </div>
-            </div>
+  <body class="font-inter bg-base min-h-screen text-text">
+    <div class="min-h-screen max-w-4xl mx-auto">
+      <!-- Header -->
+      <header class="px-6 py-8 text-center">
+        <div class="inline-flex items-center gap-3 mb-2">
+          <div class="w-8 h-8 rounded-full bg-iris/20 flex items-center justify-center">
+            <i class="bx bx-history text-iris text-lg"></i>
+          </div>
+          <h1 class="text-2xl font-semibold text-text">History</h1>
+        </div>
+      </header>
+
+      <!-- Search and Controls -->
+      <div class="px-6 mb-8">
+        <div class="mb-6">
+          <div class="search-bar rounded-xl p-4 flex items-center gap-3">
+            <i class="bx bx-search text-muted text-lg"></i>
+            <input
+              id="history-search"
+              type="text"
+              placeholder="Search history..."
+              class="flex-1 bg-transparent border-none outline-none text-text placeholder-muted"
+            />
             <button
               id="clear-all-history"
-              class="clear-btn"
+              class="px-4 py-2 bg-love/10 hover:bg-love/20 text-love rounded-lg transition-colors text-sm font-medium"
             >
-              <i class="bx bx-trash text-sm"></i>
               Clear All
             </button>
           </div>
         </div>
-      </header>
 
-      <!-- Search and Filters -->
-      <div class="px-6 py-8">
-        <div class="max-w-5xl mx-auto">
-          <div class="glass-container p-6 mb-8">
-            <div class="flex flex-col gap-6">
-              <!-- Search Bar -->
-              <div class="search-bar p-4">
-                <div class="flex items-center gap-3">
-                  <i class="bx bx-search text-subtle text-lg"></i>
-                  <input
-                    id="history-search"
-                    type="text"
-                    placeholder="Search your history..."
-                    class="flex-1 bg-transparent border-none outline-none text-text placeholder-subtle text-sm"
-                  />
-                </div>
-              </div>
-              
-              <!-- Filter Tabs -->
-              <div class="flex flex-wrap gap-3">
-                <button class="filter-tab active" data-filter="all">
-                  <i class="bx bx-globe text-xs"></i>
-                  All
-                </button>
-                <button class="filter-tab" data-filter="today">
-                  <i class="bx bx-calendar-day text-xs"></i>
-                  Today
-                </button>
-                <button class="filter-tab" data-filter="week">
-                  <i class="bx bx-calendar-week text-xs"></i>
-                  This Week
-                </button>
-                <button class="filter-tab" data-filter="month">
-                  <i class="bx bx-calendar text-xs"></i>
-                  This Month
-                </button>
-              </div>
-            </div>
-          </div>
+        <!-- Filter Pills -->
+        <div class="flex gap-2 overflow-x-auto pb-2">
+          <button class="filter-pill active px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap" data-filter="all">
+            All
+          </button>
+          <button class="filter-pill px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap" data-filter="today">
+            Today
+          </button>
+          <button class="filter-pill px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap" data-filter="week">
+            This Week
+          </button>
+          <button class="filter-pill px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap" data-filter="month">
+            This Month
+          </button>
         </div>
       </div>
 
       <!-- History Content -->
-      <main class="max-w-5xl mx-auto px-6 pb-12">
-        <div id="history-list" class="space-y-4">
+      <main class="px-6 pb-8">
+        <div id="history-list" class="space-y-8">
           <!-- History items will be populated here -->
         </div>
-        
         <div id="no-history" class="text-center py-16 hidden">
-          <div class="w-20 h-20 rounded-full bg-gradient-to-br from-overlay to-highlight-med flex items-center justify-center mx-auto mb-6">
-            <i class="bx bx-history text-3xl text-muted"></i>
+          <div class="w-16 h-16 rounded-full bg-muted/10 flex items-center justify-center mx-auto mb-4">
+            <i class="bx bx-history text-muted text-2xl"></i>
           </div>
           <h3 class="text-lg font-medium text-text mb-2">No History Found</h3>
-          <p class="text-subtle text-sm">Your browsing history will appear here as you navigate.</p>
+          <p class="text-muted text-sm">Your browsing history will appear here</p>
         </div>
       </main>
     </div>
+
     <script type="module">
       import { makeURL, getProxied } from '/lethal.mjs';
       // Firebase config and init
@@ -250,7 +182,7 @@
       const noHistory = document.getElementById('no-history');
       const historySearch = document.getElementById('history-search');
       const clearAllBtn = document.getElementById('clear-all-history');
-      const filterTabs = document.querySelectorAll('.filter-tab');
+      const filterTabs = document.querySelectorAll('.filter-pill');
       // State
       let allHistory = [];
       let filteredHistory = [];
@@ -401,6 +333,7 @@
         }
         historyList.classList.remove('hidden');
         noHistory.classList.add('hidden');
+        
         const groupedHistory = {};
         filteredHistory.forEach(item => {
           // Always sanitize just in case
@@ -412,36 +345,43 @@
           if (!groupedHistory[date]) groupedHistory[date] = [];
           groupedHistory[date].push({...item, displayUrl, displayTitle});
         });
+        
         historyList.innerHTML = Object.entries(groupedHistory).map(([date, items]) => {
           const isToday = date === new Date().toDateString();
           const isYesterday = date === new Date(Date.now() - 24 * 60 * 60 * 1000).toDateString();
           let displayDate = date;
           if (isToday) displayDate = 'Today';
           else if (isYesterday) displayDate = 'Yesterday';
+          else {
+            const dateObj = new Date(date);
+            displayDate = dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+          }
+          
           return `
-            <div class="mb-6">
-              <h3 class="text-lg font-semibold text-text mb-3 flex items-center gap-2">
-                <i class="bx bx-calendar text-foam"></i>
-                ${displayDate}
-              </h3>
-              <div class="space-y-2">
+            <div class="fade-in">
+              <div class="mb-4">
+                <h3 class="text-sm font-medium text-subtle px-4 py-2">${displayDate}</h3>
+              </div>
+              <div class="bg-surface/30 rounded-xl overflow-hidden">
                 ${items.map(item => `
-                  <div class="history-item" data-url="${item.displayUrl}">
-                    <div class="flex items-start justify-between">
+                  <div class="history-item px-4 py-4 cursor-pointer" data-url="${item.displayUrl}">
+                    <div class="flex items-center justify-between">
                       <div class="flex-1 min-w-0">
-                        <div class="flex items-center gap-2 mb-1">
-                          <i class="bx bx-world text-foam flex-shrink-0"></i>
+                        <div class="flex items-center gap-3 mb-1">
+                          <div class="w-5 h-5 rounded bg-foam/20 flex items-center justify-center flex-shrink-0">
+                            <i class="bx bx-world text-foam text-xs"></i>
+                          </div>
                           <h4 class="font-medium text-text truncate">${item.displayTitle}</h4>
-                          ${(item.visits || 1) > 1 ? `<span class="text-xs bg-highlight-med px-2 py-0.5 rounded text-muted">${item.visits || 1} visits</span>` : ''}
+                          ${(item.visits || 1) > 1 ? `<span class="text-xs bg-highlight-med/50 px-2 py-1 rounded-full text-muted">${item.visits}</span>` : ''}
                         </div>
-                        <p class="text-sm text-muted truncate">${item.displayUrl}</p>
-                        <p class="text-xs text-subtle mt-1">${formatTime(item.timestamp || new Date().toISOString())}</p>
+                        <div class="flex items-center gap-3 ml-8">
+                          <p class="text-sm text-muted truncate flex-1">${item.displayUrl}</p>
+                          <p class="text-xs text-subtle whitespace-nowrap">${formatTime(item.timestamp || new Date().toISOString())}</p>
+                        </div>
                       </div>
-                      <div class="flex items-center gap-1 ml-2">
-                        <button class="delete-item w-8 h-8 rounded hover:bg-love/20 flex items-center justify-center text-muted hover:text-love transition-colors" data-id="${item.id}">
-                          <i class="bx bx-trash text-sm"></i>
-                        </button>
-                      </div>
+                      <button class="delete-item w-8 h-8 rounded-lg hover:bg-love/10 flex items-center justify-center text-muted hover:text-love transition-colors ml-4" data-id="${item.id}">
+                        <i class="bx bx-x text-lg"></i>
+                      </button>
                     </div>
                   </div>
                 `).join('')}
@@ -449,6 +389,7 @@
             </div>
           `;
         }).join('');
+        
         document.querySelectorAll('.history-item').forEach(item => {
           item.addEventListener('click', async (e) => {
             if (e.target.closest('.delete-item')) return;
@@ -465,6 +406,7 @@
             }
           });
         });
+        
         document.querySelectorAll('.delete-item').forEach(btn => {
           btn.addEventListener('click', (e) => {
             e.stopPropagation();
@@ -482,7 +424,7 @@
           return 'Just now';
         } else if (diff < 3600000) {
           const minutes = Math.floor(diff / 60000);
-          return `${minutes} minute${minutes > 1 ? 's' : ''} ago`;
+          return `${minutes}m ago`;
         } else if (diff < 86400000) {
           return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
         } else {
@@ -496,6 +438,7 @@
         filterHistory();
         renderHistory();
       }
+      
       async function clearAllHistory() {
         if (confirm('Are you sure you want to clear all history? This action cannot be undone.')) {
           allHistory = [];
@@ -504,11 +447,14 @@
           renderHistory();
         }
       }
+      
       historySearch.addEventListener('input', () => {
         filterHistory();
         renderHistory();
       });
+      
       clearAllBtn.addEventListener('click', clearAllHistory);
+      
       filterTabs.forEach(tab => {
         tab.addEventListener('click', () => {
           filterTabs.forEach(t => t.classList.remove('active'));
@@ -518,12 +464,15 @@
           renderHistory();
         });
       });
+      
       window.addEventListener('message', (event) => {
         if (event.data && event.data.type === 'carbon-add-history') {
           addToHistory(event.data.url, event.data.title);
         }
       });
+      
       window.addToHistory = addToHistory;
+      
       function initThemeSync() {
         if (window.carbonTheme) {
           const savedTheme = localStorage.getItem('carbon-theme-global') || 'rose-pine';
@@ -534,6 +483,7 @@
         }
       }
       initThemeSync();
+      
       window.addEventListener('storage', (e) => {
         if (e.key === 'carbon-theme-global') {
           if (window.carbonTheme) {
