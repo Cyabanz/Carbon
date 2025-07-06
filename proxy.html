@@ -2489,6 +2489,36 @@
 
       // -- Keyboard Shortcuts --
       document.addEventListener("keydown", (e) => {
+        // PANIC KEY - Check this FIRST before any other shortcuts
+        console.log('Main keyboard handler - Key pressed:', e.key.toLowerCase(), 'Panic key:', panicKey);
+        if (panicKey && e.key.toLowerCase() === panicKey.toLowerCase()) {
+          const panicUrl = localStorage.getItem('carbon-panic-url') || 'https://classroom.google.com';
+          console.log('🚨 PANIC KEY TRIGGERED! Redirecting to:', panicUrl);
+          e.preventDefault();
+          e.stopPropagation();
+          e.stopImmediatePropagation();
+          
+          // Immediately redirect the entire window
+          try {
+            window.top.location.href = panicUrl;
+          } catch (error) {
+            window.location.href = panicUrl;
+          }
+          return false;
+        }
+        
+        // Dev tools prevention
+        if (localStorage.getItem('carbon-disable-devtools') === 'true') {
+          if (e.key === 'F12' || 
+              (e.ctrlKey && e.shiftKey && e.key === 'I') || 
+              (e.ctrlKey && e.shiftKey && e.key === 'J') || 
+              (e.ctrlKey && e.key === 'U')) {
+            e.preventDefault();
+            return false;
+          }
+        }
+        
+        // Regular keyboard shortcuts
         if (
           (e.ctrlKey || e.metaKey) &&
           !e.shiftKey &&
@@ -2636,45 +2666,52 @@
       
       // Tab cloaking functionality
       function applyTabCloaking() {
-        console.log('Applying tab cloaking:', {
+        console.log('🎭 Applying tab cloaking:', {
           enabled: tabCloakingEnabled,
           title: cloakTitle,
           favicon: cloakFavicon
         });
         
         if (tabCloakingEnabled && cloakTitle) {
-          // Change the document title
+          // Change the document title immediately
           document.title = cloakTitle;
-          console.log('Document title changed to:', cloakTitle);
+          console.log('✅ Document title changed to:', document.title);
           
           if (cloakFavicon) {
             // Remove existing favicon links
             const existingLinks = document.querySelectorAll("link[rel*='icon']");
             existingLinks.forEach(link => {
-              console.log('Removing existing favicon link:', link.href);
+              console.log('🗑️ Removing existing favicon link:', link.href);
               link.remove();
             });
             
-            // Add new favicon
+            // Add new favicon with multiple formats for better compatibility
+            const timestamp = new Date().getTime();
+            
+            // Primary favicon
             const link = document.createElement('link');
             link.type = 'image/x-icon';
             link.rel = 'shortcut icon';
-            link.href = cloakFavicon;
-            document.getElementsByTagName('head')[0].appendChild(link);
-            console.log('Added new favicon:', cloakFavicon);
+            link.href = cloakFavicon + '?v=' + timestamp;
+            document.head.appendChild(link);
             
-            // Also add apple-touch-icon for mobile
+            // Standard icon
+            const iconLink = document.createElement('link');
+            iconLink.rel = 'icon';
+            iconLink.type = 'image/x-icon';
+            iconLink.href = cloakFavicon + '?v=' + timestamp;
+            document.head.appendChild(iconLink);
+            
+            // Apple touch icon for mobile
             const appleLink = document.createElement('link');
             appleLink.rel = 'apple-touch-icon';
-            appleLink.href = cloakFavicon;
-            document.getElementsByTagName('head')[0].appendChild(appleLink);
+            appleLink.href = cloakFavicon + '?v=' + timestamp;
+            document.head.appendChild(appleLink);
             
-            // Force favicon refresh
-            const timestamp = new Date().getTime();
-            link.href = cloakFavicon + '?v=' + timestamp;
+            console.log('✅ Added new favicon:', cloakFavicon);
           }
         } else {
-          console.log('Tab cloaking disabled or no title set');
+          console.log('❌ Tab cloaking disabled or no title set');
           document.title = 'CARBON';
           // Reset to default favicon if not cloaking
           const existingLinks = document.querySelectorAll("link[rel*='icon']");
@@ -2736,27 +2773,7 @@
         }
       }
       
-      // Panic key functionality
-      function handlePanicKey(e) {
-        if (panicKey && e.key.toLowerCase() === panicKey.toLowerCase()) {
-          const panicUrl = localStorage.getItem('carbon-panic-url') || 'https://classroom.google.com';
-          console.log('🚨 PANIC KEY TRIGGERED! Redirecting to:', panicUrl);
-          console.log('Panic key was:', panicKey, 'Key pressed:', e.key);
-          
-          // Stop all events
-          e.preventDefault();
-          e.stopPropagation();
-          
-          // Immediately redirect the entire window
-          try {
-            window.top.location.href = panicUrl;
-          } catch (error) {
-            // Fallback if top access fails
-            window.location.href = panicUrl;
-          }
-          return false;
-        }
-      }
+
       
       // Authentication state observer
       auth.onAuthStateChanged((user) => {
@@ -2799,34 +2816,7 @@
         }
       });
       
-            // Global keyboard event handler
-      document.addEventListener('keydown', function(e) {
-        console.log('Key pressed:', e.key.toLowerCase(), 'Panic key:', panicKey);
-        
-        // Handle panic key FIRST with highest priority
-        handlePanicKey(e);
-        
-        // Handle dev tools prevention
-        if (localStorage.getItem('carbon-disable-devtools') === 'true') {
-          if (e.key === 'F12' || 
-              (e.ctrlKey && e.shiftKey && e.key === 'I') || 
-              (e.ctrlKey && e.shiftKey && e.key === 'J') || 
-              (e.ctrlKey && e.key === 'U')) {
-            e.preventDefault();
-            return false;
-          }
-        }
-      });
-      
-      // Also add to window to catch all events
-      window.addEventListener('keydown', function(e) {
-        handlePanicKey(e);
-      });
-      
-      // Add to document body as well for maximum coverage
-      document.body.addEventListener('keydown', function(e) {
-        handlePanicKey(e);
-      });
+
       
       // Auto-sync all data every 30 seconds if user is authenticated
       setInterval(() => {
@@ -2916,11 +2906,16 @@
       if (tabs.length === 0) addTab("carbon://newtab");
       else loadTabsData();
       
-      // Initialize settings immediately
+      // Initialize settings immediately - try both methods to ensure we get settings
+      console.log('🚀 Initializing settings on page load...');
+      loadLocalSettings(); // Load localStorage first for immediate effect
+      
+      // Also load from Firebase if user is authenticated
       if (auth.currentUser) {
+        console.log('👤 User already authenticated, loading from Firebase...');
         loadSettingsFromFirebase();
       } else {
-        loadLocalSettings();
+        console.log('👤 No user authenticated, using localStorage settings only');
       }
 
       // Initialize sortable for horizontal tabs
