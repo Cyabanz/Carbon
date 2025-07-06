@@ -40,6 +40,18 @@
         <img id="profilePhoto" class="w-20 h-20 rounded-full mx-auto mb-4 border-4 border-cyan-400 shadow" src="" alt="Profile Photo">
         <div id="profileName" class="text-3xl font-extrabold text-cyan-300 mb-1"></div>
         <div id="profileEmail" class="text-white/70"></div>
+        <!-- Public Profile Link Section -->
+        <div class="mt-6 flex flex-col items-center">
+          <div class="flex items-center gap-2">
+            <input id="publicProfileLink" type="text" class="w-[350px] max-w-full px-3 py-2 rounded bg-white/10 border border-cyan-400 text-white text-sm font-mono select-all" readonly>
+            <button id="copyProfileLinkBtn" class="bg-cyan-500 hover:bg-cyan-400 text-black font-bold px-3 py-2 rounded transition flex items-center gap-1">
+              <i class='bx bx-copy'></i>
+              Copy
+            </button>
+          </div>
+          <div id="copyFeedback" class="text-green-400 mt-2 text-sm opacity-0 transition-opacity duration-300">Copied!</div>
+          <div class="text-xs text-white/60 mt-1">Share your public profile link</div>
+        </div>
         <button onclick="signOut()" class="mt-5 bg-white/10 px-4 py-2 rounded hover:bg-pink-600 text-white">Sign Out</button>
       </div>
       <!-- Recent Games Section -->
@@ -77,6 +89,15 @@
         <img id="publicProfilePhoto" class="w-20 h-20 rounded-full mx-auto mb-4 border-4 border-cyan-400 shadow" src="" alt="Profile Photo">
         <div id="publicProfileName" class="text-3xl font-extrabold text-cyan-300 mb-1"></div>
         <div id="publicProfileUsername" class="text-white/60 text-base"></div>
+        <div class="mt-4">
+          <input id="publicProfileUrl" type="text" class="w-[350px] max-w-full px-3 py-2 rounded bg-white/10 border border-cyan-400 text-white text-sm font-mono select-all" readonly>
+          <button id="copyPublicProfileUrlBtn" class="ml-2 bg-cyan-500 hover:bg-cyan-400 text-black font-bold px-3 py-2 rounded transition flex items-center gap-1">
+            <i class='bx bx-copy'></i>
+            Copy
+          </button>
+          <div id="copyPublicFeedback" class="text-green-400 mt-2 text-sm opacity-0 transition-opacity duration-300 text-center">Copied!</div>
+          <div class="text-xs text-white/60 mt-1">Copy this public profile link!</div>
+        </div>
       </div>
       <div id="publicRecentGamesContainer" class="mb-12">
         <h2 class="text-2xl font-bold mb-4 bg-gradient-to-r from-yellow-300 to-cyan-400 bg-clip-text text-transparent">Recently Played</h2>
@@ -153,7 +174,7 @@
         // For public profile, we intentionally do not return email
         return {
           displayName: user.displayName || '',
-          username: user.username || '', // optional field you might want to set
+          username: user.username || '',
           photoURL: user.photoURL || '',
           likedGames: user.likedGames || [],
           favoriteGames: user.favoriteGames || [],
@@ -317,7 +338,22 @@
       renderGamesList('publicFavoriteGamesList', userProfile.favoriteGames, 'favorite games');
       renderGamesList('publicLikedGamesList', userProfile.likedGames, 'liked games');
       await loadActivityFeed(uid, 'publicActivityFeed');
-      document.getElementById('publicProfileContent').classList.remove('hidden');
+
+      // Set public profile link and enable copy
+      const url = `${window.location.origin}${window.location.pathname}?uid=${encodeURIComponent(uid)}`;
+      const urlInput = document.getElementById('publicProfileUrl');
+      urlInput.value = url;
+      // Copy to clipboard handler
+      const copyBtn = document.getElementById('copyPublicProfileUrlBtn');
+      const feedback = document.getElementById('copyPublicFeedback');
+      copyBtn.onclick = function() {
+        urlInput.select();
+        urlInput.setSelectionRange(0, 99999);
+        navigator.clipboard.writeText(urlInput.value).then(function() {
+          feedback.style.opacity = 1;
+          setTimeout(() => feedback.style.opacity = 0, 1200);
+        });
+      };
     }
 
     // -------- PRIVATE PROFILE LOGIC --------
@@ -354,6 +390,21 @@
         renderGamesList('favoriteGamesList', lists.favoriteGames, 'favorite games');
         renderGamesList('likedGamesList', lists.likedGames, 'liked games');
         await loadActivityFeed(user.uid, 'activityFeed');
+
+        // Set public profile link and enable copy
+        const url = `${window.location.origin}${window.location.pathname}?uid=${encodeURIComponent(user.uid)}`;
+        const linkInput = document.getElementById('publicProfileLink');
+        linkInput.value = url;
+        const copyBtn = document.getElementById('copyProfileLinkBtn');
+        const feedback = document.getElementById('copyFeedback');
+        copyBtn.onclick = function() {
+          linkInput.select();
+          linkInput.setSelectionRange(0, 99999);
+          navigator.clipboard.writeText(linkInput.value).then(function() {
+            feedback.style.opacity = 1;
+            setTimeout(() => feedback.style.opacity = 0, 1200);
+          });
+        };
       });
     });
 
