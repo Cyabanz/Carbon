@@ -149,9 +149,16 @@ class CarbonTheme {
     }
 
     init() {
+        // Load custom themes FIRST before applying any theme
+        this.loadCustomThemes();
+        
         // Load saved theme with improved localStorage key
         this.currentTheme = localStorage.getItem('carbon-theme-global') || 'rose-pine';
-        this.applyTheme(this.currentTheme);
+        
+        // Small delay to ensure custom themes are loaded
+        setTimeout(() => {
+            this.applyTheme(this.currentTheme);
+        }, 50);
         
         // Listen for theme changes from other windows/tabs
         window.addEventListener('message', (event) => {
@@ -164,6 +171,12 @@ class CarbonTheme {
         window.addEventListener('storage', (event) => {
             if (event.key === 'carbon-theme-global' && event.newValue) {
                 this.applyTheme(event.newValue);
+            }
+            // Also listen for custom theme changes
+            if (event.key === 'carbon-custom-themes' && event.newValue) {
+                this.loadCustomThemes();
+                // Re-apply current theme in case it's a custom theme that was updated
+                setTimeout(() => this.applyTheme(this.currentTheme), 50);
             }
         });
     }
@@ -189,6 +202,13 @@ class CarbonTheme {
         const theme = this.generateThemeFromColor(baseColor);
         this.customThemes[name] = theme;
         this.saveCustomThemes();
+        
+        // Immediately apply the new theme
+        this.applyTheme(name);
+        
+        // Broadcast the theme change
+        this.broadcastThemeChange(name, theme);
+        
         return theme;
     }
 

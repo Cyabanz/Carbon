@@ -52,6 +52,10 @@
     <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet" />
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
     <script src="carbon-theme.js"></script>
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 
     <style>
       .suggestion-box {
@@ -1560,6 +1564,57 @@
         localStorage.setItem("tabs-data", JSON.stringify(tabs));
       }
       
+      // Firebase sync for browser data AND all settings
+      async function syncAllDataToFirebase() {
+        if (!currentUser) return;
+        
+        try {
+          const browserData = {
+            tabs: tabs.map(tab => ({
+              id: tab.id,
+              url: tab.history[tab.pointer] || 'carbon://newtab',
+              title: tab.title || 'New Tab',
+              timestamp: Date.now()
+            })),
+            history: JSON.parse(localStorage.getItem('carbon-history') || '[]'),
+            bookmarks: JSON.parse(localStorage.getItem('carbon-bookmarks') || '[]'),
+            lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+          };
+          
+          // Sync all current settings as well
+          const settings = {
+            panicKey: panicKey || '',
+            panicUrl: localStorage.getItem('carbon-panic-url') || '',
+            theme: localStorage.getItem('carbon-theme-global') || 'rose-pine',
+            background: localStorage.getItem('carbon-background-global') || 'gradient',
+            customBackground: localStorage.getItem('carbon-custom-bg-global') || '',
+            cloakingEnabled: tabCloakingEnabled,
+            cloakTitle: cloakTitle,
+            cloakFavicon: cloakFavicon,
+            fullscreenEnabled: localStorage.getItem('carbon-fullscreen-enabled') === 'true',
+            closePreventionEnabled: localStorage.getItem('carbon-close-prevention') === 'true',
+            confirmClose: localStorage.getItem('carbon-confirm-close') === 'true',
+            closeMessage: localStorage.getItem('carbon-close-message') || '',
+            disableRightClick: localStorage.getItem('carbon-disable-right-click') === 'true',
+            disableDevtools: localStorage.getItem('carbon-disable-devtools') === 'true',
+            disableSelect: localStorage.getItem('carbon-disable-select') === 'true',
+            hideCursor: localStorage.getItem('carbon-hide-cursor') === 'true',
+            blurOnUnfocus: localStorage.getItem('carbon-blur-unfocus') === 'true',
+            lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+          };
+          
+          await db.collection('users').doc(currentUser.uid).set({
+            browserData: browserData,
+            settings: settings,
+            lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+          }, { merge: true });
+          
+          console.log('All data synced to Firebase successfully');
+        } catch (error) {
+          console.error('Error syncing data to Firebase:', error);
+        }
+      }
+      
       function loadTabsData() {
         const saved = localStorage.getItem("tabs-data");
         if (saved) {
@@ -2434,6 +2489,36 @@
 
       // -- Keyboard Shortcuts --
       document.addEventListener("keydown", (e) => {
+        // PANIC KEY - Check this FIRST before any other shortcuts
+        console.log('Main keyboard handler - Key pressed:', e.key.toLowerCase(), 'Panic key:', panicKey);
+        if (panicKey && e.key.toLowerCase() === panicKey.toLowerCase()) {
+          const panicUrl = localStorage.getItem('carbon-panic-url') || 'https://classroom.google.com';
+          console.log('🚨 PANIC KEY TRIGGERED! Redirecting to:', panicUrl);
+          e.preventDefault();
+          e.stopPropagation();
+          e.stopImmediatePropagation();
+          
+          // Immediately redirect the entire window
+          try {
+            window.top.location.href = panicUrl;
+          } catch (error) {
+            window.location.href = panicUrl;
+          }
+          return false;
+        }
+        
+        // Dev tools prevention
+        if (localStorage.getItem('carbon-disable-devtools') === 'true') {
+          if (e.key === 'F12' || 
+              (e.ctrlKey && e.shiftKey && e.key === 'I') || 
+              (e.ctrlKey && e.shiftKey && e.key === 'J') || 
+              (e.ctrlKey && e.key === 'U')) {
+            e.preventDefault();
+            return false;
+          }
+        }
+        
+        // Regular keyboard shortcuts
         if (
           (e.ctrlKey || e.metaKey) &&
           !e.shiftKey &&
@@ -2496,6 +2581,286 @@
         }
       });
 
+      // Firebase configuration and settings sync
+      const firebaseConfig = {
+        apiKey: "AIzaSyC4ilHYP1T-kdXbWPoHJHhD2aj0pNWmMec",
+        authDomain: "carbon-services.firebaseapp.com",
+        projectId: "carbon-services",
+        storageBucket: "carbon-services.firebasestorage.app",
+        messagingSenderId: "288385472070",
+        appId: "1:288385472070:web:c4be3ff186e248fc645c47",
+        measurementId: "G-Y2K1RQYE74"
+      };
+      
+      // Initialize Firebase
+      firebase.initializeApp(firebaseConfig);
+      const auth = firebase.auth();
+      const db = firebase.firestore();
+      
+      let currentUser = null;
+      let panicKey = null;
+      let tabCloakingEnabled = false;
+      let cloakTitle = '';
+      let cloakFavicon = '';
+      
+      // Settings sync from Firebase
+      async function loadSettingsFromFirebase() {
+        if (!currentUser) return;
+        
+        try {
+          const userSettingsDoc = await db.collection('users').doc(currentUser.uid).get();
+          if (userSettingsDoc.exists) {
+            const userData = userSettingsDoc.data();
+            const settings = userData.settings || {};
+            
+                         // Load panic key and URL
+             panicKey = settings.panicKey || null;
+             if (settings.panicUrl) {
+               localStorage.setItem('carbon-panic-url', settings.panicUrl);
+             }
+             
+             // Load tab cloaking settings
+             tabCloakingEnabled = settings.cloakingEnabled || false;
+             cloakTitle = settings.cloakTitle || '';
+             cloakFavicon = settings.cloakFavicon || '';
+             
+             console.log('Settings loaded from Firebase:', {
+               panicKey: panicKey,
+               panicUrl: settings.panicUrl,
+               cloakingEnabled: tabCloakingEnabled,
+               cloakTitle: cloakTitle
+             });
+            
+            // Apply settings
+            applyAllSettings();
+          }
+        } catch (error) {
+          console.error('Error loading settings from Firebase:', error);
+        }
+      }
+      
+      // Load settings from localStorage (fallback)
+      function loadLocalSettings() {
+        panicKey = localStorage.getItem('carbon-panic-key') || null;
+        tabCloakingEnabled = localStorage.getItem('carbon-cloak-enabled') === 'true';
+        cloakTitle = localStorage.getItem('carbon-cloak-title') || '';
+        cloakFavicon = localStorage.getItem('carbon-cloak-favicon') || '';
+        
+        console.log('Settings loaded from localStorage:', {
+          panicKey: panicKey,
+          cloakingEnabled: tabCloakingEnabled,
+          cloakTitle: cloakTitle
+        });
+        
+        applyAllSettings();
+      }
+      
+      // Apply all settings
+      function applyAllSettings() {
+        applyTabCloaking();
+        applyTeacherPrevention();
+        applyClosePrevention();
+        // Trigger Firebase sync when settings are applied
+        triggerSettingsSync();
+      }
+      
+      // Tab cloaking functionality
+      function applyTabCloaking() {
+        console.log('🎭 Applying tab cloaking:', {
+          enabled: tabCloakingEnabled,
+          title: cloakTitle,
+          favicon: cloakFavicon
+        });
+        
+        if (tabCloakingEnabled && cloakTitle) {
+          // Change the document title immediately
+          document.title = cloakTitle;
+          console.log('✅ Document title changed to:', document.title);
+          
+          if (cloakFavicon) {
+            // Remove existing favicon links
+            const existingLinks = document.querySelectorAll("link[rel*='icon']");
+            existingLinks.forEach(link => {
+              console.log('🗑️ Removing existing favicon link:', link.href);
+              link.remove();
+            });
+            
+            // Add new favicon with multiple formats for better compatibility
+            const timestamp = new Date().getTime();
+            
+            // Primary favicon
+            const link = document.createElement('link');
+            link.type = 'image/x-icon';
+            link.rel = 'shortcut icon';
+            link.href = cloakFavicon + '?v=' + timestamp;
+            document.head.appendChild(link);
+            
+            // Standard icon
+            const iconLink = document.createElement('link');
+            iconLink.rel = 'icon';
+            iconLink.type = 'image/x-icon';
+            iconLink.href = cloakFavicon + '?v=' + timestamp;
+            document.head.appendChild(iconLink);
+            
+            // Apple touch icon for mobile
+            const appleLink = document.createElement('link');
+            appleLink.rel = 'apple-touch-icon';
+            appleLink.href = cloakFavicon + '?v=' + timestamp;
+            document.head.appendChild(appleLink);
+            
+            console.log('✅ Added new favicon:', cloakFavicon);
+          }
+        } else {
+          console.log('❌ Tab cloaking disabled or no title set');
+          document.title = 'CARBON';
+          // Reset to default favicon if not cloaking
+          const existingLinks = document.querySelectorAll("link[rel*='icon']");
+          existingLinks.forEach(link => link.remove());
+        }
+      }
+      
+      // Teacher prevention (same as settings.html)
+      function applyTeacherPrevention() {
+        // Disable right-click
+        if (localStorage.getItem('carbon-disable-right-click') === 'true') {
+          document.addEventListener('contextmenu', e => e.preventDefault());
+        }
+        
+        // Disable text selection
+        if (localStorage.getItem('carbon-disable-select') === 'true') {
+          document.body.style.userSelect = 'none';
+          document.body.style.webkitUserSelect = 'none';
+          document.body.style.mozUserSelect = 'none';
+        }
+        
+        // Hide cursor when idle
+        if (localStorage.getItem('carbon-hide-cursor') === 'true') {
+          let cursorTimer;
+          document.addEventListener('mousemove', () => {
+            document.body.style.cursor = 'default';
+            clearTimeout(cursorTimer);
+            cursorTimer = setTimeout(() => {
+              document.body.style.cursor = 'none';
+            }, 3000);
+          });
+        }
+        
+        // Blur on unfocus
+        if (localStorage.getItem('carbon-blur-unfocus') === 'true') {
+          window.addEventListener('blur', () => {
+            document.body.style.filter = 'blur(10px)';
+          });
+          window.addEventListener('focus', () => {
+            document.body.style.filter = 'none';
+          });
+        }
+      }
+      
+      // Close prevention
+      function applyClosePrevention() {
+        const enabled = localStorage.getItem('carbon-close-prevention') === 'true';
+        const confirm = localStorage.getItem('carbon-confirm-close') === 'true';
+        const message = localStorage.getItem('carbon-close-message') || 'Are you sure you want to close Carbon?';
+        
+        if (enabled) {
+          window.addEventListener('beforeunload', (e) => {
+            if (confirm) {
+              e.preventDefault();
+              e.returnValue = message;
+              return message;
+            }
+          });
+        }
+      }
+      
+
+      
+      // Authentication state observer
+      auth.onAuthStateChanged((user) => {
+        currentUser = user;
+        if (user) {
+          loadSettingsFromFirebase();
+        } else {
+          loadLocalSettings();
+        }
+      });
+      
+      // Listen for settings changes from settings page
+      window.addEventListener('message', (event) => {
+        if (event.data && event.data.type === 'carbon-settings-updated') {
+          console.log('Received settings update:', event.data.settings);
+          const settings = event.data.settings;
+          panicKey = settings.panicKey;
+          if (settings.panicUrl) {
+            localStorage.setItem('carbon-panic-url', settings.panicUrl);
+          }
+          if (settings.cloaking) {
+            tabCloakingEnabled = settings.cloaking.enabled;
+            cloakTitle = settings.cloaking.title;
+            cloakFavicon = settings.cloaking.favicon;
+          }
+          console.log('Updated settings applied:', {
+            panicKey: panicKey,
+            tabCloakingEnabled: tabCloakingEnabled,
+            cloakTitle: cloakTitle
+          });
+          applyAllSettings();
+        } else if (event.data && event.data.type === 'carbon-settings-refresh') {
+          console.log('Refreshing settings from Firebase/localStorage');
+          // Reload settings when settings page saves
+          if (currentUser) {
+            loadSettingsFromFirebase();
+          } else {
+            loadLocalSettings();
+          }
+        }
+      });
+      
+
+      
+      // Auto-sync all data every 30 seconds if user is authenticated
+      setInterval(() => {
+        if (currentUser) {
+          syncAllDataToFirebase();
+        }
+      }, 30000);
+      
+      // Hook into tab operations and settings changes to sync data
+      const originalAddTab = addTab;
+      const originalRemoveTab = removeTab;
+      const originalUpdateTabHistory = updateTabHistory;
+      
+      addTab = function(...args) {
+        const result = originalAddTab.apply(this, args);
+        if (currentUser) {
+          setTimeout(() => syncAllDataToFirebase(), 1000);
+        }
+        return result;
+      };
+      
+      removeTab = function(...args) {
+        const result = originalRemoveTab.apply(this, args);
+        if (currentUser) {
+          setTimeout(() => syncAllDataToFirebase(), 1000);
+        }
+        return result;
+      };
+      
+      updateTabHistory = function(...args) {
+        const result = originalUpdateTabHistory.apply(this, args);
+        if (currentUser) {
+          setTimeout(() => syncAllDataToFirebase(), 2000);
+        }
+        return result;
+      };
+      
+      // Sync when settings change
+      function triggerSettingsSync() {
+        if (currentUser) {
+          setTimeout(() => syncAllDataToFirebase(), 500);
+        }
+      }
+
       // -- INIT --
       // Load saved data
       loadTabGroups();
@@ -2540,6 +2905,18 @@
       
       if (tabs.length === 0) addTab("carbon://newtab");
       else loadTabsData();
+      
+      // Initialize settings immediately - try both methods to ensure we get settings
+      console.log('🚀 Initializing settings on page load...');
+      loadLocalSettings(); // Load localStorage first for immediate effect
+      
+      // Also load from Firebase if user is authenticated
+      if (auth.currentUser) {
+        console.log('👤 User already authenticated, loading from Firebase...');
+        loadSettingsFromFirebase();
+      } else {
+        console.log('👤 No user authenticated, using localStorage settings only');
+      }
 
       // Initialize sortable for horizontal tabs
       const tabsContainer = document.getElementById("tabs-bar");

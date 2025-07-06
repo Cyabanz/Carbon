@@ -443,13 +443,43 @@
     </style>
 </head>
 <body class="font-inter bg-gradient-to-br from-base via-surface to-overlay text-text min-h-screen">
-    <div class="settings-container">
+    <!-- Login Screen (shown when not authenticated) -->
+    <div id="login-screen" class="min-h-screen flex items-center justify-center px-4">
+        <div class="bg-surface border border-overlay rounded-xl shadow-2xl p-8 max-w-md w-full">
+            <div class="text-center mb-8">
+                <i class="bx bx-cog text-6xl text-foam mb-4"></i>
+                <h1 class="text-2xl font-bold text-text mb-2">Carbon Settings</h1>
+                <p class="text-muted">Sign in to access your settings and sync across devices</p>
+            </div>
+            <button id="google-signin-btn" class="w-full flex items-center justify-center gap-3 bg-foam hover:bg-foam/90 text-base font-medium px-6 py-3 rounded-lg transition-all duration-200">
+                <i class='bx bxl-google text-xl'></i>
+                Continue with Google
+            </button>
+            <div id="login-error" class="text-love mt-4 text-sm text-center hidden"></div>
+        </div>
+    </div>
+
+    <!-- Settings Content (shown when authenticated) -->
+    <div id="settings-content" class="settings-container hidden">
         <div class="mb-8">
-            <h1 class="text-4xl font-bold mb-2 text-text flex items-center gap-3">
-                <i class="bx bx-cog text-foam"></i>
-                <span class="gradient-text">Carbon Settings</span>
-            </h1>
-            <p class="text-muted text-lg">Customize your Carbon browser experience with advanced features</p>
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-4xl font-bold mb-2 text-text flex items-center gap-3">
+                        <i class="bx bx-cog text-foam"></i>
+                        <span class="gradient-text">Carbon Settings</span>
+                    </h1>
+                    <p class="text-muted text-lg">Customize your Carbon browser experience with advanced features</p>
+                </div>
+                <div id="user-info" class="text-right">
+                    <div class="flex items-center gap-3">
+                        <img id="user-photo" class="w-10 h-10 rounded-full border-2 border-foam/50" src="" alt="Profile">
+                        <div>
+                            <p id="user-name" class="text-text font-medium"></p>
+                            <button id="sign-out-btn" class="text-muted hover:text-love text-sm transition-colors">Sign Out</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- Panic Key Settings -->
@@ -761,16 +791,191 @@
     </div>
 
     <script src="carbon-theme.js"></script>
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
     <script>
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyC4ilHYP1T-kdXbWPoHJHhD2aj0pNWmMec",
+            authDomain: "carbon-services.firebaseapp.com",
+            projectId: "carbon-services",
+            storageBucket: "carbon-services.firebasestorage.app",
+            messagingSenderId: "288385472070",
+            appId: "1:288385472070:web:c4be3ff186e248fc645c47",
+            measurementId: "G-Y2K1RQYE74"
+        };
+        
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+        
         let panicKey = null;
         let isRecordingPanicKey = false;
         let currentTheme = 'rose-pine';
         let currentBackground = 'gradient';
+        let currentUser = null;
+        
+        // Google Sign In
+        async function googleSignIn() {
+            try {
+                const provider = new firebase.auth.GoogleAuthProvider();
+                await auth.signInWithPopup(provider);
+            } catch (error) {
+                console.error('Sign in error:', error);
+                document.getElementById('login-error').innerText = error.message;
+                document.getElementById('login-error').classList.remove('hidden');
+            }
+        }
+        
+        // Sign Out
+        async function signOut() {
+            try {
+                await auth.signOut();
+            } catch (error) {
+                console.error('Sign out error:', error);
+            }
+        }
+        
+        // Authentication state observer
+        auth.onAuthStateChanged((user) => {
+            currentUser = user;
+            
+            if (user) {
+                // User is signed in - show settings
+                document.getElementById('login-screen').classList.add('hidden');
+                document.getElementById('settings-content').classList.remove('hidden');
+                
+                // Update user info
+                document.getElementById('user-photo').src = user.photoURL || '';
+                document.getElementById('user-name').textContent = user.displayName || 'User';
+                
+                loadSettingsFromFirebase();
+            } else {
+                // User is not signed in - show login
+                document.getElementById('login-screen').classList.remove('hidden');
+                document.getElementById('settings-content').classList.add('hidden');
+            }
+        });
         
         // Load settings on page load
         document.addEventListener('DOMContentLoaded', function() {
-            loadSettings();
+            // Check if user is already authenticated
+            if (auth.currentUser) {
+                loadSettingsFromFirebase();
+            } else {
+                loadSettings();
+            }
         });
+
+        // Firebase settings sync
+        async function loadSettingsFromFirebase() {
+            if (!currentUser) {
+                loadSettings();
+                return;
+            }
+            
+            try {
+                const userSettingsDoc = await db.collection('users').doc(currentUser.uid).get();
+                if (userSettingsDoc.exists) {
+                    const userData = userSettingsDoc.data();
+                    const settings = userData.settings || {};
+                    
+                    // Load settings from Firebase
+                    if (settings.panicKey) {
+                        panicKey = settings.panicKey;
+                        document.getElementById('panic-key-display').textContent = panicKey.toUpperCase();
+                    }
+                    
+                    if (settings.panicUrl) {
+                        document.getElementById('panic-url').value = settings.panicUrl;
+                    }
+                    
+                    if (settings.theme) {
+                        currentTheme = settings.theme;
+                        document.querySelectorAll('.theme-preview').forEach(el => el.classList.remove('active'));
+                        document.querySelector(`[data-theme="${settings.theme}"]`)?.classList.add('active');
+                    }
+                    
+                    if (settings.background) {
+                        currentBackground = settings.background;
+                        document.querySelectorAll('.bg-preview').forEach(el => el.classList.remove('active'));
+                        document.querySelector(`[data-bg="${settings.background}"]`)?.classList.add('active');
+                    }
+                    
+                    if (settings.customBackground) {
+                        showCustomBgPreview(settings.customBackground);
+                    }
+                    
+                    // Load tab cloaking settings
+                    document.getElementById('tab-cloaking-enabled').checked = settings.cloakingEnabled || false;
+                    document.getElementById('cloak-title').value = settings.cloakTitle || '';
+                    document.getElementById('cloak-favicon').value = settings.cloakFavicon || '';
+                    
+                    // Load other settings
+                    document.getElementById('fullscreen-enabled').checked = settings.fullscreenEnabled || false;
+                    document.getElementById('close-prevention-enabled').checked = settings.closePreventionEnabled || false;
+                    document.getElementById('confirm-close').checked = settings.confirmClose || false;
+                    document.getElementById('close-message').value = settings.closeMessage || '';
+                    document.getElementById('disable-right-click').checked = settings.disableRightClick || false;
+                    document.getElementById('disable-devtools').checked = settings.disableDevtools || false;
+                    document.getElementById('disable-select').checked = settings.disableSelect || false;
+                    document.getElementById('hide-cursor').checked = settings.hideCursor || false;
+                    document.getElementById('blur-on-unfocus').checked = settings.blurOnUnfocus || false;
+                    
+                    // Apply settings immediately
+                    applySettings();
+                    toggleCloakingOptions();
+                    updateStatusIndicators();
+                    loadCustomThemes();
+                } else {
+                    // No Firebase settings found, load from localStorage
+                    loadSettings();
+                }
+            } catch (error) {
+                console.error('Error loading settings from Firebase:', error);
+                loadSettings(); // Fallback to localStorage
+            }
+        }
+        
+        async function saveSettingsToFirebase() {
+            if (!currentUser) {
+                return;
+            }
+            
+            try {
+                const settings = {
+                    panicKey: panicKey || '',
+                    panicUrl: document.getElementById('panic-url').value,
+                    theme: currentTheme,
+                    background: currentBackground,
+                    customBackground: localStorage.getItem('carbon-custom-bg-global') || '',
+                    cloakingEnabled: document.getElementById('tab-cloaking-enabled').checked,
+                    cloakTitle: document.getElementById('cloak-title').value,
+                    cloakFavicon: document.getElementById('cloak-favicon').value,
+                    fullscreenEnabled: document.getElementById('fullscreen-enabled').checked,
+                    closePreventionEnabled: document.getElementById('close-prevention-enabled').checked,
+                    confirmClose: document.getElementById('confirm-close').checked,
+                    closeMessage: document.getElementById('close-message').value,
+                    disableRightClick: document.getElementById('disable-right-click').checked,
+                    disableDevtools: document.getElementById('disable-devtools').checked,
+                    disableSelect: document.getElementById('disable-select').checked,
+                    hideCursor: document.getElementById('hide-cursor').checked,
+                    blurOnUnfocus: document.getElementById('blur-on-unfocus').checked,
+                    lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+                };
+                
+                await db.collection('users').doc(currentUser.uid).set({
+                    settings: settings
+                }, { merge: true });
+                
+                console.log('Settings saved to Firebase successfully');
+            } catch (error) {
+                console.error('Error saving settings to Firebase:', error);
+            }
+        }
 
         // Settings management
         function loadSettings() {
@@ -870,7 +1075,7 @@
             }
         }
 
-        function saveSettings() {
+        async function saveSettings() {
             // Save panic key
             localStorage.setItem('carbon-panic-key', panicKey || '');
             localStorage.setItem('carbon-panic-url', document.getElementById('panic-url').value);
@@ -898,6 +1103,11 @@
             localStorage.setItem('carbon-disable-select', document.getElementById('disable-select').checked);
             localStorage.setItem('carbon-hide-cursor', document.getElementById('hide-cursor').checked);
             localStorage.setItem('carbon-blur-unfocus', document.getElementById('blur-on-unfocus').checked);
+            
+            // Save to Firebase if user is authenticated
+            if (currentUser) {
+                await saveSettingsToFirebase();
+            }
             
             // Apply settings immediately
             applySettings();
@@ -1268,16 +1478,14 @@
             }
         });
 
+        // Authentication event listeners
+        document.getElementById('google-signin-btn').addEventListener('click', googleSignIn);
+        document.getElementById('sign-out-btn').addEventListener('click', signOut);
+
         // Save settings button
         document.getElementById('save-settings').addEventListener('click', saveSettings);
 
-        // Global panic key listener
-        document.addEventListener('keydown', function(e) {
-            if (panicKey && e.key.toLowerCase() === panicKey) {
-                const panicUrl = document.getElementById('panic-url').value || 'https://classroom.google.com';
-                window.location.href = panicUrl;
-            }
-        });
+        // Note: Panic key works globally in proxy.html, not in settings
 
         // Disable dev tools shortcuts if enabled
         document.addEventListener('keydown', function(e) {

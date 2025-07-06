@@ -421,8 +421,28 @@
     </div>
 
     <script src="carbon-theme.js"></script>
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
     <script type="module">
       import { makeURL, getProxied, setProxy, getProxy } from '/lethal.mjs';
+      
+      // Firebase configuration
+      const firebaseConfig = {
+        apiKey: "AIzaSyC4ilHYP1T-kdXbWPoHJHhD2aj0pNWmMec",
+        authDomain: "carbon-services.firebaseapp.com",
+        projectId: "carbon-services",
+        storageBucket: "carbon-services.firebasestorage.app",
+        messagingSenderId: "288385472070",
+        appId: "1:288385472070:web:c4be3ff186e248fc645c47",
+        measurementId: "G-Y2K1RQYE74"
+      };
+      
+      // Initialize Firebase
+      firebase.initializeApp(firebaseConfig);
+      const auth = firebase.auth();
+      const db = firebase.firestore();
       // THEME SYNC - Now auto-syncs from settings.html via enhanced theme system
       // The carbon-theme.js handles theme application automatically from global storage
       
@@ -462,6 +482,47 @@
       let currentSearchEngine = localStorage.getItem('search-engine') || 'https://search.brave.com/search?q=%s';
       let currentProxy = localStorage.getItem('proxy-backend') || 'uv';
       let bookmarks = JSON.parse(localStorage.getItem('carbon-bookmarks') || '[]');
+      let currentUser = null;
+      
+      // Firebase sync functions
+      async function loadBookmarksFromFirebase() {
+        if (!currentUser) return;
+        
+        try {
+          const userDoc = await db.collection('users').doc(currentUser.uid).get();
+          if (userDoc.exists) {
+            const userData = userDoc.data();
+            if (userData.bookmarks) {
+              bookmarks = userData.bookmarks;
+              localStorage.setItem('carbon-bookmarks', JSON.stringify(bookmarks));
+              renderBookmarks();
+            }
+          }
+        } catch (error) {
+          console.error('Error loading bookmarks from Firebase:', error);
+        }
+      }
+      
+      async function saveBookmarksToFirebase() {
+        if (!currentUser) return;
+        
+        try {
+          await db.collection('users').doc(currentUser.uid).set({
+            bookmarks: bookmarks,
+            lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+          }, { merge: true });
+        } catch (error) {
+          console.error('Error saving bookmarks to Firebase:', error);
+        }
+      }
+      
+      // Authentication state observer
+      auth.onAuthStateChanged((user) => {
+        currentUser = user;
+        if (user) {
+          loadBookmarksFromFirebase();
+        }
+      });
 
       // DOM Elements
       const searchInput = document.getElementById('search-input');
@@ -771,27 +832,30 @@
         });
       }
 
-      function addBookmark(title, url) {
+      async function addBookmark(title, url) {
         bookmarks.push({ title, url });
         localStorage.setItem('carbon-bookmarks', JSON.stringify(bookmarks));
+        await saveBookmarksToFirebase();
         renderBookmarks();
       }
 
-      function editBookmark(index) {
+      async function editBookmark(index) {
         const bookmark = bookmarks[index];
         const newTitle = prompt('Edit bookmark title:', bookmark.title);
         const newUrl = prompt('Edit bookmark URL:', bookmark.url);
         if (newTitle !== null && newUrl !== null) {
           bookmarks[index] = { title: newTitle || bookmark.title, url: newUrl || bookmark.url };
           localStorage.setItem('carbon-bookmarks', JSON.stringify(bookmarks));
+          await saveBookmarksToFirebase();
           renderBookmarks();
         }
       }
 
-      function deleteBookmark(index) {
+      async function deleteBookmark(index) {
         if (confirm('Delete this bookmark?')) {
           bookmarks.splice(index, 1);
           localStorage.setItem('carbon-bookmarks', JSON.stringify(bookmarks));
+          await saveBookmarksToFirebase();
           renderBookmarks();
         }
       }
