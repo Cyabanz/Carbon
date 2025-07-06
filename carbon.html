@@ -4,6 +4,14 @@
   <meta charset="UTF-8">
   <title>Play Game - CARBON</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <!-- XSS Protection Headers -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' https:; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://www.gstatic.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://unpkg.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; media-src 'self' blob: https:; connect-src 'self' https:; frame-src 'self' https:;">
+  <meta http-equiv="X-Content-Type-Options" content="nosniff">
+  <meta http-equiv="X-Frame-Options" content="SAMEORIGIN">
+  <meta http-equiv="X-XSS-Protection" content="1; mode=block">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
   <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
@@ -743,7 +751,8 @@
 
     function getGameIdFromURL() {
       const urlParams = new URLSearchParams(window.location.search);
-      return urlParams.get('id');
+      const id = urlParams.get('id');
+      return validateGameId(id);
     }
     function setButtonActive(btn, isActive, activeClass='bg-cyan-500/80') {
       btn.classList.toggle(activeClass, isActive);
@@ -753,9 +762,13 @@
       if (!user) {
         section.innerHTML = '';
       } else {
+        const photoURL = validateUrl(user.photoURL) || '/default-avatar.png';
+        const displayName = escapeHtml(user.displayName) || 'User';
+        const titleAttr = escapeHtmlAttribute(user.displayName) || 'User';
+        
         section.innerHTML = `
-          <img src="${user.photoURL}" class="w-8 h-8 rounded-full inline mr-2" title="${user.displayName}">
-          <span class="mr-3">${user.displayName}</span>
+          <img src="${escapeHtmlAttribute(photoURL)}" class="w-8 h-8 rounded-full inline mr-2" title="${titleAttr}">
+          <span class="mr-3">${displayName}</span>
           <button onclick="signOut()" class="bg-white/10 px-3 py-1 rounded hover:bg-pink-600 text-white">Sign Out</button>
         `;
       }
@@ -913,14 +926,29 @@
       const modal = document.getElementById('tagGamesListModal');
       const title = document.getElementById('tagGamesListTitle');
       const body = document.getElementById('tagGamesListBody');
+      
+      // Sanitize tag name
+      const sanitizedTag = escapeHtml(tag);
+      
       // List all games with this tag
       const games = gamesData.filter(g => g.tags && g.tags.includes(tag));
-      title.innerHTML = `${tag.charAt(0).toUpperCase() + tag.slice(1)} <span class="text-cyan-400/70 text-base">(${games.length} game${games.length!==1?'s':''})</span>`;
-      body.innerHTML = games.length ? games.map(g => `
-        <a href="play.html?id=${g.id}" class="block px-4 py-2 bg-white/5 rounded-md hover:bg-cyan-500/20 text-white/90 font-semibold transition">
-          ${g.title}
-        </a>
-      `).join('') : `<div class="text-white/60">No games in this category.</div>`;
+      
+      title.innerHTML = `${sanitizedTag.charAt(0).toUpperCase() + sanitizedTag.slice(1)} <span class="text-cyan-400/70 text-base">(${games.length} game${games.length!==1?'s':''})</span>`;
+      
+      if (games.length) {
+        body.innerHTML = games.map(g => {
+          const gameId = validateGameId(g.id) || '#';
+          const gameTitle = escapeHtml(g.title) || 'Untitled Game';
+          return `
+            <a href="play.html?id=${escapeHtmlAttribute(gameId)}" class="block px-4 py-2 bg-white/5 rounded-md hover:bg-cyan-500/20 text-white/90 font-semibold transition">
+              ${gameTitle}
+            </a>
+          `;
+        }).join('');
+      } else {
+        body.innerHTML = `<div class="text-white/60">No games in this category.</div>`;
+      }
+      
       modal.classList.remove("hidden");
     }
     function closeTagGamesModal() {
@@ -946,42 +974,64 @@
         el.innerHTML = "";
         return;
       }
-      el.innerHTML = currentGame.tags.map(tag => `
-        <button type="button"
-          class="tag-btn inline-block px-3 py-1 bg-gradient-to-r from-cyan-400/20 to-indigo-500/20 text-cyan-300 text-xs rounded-full border border-cyan-400/30 hover:bg-cyan-600/10 transition font-semibold"
-          onclick="openTagGamesModal('${tag}')"
-          >
-          ${tag.charAt(0).toUpperCase() + tag.slice(1)} <span class="text-cyan-400/70">(${window.tagCounts[tag]||1})</span>
-        </button>
-      `).join('');
+      
+      el.innerHTML = currentGame.tags.map(tag => {
+        const sanitizedTag = escapeHtml(tag);
+        const tagForClick = escapeHtmlAttribute(tag);
+        const tagCount = parseInt(window.tagCounts[tag]) || 1;
+        
+        return `
+          <button type="button"
+            class="tag-btn inline-block px-3 py-1 bg-gradient-to-r from-cyan-400/20 to-indigo-500/20 text-cyan-300 text-xs rounded-full border border-cyan-400/30 hover:bg-cyan-600/10 transition font-semibold"
+            onclick="openTagGamesModal('${tagForClick}')"
+            >
+            ${sanitizedTag.charAt(0).toUpperCase() + sanitizedTag.slice(1)} <span class="text-cyan-400/70">(${tagCount})</span>
+          </button>
+        `;
+      }).join('');
     }
 
     
     function renderGameInfoBox(game, tableId) {
       const el = document.getElementById(tableId);
       if (!el) return;
+      
+      const developer = escapeHtml(game.developer) || "Unknown";
+      const release = escapeHtml(game.release) || "Unknown";
+      const technology = escapeHtml(game.technology) || "Unknown";
+      const controls = escapeHtml(game.controls) || "See in-game";
+      
+      let platformsHtml = "Unknown";
+      if (Array.isArray(game.platforms)) {
+        platformsHtml = game.platforms.map(p => 
+          `<span class="bg-[#232445] text-cyan-300 px-2 py-[2px] rounded-full text-xs font-semibold">${escapeHtml(p)}</span>`
+        ).join('');
+      } else if (game.platforms) {
+        platformsHtml = escapeHtml(game.platforms);
+      }
+      
       el.innerHTML = `
         <tr>
           <th class="pr-4 py-1 text-cyan-400 font-semibold align-top">Developer</th>
-          <td class="py-1">${game.developer || "Unknown"}</td>
+          <td class="py-1">${developer}</td>
         </tr>
         <tr>
           <th class="pr-4 py-1 text-cyan-400 font-semibold align-top">Release</th>
-          <td class="py-1">${game.release || "Unknown"}</td>
+          <td class="py-1">${release}</td>
         </tr>
         <tr>
           <th class="pr-4 py-1 text-cyan-400 font-semibold align-top">Technology</th>
-          <td class="py-1">${game.technology || "Unknown"}</td>
+          <td class="py-1">${technology}</td>
         </tr>
         <tr>
           <th class="pr-4 py-1 text-cyan-400 font-semibold align-top">Platforms</th>
           <td class="flex flex-wrap gap-2 py-1">
-            ${(Array.isArray(game.platforms) ? game.platforms.map(p => `<span class="bg-[#232445] text-cyan-300 px-2 py-[2px] rounded-full text-xs font-semibold">${p}</span>`).join('') : (game.platforms || "Unknown"))}
+            ${platformsHtml}
           </td>
         </tr>
         <tr>
           <th class="pr-4 py-1 text-cyan-400 font-semibold align-top">Controls</th>
-          <td class="py-1">${game.controls || "See in-game"}</td>
+          <td class="py-1">${controls}</td>
         </tr>
       `;
     }
@@ -1117,19 +1167,32 @@
         return;
       }
       
+      // Validate and sanitize input
+      const sanitizedText = sanitizeText(text, 1000);
+      if (!sanitizedText) {
+        alert('Invalid comment text');
+        return;
+      }
+      
+      const validatedGameId = validateGameId(currentGameId);
+      if (!validatedGameId) {
+        alert('Invalid game ID');
+        return;
+      }
+      
       try {
         const commentData = {
-          text: text,
+          text: sanitizedText,
           rating: commentsData.currentCommentRating || null,
           authorId: user.uid,
-          authorName: user.displayName,
-          authorPhoto: user.photoURL,
+          authorName: user.displayName || 'Anonymous',
+          authorPhoto: user.photoURL || '/default-avatar.png',
           createdAt: firebase.firestore.FieldValue.serverTimestamp(),
           reactions: {},
           reactionCounts: {}
         };
         
-        const docRef = await db.collection("games").doc(currentGameId)
+        const docRef = await db.collection("games").doc(validatedGameId)
           .collection("comments").add(commentData);
         
         // Reset form
@@ -1139,7 +1202,7 @@
         updateSubmitButtonState();
         
         // Reload comments
-        await loadComments(currentGameId);
+        await loadComments(validatedGameId);
         
       } catch (error) {
         console.error("Error submitting comment:", error);
@@ -1156,23 +1219,36 @@
         return;
       }
       
+      // Validate and sanitize input
+      const sanitizedText = sanitizeText(text, 500);
+      if (!sanitizedText) {
+        alert('Invalid reply text');
+        return;
+      }
+      
+      const validatedGameId = validateGameId(currentGameId);
+      if (!validatedGameId) {
+        alert('Invalid game ID');
+        return;
+      }
+      
       try {
         const replyData = {
-          text: text,
+          text: sanitizedText,
           authorId: user.uid,
-          authorName: user.displayName,
-          authorPhoto: user.photoURL,
+          authorName: user.displayName || 'Anonymous',
+          authorPhoto: user.photoURL || '/default-avatar.png',
           createdAt: firebase.firestore.FieldValue.serverTimestamp(),
           reactions: {},
           reactionCounts: {}
         };
         
-        await db.collection("games").doc(currentGameId)
+        await db.collection("games").doc(validatedGameId)
           .collection("comments").doc(commentsData.currentReplyingTo)
           .collection("replies").add(replyData);
         
         closeReplyModal();
-        await loadComments(currentGameId);
+        await loadComments(validatedGameId);
         
       } catch (error) {
         console.error("Error submitting reply:", error);
@@ -1315,11 +1391,50 @@
       }
     }
 
-    // Utility functions
+    // XSS Protection Utilities
     function escapeHtml(text) {
+      if (!text) return '';
       const div = document.createElement('div');
       div.textContent = text;
       return div.innerHTML;
+    }
+
+    function escapeHtmlAttribute(text) {
+      if (!text) return '';
+      return text.replace(/[&<>"']/g, function(match) {
+        switch (match) {
+          case '&': return '&amp;';
+          case '<': return '&lt;';
+          case '>': return '&gt;';
+          case '"': return '&quot;';
+          case "'": return '&#39;';
+          default: return match;
+        }
+      });
+    }
+
+    function validateUrl(url) {
+      if (!url) return '';
+      // Only allow http, https, and data URLs
+      const allowedProtocols = ['http:', 'https:', 'data:'];
+      try {
+        const urlObj = new URL(url);
+        return allowedProtocols.includes(urlObj.protocol) ? url : '';
+      } catch (e) {
+        return '';
+      }
+    }
+
+    function validateGameId(id) {
+      if (!id) return null;
+      // Only allow alphanumeric characters and basic punctuation
+      return /^[a-zA-Z0-9_-]+$/.test(id) ? id : null;
+    }
+
+    function sanitizeText(text, maxLength = 10000) {
+      if (!text) return '';
+      // Remove null bytes and limit length
+      return text.replace(/\0/g, '').substring(0, maxLength);
     }
 
     // Expose all functions to global scope immediately
@@ -1673,7 +1788,7 @@
       // Create a temporary notification
       const notification = document.createElement('div');
       notification.className = 'fixed top-4 right-4 bg-cyan-500 text-black px-4 py-2 rounded-lg font-semibold z-[1000] opacity-0 transition-opacity duration-300';
-      notification.textContent = message;
+      notification.textContent = sanitizeText(message, 200);
       document.body.appendChild(notification);
       
       // Show notification
@@ -1682,7 +1797,11 @@
       // Hide and remove notification
       setTimeout(() => {
         notification.classList.replace('opacity-100', 'opacity-0');
-        setTimeout(() => document.body.removeChild(notification), 300);
+        setTimeout(() => {
+          if (notification.parentNode) {
+            document.body.removeChild(notification);
+          }
+        }, 300);
       }, 2000);
     }
 
@@ -1777,12 +1896,17 @@
       const reactions = Object.entries(comment.reactionCounts || {})
         .map(([emoji, count]) => {
           const userReacted = user && comment.reactions && comment.reactions[user.uid] === emoji;
+          const sanitizedEmoji = escapeHtml(emoji);
+          const safeCount = parseInt(count) || 0;
+          const commentIdForClick = escapeHtmlAttribute(comment.id);
+          const emojiForClick = escapeHtmlAttribute(emoji);
+          
           return `
             <button 
-              onclick="toggleReaction('${comment.id}', '${emoji}')"
+              onclick="toggleReaction('${commentIdForClick}', '${emojiForClick}')"
               class="reaction-button ${userReacted ? 'reacted' : ''}"
             >
-              ${emoji} ${count}
+              ${sanitizedEmoji} ${safeCount}
             </button>
           `;
         }).join('');
@@ -1794,15 +1918,20 @@
       const stars = comment.rating ? 
         '★'.repeat(comment.rating) + '☆'.repeat(5 - comment.rating) : '';
       
+      const authorPhoto = validateUrl(comment.authorPhoto) || '/default-avatar.png';
+      const authorName = escapeHtml(comment.authorName) || 'Anonymous';
+      const authorNameAttr = escapeHtmlAttribute(comment.authorName) || 'Anonymous';
+      const commentIdForClick = escapeHtmlAttribute(comment.id);
+      
       return `
         <div class="comment-item p-4 bg-[#232445] rounded-lg border border-cyan-600/20">
           <div class="flex items-start gap-3">
-            <img src="${comment.authorPhoto || '/default-avatar.png'}" 
+            <img src="${escapeHtmlAttribute(authorPhoto)}" 
                  class="w-10 h-10 rounded-full flex-shrink-0" 
-                 alt="${comment.authorName}">
+                 alt="${authorNameAttr}">
             <div class="flex-1">
               <div class="flex items-center gap-2 mb-2">
-                <span class="font-semibold text-cyan-300">${comment.authorName}</span>
+                <span class="font-semibold text-cyan-300">${authorName}</span>
                 ${comment.rating ? `<span class="comment-stars text-sm">${stars}</span>` : ''}
                 <span class="text-xs text-cyan-200/60">
                   ${comment.createdAt ? new Date(comment.createdAt.toDate()).toLocaleDateString() : 'Just now'}
@@ -1817,7 +1946,7 @@
                 </div>
                 
                 <button 
-                  onclick="showReactionPicker('${comment.id}', event)"
+                  onclick="showReactionPicker('${commentIdForClick}', event)"
                   class="text-cyan-400 hover:text-cyan-300 text-sm flex items-center gap-1"
                   title="Add reaction"
                 >
@@ -1826,7 +1955,7 @@
                 </button>
                 
                 <button 
-                  onclick="openReplyModal('${comment.id}')"
+                  onclick="openReplyModal('${commentIdForClick}')"
                   class="text-cyan-400 hover:text-cyan-300 text-sm flex items-center gap-1"
                   title="Reply to comment"
                 >
@@ -1851,25 +1980,37 @@
       const reactions = Object.entries(reply.reactionCounts || {})
         .map(([emoji, count]) => {
           const userReacted = user && reply.reactions && reply.reactions[user.uid] === emoji;
+          const sanitizedEmoji = escapeHtml(emoji);
+          const safeCount = parseInt(count) || 0;
+          const commentIdForClick = escapeHtmlAttribute(commentId);
+          const emojiForClick = escapeHtmlAttribute(emoji);
+          const replyIdForClick = escapeHtmlAttribute(reply.id);
+          
           return `
             <button 
-              onclick="toggleReaction('${commentId}', '${emoji}', true, '${reply.id}')"
+              onclick="toggleReaction('${commentIdForClick}', '${emojiForClick}', true, '${replyIdForClick}')"
               class="reaction-button ${userReacted ? 'reacted' : ''}"
             >
-              ${emoji} ${count}
+              ${sanitizedEmoji} ${safeCount}
             </button>
           `;
         }).join('');
       
+      const authorPhoto = validateUrl(reply.authorPhoto) || '/default-avatar.png';
+      const authorName = escapeHtml(reply.authorName) || 'Anonymous';
+      const authorNameAttr = escapeHtmlAttribute(reply.authorName) || 'Anonymous';
+      const commentIdForClick = escapeHtmlAttribute(commentId);
+      const replyIdForClick = escapeHtmlAttribute(reply.id);
+      
       return `
         <div class="reply-item p-3 bg-[#181b2a] rounded-lg">
           <div class="flex items-start gap-3">
-            <img src="${reply.authorPhoto || '/default-avatar.png'}" 
+            <img src="${escapeHtmlAttribute(authorPhoto)}" 
                  class="w-8 h-8 rounded-full flex-shrink-0" 
-                 alt="${reply.authorName}">
+                 alt="${authorNameAttr}">
             <div class="flex-1">
               <div class="flex items-center gap-2 mb-2">
-                <span class="font-medium text-cyan-300 text-sm">${reply.authorName}</span>
+                <span class="font-medium text-cyan-300 text-sm">${authorName}</span>
                 <span class="text-xs text-cyan-200/60">
                   ${reply.createdAt ? new Date(reply.createdAt.toDate()).toLocaleDateString() : 'Just now'}
                 </span>
@@ -1883,7 +2024,7 @@
                 </div>
                 
                 <button 
-                  onclick="showReactionPicker('${commentId}', event, true, '${reply.id}')"
+                  onclick="showReactionPicker('${commentIdForClick}', event, true, '${replyIdForClick}')"
                   class="text-cyan-400 hover:text-cyan-300 text-xs flex items-center gap-1"
                   title="Add reaction"
                 >
@@ -1975,9 +2116,15 @@
         
         document.getElementById('loginScreen').classList.add('hidden');
         document.getElementById('gameInfoHolder').classList.remove('hidden');
-        document.getElementById('gameCoverImg').src = currentGame.image;
-        document.getElementById('gameTitleDisplay').textContent = currentGame.title || "";
-        document.getElementById('gameFrameDesc').textContent = currentGame.description;
+        
+        // Validate and sanitize game data
+        const gameImage = validateUrl(currentGame.image) || '/default-game-image.png';
+        const gameTitle = sanitizeText(currentGame.title || 'Untitled Game', 200);
+        const gameDescription = sanitizeText(currentGame.description || 'No description available', 1000);
+        
+        document.getElementById('gameCoverImg').src = gameImage;
+        document.getElementById('gameTitleDisplay').textContent = gameTitle;
+        document.getElementById('gameFrameDesc').textContent = gameDescription;
         document.getElementById('gameCategoryTag').textContent = currentGame.category || '';
         
         if (currentGame.featured) document.getElementById('gameFeaturedTag').classList.remove('hidden');
@@ -1997,7 +2144,8 @@
           await window.loadProxiedGameIframe();
           document.getElementById('gameFrameEmbed').onload = hidePreloader;
           
-          document.getElementById('gameTitleDisplayFrame').textContent = currentGame.title || "";
+          const frameTitleText = sanitizeText(currentGame.title || 'Untitled Game', 200);
+          document.getElementById('gameTitleDisplayFrame').textContent = frameTitleText;
           renderStarRatingUI("Frame");
           renderTagsAreaFrame(currentGame);
           renderCategoryGamesCountFrame(currentGame);
