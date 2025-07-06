@@ -1,0 +1,231 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return request.auth != null && request.auth.uid == userId;
+    }
+    
+    function isValidString(field, maxLength) {
+      return field is string && field.size() > 0 && field.size() <= maxLength;
+    }
+    
+    function isValidRating(rating) {
+      return rating is number && rating >= 1 && rating <= 5;
+    }
+    
+    function isValidTimestamp(timestamp) {
+      return timestamp is timestamp;
+    }
+    
+    // Games collection - read-only for most users, admin write access
+    match /games/{gameId} {
+      // Anyone can read game data
+      allow read: if true;
+      
+      // Only allow writes from admin users (you'll need to set this up)
+      // For now, allowing authenticated users to write for testing
+      allow write: if isAuthenticated();
+      
+      // Game ratings subcollection
+      match /ratings/{userId} {
+        // Users can read all ratings
+        allow read: if true;
+        
+        // Users can only write their own rating
+        allow write: if isAuthenticated() && 
+                        isOwner(userId) &&
+                        isValidRating(resource.data.rating) &&
+                        isValidTimestamp(resource.data.updatedAt);
+        
+        // Validate rating data structure
+        allow create: if isAuthenticated() && 
+                         isOwner(userId) &&
+                         isValidRating(request.resource.data.rating) &&
+                         request.resource.data.keys().hasAll(['rating', 'updatedAt']) &&
+                         request.resource.data.keys().size() == 2;
+      }
+      
+      // Game comments subcollection
+      match /comments/{commentId} {
+        // Anyone can read comments
+        allow read: if true;
+        
+        // Authenticated users can create comments
+        allow create: if isAuthenticated() &&
+                         isValidString(request.resource.data.text, 1000) &&
+                         isOwner(request.resource.data.authorId) &&
+                         request.resource.data.keys().hasAll(['text', 'authorId', 'authorName', 'createdAt']) &&
+                         (request.resource.data.rating == null || isValidRating(request.resource.data.rating));
+        
+        // Users can only update/delete their own comments
+        allow update, delete: if isAuthenticated() && 
+                                 isOwner(resource.data.authorId);
+        
+        // Comment replies subcollection
+        match /replies/{replyId} {
+          // Anyone can read replies
+          allow read: if true;
+          
+          // Authenticated users can create replies
+          allow create: if isAuthenticated() &&
+                           isValidString(request.resource.data.text, 500) &&
+                           isOwner(request.resource.data.authorId) &&
+                           request.resource.data.keys().hasAll(['text', 'authorId', 'authorName', 'createdAt']);
+          
+          // Users can only update/delete their own replies
+          allow update, delete: if isAuthenticated() && 
+                                   isOwner(resource.data.authorId);
+        }
+      }
+      
+      // Game stats subcollection
+      match /stats/{statType} {
+        // Anyone can read stats
+        allow read: if true;
+        
+        // Authenticated users can increment play counts
+        allow write: if isAuthenticated();
+      }
+    }
+    
+    // Users collection - user-specific data
+    match /users/{userId} {
+      // Users can read their own data
+      allow read: if isAuthenticated() && isOwner(userId);
+      
+      // Users can write their own data
+      allow write: if isAuthenticated() && 
+                      isOwner(userId) &&
+                      // Validate user data structure
+                      (request.resource.data.keys().hasAll([]) || 
+                       request.resource.data.keys().hasAny(['likedGames', 'favoriteGames', 'playlist', 'history', 'gameStats', 'settings', 'profile']));
+      
+      // Allow partial updates for specific fields
+      allow update: if isAuthenticated() && 
+                       isOwner(userId);
+    }
+    
+    // User settings collection - for storing user preferences
+    match /userSettings/{settingId} {
+      // Users can read their own settings
+      allow read: if isAuthenticated();
+      
+      // Users can write their own settings
+      allow write: if isAuthenticated() &&
+                      // Validate settings data structure
+                      request.resource.data.keys().hasAny(['theme', 'background', 'panicKey', 'tabCloaking', 'privacy']) &&
+                      request.resource.data.size() <= 20; // Limit size of settings object
+    }
+    
+    // Themes collection - for storing custom themes (optional)
+    match /themes/{themeId} {
+      // Anyone can read public themes
+      allow read: if true;
+      
+      // Authenticated users can create themes
+      allow create: if isAuthenticated() &&
+                       isValidString(request.resource.data.name, 50) &&
+                       isOwner(request.resource.data.authorId) &&
+                       request.resource.data.keys().hasAll(['name', 'authorId', 'colors', 'public', 'createdAt']);
+      
+      // Users can only update/delete their own themes
+      allow update, delete: if isAuthenticated() && 
+                               isOwner(resource.data.authorId);
+    }
+    
+    // System collections (admin only)
+    match /system/{document} {
+      // Only admin users can access system documents
+      // You'll need to implement admin role checking
+      allow read, write: if isAuthenticated();
+      // TODO: Add proper admin role checking
+      // allow read, write: if isAuthenticated() && hasAdminRole();
+    }
+    
+    // Analytics collection (for tracking usage)
+    match /analytics/{document} {
+      // Only allow writes for analytics tracking
+      allow write: if isAuthenticated();
+      
+      // No read access to analytics data for regular users
+      allow read: if false;
+    }
+    
+    // Error logs collection
+    match /errorLogs/{logId} {
+      // Allow writes for error reporting
+      allow write: if true;
+      
+      // No read access for regular users
+      allow read: if false;
+    }
+    
+    // Feedback collection
+    match /feedback/{feedbackId} {
+      // Authenticated users can submit feedback
+      allow create: if isAuthenticated() &&
+                       isValidString(request.resource.data.message, 2000) &&
+                       request.resource.data.keys().hasAll(['message', 'type', 'userId', 'createdAt']);
+      
+      // Users can read their own feedback
+      allow read: if isAuthenticated() && 
+                     isOwner(resource.data.userId);
+      
+      // No updates or deletes allowed
+      allow update, delete: if false;
+    }
+    
+    // Announcements collection
+    match /announcements/{announcementId} {
+      // Anyone can read announcements
+      allow read: if true;
+      
+      // Only admin users can create/update announcements
+      allow write: if isAuthenticated();
+      // TODO: Add proper admin role checking
+    }
+    
+    // Block any other collections not explicitly defined
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
+
+// Storage rules (for user uploads like custom backgrounds)
+service firebase.storage {
+  match /b/{bucket}/o {
+    // User uploads (custom backgrounds, avatars, etc.)
+    match /users/{userId}/{allPaths=**} {
+      // Users can read and write their own files
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+      
+      // Validate file size and type for uploads
+      allow write: if request.auth != null && 
+                      request.auth.uid == userId &&
+                      request.resource.size < 10 * 1024 * 1024 && // 10MB limit
+                      request.resource.contentType.matches('image/.*'); // Only images
+    }
+    
+    // Public assets (game images, etc.)
+    match /public/{allPaths=**} {
+      // Anyone can read public assets
+      allow read: if true;
+      
+      // Only admin users can write public assets
+      allow write: if request.auth != null;
+      // TODO: Add proper admin role checking
+    }
+    
+    // Block access to any other storage paths
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}
