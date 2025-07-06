@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Historey - Carbon</title>
+    <title>History - Carbon</title>
     <script defer async>
       function setConfig() {
         tailwind.config = {
@@ -35,7 +35,6 @@
         };
       }
     </script>
-
     <link rel="preconnect" href="https://unpkg.com" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://cdn.tailwindcss.com" />
@@ -50,7 +49,12 @@
       rel="stylesheet"
     />
     <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet" />
-
+    <!-- Theme System -->
+    <script src="/carbon-theme.js"></script>
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
     <style>
       .history-item {
         background: #1f1d2e;
@@ -108,7 +112,6 @@
         </h1>
         <p class="text-muted text-sm">Your browsing history</p>
       </header>
-
       <!-- Search and Controls -->
       <div class="search-container px-6 py-4">
         <div class="max-w-4xl mx-auto">
@@ -130,7 +133,6 @@
               Clear All
             </button>
           </div>
-          
           <!-- Filter Tabs -->
           <div class="flex gap-2">
             <button class="filter-tab active" data-filter="all">
@@ -152,13 +154,11 @@
           </div>
         </div>
       </div>
-
       <!-- History Content -->
       <main class="max-w-4xl mx-auto px-6 pb-6">
         <div id="history-list" class="space-y-3">
           <!-- History items will be populated here -->
         </div>
-        
         <div id="no-history" class="text-center py-12 hidden">
           <i class="bx bx-history text-6xl text-muted mb-4"></i>
           <h3 class="text-xl font-semibold text-text mb-2">No History Found</h3>
@@ -166,24 +166,34 @@
         </div>
       </main>
     </div>
-
     <script type="module">
-      // --- Utility Imports for Proxy Navigation (if any) ---
       import { makeURL, getProxied } from '/lethal.mjs';
-
-      // --- DOM Elements ---
+      // Firebase configuration
+      const firebaseConfig = {
+        apiKey: "AIzaSyC4ilHYP1T-kdXbWPoHJHhD2aj0pNWmMec",
+        authDomain: "carbon-services.firebaseapp.com",
+        projectId: "carbon-services",
+        storageBucket: "carbon-services.firebasestorage.app",
+        messagingSenderId: "288385472070",
+        appId: "1:288385472070:web:c4be3ff186e248fc645c47",
+        measurementId: "G-Y2K1RQYE74"
+      };
+      // Initialize Firebase
+      if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+      const auth = firebase.auth();
+      const db = firebase.firestore();
+      // DOM
       const historyList = document.getElementById('history-list');
       const noHistory = document.getElementById('no-history');
       const historySearch = document.getElementById('history-search');
       const clearAllBtn = document.getElementById('clear-all-history');
       const filterTabs = document.querySelectorAll('.filter-tab');
-
-      // --- Global State ---
+      // State
       let allHistory = [];
       let filteredHistory = [];
       let currentFilter = 'all';
-
-      // --- Strongly Sanitize a History Item ---
+      let currentUser = null;
+      // --- Sanitize a history item for robustness
       function sanitizeHistoryItem(rawItem) {
         const url = (typeof rawItem.url === 'string' && rawItem.url.trim()) ? rawItem.url.trim() : '';
         let title = '';
@@ -205,8 +215,50 @@
         let id = (typeof rawItem.id === 'number' && Number.isFinite(rawItem.id)) ? rawItem.id : (Date.now() + Math.random());
         return { id, url, title, timestamp, visits };
       }
-
-      // --- Load and Sanitize all History from localStorage ---
+      // --- Firebase sync
+      async function loadHistoryFromFirebase() {
+        if (!currentUser) return;
+        try {
+          const userDoc = await db.collection('users').doc(currentUser.uid).get();
+          if (userDoc.exists) {
+            const userData = userDoc.data();
+            if (userData.history && Array.isArray(userData.history)) {
+              allHistory = userData.history.map(sanitizeHistoryItem).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+              localStorage.setItem('carbon-history', JSON.stringify(allHistory));
+              filterHistory();
+              renderHistory();
+            } else {
+              allHistory = [];
+              localStorage.setItem('carbon-history', '[]');
+              filterHistory();
+              renderHistory();
+            }
+          }
+        } catch (error) {
+          console.error('Error loading history from Firebase:', error);
+        }
+      }
+      async function saveHistoryToFirebase() {
+        if (!currentUser) return;
+        try {
+          await db.collection('users').doc(currentUser.uid).set({
+            history: allHistory,
+            lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+          }, { merge: true });
+        } catch (error) {
+          console.error('Error saving history to Firebase:', error);
+        }
+      }
+      // Auth state observer
+      auth.onAuthStateChanged((user) => {
+        currentUser = user;
+        if (user) {
+          loadHistoryFromFirebase();
+        } else {
+          loadHistory();
+        }
+      });
+      // Load history from localStorage
       function loadHistory() {
         let history = [];
         try {
@@ -224,14 +276,13 @@
         filterHistory();
         renderHistory();
       }
-
-      // --- Save History to localStorage ---
-      function saveHistory() {
+      // Save history to localStorage and Firebase
+      async function saveHistory() {
         localStorage.setItem('carbon-history', JSON.stringify(allHistory));
+        await saveHistoryToFirebase();
       }
-
-      // --- Add a History Item, Guaranteeing Valid Title ---
-      function addToHistory(url, title) {
+      // Add item to history, always robust
+      async function addToHistory(url, title) {
         if (typeof url !== 'string' || !url.trim() || url.startsWith('carbon://')) return;
         let safeTitle = (typeof title === 'string' && title.trim()) ? title.trim() : url;
         const now = new Date().toISOString();
@@ -253,12 +304,11 @@
         if (allHistory.length > 1000) {
           allHistory = allHistory.slice(0, 1000);
         }
-        saveHistory();
+        await saveHistory();
         filterHistory();
         renderHistory();
       }
-
-      // --- Filter History Based on Search and Date ---
+      // Filter history
       function filterHistory() {
         const searchTerm = historySearch.value.toLowerCase();
         const now = new Date();
@@ -281,8 +331,7 @@
         }
         filteredHistory = filtered;
       }
-
-      // --- Render History with Full Details ---
+      // Render history
       function renderHistory() {
         if (filteredHistory.length === 0) {
           historyList.classList.add('hidden');
@@ -313,16 +362,16 @@
               </h3>
               <div class="space-y-2">
                 ${items.map(item => `
-                  <div class="history-item" data-url="${item.url}">
+                  <div class="history-item" data-url="${item.url || ''}">
                     <div class="flex items-start justify-between">
                       <div class="flex-1 min-w-0">
                         <div class="flex items-center gap-2 mb-1">
                           <i class="bx bx-world text-foam flex-shrink-0"></i>
-                          <h4 class="font-medium text-text truncate">${item.title}</h4>
-                          ${item.visits > 1 ? `<span class="text-xs bg-highlight-med px-2 py-0.5 rounded text-muted">${item.visits} visits</span>` : ''}
+                          <h4 class="font-medium text-text truncate">${item.title || item.url || 'Unknown'}</h4>
+                          ${(item.visits || 1) > 1 ? `<span class="text-xs bg-highlight-med px-2 py-0.5 rounded text-muted">${item.visits || 1} visits</span>` : ''}
                         </div>
-                        <p class="text-sm text-muted truncate">${item.url}</p>
-                        <p class="text-xs text-subtle mt-1">${formatTime(item.timestamp)}</p>
+                        <p class="text-sm text-muted truncate">${item.url || 'Unknown URL'}</p>
+                        <p class="text-xs text-subtle mt-1">${formatTime(item.timestamp || new Date().toISOString())}</p>
                       </div>
                       <div class="flex items-center gap-1 ml-2">
                         <button class="delete-item w-8 h-8 rounded hover:bg-love/20 flex items-center justify-center text-muted hover:text-love transition-colors" data-id="${item.id}">
@@ -340,6 +389,7 @@
           item.addEventListener('click', async (e) => {
             if (e.target.closest('.delete-item')) return;
             const url = item.dataset.url;
+            if (!url) return;
             if (window.parent && window.parent !== window) {
               window.parent.postMessage({
                 type: 'carbon-navigate',
@@ -359,8 +409,7 @@
           });
         });
       }
-
-      // --- Format Timestamps for Display ---
+      // Format timestamp
       function formatTime(timestamp) {
         const date = new Date(timestamp);
         const now = new Date();
@@ -376,33 +425,28 @@
           return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
         }
       }
-
-      // --- Delete a Single History Item ---
-      function deleteHistoryItem(id) {
+      // Delete single history item
+      async function deleteHistoryItem(id) {
         allHistory = allHistory.filter(item => item.id !== id);
-        saveHistory();
+        await saveHistory();
         filterHistory();
         renderHistory();
       }
-
-      // --- Clear All History with Confirmation ---
-      function clearAllHistory() {
+      // Clear all history
+      async function clearAllHistory() {
         if (confirm('Are you sure you want to clear all history? This action cannot be undone.')) {
           allHistory = [];
-          saveHistory();
+          await saveHistory();
           filterHistory();
           renderHistory();
         }
       }
-
-      // --- Search and Filter Event Listeners ---
+      // Event listeners
       historySearch.addEventListener('input', () => {
         filterHistory();
         renderHistory();
       });
-
       clearAllBtn.addEventListener('click', clearAllHistory);
-
       filterTabs.forEach(tab => {
         tab.addEventListener('click', () => {
           filterTabs.forEach(t => t.classList.remove('active'));
@@ -412,27 +456,34 @@
           renderHistory();
         });
       });
-
-      // --- Listen for Cross-Frame History Updates, Always Sanitize Title ---
+      // Listen for history updates from parent frame
       window.addEventListener('message', (event) => {
-        if (
-          event.data &&
-          event.data.type === 'carbon-add-history' &&
-          typeof event.data.url === 'string' &&
-          event.data.url.trim()
-        ) {
-          const incomingTitle =
-            (typeof event.data.title === 'string' && event.data.title.trim())
-              ? event.data.title
-              : event.data.url;
-          addToHistory(event.data.url, incomingTitle);
+        if (event.data && event.data.type === 'carbon-add-history') {
+          addToHistory(event.data.url, event.data.title);
         }
       });
-
-      // --- Expose addToHistory for External Use ---
+      // Expose addToHistory for external use
       window.addToHistory = addToHistory;
-
-      // --- Initialize on Page Load ---
+      // Theme sync functionality
+      function initThemeSync() {
+        if (window.carbonTheme) {
+          const savedTheme = localStorage.getItem('carbon-theme-global') || 'rose-pine';
+          window.carbonTheme.setTheme(savedTheme);
+          console.log('🎨 Theme applied:', savedTheme);
+        } else {
+          setTimeout(initThemeSync, 100);
+        }
+      }
+      initThemeSync();
+      window.addEventListener('storage', (e) => {
+        if (e.key === 'carbon-theme-global') {
+          if (window.carbonTheme) {
+            window.carbonTheme.setTheme(e.newValue);
+            console.log('🎨 Theme updated from storage:', e.newValue);
+          }
+        }
+      });
+      // Initial load for guest until auth triggers
       loadHistory();
     </script>
   </body>
