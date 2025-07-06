@@ -307,49 +307,7 @@
         </h1>
         <p class="text-muted text-sm">New Tab</p>
       </header>
-      <!-- Theme & Background Switcher -->
-      <div class="max-w-2xl mx-auto pb-6">
-        <div class="flex flex-wrap gap-3 justify-center mb-4">
-          <div class="theme-preview" data-theme="rose-pine" style="background: linear-gradient(135deg, #191724 0%, #1f1d2e 50%, #26233a 100%); border: 2px solid #9ccfd8;">
-            <div class="text-center text-xs p-2 text-white">Rose Pine</div>
-          </div>
-          <div class="theme-preview" data-theme="dark" style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%); border: 2px solid transparent;">
-            <div class="text-center text-xs p-2 text-white">Dark</div>
-          </div>
-          <div class="theme-preview" data-theme="light" style="background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 50%, #cbd5e1 100%); border: 2px solid transparent;">
-            <div class="text-center text-xs p-2 text-black">Light</div>
-          </div>
-          <div class="theme-preview" data-theme="catppuccin" style="background: linear-gradient(135deg, #1e1e2e 0%, #313244 50%, #45475a 100%); border: 2px solid transparent;">
-            <div class="text-center text-xs p-2 text-white">Catppuccin</div>
-          </div>
-          <div class="theme-preview" data-theme="nord" style="background: linear-gradient(135deg, #2e3440 0%, #3b4252 50%, #434c5e 100%); border: 2px solid transparent;">
-            <div class="text-center text-xs p-2 text-white">Nord</div>
-          </div>
-          <div class="theme-preview" data-theme="gruvbox" style="background: linear-gradient(135deg, #282828 0%, #3c3836 50%, #504945 100%); border: 2px solid transparent;">
-            <div class="text-center text-xs p-2 text-white">Gruvbox</div>
-          </div>
-          <div class="theme-preview" data-theme="tokyo-night" style="background: linear-gradient(135deg, #1a1b26 0%, #24283b 50%, #414868 100%); border: 2px solid transparent;">
-            <div class="text-center text-xs p-2 text-white">Tokyo Night</div>
-          </div>
-          <div class="theme-preview" data-theme="dracula" style="background: linear-gradient(135deg, #282a36 0%, #44475a 50%, #6272a4 100%); border: 2px solid transparent;">
-            <div class="text-center text-xs p-2 text-white">Dracula</div>
-          </div>
-        </div>
-        <div class="flex flex-wrap gap-3 justify-center">
-          <div class="bg-preview active" data-bg="gradient" style="background: var(--theme-gradient);">
-            <div class="text-center text-xs p-2 text-white">Gradient</div>
-          </div>
-          <div class="bg-preview" data-bg="solid" style="background: var(--theme-base);">
-            <div class="text-center text-xs p-2 text-white">Solid</div>
-          </div>
-          <div class="bg-preview" data-bg="pattern" style="background: var(--theme-base) url('data:image/svg+xml,<svg width=&quot;20&quot; height=&quot;20&quot; viewBox=&quot;0 0 20 20&quot; xmlns=&quot;http://www.w3.org/2000/svg&quot;><circle cx=&quot;10&quot; cy=&quot;10&quot; r=&quot;1&quot; fill=&quot;%23ffffff&quot; fill-opacity=&quot;0.1&quot;/></svg>');">
-            <div class="text-center text-xs p-2 text-white">Pattern</div>
-          </div>
-          <div class="bg-preview" data-bg="particles" style="background: var(--theme-base);">
-            <div class="text-center text-xs p-2 text-white">Particles</div>
-          </div>
-        </div>
-      </div>
+
       <!-- Main Content -->
       <main class="flex-1 max-w-6xl mx-auto w-full px-6">
         <!-- Search Section -->
@@ -462,81 +420,33 @@
       </div>
     </div>
 
+    <script src="carbon-theme.js"></script>
     <script type="module">
       import { makeURL, getProxied, setProxy, getProxy } from '/lethal.mjs';
-      // THEME & BACKGROUND STATE
-      let currentTheme = localStorage.getItem('carbon-theme') || 'rose-pine';
-      let currentBackground = localStorage.getItem('carbon-background') || 'gradient';
-
-      // Apply theme and background on load
-      function applyTheme(theme) {
-        document.documentElement.setAttribute('data-theme', theme);
-        updateBackgroundPreviews();
-        applyBackground();
-        localStorage.setItem('carbon-theme', theme);
-      }
-      function updateBackgroundPreviews() {
-        document.querySelectorAll('.bg-preview').forEach(preview => {
-          if (preview.dataset.bg === 'gradient') preview.style.background = 'var(--theme-gradient)';
-          if (preview.dataset.bg === 'solid') preview.style.background = 'var(--theme-base)';
-          if (preview.dataset.bg === 'pattern') {
-            const baseColor = getComputedStyle(document.documentElement).getPropertyValue('--theme-base').trim();
-            preview.style.background = `${baseColor} url('data:image/svg+xml,<svg width="20" height="20" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><circle cx="10" cy="10" r="1" fill="%23ffffff" fill-opacity="0.1"/></svg>')`;
+      // THEME SYNC - Now auto-syncs from settings.html via enhanced theme system
+      // The carbon-theme.js handles theme application automatically from global storage
+      
+      // Listen for theme changes from settings page
+      window.addEventListener('storage', (event) => {
+        if (event.key === 'carbon-theme-global' && event.newValue) {
+          // Theme changed in another tab/window - apply automatically
+          if (window.carbonTheme) {
+            window.carbonTheme.applyTheme(event.newValue);
           }
-        });
-      }
-      function applyBackground() {
-        const body = document.body;
-        const customBg = localStorage.getItem('carbon-custom-bg');
-        if (customBg) {
-          body.style.background = `url(${customBg}) center/cover`;
-          body.style.backgroundAttachment = 'fixed';
-        } else {
-          switch (currentBackground) {
-            case 'solid':
-              body.style.background = 'var(--theme-base)';
-              break;
-            case 'pattern':
-              body.style.background = `var(--theme-base) url('data:image/svg+xml,<svg width="20" height="20" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><circle cx="10" cy="10" r="1" fill="%23ffffff" fill-opacity="0.1"/></svg>')`;
-              break;
-            case 'particles':
-              body.style.background = 'var(--theme-base)';
-              // TODO: Add particle effect if desired
-              break;
-            case 'gradient':
-            default:
-              body.style.background = 'var(--theme-gradient)';
-              break;
-          }
-          body.style.backgroundAttachment = 'fixed';
         }
-      }
-      // Theme selection
-      document.querySelectorAll('.theme-preview').forEach(preview => {
-        preview.addEventListener('click', function () {
-          document.querySelectorAll('.theme-preview').forEach(el => el.classList.remove('active'));
-          this.classList.add('active');
-          currentTheme = this.dataset.theme;
-          applyTheme(currentTheme);
-        });
-        if (preview.dataset.theme === currentTheme) preview.classList.add('active');
       });
-      // Background selection
-      document.querySelectorAll('.bg-preview').forEach(preview => {
-        preview.addEventListener('click', function () {
-          document.querySelectorAll('.bg-preview').forEach(el => el.classList.remove('active'));
-          this.classList.add('active');
-          currentBackground = this.dataset.bg;
-          localStorage.setItem('carbon-background', currentBackground);
-          applyBackground();
-        });
-        if (preview.dataset.bg === currentBackground) preview.classList.add('active');
+      
+      // Listen for theme broadcast messages
+      window.addEventListener('message', (event) => {
+        if (event.data && event.data.type === 'carbon-theme-change') {
+          // Theme changed in settings - apply automatically
+          if (window.carbonTheme) {
+            window.carbonTheme.applyTheme(event.data.theme);
+          }
+        }
       });
 
-      // On load, apply theme and bg
-      document.addEventListener('DOMContentLoaded', () => {
-        applyTheme(currentTheme);
-      });
+      // Initialize theme on load (carbon-theme.js handles this automatically)
       // --- END THEME CODE ---
 
       // Search Engine Configuration

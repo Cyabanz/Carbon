@@ -1,5 +1,5 @@
 // Carbon Theme System
-// Shared theme management for all Carbon pages
+// Enhanced shared theme management for all Carbon pages with color wheel support
 
 class CarbonTheme {
     constructor() {
@@ -143,15 +143,17 @@ class CarbonTheme {
             }
         };
         
+        this.customThemes = {};
+        this.loadCustomThemes();
         this.init();
     }
 
     init() {
-        // Load saved theme
+        // Load saved theme with improved localStorage key
         this.currentTheme = localStorage.getItem('carbon-theme-global') || 'rose-pine';
         this.applyTheme(this.currentTheme);
         
-        // Listen for theme changes
+        // Listen for theme changes from other windows/tabs
         window.addEventListener('message', (event) => {
             if (event.data && event.data.type === 'carbon-theme-change') {
                 this.applyTheme(event.data.theme);
@@ -166,14 +168,131 @@ class CarbonTheme {
         });
     }
 
+    loadCustomThemes() {
+        const saved = localStorage.getItem('carbon-custom-themes');
+        if (saved) {
+            try {
+                this.customThemes = JSON.parse(saved);
+            } catch (e) {
+                console.warn('Could not load custom themes:', e);
+                this.customThemes = {};
+            }
+        }
+    }
+
+    saveCustomThemes() {
+        localStorage.setItem('carbon-custom-themes', JSON.stringify(this.customThemes));
+    }
+
+    // Color wheel functionality
+    createCustomTheme(name, baseColor) {
+        const theme = this.generateThemeFromColor(baseColor);
+        this.customThemes[name] = theme;
+        this.saveCustomThemes();
+        return theme;
+    }
+
+    generateThemeFromColor(hexColor) {
+        const hsl = this.hexToHsl(hexColor);
+        const isDark = hsl.l < 0.5;
+        
+        // Generate a complete theme palette from the base color
+        const theme = {
+            base: this.adjustColor(hexColor, isDark ? 0 : -0.4, isDark ? 0 : -0.1),
+            surface: this.adjustColor(hexColor, isDark ? 0.05 : -0.35, isDark ? 0.05 : -0.08),
+            overlay: this.adjustColor(hexColor, isDark ? 0.1 : -0.25, isDark ? 0.1 : -0.05),
+            muted: this.adjustColor(hexColor, isDark ? 0.15 : -0.15, isDark ? 0.2 : 0.1),
+            subtle: this.adjustColor(hexColor, isDark ? 0.25 : -0.05, isDark ? 0.35 : 0.2),
+            text: isDark ? '#ffffff' : '#000000',
+            love: this.adjustColor(hexColor, 0.3, 0.1, 15), // Shift hue slightly
+            gold: this.adjustColor(hexColor, 0.2, 0.15, 45),
+            rose: this.adjustColor(hexColor, 0.25, 0.2, 30),
+            pine: this.adjustColor(hexColor, 0.1, 0.05, -60),
+            foam: this.adjustColor(hexColor, 0.3, 0.25, -30),
+            iris: this.adjustColor(hexColor, 0.2, 0.3, 60),
+            highlightLow: this.adjustColor(hexColor, isDark ? 0.02 : -0.38, isDark ? 0.02 : -0.12),
+            highlightMed: this.adjustColor(hexColor, isDark ? 0.08 : -0.2, isDark ? 0.15 : 0.05),
+            highlightHigh: this.adjustColor(hexColor, isDark ? 0.15 : -0.1, isDark ? 0.25 : 0.15)
+        };
+        
+        return theme;
+    }
+
+    hexToHsl(hex) {
+        const r = parseInt(hex.slice(1, 3), 16) / 255;
+        const g = parseInt(hex.slice(3, 5), 16) / 255;
+        const b = parseInt(hex.slice(5, 7), 16) / 255;
+
+        const max = Math.max(r, g, b);
+        const min = Math.min(r, g, b);
+        let h, s, l = (max + min) / 2;
+
+        if (max === min) {
+            h = s = 0;
+        } else {
+            const d = max - min;
+            s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+            switch (max) {
+                case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+                case g: h = (b - r) / d + 2; break;
+                case b: h = (r - g) / d + 4; break;
+            }
+            h /= 6;
+        }
+
+        return { h, s, l };
+    }
+
+    hslToHex(h, s, l) {
+        const c = (1 - Math.abs(2 * l - 1)) * s;
+        const x = c * (1 - Math.abs((h * 6) % 2 - 1));
+        const m = l - c / 2;
+
+        let r, g, b;
+        if (h < 1/6) {
+            r = c; g = x; b = 0;
+        } else if (h < 2/6) {
+            r = x; g = c; b = 0;
+        } else if (h < 3/6) {
+            r = 0; g = c; b = x;
+        } else if (h < 4/6) {
+            r = 0; g = x; b = c;
+        } else if (h < 5/6) {
+            r = x; g = 0; b = c;
+        } else {
+            r = c; g = 0; b = x;
+        }
+
+        r = Math.round((r + m) * 255);
+        g = Math.round((g + m) * 255);
+        b = Math.round((b + m) * 255);
+
+        return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+    }
+
+    adjustColor(hex, lightness = 0, saturation = 0, hueShift = 0) {
+        const hsl = this.hexToHsl(hex);
+        hsl.h = (hsl.h + hueShift / 360) % 1;
+        if (hsl.h < 0) hsl.h += 1;
+        hsl.s = Math.max(0, Math.min(1, hsl.s + saturation));
+        hsl.l = Math.max(0, Math.min(1, hsl.l + lightness));
+        return this.hslToHex(hsl.h, hsl.s, hsl.l);
+    }
+
     applyTheme(themeName) {
-        if (!this.themes[themeName]) {
+        // Check if it's a custom theme
+        let theme;
+        if (this.customThemes[themeName]) {
+            theme = this.customThemes[themeName];
+        } else if (this.themes[themeName]) {
+            theme = this.themes[themeName];
+        } else {
             console.warn(`Theme ${themeName} not found, falling back to rose-pine`);
             themeName = 'rose-pine';
+            theme = this.themes[themeName];
         }
 
         this.currentTheme = themeName;
-        const theme = this.themes[themeName];
         
         // Apply theme to document
         document.documentElement.setAttribute('data-theme', themeName);
@@ -191,15 +310,54 @@ class CarbonTheme {
         
         // Store theme globally
         localStorage.setItem('carbon-theme-global', themeName);
+        
+        // Broadcast theme change to other windows
+        this.broadcastThemeChange(themeName, theme);
+    }
+
+    broadcastThemeChange(themeName, theme) {
+        // Broadcast to all windows
+        const message = {
+            type: 'carbon-theme-change',
+            theme: themeName,
+            themeData: theme
+        };
+
+        // Send to parent window
+        try {
+            if (window.parent && window.parent !== window) {
+                window.parent.postMessage(message, '*');
+            }
+        } catch (e) {
+            console.log('Could not message parent:', e);
+        }
+
+        // Send to opener window
+        try {
+            if (window.opener && window.opener !== window) {
+                window.opener.postMessage(message, '*');
+            }
+        } catch (e) {
+            console.log('Could not message opener:', e);
+        }
+
+        // Trigger storage event for same-origin tabs
+        try {
+            localStorage.setItem('carbon-theme-broadcast', JSON.stringify({
+                timestamp: Date.now(),
+                theme: themeName,
+                themeData: theme
+            }));
+        } catch (e) {
+            console.log('Could not trigger storage event:', e);
+        }
     }
 
     updateTailwindConfig(theme) {
         try {
-            // Update Tailwind config with new theme colors
             if (window.tailwind && window.tailwind.config) {
                 const config = window.tailwind.config;
                 if (config.theme && config.theme.extend && config.theme.extend.colors) {
-                    // Map theme colors to existing color names
                     const colorMap = {
                         'rp-base': theme.base,
                         'rp-surface': theme.surface,
@@ -216,7 +374,6 @@ class CarbonTheme {
                         'rp-highlight-low': theme.highlightLow,
                         'rp-highlight-med': theme.highlightMed,
                         'rp-highlight-high': theme.highlightHigh,
-                        // Generic mappings
                         'base': theme.base,
                         'surface': theme.surface,
                         'overlay': theme.overlay,
@@ -283,7 +440,7 @@ class CarbonTheme {
 
     applyThemeStyles(theme) {
         // Apply dynamic background based on saved background setting
-        const backgroundType = localStorage.getItem('carbon-background') || 'gradient';
+        const backgroundType = localStorage.getItem('carbon-background-global') || 'gradient';
         
         switch (backgroundType) {
             case 'solid':
@@ -294,7 +451,6 @@ class CarbonTheme {
                 break;
             case 'particles':
                 document.body.style.background = theme.base;
-                // Could add particle effect here
                 break;
             case 'gradient':
             default:
@@ -303,7 +459,7 @@ class CarbonTheme {
         }
         
         // Check for custom background
-        const customBg = localStorage.getItem('carbon-custom-bg');
+        const customBg = localStorage.getItem('carbon-custom-bg-global');
         if (customBg) {
             document.body.style.background = `url(${customBg}) center/cover`;
         }
@@ -312,7 +468,8 @@ class CarbonTheme {
     }
 
     getTheme(themeName = null) {
-        return this.themes[themeName || this.currentTheme];
+        const name = themeName || this.currentTheme;
+        return this.customThemes[name] || this.themes[name];
     }
 
     getCurrentTheme() {
@@ -321,6 +478,224 @@ class CarbonTheme {
 
     setTheme(themeName) {
         this.applyTheme(themeName);
+    }
+
+    getAllThemes() {
+        return { ...this.themes, ...this.customThemes };
+    }
+
+    deleteCustomTheme(themeName) {
+        if (this.customThemes[themeName]) {
+            delete this.customThemes[themeName];
+            this.saveCustomThemes();
+            
+            // If currently using this theme, switch to default
+            if (this.currentTheme === themeName) {
+                this.applyTheme('rose-pine');
+            }
+        }
+    }
+
+    // Color wheel UI creation
+    createColorWheel(container, callback) {
+        const wheel = document.createElement('div');
+        wheel.className = 'color-wheel-container';
+        wheel.innerHTML = `
+            <div class="color-wheel-header">
+                <h3>Create Custom Theme</h3>
+                <p>Choose a base color to generate your theme</p>
+            </div>
+            <div class="color-wheel-content">
+                <div class="color-wheel-input">
+                    <input type="color" id="color-wheel-picker" value="#9ccfd8">
+                    <label for="color-wheel-picker">Base Color</label>
+                </div>
+                <div class="theme-preview-container">
+                    <div class="theme-preview-item">
+                        <div class="preview-colors">
+                            <div class="color-swatch" data-color="base"></div>
+                            <div class="color-swatch" data-color="surface"></div>
+                            <div class="color-swatch" data-color="overlay"></div>
+                            <div class="color-swatch" data-color="foam"></div>
+                            <div class="color-swatch" data-color="iris"></div>
+                            <div class="color-swatch" data-color="love"></div>
+                        </div>
+                        <div class="preview-text">Custom Theme Preview</div>
+                    </div>
+                </div>
+                <div class="color-wheel-actions">
+                    <input type="text" id="theme-name-input" placeholder="Enter theme name..." maxlength="20">
+                    <button id="create-theme-btn">Create Theme</button>
+                    <button id="cancel-theme-btn">Cancel</button>
+                </div>
+            </div>
+        `;
+
+        // Add styles
+        const style = document.createElement('style');
+        style.textContent = `
+            .color-wheel-container {
+                background: var(--theme-surface);
+                border: 2px solid var(--theme-overlay);
+                border-radius: 1rem;
+                padding: 2rem;
+                max-width: 400px;
+                margin: 0 auto;
+            }
+            .color-wheel-header h3 {
+                color: var(--theme-text);
+                font-size: 1.5rem;
+                font-weight: bold;
+                margin-bottom: 0.5rem;
+            }
+            .color-wheel-header p {
+                color: var(--theme-subtle);
+                font-size: 0.9rem;
+                margin-bottom: 1.5rem;
+            }
+            .color-wheel-input {
+                display: flex;
+                align-items: center;
+                gap: 1rem;
+                margin-bottom: 1.5rem;
+            }
+            .color-wheel-input input[type="color"] {
+                width: 60px;
+                height: 60px;
+                border: 3px solid var(--theme-overlay);
+                border-radius: 50%;
+                cursor: pointer;
+                background: none;
+            }
+            .color-wheel-input label {
+                color: var(--theme-text);
+                font-weight: 600;
+            }
+            .theme-preview-container {
+                margin-bottom: 1.5rem;
+            }
+            .theme-preview-item {
+                background: var(--theme-base);
+                border: 1px solid var(--theme-overlay);
+                border-radius: 0.5rem;
+                padding: 1rem;
+                text-align: center;
+            }
+            .preview-colors {
+                display: flex;
+                justify-content: center;
+                gap: 0.5rem;
+                margin-bottom: 1rem;
+            }
+            .color-swatch {
+                width: 30px;
+                height: 30px;
+                border-radius: 50%;
+                border: 2px solid var(--theme-overlay);
+            }
+            .preview-text {
+                color: var(--theme-text);
+                font-weight: 600;
+            }
+            .color-wheel-actions {
+                display: flex;
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+            .color-wheel-actions input {
+                background: var(--theme-overlay);
+                border: 1px solid var(--theme-highlight-med);
+                border-radius: 0.5rem;
+                padding: 0.75rem;
+                color: var(--theme-text);
+                font-size: 0.9rem;
+            }
+            .color-wheel-actions input:focus {
+                outline: none;
+                border-color: var(--theme-foam);
+            }
+            .color-wheel-actions button {
+                padding: 0.75rem 1.5rem;
+                border-radius: 0.5rem;
+                font-weight: 600;
+                cursor: pointer;
+                transition: all 0.3s ease;
+            }
+            #create-theme-btn {
+                background: var(--theme-foam);
+                color: var(--theme-base);
+                border: none;
+            }
+            #create-theme-btn:hover {
+                background: var(--theme-pine);
+                transform: translateY(-1px);
+            }
+            #cancel-theme-btn {
+                background: var(--theme-overlay);
+                color: var(--theme-text);
+                border: 1px solid var(--theme-highlight-med);
+            }
+            #cancel-theme-btn:hover {
+                background: var(--theme-highlight-med);
+            }
+        `;
+
+        if (!document.head.querySelector('#color-wheel-styles')) {
+            style.id = 'color-wheel-styles';
+            document.head.appendChild(style);
+        }
+
+        container.appendChild(wheel);
+
+        // Set up event listeners
+        const colorPicker = wheel.querySelector('#color-wheel-picker');
+        const themeNameInput = wheel.querySelector('#theme-name-input');
+        const createBtn = wheel.querySelector('#create-theme-btn');
+        const cancelBtn = wheel.querySelector('#cancel-theme-btn');
+        const swatches = wheel.querySelectorAll('.color-swatch');
+
+        const updatePreview = () => {
+            const color = colorPicker.value;
+            const theme = this.generateThemeFromColor(color);
+            
+            swatches.forEach(swatch => {
+                const colorType = swatch.dataset.color;
+                swatch.style.backgroundColor = theme[colorType];
+            });
+
+            // Update preview background
+            const previewItem = wheel.querySelector('.theme-preview-item');
+            previewItem.style.background = `linear-gradient(135deg, ${theme.base} 0%, ${theme.surface} 50%, ${theme.overlay} 100%)`;
+        };
+
+        colorPicker.addEventListener('input', updatePreview);
+        
+        createBtn.addEventListener('click', () => {
+            const name = themeNameInput.value.trim();
+            if (!name) {
+                alert('Please enter a theme name');
+                return;
+            }
+            
+            if (this.themes[name] || this.customThemes[name]) {
+                if (!confirm(`Theme "${name}" already exists. Replace it?`)) {
+                    return;
+                }
+            }
+
+            const theme = this.createCustomTheme(name, colorPicker.value);
+            this.applyTheme(name);
+            
+            if (callback) callback(name, theme);
+            container.removeChild(wheel);
+        });
+
+        cancelBtn.addEventListener('click', () => {
+            container.removeChild(wheel);
+        });
+
+        // Initial preview update
+        updatePreview();
     }
 }
 
