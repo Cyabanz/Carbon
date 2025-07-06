@@ -50,14 +50,6 @@
       rel="stylesheet"
     />
     <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet" />
-    
-    <!-- Theme System -->
-    <script src="/carbon-theme.js"></script>
-    
-    <!-- Firebase -->
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
     <style>
       .history-item {
@@ -81,28 +73,6 @@
         backdrop-filter: blur(10px);
         z-index: 10;
         border-bottom: 1px solid #26233a;
-      }
-      .filter-tab {
-        padding: 0.5rem 1rem;
-        background: transparent;
-        border: 1px solid #26233a;
-        border-radius: 0.5rem;
-        color: #908caa;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        font-size: 0.875rem;
-      }
-      .filter-tab:hover {
-        background: #26233a;
-        color: #e0def4;
-      }
-      .filter-tab.active {
-        background: #9ccfd8;
-        color: #191724;
-        border-color: #9ccfd8;
       }
     </style>
   </head>
@@ -175,24 +145,33 @@
       </main>
     </div>
 
+    <style>
+      .filter-tab {
+        padding: 0.5rem 1rem;
+        background: transparent;
+        border: 1px solid #26233a;
+        border-radius: 0.5rem;
+        color: #908caa;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.875rem;
+      }
+      .filter-tab:hover {
+        background: #26233a;
+        color: #e0def4;
+      }
+      .filter-tab.active {
+        background: #9ccfd8;
+        color: #191724;
+        border-color: #9ccfd8;
+      }
+    </style>
+
     <script type="module">
       import { makeURL, getProxied } from '/lethal.mjs';
-      
-      // Firebase configuration
-      const firebaseConfig = {
-        apiKey: "AIzaSyC4ilHYP1T-kdXbWPoHJHhD2aj0pNWmMec",
-        authDomain: "carbon-services.firebaseapp.com",
-        projectId: "carbon-services",
-        storageBucket: "carbon-services.firebasestorage.app",
-        messagingSenderId: "288385472070",
-        appId: "1:288385472070:web:c4be3ff186e248fc645c47",
-        measurementId: "G-Y2K1RQYE74"
-      };
-      
-      // Initialize Firebase
-      firebase.initializeApp(firebaseConfig);
-      const auth = firebase.auth();
-      const db = firebase.firestore();
 
       // DOM Elements
       const historyList = document.getElementById('history-list');
@@ -205,50 +184,6 @@
       let allHistory = [];
       let filteredHistory = [];
       let currentFilter = 'all';
-      let currentUser = null;
-      
-      // Firebase sync functions
-      async function loadHistoryFromFirebase() {
-        if (!currentUser) return;
-        
-        try {
-          const userDoc = await db.collection('users').doc(currentUser.uid).get();
-          if (userDoc.exists) {
-            const userData = userDoc.data();
-            if (userData.history) {
-              allHistory = userData.history.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-              localStorage.setItem('carbon-history', JSON.stringify(allHistory));
-              filterHistory();
-              renderHistory();
-            }
-          }
-        } catch (error) {
-          console.error('Error loading history from Firebase:', error);
-        }
-      }
-      
-      async function saveHistoryToFirebase() {
-        if (!currentUser) return;
-        
-        try {
-          await db.collection('users').doc(currentUser.uid).set({
-            history: allHistory,
-            lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
-          }, { merge: true });
-        } catch (error) {
-          console.error('Error saving history to Firebase:', error);
-        }
-      }
-      
-      // Authentication state observer
-      auth.onAuthStateChanged((user) => {
-        currentUser = user;
-        if (user) {
-          loadHistoryFromFirebase();
-        } else {
-          loadHistory();
-        }
-      });
 
       // Load history from localStorage
       function loadHistory() {
@@ -258,14 +193,13 @@
         renderHistory();
       }
 
-      // Save history to localStorage and Firebase
-      async function saveHistory() {
+      // Save history to localStorage
+      function saveHistory() {
         localStorage.setItem('carbon-history', JSON.stringify(allHistory));
-        await saveHistoryToFirebase();
       }
 
       // Add item to history (called from parent frame)
-      async function addToHistory(url, title = '') {
+      function addToHistory(url, title = '') {
         // Don't add carbon:// URLs to history
         if (url.startsWith('carbon://')) return;
         
@@ -292,7 +226,7 @@
           allHistory = allHistory.slice(0, 1000);
         }
 
-        await saveHistory();
+        saveHistory();
         filterHistory();
         renderHistory();
       }
@@ -364,16 +298,16 @@
               </h3>
               <div class="space-y-2">
                 ${items.map(item => `
-                  <div class="history-item" data-url="${item.url || ''}">
+                  <div class="history-item" data-url="${item.url}">
                     <div class="flex items-start justify-between">
                       <div class="flex-1 min-w-0">
                         <div class="flex items-center gap-2 mb-1">
                           <i class="bx bx-world text-foam flex-shrink-0"></i>
-                          <h4 class="font-medium text-text truncate">${item.title || item.url || 'Unknown'}</h4>
-                          ${(item.visits || 1) > 1 ? `<span class="text-xs bg-highlight-med px-2 py-0.5 rounded text-muted">${item.visits || 1} visits</span>` : ''}
+                          <h4 class="font-medium text-text truncate">${item.title}</h4>
+                          ${item.visits > 1 ? `<span class="text-xs bg-highlight-med px-2 py-0.5 rounded text-muted">${item.visits} visits</span>` : ''}
                         </div>
-                        <p class="text-sm text-muted truncate">${item.url || 'Unknown URL'}</p>
-                        <p class="text-xs text-subtle mt-1">${formatTime(item.timestamp || new Date().toISOString())}</p>
+                        <p class="text-sm text-muted truncate">${item.url}</p>
+                        <p class="text-xs text-subtle mt-1">${formatTime(item.timestamp)}</p>
                       </div>
                       <div class="flex items-center gap-1 ml-2">
                         <button class="delete-item w-8 h-8 rounded hover:bg-love/20 flex items-center justify-center text-muted hover:text-love transition-colors" data-id="${item.id}">
@@ -394,7 +328,6 @@
             if (e.target.closest('.delete-item')) return;
             
             const url = item.dataset.url;
-            if (!url) return;
             
             // Check if we're in an iframe (within the proxy browser)
             if (window.parent && window.parent !== window) {
@@ -439,18 +372,18 @@
       }
 
       // Delete single history item
-      async function deleteHistoryItem(id) {
+      function deleteHistoryItem(id) {
         allHistory = allHistory.filter(item => item.id !== id);
-        await saveHistory();
+        saveHistory();
         filterHistory();
         renderHistory();
       }
 
       // Clear all history
-      async function clearAllHistory() {
+      function clearAllHistory() {
         if (confirm('Are you sure you want to clear all history? This action cannot be undone.')) {
           allHistory = [];
-          await saveHistory();
+          saveHistory();
           filterHistory();
           renderHistory();
         }
@@ -483,33 +416,6 @@
 
       // Expose addToHistory for external use
       window.addToHistory = addToHistory;
-      
-      // Theme sync functionality
-      function initThemeSync() {
-        // Wait for theme system to be ready
-        if (window.carbonTheme) {
-          // Load saved theme
-          const savedTheme = localStorage.getItem('carbon-theme-global') || 'rose-pine';
-          window.carbonTheme.setTheme(savedTheme);
-          console.log('🎨 Theme applied:', savedTheme);
-        } else {
-          // Retry after a short delay
-          setTimeout(initThemeSync, 100);
-        }
-      }
-
-      // Initialize theme sync
-      initThemeSync();
-      
-      // Listen for theme changes from other pages
-      window.addEventListener('storage', (e) => {
-        if (e.key === 'carbon-theme-global') {
-          if (window.carbonTheme) {
-            window.carbonTheme.setTheme(e.newValue);
-            console.log('🎨 Theme updated from storage:', e.newValue);
-          }
-        }
-      });
 
       // Initialize
       loadHistory();
