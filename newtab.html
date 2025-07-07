@@ -1,350 +1,394 @@
-<!DOCTYPE html>
+
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Carbon - New Tab</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    
-    <script>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>New Tab</title>
+    <script defer async>
+      function setConfig() {
         tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        base: '#191724',
-                        surface: '#1f1d2e',
-                        overlay: '#26233a',
-                        muted: '#6e6a86',
-                        subtle: '#908caa',
-                        text: '#e0def4',
-                        love: '#eb6f92',
-                        gold: '#f6c177',
-                        rose: '#ebbcba',
-                        pine: '#31748f',
-                        foam: '#9ccfd8',
-                        iris: '#c4a7e7',
-                        'highlight-low': '#21202e',
-                        'highlight-med': '#403d52',
-                        'highlight-high': '#524f67',
-                    },
-                    fontFamily: {
-                        'inter': ['Inter', 'sans-serif'],
-                    },
-                    animation: {
-                        'float': 'float 3s ease-in-out infinite',
-                        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-                        'fade-in': 'fade-in 0.5s ease-out forwards',
-                        'slide-up': 'slide-up 0.3s ease-out forwards',
-                    },
-                    keyframes: {
-                        'float': {
-                            '0%, 100%': { transform: 'translateY(0px)' },
-                            '50%': { transform: 'translateY(-10px)' },
-                        },
-                        'fade-in': {
-                            '0%': { opacity: '0', transform: 'translateY(20px)' },
-                            '100%': { opacity: '1', transform: 'translateY(0px)' },
-                        },
-                        'slide-up': {
-                            '0%': { transform: 'translateY(100%)' },
-                            '100%': { transform: 'translateY(0%)' },
-                        }
-                    }
-                }
-            }
-        }
+          theme: {
+            extend: {
+              fontFamily: {
+                sans: ["Inter", "system-ui", "sans-serif"],
+              },
+              colors: {
+                gray: {
+                  50: '#f9fafb',
+                  100: '#f3f4f6',
+                  200: '#e5e7eb',
+                  300: '#d1d5db',
+                  400: '#9ca3af',
+                  500: '#6b7280',
+                  600: '#4b5563',
+                  700: '#374151',
+                  800: '#1f2937',
+                  900: '#111827',
+                },
+              },
+            },
+          },
+        };
+      }
     </script>
-    
+
+    <script
+      defer
+      async
+      src="https://cdn.tailwindcss.com"
+      onload="setConfig()"
+    ></script>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet" />
+
     <style>
-        body {
-            font-family: 'Inter', sans-serif;
-            background: linear-gradient(135deg, #191724 0%, #1f1d2e 50%, #26233a 100%);
-            background-attachment: fixed;
-        }
-        
-        .glass {
-            background: rgba(31, 29, 46, 0.8);
-            backdrop-filter: blur(20px);
-            border: 1px solid rgba(156, 207, 216, 0.1);
-        }
-        
-        .glow-hover:hover {
-            box-shadow: 0 0 30px rgba(156, 207, 216, 0.3);
-        }
-        
-        .bookmark-card {
-            background: linear-gradient(135deg, rgba(31, 29, 46, 0.9) 0%, rgba(38, 35, 58, 0.7) 100%);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(156, 207, 216, 0.1);
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        
-        .bookmark-card:hover {
-            transform: translateY(-8px) scale(1.02);
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3), 0 0 30px rgba(156, 207, 216, 0.2);
-            border-color: rgba(156, 207, 216, 0.3);
-        }
-        
-        .search-glow {
-            box-shadow: 0 0 50px rgba(156, 207, 216, 0.1);
-        }
-        
-        .search-glow:focus-within {
-            box-shadow: 0 0 60px rgba(156, 207, 216, 0.3);
-        }
+      body {
+        background: #ffffff;
+        color: #111827;
+      }
+      
+      .search-container {
+        position: relative;
+        max-width: 600px;
+        margin: 0 auto;
+      }
+      
+      .search-input {
+        width: 100%;
+        height: 56px;
+        padding: 0 60px 0 20px;
+        border: 1px solid #e5e7eb;
+        border-radius: 28px;
+        font-size: 16px;
+        outline: none;
+        transition: all 0.2s;
+        background: #ffffff;
+      }
+      
+      .search-input:focus {
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+      }
+      
+      .search-controls {
+        position: absolute;
+        right: 8px;
+        top: 50%;
+        transform: translateY(-50%);
+        display: flex;
+        gap: 4px;
+      }
+      
+      .control-btn {
+        width: 40px;
+        height: 40px;
+        border: none;
+        border-radius: 20px;
+        background: #f3f4f6;
+        color: #6b7280;
+        cursor: pointer;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      
+      .control-btn:hover {
+        background: #e5e7eb;
+        color: #374151;
+      }
+      
+      .control-btn.active {
+        background: #3b82f6;
+        color: white;
+      }
+      
+      .bookmark-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 16px;
+        max-width: 800px;
+        margin: 0 auto;
+      }
+      
+      .bookmark-item {
+        background: #ffffff;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        padding: 16px;
+        cursor: pointer;
+        transition: all 0.2s;
+        position: relative;
+      }
+      
+      .bookmark-item:hover {
+        border-color: #3b82f6;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      }
+      
+      .bookmark-item.editing {
+        border-color: #f59e0b;
+        background: #fffbeb;
+      }
+      
+      .bookmark-title {
+        font-weight: 500;
+        margin-bottom: 4px;
+        color: #111827;
+      }
+      
+      .bookmark-url {
+        font-size: 14px;
+        color: #6b7280;
+        word-break: break-all;
+      }
+      
+      .suggestion-box {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 100%;
+        z-index: 1200;
+        background: #ffffff;
+        border: 1px solid #e5e7eb;
+        border-top: none;
+        border-radius: 0 0 16px 16px;
+        max-height: 200px;
+        overflow-y: auto;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      }
+      
+      .suggestion-item {
+        padding: 12px 20px;
+        cursor: pointer;
+        transition: background 0.2s;
+        border-bottom: 1px solid #f3f4f6;
+      }
+      
+      .suggestion-item:last-child {
+        border-bottom: none;
+      }
+      
+      .suggestion-item:hover,
+      .suggestion-item.active {
+        background: #f3f4f6;
+      }
+      
+      .modal {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.2s;
+        z-index: 50;
+      }
+      
+      .modal.active {
+        opacity: 1;
+        pointer-events: all;
+      }
+      
+      .modal-content {
+        background: #ffffff;
+        border-radius: 12px;
+        box-shadow: 0 20px 25px rgba(0, 0, 0, 0.15);
+        max-width: 400px;
+        width: 90vw;
+        padding: 24px;
+      }
+      
+      .form-group {
+        margin-bottom: 16px;
+      }
+      
+      .form-label {
+        display: block;
+        font-weight: 500;
+        margin-bottom: 8px;
+        color: #111827;
+      }
+      
+      .form-input {
+        width: 100%;
+        padding: 12px;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        font-size: 16px;
+        outline: none;
+        transition: border-color 0.2s;
+      }
+      
+      .form-input:focus {
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+      }
+      
+      .btn {
+        padding: 12px 24px;
+        border: none;
+        border-radius: 8px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+      
+      .btn-primary {
+        background: #3b82f6;
+        color: white;
+      }
+      
+      .btn-primary:hover {
+        background: #2563eb;
+      }
+      
+      .btn-secondary {
+        background: #f3f4f6;
+        color: #374151;
+      }
+      
+      .btn-secondary:hover {
+        background: #e5e7eb;
+      }
+      
+      .btn-ghost {
+        background: transparent;
+        color: #6b7280;
+        border: 1px solid #e5e7eb;
+      }
+      
+      .btn-ghost:hover {
+        background: #f9fafb;
+        border-color: #d1d5db;
+      }
+      
+      .hidden {
+        display: none;
+      }
     </style>
-</head>
-<body class="min-h-screen bg-base text-text font-inter">
-    <!-- Animated Background Elements -->
-    <div class="fixed inset-0 overflow-hidden pointer-events-none">
-        <div class="absolute top-20 left-20 w-32 h-32 rounded-full bg-foam/5 animate-float"></div>
-        <div class="absolute top-40 right-32 w-24 h-24 rounded-full bg-iris/5 animate-float" style="animation-delay: 1s;"></div>
-        <div class="absolute bottom-40 left-1/3 w-20 h-20 rounded-full bg-love/5 animate-float" style="animation-delay: 2s;"></div>
-        <div class="absolute bottom-20 right-20 w-28 h-28 rounded-full bg-gold/5 animate-float" style="animation-delay: 0.5s;"></div>
-    </div>
+  </head>
+  <body>
+    <div class="min-h-screen flex flex-col">
+      <!-- Header -->
+      <header class="text-center py-16">
+        <h1 class="text-3xl font-light text-gray-900 mb-2">Carbon</h1>
+        <p class="text-gray-500 text-sm">New Tab</p>
+      </header>
 
-    <div class="relative z-10 min-h-screen flex flex-col">
-        <!-- Header -->
-        <header class="pt-16 pb-8 text-center animate-fade-in">
-            <div class="inline-flex items-center justify-center gap-4 mb-4">
-                <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-foam to-iris flex items-center justify-center shadow-2xl">
-                    <i class="bx bx-atom text-3xl text-base"></i>
+      <!-- Main Content -->
+      <main class="flex-1 px-6">
+        <!-- Search Section -->
+        <section class="mb-16">
+          <div class="search-container">
+            <form id="search-form">
+              <div class="relative">
+                <input
+                  id="search-input"
+                  type="text"
+                  spellcheck="false"
+                  autocomplete="off"
+                  placeholder="Search or enter website URL"
+                  class="search-input"
+                />
+                <div class="search-controls">
+                  <button
+                    id="proxy-toggle"
+                    type="button"
+                    class="control-btn"
+                    title="UV Proxy"
+                  >
+                    <i class="bx bx-cloud text-lg"></i>
+                  </button>
+                  <button
+                    id="search-engine-toggle"
+                    type="button"
+                    class="control-btn"
+                    title="Search Engine"
+                  >
+                    <i id="search-engine-icon" class="bx bxl-brave text-lg"></i>
+                  </button>
                 </div>
-                <h1 class="text-6xl font-bold bg-gradient-to-r from-foam via-iris to-rose bg-clip-text text-transparent">
-                    Carbon
-                </h1>
-            </div>
-            <p class="text-subtle text-lg font-medium">Your gateway to the web</p>
-        </header>
-
-        <!-- Main Content -->
-        <main class="flex-1 max-w-7xl mx-auto w-full px-6">
-            <!-- Search Section -->
-            <section class="mb-16 animate-fade-in" style="animation-delay: 0.2s;">
-                <div class="max-w-4xl mx-auto">
-                    <div class="glass rounded-3xl p-8 search-glow">
-                        <form class="relative">
-                            <div class="relative group">
-                                <i class="bx bx-search absolute left-6 top-1/2 transform -translate-y-1/2 text-foam text-2xl group-focus-within:text-iris transition-colors"></i>
-                                <input
-                                    type="text"
-                                    placeholder="Search anything or enter a URL..."
-                                    class="w-full h-16 pl-16 pr-32 bg-surface/50 border-2 border-overlay/50 text-text text-xl rounded-2xl focus:outline-none focus:ring-4 focus:ring-foam/20 focus:border-foam placeholder-muted transition-all duration-300"
-                                />
-                                
-                                <!-- Control Buttons -->
-                                <div class="absolute right-3 top-1/2 transform -translate-y-1/2 flex items-center gap-2">
-                                    <!-- Proxy Toggle -->
-                                    <button type="button" class="w-12 h-12 rounded-xl bg-highlight-med hover:bg-highlight-high border-2 border-foam/50 hover:border-foam flex items-center justify-center transition-all duration-300 glow-hover group">
-                                        <i class="bx bx-cloud text-xl text-foam group-hover:text-iris transition-colors"></i>
-                                    </button>
-                                    
-                                    <!-- Search Engine -->
-                                    <button type="button" class="w-12 h-12 rounded-xl bg-highlight-med hover:bg-highlight-high border-2 border-gold/50 hover:border-gold flex items-center justify-center transition-all duration-300 glow-hover group">
-                                        <i class="bx bxl-brave text-xl text-gold group-hover:text-rose transition-colors"></i>
-                                    </button>
-                                    
-                                    <!-- Search Submit -->
-                                    <button type="submit" class="w-12 h-12 rounded-xl bg-gradient-to-br from-foam to-iris hover:from-iris hover:to-love flex items-center justify-center transition-all duration-300 transform hover:scale-105 shadow-lg">
-                                        <i class="bx bx-right-arrow-alt text-xl text-base"></i>
-                                    </button>
-                                </div>
-                            </div>
-                        </form>
-                        
-                        <!-- Search Suggestions (hidden by default) -->
-                        <div class="mt-4 glass rounded-2xl p-4 hidden">
-                            <div class="space-y-2">
-                                <div class="flex items-center gap-3 p-3 rounded-xl hover:bg-highlight-med/50 cursor-pointer transition-colors">
-                                    <i class="bx bx-search text-foam"></i>
-                                    <span class="text-text">Sample suggestion</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Quick Actions -->
-            <section class="mb-16 animate-fade-in" style="animation-delay: 0.4s;">
-                <div class="max-w-4xl mx-auto">
-                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        <button class="glass rounded-2xl p-6 hover:bg-highlight-med/50 transition-all duration-300 transform hover:scale-105 glow-hover group">
-                            <i class="bx bx-history text-3xl text-foam mb-3 group-hover:text-iris transition-colors"></i>
-                            <p class="text-text font-medium">History</p>
-                        </button>
-                        
-                        <button class="glass rounded-2xl p-6 hover:bg-highlight-med/50 transition-all duration-300 transform hover:scale-105 glow-hover group">
-                            <i class="bx bx-download text-3xl text-gold mb-3 group-hover:text-rose transition-colors"></i>
-                            <p class="text-text font-medium">Downloads</p>
-                        </button>
-                        
-                        <button class="glass rounded-2xl p-6 hover:bg-highlight-med/50 transition-all duration-300 transform hover:scale-105 glow-hover group">
-                            <i class="bx bx-cog text-3xl text-iris mb-3 group-hover:text-love transition-colors"></i>
-                            <p class="text-text font-medium">Settings</p>
-                        </button>
-                        
-                        <button class="glass rounded-2xl p-6 hover:bg-highlight-med/50 transition-all duration-300 transform hover:scale-105 glow-hover group">
-                            <i class="bx bx-shield text-3xl text-pine mb-3 group-hover:text-foam transition-colors"></i>
-                            <p class="text-text font-medium">Privacy</p>
-                        </button>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Bookmarks Section -->
-            <section class="animate-fade-in" style="animation-delay: 0.6s;">
-                <div class="flex items-center justify-between mb-8">
-                    <h2 class="text-3xl font-bold text-text flex items-center gap-3">
-                        <i class="bx bx-bookmark text-foam"></i>
-                        Bookmarks
-                    </h2>
-                    <button class="glass rounded-2xl px-6 py-3 hover:bg-highlight-med/50 transition-all duration-300 transform hover:scale-105 flex items-center gap-3 glow-hover group">
-                        <i class="bx bx-plus text-foam group-hover:text-iris transition-colors"></i>
-                        <span class="text-text font-medium">Add Bookmark</span>
-                    </button>
-                </div>
-                
-                <!-- Bookmarks Grid -->
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                    <!-- Sample Bookmark Cards -->
-                    <div class="bookmark-card rounded-2xl p-6 cursor-pointer group">
-                        <div class="flex items-start justify-between mb-4">
-                            <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-foam to-iris flex items-center justify-center shadow-lg">
-                                <i class="bx bx-globe text-xl text-base"></i>
-                            </div>
-                            <div class="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <button class="w-8 h-8 rounded-lg bg-highlight-med/50 hover:bg-highlight-high flex items-center justify-center text-subtle hover:text-text transition-colors">
-                                    <i class="bx bx-edit text-sm"></i>
-                                </button>
-                                <button class="w-8 h-8 rounded-lg bg-love/20 hover:bg-love/30 flex items-center justify-center text-love transition-colors">
-                                    <i class="bx bx-trash text-sm"></i>
-                                </button>
-                            </div>
-                        </div>
-                        <h3 class="text-text font-semibold text-lg mb-2">GitHub</h3>
-                        <p class="text-subtle text-sm opacity-70">github.com</p>
-                    </div>
-                    
-                    <div class="bookmark-card rounded-2xl p-6 cursor-pointer group">
-                        <div class="flex items-start justify-between mb-4">
-                            <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-gold to-rose flex items-center justify-center shadow-lg">
-                                <i class="bx bx-code-alt text-xl text-base"></i>
-                            </div>
-                            <div class="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <button class="w-8 h-8 rounded-lg bg-highlight-med/50 hover:bg-highlight-high flex items-center justify-center text-subtle hover:text-text transition-colors">
-                                    <i class="bx bx-edit text-sm"></i>
-                                </button>
-                                <button class="w-8 h-8 rounded-lg bg-love/20 hover:bg-love/30 flex items-center justify-center text-love transition-colors">
-                                    <i class="bx bx-trash text-sm"></i>
-                                </button>
-                            </div>
-                        </div>
-                        <h3 class="text-text font-semibold text-lg mb-2">Stack Overflow</h3>
-                        <p class="text-subtle text-sm opacity-70">stackoverflow.com</p>
-                    </div>
-                    
-                    <div class="bookmark-card rounded-2xl p-6 cursor-pointer group">
-                        <div class="flex items-start justify-between mb-4">
-                            <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-iris to-love flex items-center justify-center shadow-lg">
-                                <i class="bx bx-video text-xl text-base"></i>
-                            </div>
-                            <div class="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <button class="w-8 h-8 rounded-lg bg-highlight-med/50 hover:bg-highlight-high flex items-center justify-center text-subtle hover:text-text transition-colors">
-                                    <i class="bx bx-edit text-sm"></i>
-                                </button>
-                                <button class="w-8 h-8 rounded-lg bg-love/20 hover:bg-love/30 flex items-center justify-center text-love transition-colors">
-                                    <i class="bx bx-trash text-sm"></i>
-                                </button>
-                            </div>
-                        </div>
-                        <h3 class="text-text font-semibold text-lg mb-2">YouTube</h3>
-                        <p class="text-subtle text-sm opacity-70">youtube.com</p>
-                    </div>
-                    
-                    <div class="bookmark-card rounded-2xl p-6 cursor-pointer group">
-                        <div class="flex items-start justify-between mb-4">
-                            <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-pine to-foam flex items-center justify-center shadow-lg">
-                                <i class="bx bx-news text-xl text-base"></i>
-                            </div>
-                            <div class="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <button class="w-8 h-8 rounded-lg bg-highlight-med/50 hover:bg-highlight-high flex items-center justify-center text-subtle hover:text-text transition-colors">
-                                    <i class="bx bx-edit text-sm"></i>
-                                </button>
-                                <button class="w-8 h-8 rounded-lg bg-love/20 hover:bg-love/30 flex items-center justify-center text-love transition-colors">
-                                    <i class="bx bx-trash text-sm"></i>
-                                </button>
-                            </div>
-                        </div>
-                        <h3 class="text-text font-semibold text-lg mb-2">Hacker News</h3>
-                        <p class="text-subtle text-sm opacity-70">news.ycombinator.com</p>
-                    </div>
-                    
-                    <!-- Add more bookmark cards as needed -->
-                    <div class="bookmark-card rounded-2xl p-6 cursor-pointer group border-2 border-dashed border-overlay/50 hover:border-foam/50 bg-transparent">
-                        <div class="flex flex-col items-center justify-center h-full text-center py-4">
-                            <i class="bx bx-plus text-4xl text-foam mb-3 group-hover:text-iris transition-colors"></i>
-                            <p class="text-subtle font-medium">Add Bookmark</p>
-                        </div>
-                    </div>
-                </div>
-            </section>
-        </main>
-
-        <!-- Footer -->
-        <footer class="pt-16 pb-8 text-center animate-fade-in" style="animation-delay: 0.8s;">
-            <div class="text-subtle text-sm">
-                <p class="mb-2">Press <kbd class="bg-highlight-med px-3 py-1 rounded-lg text-foam font-mono">Ctrl+K</kbd> to focus search</p>
-                <p class="opacity-70">Carbon Browser - Privacy-focused web experience</p>
-            </div>
-        </footer>
-    </div>
-
-    <!-- Add Bookmark Modal (hidden by default) -->
-    <div class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center opacity-0 pointer-events-none transition-all duration-300 z-50">
-        <div class="glass rounded-3xl shadow-2xl max-w-md w-[90vw] p-8 transform scale-90 transition-transform duration-300">
-            <h3 class="text-2xl font-bold mb-6 text-text flex items-center gap-3">
-                <i class="bx bx-bookmark-plus text-foam"></i>
-                Add Bookmark
-            </h3>
-            <form class="space-y-6">
-                <div>
-                    <label class="block text-sm font-medium text-text mb-2">Title</label>
-                    <input
-                        type="text"
-                        class="w-full px-4 py-3 bg-surface/50 border-2 border-overlay/50 rounded-xl text-text focus:outline-none focus:ring-4 focus:ring-foam/20 focus:border-foam transition-all"
-                        placeholder="Enter bookmark title"
-                    />
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-text mb-2">URL</label>
-                    <input
-                        type="url"
-                        class="w-full px-4 py-3 bg-surface/50 border-2 border-overlay/50 rounded-xl text-text focus:outline-none focus:ring-4 focus:ring-foam/20 focus:border-foam transition-all"
-                        placeholder="https://example.com"
-                    />
-                </div>
-                <div class="flex gap-3 pt-4">
-                    <button
-                        type="submit"
-                        class="flex-1 px-6 py-3 bg-gradient-to-r from-foam to-iris text-base rounded-xl hover:from-iris hover:to-love transition-all duration-300 transform hover:scale-105 font-medium"
-                    >
-                        Add Bookmark
-                    </button>
-                    <button
-                        type="button"
-                        class="flex-1 px-6 py-3 bg-highlight-med text-text rounded-xl hover:bg-highlight-high transition-colors font-medium"
-                    >
-                        Cancel
-                    </button>
-                </div>
+              </div>
+              <div id="suggestion-box" class="suggestion-box hidden"></div>
             </form>
-        </div>
+          </div>
+        </section>
+
+        <!-- Bookmarks Section -->
+        <section>
+          <div class="flex items-center justify-between mb-8 max-w-800px mx-auto">
+            <h2 class="text-xl font-medium text-gray-900">Bookmarks</h2>
+            <button
+              id="add-bookmark-btn"
+              class="btn btn-ghost"
+            >
+              <i class="bx bx-plus mr-2"></i>
+              Add Bookmark
+            </button>
+          </div>
+          
+          <div id="bookmarks-grid" class="bookmark-grid">
+            <!-- Bookmarks will be populated here -->
+          </div>
+        </section>
+      </main>
+
+      <!-- Footer -->
+      <footer class="py-8 text-center text-gray-400 text-sm">
+        <p>Press <kbd class="bg-gray-100 px-2 py-1 rounded text-gray-600">Ctrl+T</kbd> for new tab</p>
+      </footer>
     </div>
-</body>
-</html>
+
+    <!-- Add Bookmark Modal -->
+    <div id="bookmark-modal" class="modal">
+      <div class="modal-content">
+        <h3 class="text-lg font-medium mb-6 text-gray-900">Add Bookmark</h3>
+        <form id="bookmark-form">
+          <div class="form-group">
+            <label class="form-label">Title</label>
+            <input
+              id="bookmark-title"
+              type="text"
+              class="form-input"
+              placeholder="Bookmark title"
+            />
+          </div>
+          <div class="form-group">
+            <label class="form-label">URL</label>
+            <input
+              id="bookmark-url"
+              type="url"
+              class="form-input"
+              placeholder="https://example.com"
+            />
+          </div>
+          <div class="flex gap-3">
+            <button
+              type="submit"
+              class="btn btn-primary flex-1"
+            >
+              Add
+            </button>
+            <button
+              type="button"
+              id="cancel-bookmark"
+              class="btn btn-secondary flex-1"
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+   
     <script src="carbon-theme.js"></script>
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
