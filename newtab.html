@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>History - Carbon</title>
+    <title>New Tab - Carbon</title>
     <script defer async>
       function setConfig() {
         tailwind.config = {
@@ -50,133 +50,383 @@
       rel="stylesheet"
     />
     <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet" />
+
+    <style>
+      /* Theme Color Variables */
+      :root {
+        --text-color: #e0def4;
+        --surface-color: #1f1d2e;
+        --overlay-color: #26233a;
+        --highlight-med: #403d52;
+        --highlight-high: #524f67;
+        --foam: #9ccfd8;
+        --love: #eb6f92;
+        --gold: #f6c177;
+        --pine: #31748f;
+        --iris: #c4a7e7;
+        --muted: #6e6a86;
+        --subtle: #908caa;
+
+        /* Theme variables - Rose Pine (default) */
+        --theme-base: #191724;
+        --theme-surface: #1f1d2e;
+        --theme-overlay: #26233a;
+        --theme-muted: #6e6a86;
+        --theme-subtle: #908caa;
+        --theme-text: #e0def4;
+        --theme-love: #eb6f92;
+        --theme-gold: #f6c177;
+        --theme-rose: #ebbcba;
+        --theme-pine: #31748f;
+        --theme-foam: #9ccfd8;
+        --theme-iris: #c4a7e7;
+        --theme-highlight-low: #21202e;
+        --theme-highlight-med: #403d52;
+        --theme-highlight-high: #524f67;
+        --theme-gradient: linear-gradient(135deg, #191724 0%, #1f1d2e 50%, #26233a 100%);
+      }
+      [data-theme="rose-pine"] {
+        --theme-base: #191724;
+        --theme-surface: #1f1d2e;
+        --theme-overlay: #26233a;
+        --theme-muted: #6e6a86;
+        --theme-subtle: #908caa;
+        --theme-text: #e0def4;
+        --theme-love: #eb6f92;
+        --theme-gold: #f6c177;
+        --theme-rose: #ebbcba;
+        --theme-pine: #31748f;
+        --theme-foam: #9ccfd8;
+        --theme-iris: #c4a7e7;
+        --theme-highlight-low: #21202e;
+        --theme-highlight-med: #403d52;
+        --theme-highlight-high: #524f67;
+        --theme-gradient: linear-gradient(135deg, #191724 0%, #1f1d2e 50%, #26233a 100%);
+      }
+      [data-theme="dark"] {
+        --theme-base: #0f172a;
+        --theme-surface: #1e293b;
+        --theme-overlay: #334155;
+        --theme-muted: #64748b;
+        --theme-subtle: #94a3b8;
+        --theme-text: #f1f5f9;
+        --theme-love: #ef4444;
+        --theme-gold: #f59e0b;
+        --theme-rose: #f97316;
+        --theme-pine: #059669;
+        --theme-foam: #06b6d4;
+        --theme-iris: #8b5cf6;
+        --theme-highlight-low: #1e293b;
+        --theme-highlight-med: #475569;
+        --theme-highlight-high: #64748b;
+        --theme-gradient: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
+      }
+      [data-theme="light"] {
+        --theme-base: #f8fafc;
+        --theme-surface: #e2e8f0;
+        --theme-overlay: #cbd5e1;
+        --theme-muted: #64748b;
+        --theme-subtle: #475569;
+        --theme-text: #0f172a;
+        --theme-love: #dc2626;
+        --theme-gold: #d97706;
+        --theme-rose: #ea580c;
+        --theme-pine: #047857;
+        --theme-foam: #0891b2;
+        --theme-iris: #7c3aed;
+        --theme-highlight-low: #f1f5f9;
+        --theme-highlight-med: #e2e8f0;
+        --theme-highlight-high: #cbd5e1;
+        --theme-gradient: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 50%, #cbd5e1 100%);
+      }
+      [data-theme="catppuccin"] {
+        --theme-base: #1e1e2e;
+        --theme-surface: #313244;
+        --theme-overlay: #45475a;
+        --theme-muted: #6c7086;
+        --theme-subtle: #9399b2;
+        --theme-text: #cdd6f4;
+        --theme-love: #f38ba8;
+        --theme-gold: #f9e2af;
+        --theme-rose: #fab387;
+        --theme-pine: #a6e3a1;
+        --theme-foam: #89dceb;
+        --theme-iris: #cba6f7;
+        --theme-highlight-low: #181825;
+        --theme-highlight-med: #313244;
+        --theme-highlight-high: #45475a;
+        --theme-gradient: linear-gradient(135deg, #1e1e2e 0%, #313244 50%, #45475a 100%);
+      }
+      [data-theme="nord"] {
+        --theme-base: #2e3440;
+        --theme-surface: #3b4252;
+        --theme-overlay: #434c5e;
+        --theme-muted: #4c566a;
+        --theme-subtle: #d8dee9;
+        --theme-text: #eceff4;
+        --theme-love: #bf616a;
+        --theme-gold: #ebcb8b;
+        --theme-rose: #d08770;
+        --theme-pine: #a3be8c;
+        --theme-foam: #88c0d0;
+        --theme-iris: #b48ead;
+        --theme-highlight-low: #2e3440;
+        --theme-highlight-med: #434c5e;
+        --theme-highlight-high: #4c566a;
+        --theme-gradient: linear-gradient(135deg, #2e3440 0%, #3b4252 50%, #434c5e 100%);
+      }
+      [data-theme="gruvbox"] {
+        --theme-base: #282828;
+        --theme-surface: #3c3836;
+        --theme-overlay: #504945;
+        --theme-muted: #665c54;
+        --theme-subtle: #a89984;
+        --theme-text: #ebdbb2;
+        --theme-love: #fb4934;
+        --theme-gold: #fabd2f;
+        --theme-rose: #fe8019;
+        --theme-pine: #b8bb26;
+        --theme-foam: #8ec07c;
+        --theme-iris: #d3869b;
+        --theme-highlight-low: #1d2021;
+        --theme-highlight-med: #3c3836;
+        --theme-highlight-high: #504945;
+        --theme-gradient: linear-gradient(135deg, #282828 0%, #3c3836 50%, #504945 100%);
+      }
+      [data-theme="tokyo-night"] {
+        --theme-base: #1a1b26;
+        --theme-surface: #24283b;
+        --theme-overlay: #414868;
+        --theme-muted: #565f89;
+        --theme-subtle: #a9b1d6;
+        --theme-text: #c0caf5;
+        --theme-love: #f7768e;
+        --theme-gold: #e0af68;
+        --theme-rose: #ff9e64;
+        --theme-pine: #9ece6a;
+        --theme-foam: #7dcfff;
+        --theme-iris: #bb9af7;
+        --theme-highlight-low: #16161e;
+        --theme-highlight-med: #24283b;
+        --theme-highlight-high: #414868;
+        --theme-gradient: linear-gradient(135deg, #1a1b26 0%, #24283b 50%, #414868 100%);
+      }
+      [data-theme="dracula"] {
+        --theme-base: #282a36;
+        --theme-surface: #44475a;
+        --theme-overlay: #6272a4;
+        --theme-muted: #6272a4;
+        --theme-subtle: #f8f8f2;
+        --theme-text: #f8f8f2;
+        --theme-love: #ff5555;
+        --theme-gold: #f1fa8c;
+        --theme-rose: #ffb86c;
+        --theme-pine: #50fa7b;
+        --theme-foam: #8be9fd;
+        --theme-iris: #bd93f9;
+        --theme-highlight-low: #21222c;
+        --theme-highlight-med: #44475a;
+        --theme-highlight-high: #6272a4;
+        --theme-gradient: linear-gradient(135deg, #282a36 0%, #44475a 50%, #6272a4 100%);
+      }
+      /* ... existing styles ... */
+      .suggestion-box {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 100%;
+        z-index: 1200;
+        background: #1f1d2e;
+        border-radius: 0 0 0.75rem 0.75rem;
+        border: 1px solid #26233a;
+        border-top: none;
+        max-height: 220px;
+        overflow-y: auto;
+        box-shadow: 0 6px 20px 2px #000a;
+        color: #e0def4;
+        font-size: 1rem;
+        width: 100%;
+      }
+      .suggestion-item {
+        padding: 0.73rem 1.1rem;
+        cursor: pointer;
+        transition: background 0.16s;
+        border-bottom: 1px solid #26233a;
+      }
+      .suggestion-item:last-child {
+        border-bottom: none;
+      }
+      .suggestion-item:hover,
+      .suggestion-item.active {
+        background: #26233a;
+        color: #9ccfd8;
+      }
+      .bookmark-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 1rem;
+      }
+      .bookmark-item {
+        background: #1f1d2e;
+        border: 1px solid #26233a;
+        border-radius: 0.75rem;
+        padding: 1rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+      }
+      .bookmark-item:hover {
+        background: #26233a;
+        border-color: #9ccfd8;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(156, 207, 216, 0.2);
+      }
+      .bookmark-item.editing {
+        border-color: #f6c177;
+        background: #403d52;
+      }
+      /* Responsive and vertical tabs styles omitted for brevity (see above) */
+      /* ... keep all the responsive CSS from your sample ... */
+    </style>
+    <style>
+      /* Theme & background switching */
+      body {
+        background: var(--theme-gradient);
+        background-attachment: fixed;
+      }
+    </style>
+  </head>
+  <body class="font-inter bg-gradient-to-br from-base via-surface to-overlay min-h-screen text-text">
+    <div class="min-h-screen flex flex-col">
+      <!-- Header -->
+      <header class="p-6 text-center">
+        <h1 class="text-4xl font-bold text-text mb-2 flex items-center justify-center gap-3">
+          <i class="bx bx-atom text-foam"></i>
+          Carbon
+        </h1>
+        <p class="text-muted text-sm">New Tab</p>
+      </header>
+
+      <!-- Main Content -->
+      <main class="flex-1 max-w-6xl mx-auto w-full px-6">
+        <!-- Search Section -->
+        <section class="mb-12">
+          <div class="max-w-2xl mx-auto">
+            <form id="search-form" class="relative">
+              <div class="relative">
+                <i class="bx bx-search absolute left-4 top-1/2 transform -translate-y-1/2 text-muted text-xl"></i>
+                <input
+                  id="search-input"
+                  type="text"
+                  spellcheck="false"
+                  autocomplete="off"
+                  placeholder="Search or enter website URL"
+                  class="w-full h-16 pl-12 pr-16 bg-surface border-2 border-overlay text-text rounded-full text-lg focus:outline-none focus:ring-2 focus:ring-foam focus:border-foam placeholder-muted transition-all"
+                />
+                <div class="absolute right-4 top-1/2 transform -translate-y-1/2 flex items-center gap-2">
+                  <!-- Proxy Toggle -->
+                  <button
+                    id="proxy-toggle"
+                    type="button"
+                    class="w-10 h-10 rounded-full bg-highlight-med hover:bg-highlight-high border-2 border-foam flex items-center justify-center transition-all"
+                    title="UV Proxy"
+                  >
+                    <i id="proxy-icon" class="bx bx-cloud text-xl"></i>
+                  </button>
+                  <!-- Search Engine -->
+                  <button
+                    id="search-engine-toggle"
+                    type="button"
+                    class="w-10 h-10 rounded-full bg-highlight-med hover:bg-highlight-high border-2 border-overlay flex items-center justify-center transition-all"
+                    title="Search Engine"
+                  >
+                    <i id="search-engine-icon" class="bx bxl-brave text-xl"></i>
+                  </button>
+                </div>
+              </div>
+              <div id="suggestion-box" class="suggestion-box hidden"></div>
+            </form>
+          </div>
+        </section>
+
+        <!-- Bookmarks Section -->
+        <section>
+          <div class="flex items-center justify-between mb-6">
+            <h2 class="text-2xl font-semibold text-text flex items-center gap-2">
+              <i class="bx bx-bookmark text-foam"></i>
+              Bookmarks
+            </h2>
+            <button
+              id="add-bookmark-btn"
+              class="px-4 py-2 bg-foam text-base rounded-lg hover:bg-foam/80 transition-colors flex items-center gap-2"
+            >
+              <i class="bx bx-plus"></i>
+              Add Bookmark
+            </button>
+          </div>
+          
+          <div id="bookmarks-grid" class="bookmark-grid">
+            <!-- Bookmarks will be populated here -->
+          </div>
+        </section>
+      </main>
+
+      <!-- Footer -->
+      <footer class="p-6 text-center text-muted text-sm">
+        <p>Press <kbd class="bg-highlight-med px-2 py-1 rounded">Ctrl+T</kbd> for new tab</p>
+      </footer>
+    </div>
+
+    <!-- Add Bookmark Modal -->
+    <div id="bookmark-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center opacity-0 pointer-events-none transition-opacity duration-300 z-50">
+      <div class="bg-surface border border-overlay rounded-xl shadow-2xl max-w-md w-[90vw] p-6">
+        <h3 class="text-xl font-semibold mb-4 text-text">Add Bookmark</h3>
+        <form id="bookmark-form">
+          <div class="mb-4">
+            <label class="block text-sm font-medium text-text mb-2">Title</label>
+            <input
+              id="bookmark-title"
+              type="text"
+              class="w-full px-3 py-2 bg-highlight-med border border-overlay rounded-lg text-text focus:outline-none focus:ring-2 focus:ring-foam"
+              placeholder="Bookmark title"
+            />
+          </div>
+          <div class="mb-4">
+            <label class="block text-sm font-medium text-text mb-2">URL</label>
+            <input
+              id="bookmark-url"
+              type="url"
+              class="w-full px-3 py-2 bg-highlight-med border border-overlay rounded-lg text-text focus:outline-none focus:ring-2 focus:ring-foam"
+              placeholder="https://example.com"
+            />
+          </div>
+          <div class="flex gap-2">
+            <button
+              type="submit"
+              class="flex-1 px-4 py-2 bg-foam text-base rounded-lg hover:bg-foam/80 transition-colors"
+            >
+              Add
+            </button>
+            <button
+              type="button"
+              id="cancel-bookmark"
+              class="flex-1 px-4 py-2 bg-highlight-med text-text rounded-lg hover:bg-highlight-high transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
     <script src="carbon-theme.js"></script>
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-
-    <style>
-      .history-item {
-        background: #1f1d2e;
-        border: 1px solid #26233a;
-        border-radius: 0.5rem;
-        padding: 1rem;
-        cursor: pointer;
-        transition: all 0.3s ease;
-      }
-      .history-item:hover {
-        background: #26233a;
-        border-color: #9ccfd8;
-        transform: translateY(-1px);
-        box-shadow: 0 2px 8px rgba(156, 207, 216, 0.1);
-      }
-      .search-container {
-        position: sticky;
-        top: 0;
-        background: rgba(25, 23, 36, 0.95);
-        backdrop-filter: blur(10px);
-        z-index: 10;
-        border-bottom: 1px solid #26233a;
-      }
-    </style>
-  </head>
-  <body class="font-inter bg-gradient-to-br from-base via-surface to-overlay min-h-screen text-text">
-    <div class="min-h-screen">
-      <!-- Header -->
-      <header class="p-6 text-center">
-        <h1 class="text-4xl font-bold text-text mb-2 flex items-center justify-center gap-3">
-          <i class="bx bx-history text-iris"></i>
-          History
-        </h1>
-        <p class="text-muted text-sm">Your browsing history</p>
-      </header>
-
-      <!-- Search and Controls -->
-      <div class="search-container px-6 py-4">
-        <div class="max-w-4xl mx-auto">
-          <div class="flex items-center gap-4 mb-4">
-            <div class="flex-1 relative">
-              <i class="bx bx-search absolute left-3 top-1/2 transform -translate-y-1/2 text-muted"></i>
-              <input
-                id="history-search"
-                type="text"
-                placeholder="Search history..."
-                class="w-full pl-10 pr-4 py-2 bg-surface border border-overlay rounded-lg text-text focus:outline-none focus:ring-2 focus:ring-foam focus:border-foam placeholder-muted"
-              />
-            </div>
-            <button
-              id="clear-all-history"
-              class="px-4 py-2 bg-love hover:bg-love/80 text-white rounded-lg transition-colors flex items-center gap-2"
-            >
-              <i class="bx bx-trash"></i>
-              Clear All
-            </button>
-          </div>
-          
-          <!-- Filter Tabs -->
-          <div class="flex gap-2">
-            <button class="filter-tab active" data-filter="all">
-              <i class="bx bx-globe"></i>
-              All History
-            </button>
-            <button class="filter-tab" data-filter="today">
-              <i class="bx bx-calendar-day"></i>
-              Today
-            </button>
-            <button class="filter-tab" data-filter="week">
-              <i class="bx bx-calendar-week"></i>
-              This Week
-            </button>
-            <button class="filter-tab" data-filter="month">
-              <i class="bx bx-calendar"></i>
-              This Month
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <!-- History Content -->
-      <main class="max-w-4xl mx-auto px-6 pb-6">
-        <div id="history-list" class="space-y-3">
-          <!-- History items will be populated here -->
-        </div>
-        
-        <div id="no-history" class="text-center py-12 hidden">
-          <i class="bx bx-history text-6xl text-muted mb-4"></i>
-          <h3 class="text-xl font-semibold text-text mb-2">No History Found</h3>
-          <p class="text-muted">Your browsing history will appear here as you navigate.</p>
-        </div>
-      </main>
-    </div>
-
-    <style>
-      .filter-tab {
-        padding: 0.5rem 1rem;
-        background: transparent;
-        border: 1px solid #26233a;
-        border-radius: 0.5rem;
-        color: #908caa;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        font-size: 0.875rem;
-      }
-      .filter-tab:hover {
-        background: #26233a;
-        color: #e0def4;
-      }
-      .filter-tab.active {
-        background: #9ccfd8;
-        color: #191724;
-        border-color: #9ccfd8;
-      }
-    </style>
-
     <script type="module">
-      import { makeURL, getProxied } from '/lethal.mjs';
+      import { makeURL, getProxied, setProxy, getProxy } from '/lethal.mjs';
       
       // Firebase configuration
       const firebaseConfig = {
@@ -193,50 +443,76 @@
       firebase.initializeApp(firebaseConfig);
       const auth = firebase.auth();
       const db = firebase.firestore();
+      // THEME SYNC - Now auto-syncs from settings.html via enhanced theme system
+      // The carbon-theme.js handles theme application automatically from global storage
+      
+      // Listen for theme changes from settings page
+      window.addEventListener('storage', (event) => {
+        if (event.key === 'carbon-theme-global' && event.newValue) {
+          // Theme changed in another tab/window - apply automatically
+          if (window.carbonTheme) {
+            window.carbonTheme.applyTheme(event.newValue);
+          }
+        }
+      });
+      
+      // Listen for theme broadcast messages
+      window.addEventListener('message', (event) => {
+        if (event.data && event.data.type === 'carbon-theme-change') {
+          // Theme changed in settings - apply automatically
+          if (window.carbonTheme) {
+            window.carbonTheme.applyTheme(event.data.theme);
+          }
+        }
+      });
 
-      // DOM Elements
-      const historyList = document.getElementById('history-list');
-      const noHistory = document.getElementById('no-history');
-      const historySearch = document.getElementById('history-search');
-      const clearAllBtn = document.getElementById('clear-all-history');
-      const filterTabs = document.querySelectorAll('.filter-tab');
+      // Initialize theme on load (carbon-theme.js handles this automatically)
+      // --- END THEME CODE ---
 
-      // State
-      let allHistory = [];
-      let filteredHistory = [];
-      let currentFilter = 'all';
+      // Search Engine Configuration
+      const searchEngines = {
+        'https://search.brave.com/search?q=%s': ['Brave', 'bxl-brave'],
+        'https://duckduckgo.com/?q=%s': ['DuckDuckGo', 'bxl-duckduckgo'],
+        'https://www.google.com/search?q=%s': ['Google', 'bxl-google'],
+        'https://www.bing.com/search?q=%s': ['Bing', 'bxl-microsoft'],
+        'https://search.yahoo.com/search?p=%s': ['Yahoo', 'bxl-yahoo'],
+      };
+
+      // State Management
+      let currentSearchEngine = localStorage.getItem('search-engine') || 'https://search.brave.com/search?q=%s';
+      let currentProxy = localStorage.getItem('proxy-backend') || 'uv';
+      let bookmarks = JSON.parse(localStorage.getItem('carbon-bookmarks') || '[]');
       let currentUser = null;
       
       // Firebase sync functions
-      async function loadHistoryFromFirebase() {
+      async function loadBookmarksFromFirebase() {
         if (!currentUser) return;
         
         try {
           const userDoc = await db.collection('users').doc(currentUser.uid).get();
           if (userDoc.exists) {
             const userData = userDoc.data();
-            if (userData.history) {
-              allHistory = userData.history.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-              localStorage.setItem('carbon-history', JSON.stringify(allHistory));
-              filterHistory();
-              renderHistory();
+            if (userData.bookmarks) {
+              bookmarks = userData.bookmarks;
+              localStorage.setItem('carbon-bookmarks', JSON.stringify(bookmarks));
+              renderBookmarks();
             }
           }
         } catch (error) {
-          console.error('Error loading history from Firebase:', error);
+          console.error('Error loading bookmarks from Firebase:', error);
         }
       }
       
-      async function saveHistoryToFirebase() {
+      async function saveBookmarksToFirebase() {
         if (!currentUser) return;
         
         try {
           await db.collection('users').doc(currentUser.uid).set({
-            history: allHistory,
+            bookmarks: bookmarks,
             lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
           }, { merge: true });
         } catch (error) {
-          console.error('Error saving history to Firebase:', error);
+          console.error('Error saving bookmarks to Firebase:', error);
         }
       }
       
@@ -244,247 +520,386 @@
       auth.onAuthStateChanged((user) => {
         currentUser = user;
         if (user) {
-          loadHistoryFromFirebase();
-        } else {
-          loadHistory();
+          loadBookmarksFromFirebase();
         }
       });
 
-      // Load history from localStorage
-      function loadHistory() {
-        const history = JSON.parse(localStorage.getItem('carbon-history') || '[]');
-        allHistory = history.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-        filterHistory();
-        renderHistory();
-      }
+      // DOM Elements
+      const searchInput = document.getElementById('search-input');
+      const searchForm = document.getElementById('search-form');
+      const suggestionBox = document.getElementById('suggestion-box');
+      const proxyToggle = document.getElementById('proxy-toggle');
+      const proxyIcon = document.getElementById('proxy-icon');
+      const searchEngineToggle = document.getElementById('search-engine-toggle');
+      const searchEngineIcon = document.getElementById('search-engine-icon');
+      const bookmarksGrid = document.getElementById('bookmarks-grid');
+      const addBookmarkBtn = document.getElementById('add-bookmark-btn');
+      const bookmarkModal = document.getElementById('bookmark-modal');
+      const bookmarkForm = document.getElementById('bookmark-form');
+      const cancelBookmarkBtn = document.getElementById('cancel-bookmark');
 
-              // Save history to localStorage and Firebase
-        async function saveHistory() {
-          localStorage.setItem('carbon-history', JSON.stringify(allHistory));
-          await saveHistoryToFirebase();
+      // Initialize
+      updateProxyUI();
+      updateSearchEngineUI();
+      renderBookmarks();
+
+      // Listen for state changes from parent frame
+      window.addEventListener("message", function(event) {
+        if (event.data && event.data.type === 'carbon-proxy-sync') {
+          currentProxy = event.data.proxy;
+          localStorage.setItem('proxy-backend', currentProxy);
+          updateProxyUI();
+        } else if (event.data && event.data.type === 'carbon-search-engine-sync') {
+          currentSearchEngine = event.data.searchEngine;
+          localStorage.setItem('search-engine', currentSearchEngine);
+          updateSearchEngineUI();
+        } else if (event.data && event.data.type === 'carbon-vertical-tabs-state') {
+          adjustForVerticalTabs(event.data.enabled, true);
         }
+      });
 
-      // Add item to history (called from parent frame)
-      function addToHistory(url, title = '') {
-        // Don't add carbon:// URLs to history
-        if (url.startsWith('carbon://')) return;
-        
-        const item = {
-          id: Date.now() + Math.random(),
-          url: url,
-          title: title || url,
-          timestamp: new Date().toISOString(),
-          visits: 1
-        };
-
-        // Check if URL already exists
-        const existingIndex = allHistory.findIndex(h => h.url === url);
-        if (existingIndex !== -1) {
-          allHistory[existingIndex].timestamp = item.timestamp;
-          allHistory[existingIndex].visits++;
-          allHistory[existingIndex].title = title || allHistory[existingIndex].title;
+      // Function to adjust layout for vertical tabs
+      function adjustForVerticalTabs(verticalTabsEnabled, fromParent = false) {
+        const body = document.body;
+        if (verticalTabsEnabled) {
+          body.classList.add('vertical-tabs-active');
         } else {
-          allHistory.unshift(item);
+          body.classList.remove('vertical-tabs-active');
         }
-
-        // Limit history to 1000 items
-        if (allHistory.length > 1000) {
-          allHistory = allHistory.slice(0, 1000);
+        // Mark that we've received explicit state from parent
+        if (fromParent) {
+          body.setAttribute('data-vertical-tabs-detected', 'true');
         }
-
-        saveHistory();
-        filterHistory();
-        renderHistory();
       }
 
-      // Filter history based on current filter
-      function filterHistory() {
-        const searchTerm = historySearch.value.toLowerCase();
-        const now = new Date();
-        
-        let filtered = allHistory;
-
-        // Apply time filter
-        if (currentFilter === 'today') {
-          const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-          filtered = allHistory.filter(item => new Date(item.timestamp) >= today);
-        } else if (currentFilter === 'week') {
-          const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-          filtered = allHistory.filter(item => new Date(item.timestamp) >= weekAgo);
-        } else if (currentFilter === 'month') {
-          const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-          filtered = allHistory.filter(item => new Date(item.timestamp) >= monthAgo);
+      // Better detection: Check if we're in an iframe and request vertical tabs state
+      function requestVerticalTabsState() {
+        if (window.parent && window.parent !== window) {
+          // Request vertical tabs state from parent
+          window.parent.postMessage({
+            type: 'carbon-request-vertical-tabs-state'
+          }, '*');
+        } else {
+          // Not in iframe, check localStorage as fallback
+          const savedVerticalMode = localStorage.getItem("vertical-tabs-mode");
+          adjustForVerticalTabs(savedVerticalMode === "true");
         }
-
-        // Apply search filter
-        if (searchTerm) {
-          filtered = filtered.filter(item => 
-            item.url.toLowerCase().includes(searchTerm) ||
-            item.title.toLowerCase().includes(searchTerm)
-          );
-        }
-
-        filteredHistory = filtered;
       }
 
-      // Render history items
-      function renderHistory() {
-        if (filteredHistory.length === 0) {
-          historyList.classList.add('hidden');
-          noHistory.classList.remove('hidden');
+      // Listen for resize events as fallback
+      window.addEventListener('resize', () => {
+        // Only auto-detect if we haven't received explicit state from parent
+        if (!document.body.hasAttribute('data-vertical-tabs-detected')) {
+          const isNarrow = window.innerWidth < 1200;
+          adjustForVerticalTabs(isNarrow);
+        }
+      });
+      // Initial detection
+      setTimeout(requestVerticalTabsState, 100);
+      setTimeout(requestVerticalTabsState, 500);
+
+      // Proxy Toggle
+      function updateProxyUI() {
+        if (currentProxy === 'scram') {
+          proxyToggle.classList.remove('border-foam');
+          proxyToggle.classList.add('border-gold', 'bg-gold/20');
+          proxyIcon.className = 'bx bx-network-chart text-xl';
+          proxyToggle.title = 'Scramjet Proxy';
+        } else {
+          proxyToggle.classList.remove('border-gold', 'bg-gold/20');
+          proxyToggle.classList.add('border-foam');
+          proxyIcon.className = 'bx bx-cloud text-xl';
+          proxyToggle.title = 'UV Proxy';
+        }
+      }
+
+      proxyToggle.addEventListener('click', async () => {
+        currentProxy = currentProxy === 'uv' ? 'scram' : 'uv';
+        localStorage.setItem('proxy-backend', currentProxy);
+        await setProxy(currentProxy);
+        updateProxyUI();
+        if (window.parent && window.parent !== window) {
+          window.parent.postMessage({
+            type: 'carbon-proxy-sync',
+            proxy: currentProxy
+          }, '*');
+        }
+      });
+
+      // Search Engine Toggle
+      function updateSearchEngineUI() {
+        const [name, icon] = searchEngines[currentSearchEngine] || ['Brave', 'bxl-brave'];
+        searchEngineIcon.className = `bx ${icon} text-xl`;
+        searchEngineToggle.title = name;
+      }
+
+      searchEngineToggle.addEventListener('click', () => {
+        const engines = Object.keys(searchEngines);
+        const currentIndex = engines.indexOf(currentSearchEngine);
+        const nextIndex = (currentIndex + 1) % engines.length;
+        currentSearchEngine = engines[nextIndex];
+        localStorage.setItem('search-engine', currentSearchEngine);
+        updateSearchEngineUI();
+        if (window.parent && window.parent !== window) {
+          window.parent.postMessage({
+            type: 'carbon-search-engine-sync',
+            searchEngine: currentSearchEngine
+          }, '*');
+        }
+      });
+
+      // Search Suggestions
+      let suggestionActive = -1;
+      let currentSuggestions = [];
+      let suggestionFetchController = null;
+
+      searchInput.addEventListener('input', async function(e) {
+        const val = searchInput.value.trim();
+        if (!val || val.startsWith('http')) {
+          suggestionBox.classList.add('hidden');
+          suggestionBox.innerHTML = '';
+          currentSuggestions = [];
+          suggestionActive = -1;
           return;
         }
-
-        historyList.classList.remove('hidden');
-        noHistory.classList.add('hidden');
-
-        // Group by date
-        const groupedHistory = {};
-        filteredHistory.forEach(item => {
-          const date = new Date(item.timestamp).toDateString();
-          if (!groupedHistory[date]) {
-            groupedHistory[date] = [];
+        const apiUrl = `https://corsproxy.io/?url=${encodeURIComponent(`https://duckduckgo.com/ac/?q=${encodeURIComponent(val)}&type=list`)}`;
+        if (suggestionFetchController) suggestionFetchController.abort();
+        suggestionFetchController = new AbortController();
+        try {
+          const resp = await fetch(apiUrl, {
+            signal: suggestionFetchController.signal,
+          });
+          if (!resp.ok) throw new Error();
+          const data = await resp.json();
+          let suggestionsData;
+          if (data.contents) {
+            if (typeof data.contents === 'string') {
+              suggestionsData = JSON.parse(data.contents);
+            } else {
+              suggestionsData = data.contents;
+            }
+          } else {
+            suggestionsData = data;
           }
-          groupedHistory[date].push(item);
+          currentSuggestions = (suggestionsData[1] || []).filter(Boolean);
+          if (currentSuggestions.length === 0) {
+            suggestionBox.classList.add('hidden');
+            suggestionBox.innerHTML = '';
+            suggestionActive = -1;
+            return;
+          }
+          suggestionBox.innerHTML = currentSuggestions
+            .map(
+              (s, i) =>
+                `<div class="suggestion-item${i === suggestionActive ? ' active' : ''}" data-idx="${i}">${s.replace(/</g, '&lt;')}</div>`
+            )
+            .join('');
+          suggestionBox.classList.remove('hidden');
+          suggestionActive = -1;
+        } catch (err) {
+          suggestionBox.classList.add('hidden');
+          suggestionBox.innerHTML = '';
+          currentSuggestions = [];
+          suggestionActive = -1;
+        }
+      });
+
+      searchInput.addEventListener('keydown', function(e) {
+        if (!currentSuggestions.length || suggestionBox.classList.contains('hidden')) return;
+        if (e.key === 'ArrowDown') {
+          e.preventDefault();
+          suggestionActive = (suggestionActive + 1) % currentSuggestions.length;
+          updateSuggestionBoxActive();
+        } else if (e.key === 'ArrowUp') {
+          e.preventDefault();
+          suggestionActive = (suggestionActive - 1 + currentSuggestions.length) % currentSuggestions.length;
+          updateSuggestionBoxActive();
+        } else if (e.key === 'Enter') {
+          if (suggestionActive !== -1) {
+            e.preventDefault();
+            selectSuggestion(suggestionActive);
+          }
+          suggestionBox.classList.add('hidden');
+        } else if (e.key === 'Escape') {
+          suggestionBox.classList.add('hidden');
+          suggestionActive = -1;
+        }
+      });
+
+      function updateSuggestionBoxActive() {
+        Array.from(suggestionBox.children).forEach((el, i) => {
+          if (i === suggestionActive) el.classList.add('active');
+          else el.classList.remove('active');
         });
+        if (suggestionActive !== -1) {
+          const el = suggestionBox.children[suggestionActive];
+          if (el) el.scrollIntoView({ block: 'nearest' });
+          searchInput.value = currentSuggestions[suggestionActive];
+        }
+      }
 
-        historyList.innerHTML = Object.entries(groupedHistory).map(([date, items]) => {
-          const isToday = date === new Date().toDateString();
-          const isYesterday = date === new Date(Date.now() - 24 * 60 * 60 * 1000).toDateString();
-          
-          let displayDate = date;
-          if (isToday) displayDate = 'Today';
-          else if (isYesterday) displayDate = 'Yesterday';
+      function selectSuggestion(idx) {
+        if (idx < 0 || idx >= currentSuggestions.length) return;
+        searchInput.value = currentSuggestions[idx];
+        suggestionBox.classList.add('hidden');
+        suggestionActive = -1;
+      }
 
-          return `
-            <div class="mb-6">
-              <h3 class="text-lg font-semibold text-text mb-3 flex items-center gap-2">
-                <i class="bx bx-calendar text-foam"></i>
-                ${displayDate}
-              </h3>
-              <div class="space-y-2">
-                ${items.map(item => `
-                  <div class="history-item" data-url="${item.url}">
-                    <div class="flex items-start justify-between">
-                      <div class="flex-1 min-w-0">
-                        <div class="flex items-center gap-2 mb-1">
-                          <i class="bx bx-world text-foam flex-shrink-0"></i>
-                          <h4 class="font-medium text-text truncate">${item.title}</h4>
-                          ${item.visits > 1 ? `<span class="text-xs bg-highlight-med px-2 py-0.5 rounded text-muted">${item.visits} visits</span>` : ''}
-                        </div>
-                        <p class="text-sm text-muted truncate">${item.url}</p>
-                        <p class="text-xs text-subtle mt-1">${formatTime(item.timestamp)}</p>
-                      </div>
-                      <div class="flex items-center gap-1 ml-2">
-                        <button class="delete-item w-8 h-8 rounded hover:bg-love/20 flex items-center justify-center text-muted hover:text-love transition-colors" data-id="${item.id}">
-                          <i class="bx bx-trash text-sm"></i>
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                `).join('')}
-              </div>
+      suggestionBox.addEventListener('mousedown', function(e) {
+        const target = e.target.closest('.suggestion-item');
+        if (target) {
+          const idx = parseInt(target.dataset.idx);
+          selectSuggestion(idx);
+          setTimeout(() => {
+            searchForm.dispatchEvent(new Event('submit'));
+          }, 0);
+        }
+      });
+
+      // Search Form Submit
+      searchForm.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        suggestionBox.classList.add('hidden');
+        suggestionActive = -1;
+        const query = searchInput.value.trim();
+        if (!query) return;
+        if (window.parent && window.parent !== window) {
+          window.parent.postMessage({
+            type: 'carbon-navigate',
+            url: query
+          }, '*');
+        } else {
+          const url = makeURL(query, currentSearchEngine);
+          const proxiedUrl = await getProxied(url);
+          window.location.href = proxiedUrl;
+        }
+      });
+
+      // Bookmarks Management
+      function renderBookmarks() {
+        if (bookmarks.length === 0) {
+          bookmarksGrid.innerHTML = `
+            <div class="col-span-full text-center text-muted py-8">
+              <i class="bx bx-bookmark text-4xl mb-2"></i>
+              <p>No bookmarks yet. Click "Add Bookmark" to get started!</p>
             </div>
           `;
-        }).join('');
-
-        // Add event listeners
-        document.querySelectorAll('.history-item').forEach(item => {
+          return;
+        }
+        bookmarksGrid.innerHTML = bookmarks.map((bookmark, index) => `
+          <div class="bookmark-item" data-index="${index}">
+            <div class="flex items-start justify-between mb-3">
+              <div class="w-8 h-8 rounded-lg bg-foam/20 flex items-center justify-center flex-shrink-0">
+                <i class="bx bx-bookmark text-foam"></i>
+              </div>
+              <div class="flex gap-1">
+                <button class="edit-bookmark w-6 h-6 rounded hover:bg-highlight-med flex items-center justify-center text-muted hover:text-text transition-colors">
+                  <i class="bx bx-edit text-xs"></i>
+                </button>
+                <button class="delete-bookmark w-6 h-6 rounded hover:bg-love/20 flex items-center justify-center text-muted hover:text-love transition-colors">
+                  <i class="bx bx-trash text-xs"></i>
+                </button>
+              </div>
+            </div>
+            <h3 class="font-semibold text-text mb-1 truncate">${bookmark.title}</h3>
+            <p class="text-sm text-muted truncate">${bookmark.url}</p>
+          </div>
+        `).join('');
+        bookmarksGrid.querySelectorAll('.bookmark-item').forEach(item => {
+          const index = parseInt(item.dataset.index);
+          const bookmark = bookmarks[index];
           item.addEventListener('click', async (e) => {
-            if (e.target.closest('.delete-item')) return;
-            
-            const url = item.dataset.url;
-            
-            // Check if we're in an iframe (within the proxy browser)
+            if (e.target.closest('.edit-bookmark') || e.target.closest('.delete-bookmark')) return;
             if (window.parent && window.parent !== window) {
-              // Send message to parent frame to navigate
               window.parent.postMessage({
                 type: 'carbon-navigate',
-                url: url
+                url: bookmark.url
               }, '*');
             } else {
-              // Navigate normally if not in iframe
-              const proxiedUrl = await getProxied(makeURL(url));
+              const url = makeURL(bookmark.url, currentSearchEngine);
+              const proxiedUrl = await getProxied(url);
               window.location.href = proxiedUrl;
             }
           });
-        });
-
-        document.querySelectorAll('.delete-item').forEach(btn => {
-          btn.addEventListener('click', (e) => {
+          item.querySelector('.edit-bookmark').addEventListener('click', (e) => {
             e.stopPropagation();
-            const id = parseFloat(btn.dataset.id);
-            deleteHistoryItem(id);
+            editBookmark(index);
+          });
+          item.querySelector('.delete-bookmark').addEventListener('click', (e) => {
+            e.stopPropagation();
+            deleteBookmark(index);
           });
         });
       }
 
-      // Format timestamp
-      function formatTime(timestamp) {
-        const date = new Date(timestamp);
-        const now = new Date();
-        const diff = now - date;
-        
-        if (diff < 60000) { // Less than 1 minute
-          return 'Just now';
-        } else if (diff < 3600000) { // Less than 1 hour
-          const minutes = Math.floor(diff / 60000);
-          return `${minutes} minute${minutes > 1 ? 's' : ''} ago`;
-        } else if (diff < 86400000) { // Less than 1 day
-          return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-        } else {
-          return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      async function addBookmark(title, url) {
+        bookmarks.push({ title, url });
+        localStorage.setItem('carbon-bookmarks', JSON.stringify(bookmarks));
+        await saveBookmarksToFirebase();
+        renderBookmarks();
+      }
+
+      async function editBookmark(index) {
+        const bookmark = bookmarks[index];
+        const newTitle = prompt('Edit bookmark title:', bookmark.title);
+        const newUrl = prompt('Edit bookmark URL:', bookmark.url);
+        if (newTitle !== null && newUrl !== null) {
+          bookmarks[index] = { title: newTitle || bookmark.title, url: newUrl || bookmark.url };
+          localStorage.setItem('carbon-bookmarks', JSON.stringify(bookmarks));
+          await saveBookmarksToFirebase();
+          renderBookmarks();
         }
       }
 
-              // Delete single history item
-        async function deleteHistoryItem(id) {
-          allHistory = allHistory.filter(item => item.id !== id);
-          await saveHistory();
-          filterHistory();
-          renderHistory();
+      async function deleteBookmark(index) {
+        if (confirm('Delete this bookmark?')) {
+          bookmarks.splice(index, 1);
+          localStorage.setItem('carbon-bookmarks', JSON.stringify(bookmarks));
+          await saveBookmarksToFirebase();
+          renderBookmarks();
         }
+      }
 
-        // Clear all history
-        async function clearAllHistory() {
-          if (confirm('Are you sure you want to clear all history? This action cannot be undone.')) {
-            allHistory = [];
-            await saveHistory();
-            filterHistory();
-            renderHistory();
-          }
-        }
-
-      // Event listeners
-      historySearch.addEventListener('input', () => {
-        filterHistory();
-        renderHistory();
+      // Modal Management
+      addBookmarkBtn.addEventListener('click', () => {
+        bookmarkModal.classList.remove('opacity-0', 'pointer-events-none');
+        bookmarkModal.classList.add('opacity-100', 'pointer-events-auto');
+        document.getElementById('bookmark-title').focus();
       });
 
-      clearAllBtn.addEventListener('click', clearAllHistory);
-
-      filterTabs.forEach(tab => {
-        tab.addEventListener('click', () => {
-          filterTabs.forEach(t => t.classList.remove('active'));
-          tab.classList.add('active');
-          currentFilter = tab.dataset.filter;
-          filterHistory();
-          renderHistory();
-        });
+      cancelBookmarkBtn.addEventListener('click', () => {
+        bookmarkModal.classList.add('opacity-0', 'pointer-events-none');
+        bookmarkModal.classList.remove('opacity-100', 'pointer-events-auto');
+        bookmarkForm.reset();
       });
 
-      // Listen for history updates from parent frame
-      window.addEventListener('message', (event) => {
-        if (event.data && event.data.type === 'carbon-add-history') {
-          addToHistory(event.data.url, event.data.title);
+      bookmarkForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const title = document.getElementById('bookmark-title').value.trim();
+        const url = document.getElementById('bookmark-url').value.trim();
+        if (title && url) {
+          addBookmark(title, url);
+          bookmarkModal.classList.add('opacity-0', 'pointer-events-none');
+          bookmarkModal.classList.remove('opacity-100', 'pointer-events-auto');
+          bookmarkForm.reset();
         }
       });
 
-      // Expose addToHistory for external use
-      window.addToHistory = addToHistory;
+      // Click outside to close suggestions
+      document.addEventListener('click', function(e) {
+        if (!suggestionBox.contains(e.target) && e.target !== searchInput) {
+          suggestionBox.classList.add('hidden');
+          suggestionActive = -1;
+        }
+      });
 
-      // Initialize
-      loadHistory();
+      // Keyboard shortcuts
+      document.addEventListener('keydown', (e) => {
+        if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+          e.preventDefault();
+          searchInput.focus();
+        }
+      });
     </script>
   </body>
 </html>
