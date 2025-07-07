@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -39,8 +39,16 @@
     <link rel="preconnect" href="https://unpkg.com" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://cdn.tailwindcss.com" />
-    <script defer async src="https://cdn.tailwindcss.com" onload="setConfig()"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <script
+      defer
+      async
+      src="https://cdn.tailwindcss.com"
+      onload="setConfig()"
+    ></script>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
     <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet" />
 
     <style>
@@ -221,20 +229,21 @@
         --theme-highlight-high: #6272a4;
         --theme-gradient: linear-gradient(135deg, #282a36 0%, #44475a 50%, #6272a4 100%);
       }
+      /* ... existing styles ... */
       .suggestion-box {
         position: absolute;
         left: 0;
         right: 0;
         top: 100%;
         z-index: 1200;
-        background: var(--theme-surface);
+        background: #1f1d2e;
         border-radius: 0 0 0.75rem 0.75rem;
-        border: 1px solid var(--theme-overlay);
+        border: 1px solid #26233a;
         border-top: none;
         max-height: 220px;
         overflow-y: auto;
-        box-shadow: 0 6px 20px 2px rgba(0, 0, 0, 0.4);
-        color: var(--theme-text);
+        box-shadow: 0 6px 20px 2px #000a;
+        color: #e0def4;
         font-size: 1rem;
         width: 100%;
       }
@@ -242,15 +251,15 @@
         padding: 0.73rem 1.1rem;
         cursor: pointer;
         transition: background 0.16s;
-        border-bottom: 1px solid var(--theme-overlay);
+        border-bottom: 1px solid #26233a;
       }
       .suggestion-item:last-child {
         border-bottom: none;
       }
       .suggestion-item:hover,
       .suggestion-item.active {
-        background: var(--theme-overlay);
-        color: var(--theme-foam);
+        background: #26233a;
+        color: #9ccfd8;
       }
       .bookmark-grid {
         display: grid;
@@ -258,28 +267,30 @@
         gap: 1rem;
       }
       .bookmark-item {
-        background: var(--theme-surface);
-        border: 1px solid var(--theme-overlay);
+        background: #1f1d2e;
+        border: 1px solid #26233a;
         border-radius: 0.75rem;
         padding: 1rem;
         cursor: pointer;
         transition: all 0.3s ease;
         position: relative;
         overflow: hidden;
-        color: var(--theme-text);
       }
       .bookmark-item:hover {
-        background: var(--theme-overlay);
-        border-color: var(--theme-foam);
+        background: #26233a;
+        border-color: #9ccfd8;
         transform: translateY(-2px);
         box-shadow: 0 4px 12px rgba(156, 207, 216, 0.2);
       }
       .bookmark-item.editing {
-        border-color: var(--theme-gold);
-        background: var(--theme-highlight-med);
+        border-color: #f6c177;
+        background: #403d52;
       }
+      /* Responsive and vertical tabs styles omitted for brevity (see above) */
+      /* ... keep all the responsive CSS from your sample ... */
     </style>
     <style>
+      /* Theme & background switching */
       body {
         background: var(--theme-gradient);
         background-attachment: fixed;
@@ -287,9 +298,6 @@
     </style>
   </head>
   <body class="font-inter bg-gradient-to-br from-base via-surface to-overlay min-h-screen text-text">
-    <!-- Particles Canvas -->
-    <canvas id="particles-canvas" class="fixed inset-0 pointer-events-none hidden"></canvas>
-
     <div class="min-h-screen flex flex-col">
       <!-- Header -->
       <header class="p-6 text-center">
@@ -413,6 +421,7 @@
     </div>
 
     <script src="carbon-theme.js"></script>
+    <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -430,16 +439,90 @@
         measurementId: "G-Y2K1RQYE74"
       };
       
+      // Initialize Firebase
       firebase.initializeApp(firebaseConfig);
       const auth = firebase.auth();
       const db = firebase.firestore();
+      // THEME SYNC - Now auto-syncs from settings.html via enhanced theme system
+      // The carbon-theme.js handles theme application automatically from global storage
+      
+      // Listen for theme changes from settings page
+      window.addEventListener('storage', (event) => {
+        if (event.key === 'carbon-theme-global' && event.newValue) {
+          // Theme changed in another tab/window - apply automatically
+          if (window.carbonTheme) {
+            window.carbonTheme.applyTheme(event.newValue);
+          }
+        }
+      });
+      
+      // Listen for theme broadcast messages
+      window.addEventListener('message', (event) => {
+        if (event.data && event.data.type === 'carbon-theme-change') {
+          // Theme changed in settings - apply automatically
+          if (window.carbonTheme) {
+            window.carbonTheme.applyTheme(event.data.theme);
+          }
+        }
+      });
+
+      // Initialize theme on load (carbon-theme.js handles this automatically)
+      // --- END THEME CODE ---
+
+      // Search Engine Configuration
+      const searchEngines = {
+        'https://search.brave.com/search?q=%s': ['Brave', 'bxl-brave'],
+        'https://duckduckgo.com/?q=%s': ['DuckDuckGo', 'bxl-duckduckgo'],
+        'https://www.google.com/search?q=%s': ['Google', 'bxl-google'],
+        'https://www.bing.com/search?q=%s': ['Bing', 'bxl-microsoft'],
+        'https://search.yahoo.com/search?p=%s': ['Yahoo', 'bxl-yahoo'],
+      };
 
       // State Management
       let currentSearchEngine = localStorage.getItem('search-engine') || 'https://search.brave.com/search?q=%s';
       let currentProxy = localStorage.getItem('proxy-backend') || 'uv';
       let bookmarks = JSON.parse(localStorage.getItem('carbon-bookmarks') || '[]');
       let currentUser = null;
-      let currentBackground = localStorage.getItem('carbon-background') || 'gradient';
+      
+      // Firebase sync functions
+      async function loadBookmarksFromFirebase() {
+        if (!currentUser) return;
+        
+        try {
+          const userDoc = await db.collection('users').doc(currentUser.uid).get();
+          if (userDoc.exists) {
+            const userData = userDoc.data();
+            if (userData.bookmarks) {
+              bookmarks = userData.bookmarks;
+              localStorage.setItem('carbon-bookmarks', JSON.stringify(bookmarks));
+              renderBookmarks();
+            }
+          }
+        } catch (error) {
+          console.error('Error loading bookmarks from Firebase:', error);
+        }
+      }
+      
+      async function saveBookmarksToFirebase() {
+        if (!currentUser) return;
+        
+        try {
+          await db.collection('users').doc(currentUser.uid).set({
+            bookmarks: bookmarks,
+            lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+          }, { merge: true });
+        } catch (error) {
+          console.error('Error saving bookmarks to Firebase:', error);
+        }
+      }
+      
+      // Authentication state observer
+      auth.onAuthStateChanged((user) => {
+        currentUser = user;
+        if (user) {
+          loadBookmarksFromFirebase();
+        }
+      });
 
       // DOM Elements
       const searchInput = document.getElementById('search-input');
@@ -459,151 +542,6 @@
       updateProxyUI();
       updateSearchEngineUI();
       renderBookmarks();
-      applyBackground();
-      initParticles();
-
-      // Firebase sync functions
-      async function loadBookmarksFromFirebase() {
-        if (!currentUser) return;
-        try {
-          const userDoc = await db.collection('users').doc(currentUser.uid).get();
-          if (userDoc.exists) {
-            const userData = userDoc.data();
-            if (userData.bookmarks) {
-              bookmarks = userData.bookmarks;
-              localStorage.setItem('carbon-bookmarks', JSON.stringify(bookmarks));
-              renderBookmarks();
-            }
-          }
-        } catch (error) {
-          console.error('Error loading bookmarks from Firebase:', error);
-        }
-      }
-      
-      async function saveBookmarksToFirebase() {
-        if (!currentUser) return;
-        try {
-          await db.collection('users').doc(currentUser.uid).set({
-            bookmarks: bookmarks,
-            lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
-          }, { merge: true });
-        } catch (error) {
-          console.error('Error saving bookmarks to Firebase:', error);
-        }
-      }
-      
-      // Authentication state observer
-      auth.onAuthStateChanged((user) => {
-        currentUser = user;
-        if (user) {
-          loadBookmarksFromFirebase();
-        }
-      });
-
-      // Theme and Background Sync
-      window.addEventListener('storage', (event) => {
-        if (event.key === 'carbon-theme-global' && event.newValue) {
-          if (window.carbonTheme) {
-            window.carbonTheme.applyTheme(event.newValue);
-          }
-          applyBackground();
-        }
-        if (event.key === 'carbon-background' && event.newValue) {
-          currentBackground = event.newValue;
-          applyBackground();
-        }
-      });
-
-      window.addEventListener('message', (event) => {
-        if (event.data && event.data.type === 'carbon-theme-change') {
-          if (window.carbonTheme) {
-            window.carbonTheme.applyTheme(event.data.theme);
-          }
-          applyBackground();
-        } else if (event.data && event.data.type === 'carbon-background-change') {
-          currentBackground = event.data.background;
-          localStorage.setItem('carbon-background', currentBackground);
-          applyBackground();
-        }
-      });
-
-      function applyBackground() {
-        const body = document.body;
-        const particlesCanvas = document.getElementById('particles-canvas');
-        const baseColor = getComputedStyle(document.documentElement).getPropertyValue('--theme-base').trim();
-        particlesCanvas.classList.add('hidden');
-        switch (currentBackground) {
-          case 'solid':
-            body.style.background = baseColor;
-            break;
-          case 'pattern':
-            body.style.background = `${baseColor} url('data:image/svg+xml,<svg width="20" height="20" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><circle cx="10" cy="10" r="2" fill="%23ffffff" fill-opacity="0.2"/></svg>') repeat`;
-            break;
-          case 'particles':
-            body.style.background = baseColor;
-            particlesCanvas.classList.remove('hidden');
-            initParticles();
-            break;
-          case 'gradient':
-          default:
-            body.style.background = 'var(--theme-gradient)';
-            break;
-        }
-        body.style.backgroundAttachment = currentBackground === 'pattern' ? '' : 'fixed';
-      }
-
-      function initParticles() {
-        const canvas = document.getElementById('particles-canvas');
-        const ctx = canvas.getContext('2d');
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
-        const particlesArray = [];
-        const particleCount = 50;
-
-        class Particle {
-          constructor() {
-            this.x = Math.random() * canvas.width;
-            this.y = Math.random() * canvas.height;
-            this.size = Math.random() * 3 + 1;
-            this.speedX = Math.random() * 0.5 - 0.25;
-            this.speedY = Math.random() * 0.5 - 0.25;
-          }
-          update() {
-            this.x += this.speedX;
-            this.y += this.speedY;
-            if (this.x < 0 || this.x > canvas.width) this.speedX *= -1;
-            if (this.y < 0 || this.y > canvas.height) this.speedY *= -1;
-          }
-          draw() {
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
-            ctx.beginPath();
-            ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-            ctx.fill();
-          }
-        }
-
-        for (let i = 0; i < particleCount; i++) {
-          particlesArray.push(new Particle());
-        }
-
-        function animateParticles() {
-          if (currentBackground === 'particles' && !document.getElementById('particles-canvas').classList.contains('hidden')) {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            particlesArray.forEach(particle => {
-              particle.update();
-              particle.draw();
-            });
-            requestAnimationFrame(animateParticles);
-          }
-        }
-
-        window.addEventListener('resize', () => {
-          canvas.width = window.innerWidth;
-          canvas.height = window.innerHeight;
-        });
-
-        animateParticles();
-      }
 
       // Listen for state changes from parent frame
       window.addEventListener("message", function(event) {
@@ -628,29 +566,35 @@
         } else {
           body.classList.remove('vertical-tabs-active');
         }
+        // Mark that we've received explicit state from parent
         if (fromParent) {
           body.setAttribute('data-vertical-tabs-detected', 'true');
         }
       }
 
+      // Better detection: Check if we're in an iframe and request vertical tabs state
       function requestVerticalTabsState() {
         if (window.parent && window.parent !== window) {
+          // Request vertical tabs state from parent
           window.parent.postMessage({
             type: 'carbon-request-vertical-tabs-state'
           }, '*');
         } else {
+          // Not in iframe, check localStorage as fallback
           const savedVerticalMode = localStorage.getItem("vertical-tabs-mode");
           adjustForVerticalTabs(savedVerticalMode === "true");
         }
       }
 
+      // Listen for resize events as fallback
       window.addEventListener('resize', () => {
+        // Only auto-detect if we haven't received explicit state from parent
         if (!document.body.hasAttribute('data-vertical-tabs-detected')) {
           const isNarrow = window.innerWidth < 1200;
           adjustForVerticalTabs(isNarrow);
         }
       });
-
+      // Initial detection
       setTimeout(requestVerticalTabsState, 100);
       setTimeout(requestVerticalTabsState, 500);
 
@@ -747,7 +691,7 @@
           suggestionBox.innerHTML = currentSuggestions
             .map(
               (s, i) =>
-                `<div class="suggestion-item${i === suggestionActive ? ' active' : ''}" data-idx="${i}">${s.replace(/</g, '<')}</div>`
+                `<div class="suggestion-item${i === suggestionActive ? ' active' : ''}" data-idx="${i}">${s.replace(/</g, '&lt;')}</div>`
             )
             .join('');
           suggestionBox.classList.remove('hidden');
