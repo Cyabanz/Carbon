@@ -2404,6 +2404,10 @@
         }
         
         await loadGamesData();
+        
+        // Load background settings from Firebase
+        await loadBackgroundFromFirebase(user.uid);
+        
         currentGameId = getGameIdFromURL();
         window.currentGameId = currentGameId;
         currentGame = gamesData.find(g => g.id == currentGameId || String(g.id) == currentGameId);
@@ -2653,6 +2657,171 @@
       // Set up form event listeners with a slight delay to ensure DOM elements exist
       setTimeout(setupCommentEventListeners, 100);
     }
+
+    // Background System - Apply settings from settings.html
+    let currentBackground = 'gradient';
+    const validBackgrounds = ['gradient', 'solid', 'pattern', 'particles', 'custom'];
+
+    function initializeBackgroundSystem() {
+      // Load saved background preference
+      const savedBg = localStorage.getItem('carbon-background-global') || 'gradient';
+      if (validBackgrounds.includes(savedBg)) {
+        currentBackground = savedBg;
+        applyBackground();
+      }
+
+      // Listen for background changes from settings page
+      window.addEventListener('storage', (event) => {
+        if (event.key === 'carbon-background-global' && event.newValue) {
+          currentBackground = event.newValue;
+          applyBackground();
+        }
+      });
+
+      // Listen for theme broadcast messages
+      window.addEventListener('message', (event) => {
+        if (event.data && event.data.type === 'carbon-settings-updated') {
+          if (event.data.settings.background) {
+            currentBackground = event.data.settings.background;
+            applyBackground();
+          }
+        }
+      });
+    }
+
+    function applyBackground() {
+      const body = document.body;
+      const particlesCanvas = document.getElementById('particles-canvas');
+      const baseColor = getComputedStyle(document.documentElement).getPropertyValue('--theme-base').trim();
+      
+      // Hide particles canvas by default
+      if (particlesCanvas) particlesCanvas.classList.add('hidden');
+      
+      // Reset body background
+      body.style.background = '';
+      
+      const customBg = localStorage.getItem('carbon-custom-bg-global');
+      
+      if (currentBackground === 'custom' && customBg) {
+        body.style.background = `url(${customBg}) center/cover fixed`;
+      } else {
+        switch (currentBackground) {
+          case 'solid':
+            body.style.background = baseColor;
+            break;
+          case 'pattern':
+            body.style.background = `${baseColor} url('data:image/svg+xml,<svg width="20" height="20" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><circle cx="10" cy="10" r="2" fill="%23ffffff" fill-opacity="0.2"/></svg>') repeat`;
+            break;
+          case 'particles':
+            body.style.background = baseColor;
+            if (particlesCanvas) {
+              particlesCanvas.classList.remove('hidden');
+              initParticles();
+            }
+            break;
+          case 'gradient':
+          default:
+            body.style.background = 'var(--theme-gradient)';
+            body.style.backgroundAttachment = 'fixed';
+            break;
+        }
+      }
+    }
+
+    function initParticles() {
+      const canvas = document.getElementById('particles-canvas');
+      if (!canvas) return;
+      
+      const ctx = canvas.getContext('2d');
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      
+      const particlesArray = [];
+      const particleCount = 50;
+      
+      class Particle {
+        constructor() {
+          this.x = Math.random() * canvas.width;
+          this.y = Math.random() * canvas.height;
+          this.vx = (Math.random() - 0.5) * 2;
+          this.vy = (Math.random() - 0.5) * 2;
+          this.radius = Math.random() * 3 + 1;
+          this.opacity = Math.random() * 0.5 + 0.2;
+        }
+        
+        update() {
+          this.x += this.vx;
+          this.y += this.vy;
+          
+          if (this.x < 0 || this.x > canvas.width) this.vx *= -1;
+          if (this.y < 0 || this.y > canvas.height) this.vy *= -1;
+        }
+        
+        draw() {
+          ctx.beginPath();
+          ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(156, 207, 216, ${this.opacity})`;
+          ctx.fill();
+        }
+      }
+      
+      function createParticles() {
+        particlesArray.length = 0;
+        for (let i = 0; i < particleCount; i++) {
+          particlesArray.push(new Particle());
+        }
+      }
+      
+      function animate() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        particlesArray.forEach(particle => {
+          particle.update();
+          particle.draw();
+        });
+        
+        if (!canvas.classList.contains('hidden')) {
+          requestAnimationFrame(animate);
+        }
+      }
+      
+      createParticles();
+      animate();
+      
+      window.addEventListener('resize', () => {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        createParticles();
+      });
+    }
+
+    async function loadBackgroundFromFirebase(uid) {
+      try {
+        const userDoc = await db.collection('users').doc(uid).get();
+        if (userDoc.exists) {
+          const userData = userDoc.data();
+          const settings = userData.settings || {};
+          
+          if (settings.background && validBackgrounds.includes(settings.background)) {
+            currentBackground = settings.background;
+            localStorage.setItem('carbon-background-global', currentBackground);
+          }
+          
+          if (settings.customBackground) {
+            localStorage.setItem('carbon-custom-bg-global', settings.customBackground);
+          }
+          
+          applyBackground();
+        }
+      } catch (error) {
+        console.error('Error loading background from Firebase:', error);
+      }
+    }
+
+    // Initialize background system when DOM is loaded
+    document.addEventListener('DOMContentLoaded', () => {
+      setTimeout(initializeBackgroundSystem, 100);
+    });
 
     // Simple theme initialization - let carbon-theme.js handle everything automatically
     // The CarbonTheme system will automatically load and apply saved themes
