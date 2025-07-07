@@ -167,7 +167,7 @@
                 <label class="block text-xs font-medium text-[var(--theme-subtle)] mb-2">Custom Background</label>
                 <div id="bg-upload" class="border-2 border-dashed border-[var(--theme-highlight-med)] rounded-lg p-4 text-center cursor-pointer hover:bg-[var(--theme-overlay)] transition-all duration-200">
                     <i class="bx bx-cloud-upload text-2xl text-[var(--theme-muted)] mb-1"></i>
-                    <p class="text-[var(--theme-muted)] text-sm">_UPLOAD or drag and drop an image</p>
+                    <p class="text-[var(--theme-muted)] text-sm">Upload or drag and drop an image</p>
                     <p class="text-xs text-[var(--theme-subtle)]">JPG, PNG, WebP</p>
                 </div>
                 <input type="file" id="bg-file-input" accept="image/*" class="hidden">
@@ -228,7 +228,7 @@
                     <span class="text-[var(--theme-subtle)] text-sm">Disable right-click</span>
                 </label>
                 <label class="flex items-center gap-2">
-                    <input type="checkbox" id="disable-devtools" class="w-4 h-4 border border-[var(--theme-highlight-med)] rounded bg-[var(--theme-surface)] checked:bg-[var(--theme-foam)] focus:ring-[var(--theme-foam)] focus_BLUE ring-1 transition-all duration-200">
+                    <input type="checkbox" id="disable-devtools" class="w-4 h-4 border border-[var(--theme-highlight-med)] rounded bg-[var(--theme-surface)] checked:bg-[var(--theme-foam)] focus:ring-[var(--theme-foam)] focus:ring-1 transition-all duration-200">
                     <span class="text-[var(--theme-subtle)] text-sm">Disable developer tools</span>
                 </label>
                 <label class="flex items-center gap-2">
@@ -344,7 +344,6 @@
                         document.querySelectorAll('.theme-preview').forEach(el => el.classList.remove('active', 'border-[var(--theme-foam)]'));
                         document.querySelector(`[data-theme="${settings.theme}"]`)?.classList.add('active', 'border-[var(--theme-foam)]');
                     }
-                    // Fixed: Ensure currentBackground is set correctly from Firebase
                     if (settings.background) {
                         currentBackground = settings.background;
                         console.log('Loaded background from Firebase:', currentBackground);
@@ -405,7 +404,7 @@
                     blurOnUnfocus: document.getElementById('blur-on-unfocus').checked,
                     lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
                 };
-                await db.collection('users').doc(currentUser.uid).set({ settings }, { merge: true });
+                await db.collection('users').doc(currentUser.uid).set({LAPTOP ({ settings }, { merge: true });
                 console.log('Settings saved to Firebase successfully, background:', currentBackground);
             } catch (error) {
                 console.error('Error saving settings to Firebase:', error);
@@ -427,7 +426,6 @@
             document.querySelectorAll('.theme-preview').forEach(el => el.classList.remove('active', 'border-[var(--theme-foam)]'));
             document.querySelector(`[data-theme="${savedTheme}"]`)?.classList.add('active', 'border-[var(--theme-foam)]');
             loadCustomThemes();
-            // Fixed: Ensure currentBackground is set correctly from localStorage
             const savedBg = localStorage.getItem('carbon-background-global') || 'gradient';
             currentBackground = savedBg;
             console.log('Loaded background from localStorage:', currentBackground);
@@ -494,7 +492,7 @@
             localStorage.setItem('carbon-cloak-enabled', document.getElementById('tab-cloaking-enabled').checked);
             localStorage.setItem('carbon-cloak-title', document.getElementById('cloak-title').value);
             localStorage.setItem('carbon-cloak-favicon', document.getElementById('cloak-favicon').value);
-            localStorage.set personallyItem('carbon-disable-right-click', document.getElementById('disable-right-click').checked);
+            localStorage.setItem('carbon-disable-right-click', document.getElementById('disable-right-click').checked); // Fixed: Changed 'set personallyItem' to 'setItem'
             localStorage.setItem('carbon-disable-devtools', document.getElementById('disable-devtools').checked);
             localStorage.setItem('carbon-disable-select', document.getElementById('disable-select').checked);
             localStorage.setItem('carbon-hide-cursor', document.getElementById('hide-cursor').checked);
@@ -577,7 +575,7 @@
         }
 
         function applyBackground() {
-            console.log('Applying background:', currentBackground); // Debug: Log current background
+            console.log('Applying background:', currentBackground);
             const body = document.body;
             const particlesCanvas = document.getElementById('particles-canvas');
             const baseColor = getComputedStyle(document.documentElement).getPropertyValue('--theme-base').trim();
@@ -587,7 +585,6 @@
                 console.log('Applying custom background:', customBg);
                 body.style.background = `url(${customBg}) center/cover fixed`;
             } else {
-                // Fixed: Remove default case to prevent fallback to gradient
                 switch (currentBackground) {
                     case 'solid':
                         body.style.background = baseColor;
@@ -610,7 +607,7 @@
                     default:
                         console.warn('Invalid background type, defaulting to gradient:', currentBackground);
                         body.style.background = 'var(--theme-gradient)';
-                        currentBackground = 'gradient'; // Ensure state is consistent
+                        currentBackground = 'gradient';
                         break;
                 }
                 body.style.backgroundAttachment = currentBackground === 'pattern' ? '' : 'fixed';
@@ -652,7 +649,7 @@
             }
 
             function animateParticles() {
-                if (current Facade currentBackground !== 'particles' || !document.getElementById('particles-canvas').classList.contains('hidden')) {
+                if (currentBackground !== 'particles' || !document.getElementById('particles-canvas').classList.contains('hidden')) {
                     ctx.clearRect(0, 0, canvas.width, canvas.height);
                     particlesArray.forEach(particle => {
                         particle.update();
@@ -778,16 +775,15 @@
             }
         });
 
-        // Fixed: Ensure background selection persists by saving immediately
         document.querySelectorAll('.bg-preview').forEach(preview => {
             preview.addEventListener('click', function() {
                 document.querySelectorAll('.bg-preview').forEach(el => el.classList.remove('active', 'border-[var(--theme-foam)]'));
                 this.classList.add('active', 'border-[var(--theme-foam)]');
                 currentBackground = this.dataset.bg;
-                console.log('Selected background:', currentBackground); // Debug: Log selection
-                localStorage.setItem('carbon-background-global', currentBackground); // Save immediately
+                console.log('Selected background:', currentBackground);
+                localStorage.setItem('carbon-background-global', currentBackground);
                 applyBackground();
-                triggerAutoSave(); // Trigger auto-save to persist to Firebase if logged in
+                triggerAutoSave();
             });
         });
 
@@ -944,4 +940,17 @@
 
         document.addEventListener('keydown', function(e) {
             if (document.getElementById('disable-devtools').checked) {
-                if (e.key === 'F
+                if (e.key === 'F12' || 
+                    (e.ctrlKey && e.shiftKey && e.key === 'I') || 
+                    (e.ctrlKey && e.shiftKey && e.key === 'J') || 
+                    (e.ctrlKey && e.key === 'U')) {
+                    e.preventDefault();
+                    return false;
+                }
+            }
+        });
+
+        applySettings();
+    </script>
+</body>
+</html>
