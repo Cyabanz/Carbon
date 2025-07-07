@@ -7,11 +7,13 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+  <script src="carbon-theme.js"></script>
   <!-- Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
   <script>
+    // Tailwind config will be dynamically updated by the enhanced theme system
     tailwind.config = {
       theme: {
         extend: {
@@ -36,6 +38,187 @@
       }
     }
   </script>
+  <style>
+    :root {
+      --text-color: #e0def4;
+      --surface-color: #1f1d2e;
+      --overlay-color: #26233a;
+      --highlight-med: #403d52;
+      --highlight-high: #524f67;
+      --foam: #9ccfd8;
+      --love: #eb6f92;
+      --gold: #f6c177;
+      --pine: #31748f;
+      --iris: #c4a7e7;
+      --muted: #6e6a86;
+      --subtle: #908caa;
+
+      /* Theme variables - Rose Pine (default) */
+      --theme-base: #191724;
+      --theme-surface: #1f1d2e;
+      --theme-overlay: #26233a;
+      --theme-muted: #6e6a86;
+      --theme-subtle: #908caa;
+      --theme-text: #e0def4;
+      --theme-love: #eb6f92;
+      --theme-gold: #f6c177;
+      --theme-rose: #ebbcba;
+      --theme-pine: #31748f;
+      --theme-foam: #9ccfd8;
+      --theme-iris: #c4a7e7;
+      --theme-highlight-low: #21202e;
+      --theme-highlight-med: #403d52;
+      --theme-highlight-high: #524f67;
+      --theme-gradient: linear-gradient(135deg, #191724 0%, #1f1d2e 50%, #26233a 100%);
+    }
+    
+    body {
+      background: var(--theme-gradient);
+      background-attachment: fixed;
+    }
+    
+    /* Add all theme variations */
+    [data-theme="dark"] {
+      --theme-base: #0f172a;
+      --theme-surface: #1e293b;
+      --theme-overlay: #334155;
+      --theme-muted: #64748b;
+      --theme-subtle: #94a3b8;
+      --theme-text: #f1f5f9;
+      --theme-love: #ef4444;
+      --theme-gold: #f59e0b;
+      --theme-rose: #f97316;
+      --theme-pine: #059669;
+      --theme-foam: #06b6d4;
+      --theme-iris: #8b5cf6;
+      --theme-highlight-low: #1e293b;
+      --theme-highlight-med: #475569;
+      --theme-highlight-high: #64748b;
+      --theme-gradient: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
+    }
+    
+    [data-theme="light"] {
+      --theme-base: #f8fafc;
+      --theme-surface: #e2e8f0;
+      --theme-overlay: #cbd5e1;
+      --theme-muted: #64748b;
+      --theme-subtle: #475569;
+      --theme-text: #0f172a;
+      --theme-love: #dc2626;
+      --theme-gold: #d97706;
+      --theme-rose: #ea580c;
+      --theme-pine: #047857;
+      --theme-foam: #0891b2;
+      --theme-iris: #7c3aed;
+      --theme-highlight-low: #f1f5f9;
+      --theme-highlight-med: #e2e8f0;
+      --theme-highlight-high: #cbd5e1;
+      --theme-gradient: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 50%, #cbd5e1 100%);
+    }
+    
+    [data-theme="catppuccin"] {
+      --theme-base: #1e1e2e;
+      --theme-surface: #313244;
+      --theme-overlay: #45475a;
+      --theme-muted: #6c7086;
+      --theme-subtle: #9399b2;
+      --theme-text: #cdd6f4;
+      --theme-love: #f38ba8;
+      --theme-gold: #f9e2af;
+      --theme-rose: #fab387;
+      --theme-pine: #a6e3a1;
+      --theme-foam: #89dceb;
+      --theme-iris: #cba6f7;
+      --theme-highlight-low: #181825;
+      --theme-highlight-med: #313244;
+      --theme-highlight-high: #45475a;
+      --theme-gradient: linear-gradient(135deg, #1e1e2e 0%, #313244 50%, #45475a 100%);
+    }
+    
+    [data-theme="nord"] {
+      --theme-base: #2e3440;
+      --theme-surface: #3b4252;
+      --theme-overlay: #434c5e;
+      --theme-muted: #4c566a;
+      --theme-subtle: #d8dee9;
+      --theme-text: #eceff4;
+      --theme-love: #bf616a;
+      --theme-gold: #ebcb8b;
+      --theme-rose: #d08770;
+      --theme-pine: #a3be8c;
+      --theme-foam: #88c0d0;
+      --theme-iris: #b48ead;
+      --theme-highlight-low: #2e3440;
+      --theme-highlight-med: #434c5e;
+      --theme-highlight-high: #4c566a;
+      --theme-gradient: linear-gradient(135deg, #2e3440 0%, #3b4252 50%, #434c5e 100%);
+    }
+    
+    [data-theme="gruvbox"] {
+      --theme-base: #282828;
+      --theme-surface: #3c3836;
+      --theme-overlay: #504945;
+      --theme-muted: #665c54;
+      --theme-subtle: #a89984;
+      --theme-text: #ebdbb2;
+      --theme-love: #fb4934;
+      --theme-gold: #fabd2f;
+      --theme-rose: #fe8019;
+      --theme-pine: #b8bb26;
+      --theme-foam: #8ec07c;
+      --theme-iris: #d3869b;
+      --theme-highlight-low: #1d2021;
+      --theme-highlight-med: #3c3836;
+      --theme-highlight-high: #504945;
+      --theme-gradient: linear-gradient(135deg, #282828 0%, #3c3836 50%, #504945 100%);
+    }
+    
+    [data-theme="tokyo-night"] {
+      --theme-base: #1a1b26;
+      --theme-surface: #24283b;
+      --theme-overlay: #414868;
+      --theme-muted: #565f89;
+      --theme-subtle: #a9b1d6;
+      --theme-text: #c0caf5;
+      --theme-love: #f7768e;
+      --theme-gold: #e0af68;
+      --theme-rose: #ff9e64;
+      --theme-pine: #9ece6a;
+      --theme-foam: #7dcfff;
+      --theme-iris: #bb9af7;
+      --theme-highlight-low: #16161e;
+      --theme-highlight-med: #24283b;
+      --theme-highlight-high: #414868;
+      --theme-gradient: linear-gradient(135deg, #1a1b26 0%, #24283b 50%, #414868 100%);
+    }
+    
+    [data-theme="dracula"] {
+      --theme-base: #282a36;
+      --theme-surface: #44475a;
+      --theme-overlay: #6272a4;
+      --theme-muted: #6272a4;
+      --theme-subtle: #f8f8f2;
+      --theme-text: #f8f8f2;
+      --theme-love: #ff5555;
+      --theme-gold: #f1fa8c;
+      --theme-rose: #ffb86c;
+      --theme-pine: #50fa7b;
+      --theme-foam: #8be9fd;
+      --theme-iris: #bd93f9;
+      --theme-highlight-low: #21222c;
+      --theme-highlight-med: #44475a;
+      --theme-highlight-high: #6272a4;
+      --theme-gradient: linear-gradient(135deg, #282a36 0%, #44475a 50%, #6272a4 100%);
+    }
+
+    /* Activity item hover effect */
+    .activity-item {
+      transition: all 0.3s ease;
+    }
+    .activity-item:hover {
+      background: rgba(156, 207, 216, 0.05);
+    }
+  </style>
 </head>
 <body class="bg-rp-base min-h-screen text-rp-text font-[Inter] antialiased">
 
@@ -129,6 +312,11 @@
         </h2>
         <div class="bg-rp-surface rounded-xl border border-rp-overlay p-4">
           <div id="activityFeed" class="max-h-64 overflow-y-auto"></div>
+          <div id="activityLoader" class="text-center py-8 hidden">
+            <div class="inline-block w-6 h-6 border-2 border-rp-foam border-t-transparent rounded-full animate-spin"></div>
+            <p class="text-rp-foam mt-2">Loading activity...</p>
+          </div>
+          <div id="noActivity" class="text-rp-subtle text-sm text-center py-4 hidden">No recent activity</div>
         </div>
       </div>
     </div>
@@ -196,6 +384,11 @@
         </h2>
         <div class="bg-rp-surface rounded-xl border border-rp-overlay p-4">
           <div id="publicActivityFeed" class="max-h-64 overflow-y-auto"></div>
+          <div id="publicActivityLoader" class="text-center py-8 hidden">
+            <div class="inline-block w-6 h-6 border-2 border-rp-foam border-t-transparent rounded-full animate-spin"></div>
+            <p class="text-rp-foam mt-2">Loading activity...</p>
+          </div>
+          <div id="publicNoActivity" class="text-rp-subtle text-sm text-center py-4 hidden">No recent activity</div>
         </div>
       </div>
     </div>
@@ -230,8 +423,12 @@
 
     let gamesData = [];
     async function loadGamesData() {
-      const res = await fetch('games.json');
-      gamesData = await res.json();
+      try {
+        const res = await fetch('games.json');
+        gamesData = await res.json();
+      } catch (error) {
+        console.error('Error loading games data:', error);
+      }
     }
 
     async function getUserGameLists(uid) {
@@ -339,8 +536,9 @@
     }
 
     function getActivityDescription(activity) {
-      const gameTitle = activity.data && activity.data.gameId ?
-        (gamesData.find(g => g.id === String(activity.data.gameId))?.title || 'Unknown Game') : '';
+      const gameTitle = activity.data && activity.data.gameId 
+        ? (gamesData.find(g => String(g.id) === String(activity.data.gameId))?.title || 'Unknown Game') 
+        : '';
       switch (activity.action) {
         case 'play':
           return `Started playing ${gameTitle}`;
@@ -349,15 +547,29 @@
         case 'random-play':
           return `Played random game: ${gameTitle}`;
         case 'search':
-          return `Searched for "${activity.data.query}"`;
+          return `Searched for "${activity.data.query || 'unknown'}"`;
         case 'pin':
           return `Pinned ${gameTitle}`;
         case 'unpin':
           return `Unpinned ${gameTitle}`;
         case 'page-view':
-          return `Visited ${activity.data.page} page`;
+          return `Visited ${activity.data.page || 'unknown'} page`;
+        case 'like':
+          return `Liked ${gameTitle}`;
+        case 'unlike':
+          return `Unliked ${gameTitle}`;
+        case 'favorite':
+          return `Favorited ${gameTitle}`;
+        case 'unfavorite':
+          return `Unfavorited ${gameTitle}`;
+        case 'comment':
+          return `Commented on ${gameTitle}`;
+        case 'reply':
+          return `Replied to a comment on ${gameTitle}`;
+        case 'rate':
+          return `Rated ${gameTitle} ${activity.data.rating || 0} stars`;
         default:
-          return 'Unknown activity';
+          return 'Performed an action';
       }
     }
 
@@ -370,19 +582,30 @@
         case 'search':
           return 'bx-search';
         case 'pin':
-          return 'bx-pin';
+        case 'favorite':
+          return 'bx-heart';
         case 'unpin':
-          return 'bx-pin';
+        case 'unfavorite':
+          return 'bx-heart';
         case 'page-view':
           return 'bx-globe';
+        case 'like':
+        case 'unlike':
+          return 'bx-like';
+        case 'comment':
+        case 'reply':
+          return 'bx-message-square-dots';
+        case 'rate':
+          return 'bx-star';
         default:
           return 'bx-activity';
       }
     }
 
     function getTimeAgo(timestamp) {
+      if (!timestamp || !timestamp.toDate) return 'Just now';
       const now = Date.now();
-      const diff = now - timestamp;
+      const diff = now - timestamp.toDate().getTime();
       const minutes = Math.floor(diff / 60000);
       const hours = Math.floor(diff / 3600000);
       const days = Math.floor(diff / 86400000);
@@ -394,15 +617,23 @@
 
     function renderActivityFeed(activities, feedId) {
       const feed = document.getElementById(feedId);
+      const loader = document.getElementById(feedId === 'activityFeed' ? 'activityLoader' : 'publicActivityLoader');
+      const noActivity = document.getElementById(feedId === 'activityFeed' ? 'noActivity' : 'publicNoActivity');
+
+      if (loader) loader.classList.add('hidden');
       if (!activities || activities.length === 0) {
-        feed.innerHTML = '<p class="text-rp-subtle text-sm text-center py-4">No recent activity</p>';
+        feed.innerHTML = '';
+        if (noActivity) noActivity.classList.remove('hidden');
         return;
       }
+
+      if (noActivity) noActivity.classList.add('hidden');
       feed.innerHTML = activities.map(activity => {
+        if (!activity.action || !activity.timestamp) return '';
         const timeAgo = getTimeAgo(activity.timestamp);
         const description = getActivityDescription(activity);
         return `
-          <div class="flex items-start gap-3 py-3 border-b border-rp-overlay last:border-0">
+          <div class="activity-item flex items-start gap-3 py-3 border-b border-rp-overlay last:border-0">
             <div class="w-8 h-8 rounded-full bg-rp-overlay flex items-center justify-center flex-shrink-0">
               <i class='bx ${getActivityIcon(activity.action)} text-rp-foam text-sm'></i>
             </div>
@@ -412,15 +643,23 @@
             </div>
           </div>
         `;
-      }).join('');
+      }).filter(item => item).join('');
     }
 
     async function loadActivityFeed(uid, feedId) {
-      const doc = await db.collection('user-activity').doc(uid).get();
-      if (doc.exists) {
-        const activities = doc.data().activities || [];
+      const loader = document.getElementById(feedId === 'activityFeed' ? 'activityLoader' : 'publicActivityLoader');
+      const noActivity = document.getElementById(feedId === 'activityFeed' ? 'noActivity' : 'publicNoActivity');
+      if (loader) loader.classList.remove('hidden');
+      if (noActivity) noActivity.classList.add('hidden');
+
+      try {
+        const doc = await db.collection('user-activity').doc(uid).get();
+        const activities = doc.exists ? (doc.data().activities || []).filter(activity => 
+          activity.action && activity.timestamp
+        ) : [];
         renderActivityFeed(activities.slice(-10).reverse(), feedId);
-      } else {
+      } catch (error) {
+        console.error('Error loading activity feed:', error);
         renderActivityFeed([], feedId);
       }
     }
@@ -518,6 +757,31 @@
         };
       });
     });
+
+    // THEME SYNC - Auto-syncs from settings.html via enhanced theme system
+    // The carbon-theme.js handles theme application automatically from global storage
+    
+    // Listen for theme changes from settings page
+    window.addEventListener('storage', (event) => {
+      if (event.key === 'carbon-theme-global' && event.newValue) {
+        // Theme changed in another tab/window - apply automatically
+        if (window.carbonTheme) {
+          window.carbonTheme.applyTheme(event.newValue);
+        }
+      }
+    });
+    
+    // Listen for theme broadcast messages
+    window.addEventListener('message', (event) => {
+      if (event.data && event.data.type === 'carbon-theme-change') {
+        // Theme changed in settings - apply automatically
+        if (window.carbonTheme) {
+          window.carbonTheme.applyTheme(event.data.theme);
+        }
+      }
+    });
+
+    // Initialize theme on load (carbon-theme.js handles this automatically)
   </script>
 </body>
 </html>
