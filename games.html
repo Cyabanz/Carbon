@@ -960,6 +960,23 @@
       console.log('Mobile menu toggled');
     };
 
+    // Background system event listeners
+    window.addEventListener('storage', (event) => {
+      if (event.key === 'carbon-background-global' && event.newValue) {
+        currentBackground = event.newValue;
+        applyBackground();
+      }
+    });
+
+    window.addEventListener('message', (event) => {
+      if (event.data && event.data.type === 'carbon-settings-updated') {
+        if (event.data.settings.background) {
+          currentBackground = event.data.settings.background;
+          applyBackground();
+        }
+      }
+    });
+
     document.addEventListener('DOMContentLoaded', async () => {
       await setupAuth();
       await initializeGames();
@@ -972,6 +989,11 @@
       document.getElementById('catCarouselNext').onclick = () => {
         carousel.scrollBy({left: 220, behavior: 'smooth'});
       };
+      
+      // Initialize background system
+      setTimeout(() => {
+        loadSettings();
+      }, 100);
     });
 
     document.addEventListener('scroll', function() {
