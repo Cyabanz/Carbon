@@ -756,7 +756,6 @@
                 }
             }
 
-            // Clear existing particles to prevent duplicates
             particlesArray.length = 0;
             for (let i = 0; i < particleCount; i++) {
                 particlesArray.push(new Particle());
@@ -829,7 +828,6 @@
             }
         }
 
-        // Custom Theme Color Wheel System
         function initializeColorWheel() {
             const createBtn = document.getElementById('create-custom-theme-btn');
             const container = document.getElementById('color-wheel-container');
@@ -839,7 +837,6 @@
             const nameInput = document.getElementById('custom-theme-name');
             const preview = document.getElementById('theme-preview');
 
-            // Color inputs
             const colorInputs = {
                 base: document.getElementById('color-base'),
                 surface: document.getElementById('color-surface'),
@@ -851,29 +848,24 @@
                 iris: document.getElementById('color-iris')
             };
 
-            // Open color wheel
             createBtn.addEventListener('click', () => {
                 container.classList.remove('hidden');
                 updatePreview();
             });
 
-            // Close color wheel
             closeBtn.addEventListener('click', () => {
                 container.classList.add('hidden');
                 resetColorInputs();
             });
 
-            // Update preview when colors change
             Object.values(colorInputs).forEach(input => {
                 input.addEventListener('input', updatePreview);
             });
 
-            // Generate random colors
             randomBtn.addEventListener('click', () => {
                 const randomHues = [];
                 const baseHue = Math.random() * 360;
                 
-                // Generate harmonious color palette
                 for (let i = 0; i < 8; i++) {
                     randomHues.push((baseHue + (i * 45)) % 360);
                 }
@@ -890,7 +882,6 @@
                 updatePreview();
             });
 
-            // Save custom theme
             saveBtn.addEventListener('click', () => {
                 const name = nameInput.value.trim();
                 if (!name) {
@@ -968,12 +959,12 @@
             customThemes[name] = theme;
             localStorage.setItem('carbon-custom-themes', JSON.stringify(customThemes));
             
-            // Add to carbon-theme.js if available
-            if (window.carbonTheme) {
-                window.carbonTheme.addCustomTheme(name, theme);
+            if (window.carbonTheme && typeof window.carbonTheme.createCustomTheme === 'function') {
+                window.carbonTheme.createCustomTheme(name, theme);
+            } else {
+                console.warn('carbonTheme.createCustomTheme is not available. Ensure carbon-theme.js is loaded.');
             }
             
-            // Save to Firebase
             if (currentUser) {
                 saveCustomThemesToFirebase(customThemes);
             }
@@ -988,12 +979,10 @@
                 delete customThemes[name];
                 localStorage.setItem('carbon-custom-themes', JSON.stringify(customThemes));
                 
-                // Remove from carbon-theme.js if available
-                if (window.carbonTheme) {
-                    window.carbonTheme.removeCustomTheme(name);
+                if (window.carbonTheme && typeof window.carbonTheme.deleteCustomTheme === 'function') {
+                    window.carbonTheme.deleteCustomTheme(name);
                 }
                 
-                // If currently using this theme, switch to default
                 if (currentTheme === name) {
                     currentTheme = 'rose-pine';
                     localStorage.setItem('carbon-theme-global', currentTheme);
@@ -1002,7 +991,6 @@
                     document.querySelector(`[data-theme="rose-pine"]`)?.classList.add('active', 'border-[var(--theme-foam)]');
                 }
                 
-                // Save to Firebase
                 if (currentUser) {
                     saveCustomThemesToFirebase(customThemes);
                 }
@@ -1030,10 +1018,9 @@
                     const themes = userDoc.data().customThemes;
                     localStorage.setItem('carbon-custom-themes', JSON.stringify(themes));
                     
-                    // Add to carbon-theme.js if available
-                    if (window.carbonTheme) {
+                    if (window.carbonTheme && typeof window.carbonTheme.createCustomTheme === 'function') {
                         Object.entries(themes).forEach(([name, theme]) => {
-                            window.carbonTheme.addCustomTheme(name, theme);
+                            window.carbonTheme.createCustomTheme(name, theme);
                         });
                     }
                 }
@@ -1042,7 +1029,6 @@
             }
         }
 
-        // Enhanced loadCustomThemes function
         function loadCustomThemes() {
             const customThemes = JSON.parse(localStorage.getItem('carbon-custom-themes') || '{}');
             const customThemesGrid = document.getElementById('custom-themes-grid');
@@ -1064,7 +1050,6 @@
                         </div>
                     `;
                     
-                    // Add click event for theme selection
                     themeDiv.addEventListener('click', () => {
                         currentTheme = name;
                         localStorage.setItem('carbon-theme-global', currentTheme);
@@ -1081,7 +1066,6 @@
             }
         }
 
-        // Initialize color wheel and load custom themes when DOM is ready
         document.addEventListener('DOMContentLoaded', () => {
             setTimeout(() => {
                 initializeColorWheel();
@@ -1130,19 +1114,23 @@
                 const container = document.getElementById('color-wheel-container');
                 container.classList.remove('hidden');
                 container.innerHTML = '';
-                window.carbonTheme.createColorWheel(container, (themeName, theme) => {
-                    container.classList.add('hidden');
-                    loadCustomThemes();
-                    currentTheme = themeName;
-                    document.querySelectorAll('.theme-preview').forEach(el => el.classList.remove('active', 'border-[var(--theme-foam)]'));
-                    document.querySelector(`[data-theme="${themeName}"]`)?.classList.add('active', 'border-[var(--theme-foam)]');
-                });
+                if (window.carbonTheme && typeof window.carbonTheme.createColorWheel === 'function') {
+                    window.carbonTheme.createColorWheel(container, (themeName, theme) => {
+                        container.classList.add('hidden');
+                        loadCustomThemes();
+                        currentTheme = themeName;
+                        document.querySelectorAll('.theme-preview').forEach(el => el.classList.remove('active', 'border-[var(--theme-foam)]'));
+                        document.querySelector(`[data-theme="${themeName}"]`)?.classList.add('active', 'border-[var(--theme-foam)]');
+                    });
+                }
             }
             if (e.target.closest('.delete-custom-theme')) {
                 e.stopPropagation();
                 const themeName = e.target.closest('.delete-custom-theme').dataset.theme;
                 if (confirm(`Delete custom theme "${themeName}"?`)) {
-                    window.carbonTheme.deleteCustomTheme(themeName);
+                    if (window.carbonTheme && typeof window.carbonTheme.deleteCustomTheme === 'function') {
+                        window.carbonTheme.deleteCustomTheme(themeName);
+                    }
                     loadCustomThemes();
                     if (currentTheme === themeName) {
                         currentTheme = 'rose-pine';
