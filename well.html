@@ -44,6 +44,9 @@
         document.documentElement.setAttribute('data-theme', 'rose-pine');
     </script>
 
+    <!-- Particles Canvas -->
+    <canvas id="particles-canvas" class="fixed inset-0 pointer-events-none hidden"></canvas>
+
     <!-- Login Screen -->
     <div id="login-screen" class="min-h-screen flex items-center justify-center px-4">
         <div class="bg-[var(--theme-surface)] rounded-xl p-6 max-w-sm w-full shadow-lg">
@@ -149,13 +152,13 @@
                     <div class="bg-preview active rounded-lg p-2 cursor-pointer border border-[var(--theme-foam)] transition-all duration-200" data-bg="gradient" style="background: var(--theme-gradient);">
                         <div class="text-center text-xs text-white">Gradient</div>
                     </div>
-                    <div class="bg-preview rounded-lg p-2 cursor-pointer border border-transparent hover:border-[var(--theme-foam)] transition-all duration-200" data-bg="solid" style="background: var(--theme-base);">
+                    <div class="bg-preview rounded-lg p-2 cursor-pointer border border-transparent hover:border-[var(--theme-foam)] transition-all duration-200" data-bg="solid">
                         <div class="text-center text-xs text-white">Solid</div>
                     </div>
-                    <div class="bg-preview rounded-lg p-2 cursor-pointer border border-transparent hover:border-[var(--theme-foam)] transition-all duration-200" data-bg="pattern" style="background: var(--theme-base) url('data:image/svg+xml,<svg width=\"20\" height=\"20\" viewBox=\"0 0 20 20\" xmlns=\"http://www.w3.org/2000/svg\"><circle cx=\"10\" cy=\"10\" r=\"1\" fill=\"%23ffffff\" fill-opacity=\"0.1\"/></svg>');">
+                    <div class="bg-preview rounded-lg p-2 cursor-pointer border border-transparent hover:border-[var(--theme-foam)] transition-all duration-200" data-bg="pattern">
                         <div class="text-center text-xs text-white">Pattern</div>
                     </div>
-                    <div class="bg-preview rounded-lg p-2 cursor-pointer border border-transparent hover:border-[var(--theme-foam)] transition-all duration-200" data-bg="particles" style="background: var(--theme-base);">
+                    <div class="bg-preview rounded-lg p-2 cursor-pointer border border-transparent hover:border-[var(--theme-foam)] transition-all duration-200" data-bg="particles">
                         <div class="text-center text-xs text-white">Particles</div>
                     </div>
                 </div>
@@ -316,6 +319,7 @@
             } else {
                 loadSettings();
             }
+            initParticles();
         });
 
         async function loadSettingsFromFirebase() {
@@ -350,7 +354,7 @@
                     }
                     document.getElementById('tab-cloaking-enabled').checked = settings.cloakingEnabled || false;
                     document.getElementById('cloak-title').value = settings.cloakTitle || '';
-                    document.getElementById('cloak-favicon').value = settings.cloakFavicon || false;
+                    document.getElementById('cloak-favicon').value = settings.cloakFavicon || '';
                     document.getElementById('disable-right-click').checked = settings.disableRightClick || false;
                     document.getElementById('disable-devtools').checked = settings.disableDevtools || false;
                     document.getElementById('disable-select').checked = settings.disableSelect || false;
@@ -428,6 +432,7 @@
             document.getElementById('blur-on-unfocus').checked = localStorage.getItem('carbon-blur-unfocus') === 'true';
             toggleCloakingOptions();
             updateStatusIndicators();
+            applySettings();
         }
 
         function loadCustomThemes() {
@@ -539,37 +544,97 @@
             const gradientPreview = document.querySelector('[data-bg="gradient"]');
             const solidPreview = document.querySelector('[data-bg="solid"]');
             const patternPreview = document.querySelector('[data-bg="pattern"]');
+            const particlesPreview = document.querySelector('[data-bg="particles"]');
+            const baseColor = getComputedStyle(document.documentElement).getPropertyValue('--theme-base').trim();
             if (gradientPreview) gradientPreview.style.background = 'var(--theme-gradient)';
-            if (solidPreview) solidPreview.style.background = 'var(--theme-base)';
+            if (solidPreview) solidPreview.style.background = baseColor;
             if (patternPreview) {
-                const baseColor = getComputedStyle(document.documentElement).getPropertyValue('--theme-base').trim();
-                patternPreview.style.background = `${baseColor} url('data:image/svg+xml,<svg width="20" height="20" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><circle cx="10" cy="10" r="1" fill="%23ffffff" fill-opacity="0.1"/></svg>')`;
+                patternPreview.style.background = `${baseColor} url('data:image/svg+xml,<svg width="20" height="20" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><circle cx="10" cy="10" r="2" fill="%23ffffff" fill-opacity="0.2"/></svg>') repeat`;
             }
+            if (particlesPreview) particlesPreview.style.background = baseColor;
         }
 
         function applyBackground() {
             const body = document.body;
+            const particlesCanvas = document.getElementById('particles-canvas');
+            const baseColor = getComputedStyle(document.documentElement).getPropertyValue('--theme-base').trim();
+            particlesCanvas.classList.add('hidden');
             const customBg = localStorage.getItem('carbon-custom-bg-global');
             if (customBg) {
                 body.style.background = `url(${customBg}) center/cover fixed`;
             } else {
                 switch (currentBackground) {
                     case 'solid':
-                        body.style.background = 'var(--theme-base)';
+                        body.style.background = baseColor;
                         break;
                     case 'pattern':
-                        body.style.background = `var(--theme-base) url('data:image/svg+xml,<svg width="20" height="20" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><circle cx="10" cy="10" r="1" fill="%23ffffff" fill-opacity="0.1"/></svg>')`;
+                        body.style.background = `${baseColor} url('data:image/svg+xml,<svg width="20" height="20" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><circle cx="10" cy="10" r="2" fill="%23ffffff" fill-opacity="0.2"/></svg>') repeat`;
                         break;
                     case 'particles':
-                        body.style.background = 'var(--theme-base)';
+                        body.style.background = baseColor;
+                        particlesCanvas.classList.remove('hidden');
+                        initParticles();
                         break;
                     case 'gradient':
                     default:
                         body.style.background = 'var(--theme-gradient)';
                         break;
                 }
-                body.style.backgroundAttachment = 'fixed';
+                body.style.backgroundAttachment = currentBackground === 'pattern' ? '' : 'fixed';
             }
+        }
+
+        function initParticles() {
+            const canvas = document.getElementById('particles-canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            const particlesArray = [];
+            const particleCount = 50;
+
+            class Particle {
+                constructor() {
+                    this.x = Math.random() * canvas.width;
+                    this.y = Math.random() * canvas.height;
+                    this.size = Math.random() * 3 + 1;
+                    this.speedX = Math.random() * 0.5 - 0.25;
+                    this.speedY = Math.random() * 0.5 - 0.25;
+                }
+                update() {
+                    this.x += this.speedX;
+                    this.y += this.speedY;
+                    if (this.x < 0 || this.x > canvas.width) this.speedX *= -1;
+                    if (this.y < 0 || this.y > canvas.height) this.speedY *= -1;
+                }
+                draw() {
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+
+            for (let i = 0; i < particleCount; i++) {
+                particlesArray.push(new Particle());
+            }
+
+            function animateParticles() {
+                if (currentBackground !== 'particles' || !document.getElementById('particles-canvas').classList.contains('hidden')) {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    particlesArray.forEach(particle => {
+                        particle.update();
+                        particle.draw();
+                    });
+                    requestAnimationFrame(animateParticles);
+                }
+            }
+
+            window.addEventListener('resize', () => {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+            });
+
+            animateParticles();
         }
 
         function applyTabCloaking() {
