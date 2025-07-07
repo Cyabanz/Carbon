@@ -10,7 +10,6 @@
                 theme: {
                     extend: {
                         fontFamily: {
-                            display: ["Switzer", "Helvetica", "sans-serif"],
                             inter: ["Inter", "sans-serif"],
                         },
                         colors: {
@@ -36,10 +35,10 @@
         }
     </script>
     <script defer async src="https://cdn.tailwindcss.com" onload="setConfig()"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
     <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet" />
 </head>
-<body class="font-inter min-h-screen bg-gradient-to-br from-[var(--theme-base)] via-[var(--theme-surface)] to-[var(--theme-overlay)] text-[var(--theme-text)] transition-all duration-300">
+<body class="font-inter min-h-screen bg-[var(--theme-base)] text-[var(--theme-text)] transition-all duration-300">
     <!-- Theme color schemes -->
     <script>
         document.documentElement.setAttribute('data-theme', 'rose-pine');
@@ -47,62 +46,56 @@
 
     <!-- Login Screen -->
     <div id="login-screen" class="min-h-screen flex items-center justify-center px-4">
-        <div class="bg-[var(--theme-surface)] border border-[var(--theme-overlay)] rounded-2xl shadow-2xl p-8 max-w-md w-full">
-            <div class="text-center mb-8">
-                <i class="bx bx-cog text-5xl text-[var(--theme-foam)] mb-4"></i>
-                <h1 class="text-2xl font-bold text-[var(--theme-text)]">Carbon Settings</h1>
-                <p class="text-[var(--theme-muted)]">Sign in to access your settings and sync across devices</p>
+        <div class="bg-[var(--theme-surface)] rounded-xl p-6 max-w-sm w-full shadow-lg">
+            <div class="text-center mb-6">
+                <i class="bx bx-cog text-4xl text-[var(--theme-foam)] mb-3"></i>
+                <h1 class="text-xl font-semibold">Carbon Settings</h1>
+                <p class="text-[var(--theme-muted)] text-sm">Sign in to customize and sync settings</p>
             </div>
-            <button id="google-signin-btn" class="w-full flex items-center justify-center gap-3 bg-[var(--theme-foam)] hover:bg-[var(--theme-foam)]/90 text-[var(--theme-base)] font-medium px-6 py-3 rounded-lg transition-all duration-200">
-                <i class='bx bxl-google text-xl'></i>
-                Continue with Google
+            <button id="google-signin-btn" class="w-full flex items-center justify-center gap-2 bg-[var(--theme-foam)] text-[var(--theme-base)] font-medium py-2 rounded-lg hover:bg-[var(--theme-foam)]/80 transition-all duration-200">
+                <i class='bx bxl-google text-lg'></i>
+                Sign in with Google
             </button>
-            <div id="login-error" class="text-[var(--theme-love)] mt-4 text-sm text-center hidden"></div>
+            <div id="login-error" class="text-[var(--theme-love)] mt-3 text-sm text-center hidden"></div>
         </div>
     </div>
 
     <!-- Settings Content -->
-    <div id="settings-content" class="max-w-4xl mx-auto p-6 hidden">
-        <div class="mb-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-            <div>
-                <h1 class="text-3xl font-bold flex items-center gap-3">
-                    <i class="bx bx-cog text-[var(--theme-foam)]"></i>
-                    <span class="bg-gradient-to-r from-[var(--theme-foam)] to-[var(--theme-iris)] bg-clip-text text-transparent">Carbon Settings</span>
-                </h1>
-                <p class="text-[var(--theme-muted)]">Customize your Carbon browser experience</p>
+    <div id="settings-content" class="max-w-3xl mx-auto p-4 hidden">
+        <!-- Header with User Info -->
+        <header class="flex justify-between items-center mb-8">
+            <h1 class="text-2xl font-semibold flex items-center gap-2">
+                <i class="bx bx-cog text-[var(--theme-foam)]"></i>
+                Settings
+            </h1>
+            <div id="user-info" class="flex items-center gap-2">
+                <p id="user-name" class="text-sm font-medium"></p>
+                <img id="user-photo" class="w-8 h-8 rounded-full border border-[var(--theme-foam)]/50" src="" alt="Profile">
+                <button id="sign-out-btn" class="text-[var(--theme-muted)] hover:text-[var(--theme-love)] text-sm">Sign Out</button>
             </div>
-            <div id="user-info" class="flex items-center gap-3">
-                <img id="user-photo" class="w-10 h-10 rounded-full border-2 border-[var(--theme-foam)]/50" src="" alt="Profile">
-                <div>
-                    <p id="user-name" class="text-[var(--theme-text)] font-medium"></p>
-                    <button id="sign-out-btn" class="text-[var(--theme-muted)] hover:text-[var(--theme-love)] text-sm transition-colors">Sign Out</button>
-                </div>
-            </div>
-        </div>
+        </header>
 
-        <!-- Panic Key Settings -->
-        <div class="bg-[var(--theme-surface)] border border-[var(--theme-overlay)] rounded-2xl p-6 mb-6 hover:border-[var(--theme-highlight-med)] hover:shadow-lg transition-all duration-300">
-            <h2 class="text-xl font-semibold mb-4 flex items-center gap-2">
+        <!-- Panic Key -->
+        <div class="bg-[var(--theme-surface)] rounded-xl p-5 mb-4 shadow-sm hover:shadow-md transition-shadow duration-200">
+            <h2 class="text-lg font-medium flex items-center gap-2 mb-3">
                 <i class="bx bx-shield-alt-2 text-[var(--theme-love)]"></i>
                 Panic Key
                 <span id="panic-status" class="w-2 h-2 rounded-full bg-[var(--theme-muted)]"></span>
             </h2>
-            <p class="text-[var(--theme-muted)] mb-4">Set a key to quickly close Carbon and redirect</p>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <p class="text-[var(--theme-muted)] text-sm mb-3">Set a key to close Carbon and redirect</p>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                    <label class="block text-sm font-medium mb-2 text-[var(--theme-subtle)]">Current Panic Key</label>
-                    <div id="panic-key-display" class="bg-[var(--theme-overlay)] text-[var(--theme-foam)] border border-[var(--theme-highlight-med)] rounded-lg p-4 text-center text-lg font-semibold transition-all duration-300">
-                        Press "Set Key" to configure
-                    </div>
+                    <label class="block text-xs font-medium text-[var(--theme-subtle)] mb-1">Current Key</label>
+                    <div id="panic-key-display" class="bg-[var(--theme-overlay)] text-[var(--theme-foam)] rounded-lg p-3 text-center text-sm font-medium">Press "Set Key" to configure</div>
                 </div>
                 <div>
-                    <label class="block text-sm font-medium mb-2 text-[var(--theme-subtle)]">Actions</label>
+                    <label class="block text-xs font-medium text-[var(--theme-subtle)] mb-1">Actions</label>
                     <div class="flex gap-2">
-                        <button id="set-panic-key" class="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[var(--theme-foam)] to-[var(--theme-pine)] text-[var(--theme-base)] rounded-lg hover:shadow-md transition-all duration-200">
+                        <button id="set-panic-key" class="flex items-center gap-1 px-3 py-2 bg-[var(--theme-foam)] text-[var(--theme-base)] rounded-lg text-sm hover:bg-[var(--theme-foam)]/80 transition-all duration-200">
                             <i class="bx bx-key"></i>
                             Set Key
                         </button>
-                        <button id="clear-panic-key" class="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[var(--theme-love)] to-[#d63384] text-white rounded-lg hover:shadow-md transition-all duration-200">
+                        <button id="clear-panic-key" class="flex items-center gap-1 px-3 py-2 bg-[var(--theme-love)] text-white rounded-lg text-sm hover:bg-[var(--theme-love)]/80 transition-all duration-200">
                             <i class="bx bx-trash"></i>
                             Clear
                         </button>
@@ -110,202 +103,150 @@
                 </div>
             </div>
             <div class="mt-4">
-                <label class="block text-sm font-medium mb-2 text-[var(--theme-subtle)]">Panic Redirect URL</label>
-                <input type="url" id="panic-url" placeholder="https://classroom.google.com" class="w-full px-3 py-2 bg-[var(--theme-overlay)] border border-[var(--theme-highlight-med)] text-[var(--theme-text)] rounded-lg focus:border-[var(--theme-foam)] focus:ring-2 focus:ring-[var(--theme-foam)]/20 transition-all duration-200">
+                <label class="block text-xs font-medium text-[var(--theme-subtle)] mb-1">Redirect URL</label>
+                <input type="url" id="panic-url" placeholder="https://classroom.google.com" class="w-full px-3 py-2 bg-[var(--theme-overlay)] border border-[var(--theme-highlight-med)] text-[var(--theme-text)] rounded-lg text-sm focus:border-[var(--theme-foam)] focus:ring-1 focus:ring-[var(--theme-foam)]/30 transition-all duration-200">
             </div>
         </div>
 
-        <!-- Theme & Background Settings -->
-        <div class="bg-[var(--theme-surface)] border border-[var(--theme-overlay)] rounded-2xl p-6 mb-6 hover:border-[var(--theme-highlight-med)] hover:shadow-lg transition-all duration-300">
-            <h2 class="text-xl font-semibold mb-4 flex items-center gap-2">
+        <!-- Theme & Background -->
+        <div class="bg-[var(--theme-surface)] rounded-xl p-5 mb-4 shadow-sm hover:shadow-md transition-shadow duration-200">
+            <h2 class="text-lg font-medium flex items-center gap-2 mb-3">
                 <i class="bx bx-palette text-[var(--theme-iris)]"></i>
                 Theme & Background
             </h2>
-            <p class="text-[var(--theme-muted)] mb-4">Choose your preferred theme and background</p>
-            <div class="mb-6">
-                <label class="block text-sm font-medium mb-3 text-[var(--theme-subtle)]">Theme Colors</label>
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
-                    <div class="theme-preview active rounded-lg p-2 cursor-pointer border-2 border-transparent hover:border-[var(--theme-muted)] hover:scale-105 transition-all duration-200" data-theme="rose-pine" style="background: linear-gradient(135deg, #191724 0%, #1f1d2e 50%, #26233a 100%);">
+            <p class="text-[var(--theme-muted)] text-sm mb-3">Customize appearance</p>
+            <div class="mb-4">
+                <label class="block text-xs font-medium text-[var(--theme-subtle)] mb-2">Themes</label>
+                <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    <div class="theme-preview active rounded-lg p-2 cursor-pointer border border-transparent hover:border-[var(--theme-foam)] transition-all duration-200" data-theme="rose-pine" style="background: linear-gradient(135deg, #191724 0%, #1f1d2e 50%, #26233a 100%);">
                         <div class="text-center text-xs text-white">Rose Pine</div>
                     </div>
-                    <div class="theme-preview rounded-lg p-2 cursor-pointer border-2 border-transparent hover:border-[var(--theme-muted)] hover:scale-105 transition-all duration-200" data-theme="dark" style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);">
+                    <div class="theme-preview rounded-lg p-2 cursor-pointer border border-transparent hover:border-[var(--theme-foam)] transition-all duration-200" data-theme="dark" style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);">
                         <div class="text-center text-xs text-white">Dark</div>
                     </div>
-                    <div class="theme-preview rounded-lg p-2 cursor-pointer border-2 border-transparent hover:border-[var(--theme-muted)] hover:scale-105 transition-all duration-200" data-theme="light" style="background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 50%, #cbd5e1 100%);">
+                    <div class="theme-preview rounded-lg p-2 cursor-pointer border border-transparent hover:border-[var(--theme-foam)] transition-all duration-200" data-theme="light" style="background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 50%, #cbd5e1 100%);">
                         <div class="text-center text-xs text-black">Light</div>
                     </div>
-                    <div class="theme-preview rounded-lg p-2 cursor-pointer border-2 border-transparent hover:border-[var(--theme-muted)] hover:scale-105 transition-all duration-200" data-theme="catppuccin" style="background: linear-gradient(135deg, #1e1e2e 0%, #313244 50%, #45475a 100%);">
+                    <div class="theme-preview rounded-lg p-2 cursor-pointer border border-transparent hover:border-[var(--theme-foam)] transition-all duration-200" data-theme="catppuccin" style="background: linear-gradient(135deg, #1e1e2e 0%, #313244 50%, #45475a 100%);">
                         <div class="text-center text-xs text-white">Catppuccin</div>
                     </div>
-                    <div class="theme-preview rounded-lg p-2 cursor-pointer border-2 border-transparent hover:border-[var(--theme-muted)] hover:scale-105 transition-all duration-200" data-theme="nord" style="background: linear-gradient(135deg, #2e3440 0%, #3b4252 50%, #434c5e 100%);">
+                    <div class="theme-preview rounded-lg p-2 cursor-pointer border border-transparent hover:border-[var(--theme-foam)] transition-all duration-200" data-theme="nord" style="background: linear-gradient(135deg, #2e3440 0%, #3b4252 50%, #434c5e 100%);">
                         <div class="text-center text-xs text-white">Nord</div>
                     </div>
-                    <div class="theme-preview rounded-lg p-2 cursor-pointer border-2 border-transparent hover:border-[var(--theme-muted)] hover:scale-105 transition-all duration-200" data-theme="gruvbox" style="background: linear-gradient(135deg, #282828 0%, #3c3836 50%, #504945 100%);">
-                        <div class="text-center text-xs text-white">Gruvbox</div>
-                    </div>
-                    <div class="theme-preview rounded-lg p-2 cursor-pointer border-2 border-transparent hover:border-[var(--theme-muted)] hover:scale-105 transition-all duration-200" data-theme="tokyo-night" style="background: linear-gradient(135deg, #1a1b26 0%, #24283b 50%, #414868 100%);">
-                        <div class="text-center text-xs text-white">Tokyo Night</div>
-                    </div>
-                    <div class="theme-preview rounded-lg p-2 cursor-pointer border-2 border-transparent hover:border-[var(--theme-muted)] hover:scale-105 transition-all duration-200" data-theme="dracula" style="background: linear-gradient(135deg, #282a36 0%, #44475a 50%, #6272a4 100%);">
+                    <div class="theme-preview rounded-lg p-2 cursor-pointer border border-transparent hover:border-[var(--theme-foam)] transition-all duration-200" data-theme="dracula" style="background: linear-gradient(135deg, #282a36 0%, #44475a 50%, #6272a4 100%);">
                         <div class="text-center text-xs text-white">Dracula</div>
-                    </div>
-                    <div class="theme-preview color-wheel-trigger rounded-lg p-2 cursor-pointer border-2 border-transparent hover:border-[var(--theme-muted)] hover:scale-105 transition-all duration-200" style="background: linear-gradient(135deg, #9ccfd8 0%, #c4a7e7 50%, #eb6f92 100%);">
-                        <div class="text-center text-xs text-white flex items-center justify-center gap-1">
-                            <i class="bx bx-palette"></i>
-                            Custom
-                        </div>
                     </div>
                 </div>
                 <div id="custom-themes-section" class="mt-4 hidden">
-                    <h4 class="text-sm font-medium mb-3 text-[var(--theme-text)]">Your Custom Themes</h4>
-                    <div id="custom-themes-grid" class="grid grid-cols-2 md:grid-cols-4 gap-3"></div>
+                    <h4 class="text-xs font-medium text-[var(--theme-subtle)] mb-2">Custom Themes</h4>
+                    <div id="custom-themes-grid" class="grid grid-cols-2 sm:grid-cols-3 gap-3"></div>
                 </div>
-                <div id="color-wheel-container" class="mt-6 hidden"></div>
+                <div id="color-wheel-container" class="mt-4 hidden"></div>
             </div>
-            <div class="mb-6">
-                <label class="block text-sm font-medium mb-3 text-[var(--theme-subtle)]">Background Options</label>
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
-                    <div class="bg-preview active rounded-lg p-2 cursor-pointer border-2 border-[var(--theme-foam)] hover:scale-105 transition-all duration-200" data-bg="gradient" style="background: var(--theme-gradient);">
+            <div class="mb-4">
+                <label class="block text-xs font-medium text-[var(--theme-subtle)] mb-2">Backgrounds</label>
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <div class="bg-preview active rounded-lg p-2 cursor-pointer border border-[var(--theme-foam)] transition-all duration-200" data-bg="gradient" style="background: var(--theme-gradient);">
                         <div class="text-center text-xs text-white">Gradient</div>
                     </div>
-                    <div class="bg-preview rounded-lg p-2 cursor-pointer border-2 border-transparent hover:border-[var(--theme-muted)] hover:scale-105 transition-all duration-200" data-bg="solid" style="background: var(--theme-base);">
+                    <div class="bg-preview rounded-lg p-2 cursor-pointer border border-transparent hover:border-[var(--theme-foam)] transition-all duration-200" data-bg="solid" style="background: var(--theme-base);">
                         <div class="text-center text-xs text-white">Solid</div>
                     </div>
-                    <div class="bg-preview rounded-lg p-2 cursor-pointer border-2 border-transparent hover:border-[var(--theme-muted)] hover:scale-105 transition-all duration-200" data-bg="pattern" style="background: var(--theme-base) url('data:image/svg+xml,<svg width=\"20\" height=\"20\" viewBox=\"0 0 20 20\" xmlns=\"http://www.w3.org/2000/svg\"><circle cx=\"10\" cy=\"10\" r=\"1\" fill=\"%23ffffff\" fill-opacity=\"0.1\"/></svg>');">
+                    <div class="bg-preview rounded-lg p-2 cursor-pointer border border-transparent hover:border-[var(--theme-foam)] transition-all duration-200" data-bg="pattern" style="background: var(--theme-base) url('data:image/svg+xml,<svg width=\"20\" height=\"20\" viewBox=\"0 0 20 20\" xmlns=\"http://www.w3.org/2000/svg\"><circle cx=\"10\" cy=\"10\" r=\"1\" fill=\"%23ffffff\" fill-opacity=\"0.1\"/></svg>');">
                         <div class="text-center text-xs text-white">Pattern</div>
                     </div>
-                    <div class="bg-preview rounded-lg p-2 cursor-pointer border-2 border-transparent hover:border-[var(--theme-muted)] hover:scale-105 transition-all duration-200" data-bg="particles" style="background: var(--theme-base);">
+                    <div class="bg-preview rounded-lg p-2 cursor-pointer border border-transparent hover:border-[var(--theme-foam)] transition-all duration-200" data-bg="particles" style="background: var(--theme-base);">
                         <div class="text-center text-xs text-white">Particles</div>
                     </div>
                 </div>
             </div>
-            <div class="mb-6">
-                <label class="block text-sm font-medium mb-3 text-[var(--theme-subtle)]">Custom Background Image</label>
-                <div id="bg-upload" class="border-2 border-dashed border-[var(--theme-highlight-med)] rounded-lg p-6 text-center cursor-pointer hover:border-[var(--theme-foam)] hover:bg-[var(--theme-highlight-med)] transition-all duration-200">
-                    <i class="bx bx-cloud-upload text-3xl text-[var(--theme-muted)] mb-2"></i>
-                    <p class="text-[var(--theme-muted)]">Click to upload or drag and drop an image</p>
-                    <p class="text-xs text-[var(--theme-subtle)] mt-1">Supports JPG, PNG, WebP</p>
+            <div>
+                <label class="block text-xs font-medium text-[var(--theme-subtle)] mb-2">Custom Background</label>
+                <div id="bg-upload" class="border-2 border-dashed border-[var(--theme-highlight-med)] rounded-lg p-4 text-center cursor-pointer hover:bg-[var(--theme-overlay)] transition-all duration-200">
+                    <i class="bx bx-cloud-upload text-2xl text-[var(--theme-muted)] mb-1"></i>
+                    <p class="text-[var(--theme-muted)] text-sm">Upload or drag and drop an image</p>
+                    <p class="text-xs text-[var(--theme-subtle)]">JPG, PNG, WebP</p>
                 </div>
                 <input type="file" id="bg-file-input" accept="image/*" class="hidden">
                 <div id="custom-bg-preview" class="mt-4 hidden">
-                    <div id="bg-preview-image" class="w-full h-48 rounded-lg bg-cover bg-center border-2 border-[var(--theme-highlight-med)] hover:border-[var(--theme-foam)] hover:scale-102 transition-all duration-200"></div>
+                    <div id="bg-preview-image" class="w-full h-40 rounded-lg bg-cover bg-center border border-[var(--theme-highlight-med)] hover:border-[var(--theme-foam)] transition-all duration-200"></div>
                     <div class="flex gap-2 mt-2">
-                        <button id="remove-bg" class="px-3 py-1 bg-[var(--theme-love)] hover:bg-[var(--theme-love)]/80 text-white rounded text-sm transition-all duration-200">Remove</button>
-                        <button id="change-bg" class="px-3 py-1 bg-[var(--theme-foam)] hover:bg-[var(--theme-foam)]/80 text-[var(--theme-base)] rounded text-sm transition-all duration-200">Change</button>
+                        <button id="remove-bg" class="px-3 py-1 bg-[var(--theme-love)] text-white rounded-lg text-sm hover:bg-[var(--theme-love)]/80 transition-all duration-200">Remove</button>
+                        <button id="change-bg" class="px-3 py-1 bg-[var(--theme-foam)] text-[var(--theme-base)] rounded-lg text-sm hover:bg-[var(--theme-foam)]/80 transition-all duration-200">Change</button>
                     </div>
                 </div>
             </div>
         </div>
 
         <!-- Tab Cloaking -->
-        <div class="bg-[var(--theme-surface)] border border-[var(--theme-overlay)] rounded-2xl p-6 mb-6 hover:border-[var(--theme-highlight-med)] hover:shadow-lg transition-all duration-300">
-            <h2 class="text-xl font-semibold mb-4 flex items-center gap-2">
+        <div class="bg-[var(--theme-surface)] rounded-xl p-5 mb-4 shadow-sm hover:shadow-md transition-shadow duration-200">
+            <h2 class="text-lg font-medium flex items-center gap-2 mb-3">
                 <i class="bx bx-mask text-[var(--theme-gold)]"></i>
                 Tab Cloaking
             </h2>
-            <p class="text-[var(--theme-muted)] mb-4">Disguise your tab title and favicon</p>
-            <label class="flex items-center gap-2 cursor-pointer mb-4">
-                <input type="checkbox" id="tab-cloaking-enabled" class="w-5 h-5 border-2 border-[var(--theme-highlight-med)] rounded focus:ring-[var(--theme-foam)] bg-[var(--theme-surface)] checked:bg-[var(--theme-foam)] checked:border-[var(--theme-foam)] transition-all duration-200">
-                <span class="text-[var(--theme-subtle)]">Enable Tab Cloaking</span>
+            <p class="text-[var(--theme-muted)] text-sm mb-3">Disguise tab title and favicon</p>
+            <label class="flex items-center gap-2 mb-3">
+                <input type="checkbox" id="tab-cloaking-enabled" class="w-4 h-4 border border-[var(--theme-highlight-med)] rounded bg-[var(--theme-surface)] checked:bg-[var(--theme-foam)] focus:ring-[var(--theme-foam)] focus:ring-1 transition-all duration-200">
+                <span class="text-[var(--theme-subtle)] text-sm">Enable</span>
             </label>
-            <div id="cloaking-options" class="space-y-4 opacity-50 transition-opacity duration-200">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div id="cloaking-options" class="space-y-3 opacity-50 transition-opacity duration-200">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-sm font-medium mb-2 text-[var(--theme-subtle)]">Fake Title</label>
-                        <input type="text" id="cloak-title" placeholder="Google Classroom" class="w-full px-3 py-2 bg-[var(--theme-overlay)] border border-[var(--theme-highlight-med)] text-[var(--theme-text)] rounded-lg focus:border-[var(--theme-foam)] focus:ring-2 focus:ring-[var(--theme-foam)]/20 transition-all duration-200">
+                        <label class="block text-xs font-medium text-[var(--theme-subtle)] mb-1">Fake Title</label>
+                        <input type="text" id="cloak-title" placeholder="Google Classroom" class="w-full px-3 py-2 bg-[var(--theme-overlay)] border border-[var(--theme-highlight-med)] text-[var(--theme-text)] rounded-lg text-sm focus:border-[var(--theme-foam)] focus:ring-1 focus:ring-[var(--theme-foam)]/30 transition-all duration-200">
                     </div>
                     <div>
-                        <label class="block text-sm font-medium mb-2 text-[var(--theme-subtle)]">Fake Favicon URL</label>
-                        <input type="url" id="cloak-favicon" placeholder="https://classroom.google.com/favicon.ico" class="w-full px-3 py-2 bg-[var(--theme-overlay)] border border-[var(--theme-highlight-med)] text-[var(--theme-text)] rounded-lg focus:border-[var(--theme-foam)] focus:ring-2 focus:ring-[var(--theme-foam)]/20 transition-all duration-200">
+                        <label class="block text-xs font-medium text-[var(--theme-subtle)] mb-1">Fake Favicon URL</label>
+                        <input type="url" id="cloak-favicon" placeholder="https://classroom.google.com/favicon.ico" class="w-full px-3 py-2 bg-[var(--theme-overlay)] border border-[var(--theme-highlight-med)] text-[var(--theme-text)] rounded-lg text-sm focus:border-[var(--theme-foam)] focus:ring-1 focus:ring-[var(--theme-foam)]/30 transition-all duration-200">
                     </div>
                 </div>
-                <div class="bg-[var(--theme-highlight-med)] p-4 rounded-lg">
-                    <h4 class="font-medium mb-2 text-[var(--theme-subtle)]">Quick Presets</h4>
-                    <div class="flex gap-2 flex-wrap">
-                        <button class="cloak-preset px-3 py-1 bg-[var(--theme-foam)] hover:bg-[var(--theme-foam)]/80 text-[var(--theme-base)] rounded text-sm transition-all duration-200" data-title="Google Classroom" data-favicon="https://classroom.google.com/favicon.ico">Google Classroom</button>
-                        <button class="cloak-preset px-3 py-1 bg-[var(--theme-foam)] hover:bg-[var(--theme-foam)]/80 text-[var(--theme-base)] rounded text-sm transition-all duration-200" data-title="Google Docs" data-favicon="https://docs.google.com/favicon.ico">Google Docs</button>
-                        <button class="cloak-preset px-3 py-1 bg-[var(--theme-foam)] hover:bg-[var(--theme-foam)]/80 text-[var(--theme-base)] rounded text-sm transition-all duration-200" data-title="Khan Academy" data-favicon="https://www.khanacademy.org/favicon.ico">Khan Academy</button>
-                        <button class="cloak-preset px-3 py-1 bg-[var(--theme-foam)] hover:bg-[var(--theme-foam)]/80 text-[var(--theme-base)] rounded text-sm transition-all duration-200" data-title="Schoology" data-favicon="https://www.schoology.com/favicon.ico">Schoology</button>
+                <div class="bg-[var(--theme-overlay)] p-3 rounded-lg">
+                    <h4 class="text-xs font-medium text-[var(--theme-subtle)] mb-2">Presets</h4>
+                    <div class="flex flex-wrap gap-2">
+                        <button class="cloak-preset px-2 py-1 bg-[var(--theme-foam)] text-[var(--theme-base)] rounded text-xs hover:bg-[var(--theme-foam)]/80 transition-all duration-200" data-title="Google Classroom" data-favicon="https://classroom.google.com/favicon.ico">Google Classroom</button>
+                        <button class="cloak-preset px-2 py-1 bg-[var(--theme-foam)] text-[var(--theme-base)] rounded text-xs hover:bg-[var(--theme-foam)]/80 transition-all duration-200" data-title="Google Docs" data-favicon="https://docs.google.com/favicon.ico">Google Docs</button>
+                        <button class="cloak-preset px-2 py-1 bg-[var(--theme-foam)] text-[var(--theme-base)] rounded text-xs hover:bg-[var(--theme-foam)]/80 transition-all duration-200" data-title="Khan Academy" data-favicon="https://www.khanacademy.org/favicon.ico">Khan Academy</button>
+                        <button class="cloak-preset px-2 py-1 bg-[var(--theme-foam)] text-[var(--theme-base)] rounded text-xs hover:bg-[var(--theme-foam)]/80 transition-all duration-200" data-title="Schoology" data-favicon="https://www.schoology.com/favicon.ico">Schoology</button>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Fullscreen Controls -->
-        <div class="bg-[var(--theme-surface)] border border-[var(--theme-overlay)] rounded-2xl p-6 mb-6 hover:border-[var(--theme-highlight-med)] hover:shadow-lg transition-all duration-300">
-            <h2 class="text-xl font-semibold mb-4 flex items-center gap-2">
-                <i class="bx bx-fullscreen text-[var(--theme-pine)]"></i>
-                Fullscreen Controls
+        <!-- Privacy Settings -->
+        <div class="bg-[var(--theme-surface)] rounded-xl p-5 mb-4 shadow-sm hover:shadow-md transition-shadow duration-200">
+            <h2 class="text-lg font-medium flex items-center gap-2 mb-3">
+                <i class="bx bx-lock-alt text-[var(--theme-pine)]"></i>
+                Privacy Controls
             </h2>
-            <p class="text-[var(--theme-muted)] mb-4">Enable and configure fullscreen mode</p>
-            <label class="flex items-center gap-2 cursor-pointer mb-4">
-                <input type="checkbox" id="fullscreen-enabled" class="w-5 h-5 border-2 border-[var(--theme-highlight-med)] rounded focus:ring-[var(--theme-foam)] bg-[var(--theme-surface)] checked:bg-[var(--theme-foam)] checked:border-[var(--theme-foam)] transition-all duration-200">
-                <span class="text-[var(--theme-subtle)]">Enable Fullscreen Button</span>
-            </label>
-            <div class="flex gap-2">
-                <button id="enter-fullscreen" class="px-4 py-2 bg-[var(--theme-pine)] hover:bg-[var(--theme-pine)]/80 text-white rounded-lg transition-all duration-200">Enter Fullscreen</button>
-                <button id="exit-fullscreen" class="px-4 py-2 bg-[var(--theme-love)] hover:bg-[var(--theme-love)]/80 text-white rounded-lg transition-all duration-200">Exit Fullscreen</button>
-            </div>
-        </div>
-
-        <!-- Close Prevention -->
-        <div class="bg-[var(--theme-surface)] border border-[var(--theme-overlay)] rounded-2xl p-6 mb-6 hover:border-[var(--theme-highlight-med)] hover:shadow-lg transition-all duration-300">
-            <h2 class="text-xl font-semibold mb-4 flex items-center gap-2">
-                <i class="bx bx-shield-x text-[var(--theme-love)]"></i>
-                Close Prevention
-            </h2>
-            <p class="text-[var(--theme-muted)] mb-4">Prevent accidental closing of Carbon</p>
-            <div class="space-y-4">
-                <label class="flex items-center gap-2 cursor-pointer">
-                    <input type="checkbox" id="close-prevention-enabled" class="w-5 h-5 border-2 border-[var(--theme-highlight-med)] rounded focus:ring-[var(--theme-foam)] bg-[var(--theme-surface)] checked:bg-[var(--theme-foam)] checked:border-[var(--theme-foam)] transition-all duration-200">
-                    <span class="text-[var(--theme-subtle)]">Enable Close Prevention</span>
+            <p class="text-[var(--theme-muted)] text-sm mb-3">Enhance privacy and prevent detection</p>
+            <div class="space-y-2">
+                <label class="flex items-center gap-2">
+                    <input type="checkbox" id="disable-right-click" class="w-4 h-4 border border-[var(--theme-highlight-med)] rounded bg-[var(--theme-surface)] checked:bg-[var(--theme-foam)] focus:ring-[var(--theme-foam)] focus:ring-1 transition-all duration-200">
+                    <span class="text-[var(--theme-subtle)] text-sm">Disable right-click</span>
                 </label>
-                <label class="flex items-center gap-2 cursor-pointer">
-                    <input type="checkbox" id="confirm-close" class="w-5 h-5 border-2 border-[var(--theme-highlight-med)] rounded focus:ring-[var(--theme-foam)] bg-[var(--theme-surface)] checked:bg-[var(--theme-foam)] checked:border-[var(--theme-foam)] transition-all duration-200">
-                    <span class="text-[var(--theme-subtle)]">Show confirmation dialog</span>
+                <label class="flex items-center gap-2">
+                    <input type="checkbox" id="disable-devtools" class="w-4 h-4 border border-[var(--theme-highlight-med)] rounded bg-[var(--theme-surface)] checked:bg-[var(--theme-foam)] focus:ring-[var(--theme-foam)] focus:ring-1 transition-all duration-200">
+                    <span class="text-[var(--theme-subtle)] text-sm">Disable developer tools</span>
                 </label>
-                <div>
-                    <label class="block text-sm font-medium mb-2 text-[var(--theme-subtle)]">Custom Close Message</label>
-                    <input type="text" id="close-message" placeholder="Are you sure you want to close Carbon?" class="w-full px-3 py-2 bg-[var(--theme-overlay)] border border-[var(--theme-highlight-med)] text-[var(--theme-text)] rounded-lg focus:border-[var(--theme-foam)] focus:ring-2 focus:ring-[var(--theme-foam)]/20 transition-all duration-200">
-                </div>
-            </div>
-        </div>
-
-        <!-- Teacher Prevention -->
-        <div class="bg-[var(--theme-surface)] border border-[var(--theme-overlay)] rounded-2xl p-6 mb-6 hover:border-[var(--theme-highlight-med)] hover:shadow-lg transition-all duration-300">
-            <h2 class="text-xl font-semibold mb-4 flex items-center gap-2">
-                <i class="bx bx-user-x text-[var(--theme-gold)]"></i>
-                Teacher Prevention
-            </h2>
-            <p class="text-[var(--theme-muted)] mb-4">Advanced privacy features</p>
-            <div class="space-y-4">
-                <label class="flex items-center gap-2 cursor-pointer">
-                    <input type="checkbox" id="disable-right-click" class="w-5 h-5 border-2 border-[var(--theme-highlight-med)] rounded focus:ring-[var(--theme-foam)] bg-[var(--theme-surface)] checked:bg-[var(--theme-foam)] checked:border-[var(--theme-foam)] transition-all duration-200">
-                    <span class="text-[var(--theme-subtle)]">Disable right-click menu</span>
+                <label class="flex items-center gap-2">
+                    <input type="checkbox" id="disable-select" class="w-4 h-4 border border-[var(--theme-highlight-med)] rounded bg-[var(--theme-surface)] checked:bg-[var(--theme-foam)] focus:ring-[var(--theme-foam)] focus:ring-1 transition-all duration-200">
+                    <span class="text-[var(--theme-subtle)] text-sm">Disable text selection</span>
                 </label>
-                <label class="flex items-center gap-2 cursor-pointer">
-                    <input type="checkbox" id="disable-devtools" class="w-5 h-5 border-2 border-[var(--theme-highlight-med)] rounded focus:ring-[var(--theme-foam)] bg-[var(--theme-surface)] checked:bg-[var(--theme-foam)] checked:border-[var(--theme-foam)] transition-all duration-200">
-                    <span class="text-[var(--theme-subtle)]">Disable developer tools</span>
+                <label class="flex items-center gap-2">
+                    <input type="checkbox" id="hide-cursor" class="w-4 h-4 border border-[var(--theme-highlight-med)] rounded bg-[var(--theme-surface)] checked:bg-[var(--theme-foam)] focus:ring-[var(--theme-foam)] focus:ring-1 transition-all duration-200">
+                    <span class="text-[var(--theme-subtle)] text-sm">Hide cursor when idle</span>
                 </label>
-                <label class="flex items-center gap-2 cursor-pointer">
-                    <input type="checkbox" id="disable-select" class="w-5 h-5 border-2 border-[var(--theme-highlight-med)] rounded focus:ring-[var(--theme-foam)] bg-[var(--theme-surface)] checked:bg-[var(--theme-foam)] checked:border-[var(--theme-foam)] transition-all duration-200">
-                    <span class="text-[var(--theme-subtle)]">Disable text selection</span>
-                </label>
-                <label class="flex items-center gap-2 cursor-pointer">
-                    <input type="checkbox" id="hide-cursor" class="w-5 h-5 border-2 border-[var(--theme-highlight-med)] rounded focus:ring-[var(--theme-foam)] bg-[var(--theme-surface)] checked:bg-[var(--theme-foam)] checked:border-[var(--theme-foam)] transition-all duration-200">
-                    <span class="text-[var(--theme-subtle)]">Hide cursor when idle</span>
-                </label>
-                <label class="flex items-center gap-2 cursor-pointer">
-                    <input type="checkbox" id="blur-on-unfocus" class="w-5 h-5 border-2 border-[var(--theme-highlight-med)] rounded focus:ring-[var(--theme-foam)] bg-[var(--theme-surface)] checked:bg-[var(--theme-foam)] checked:border-[var(--theme-foam)] transition-all duration-200">
-                    <span class="text-[var(--theme-subtle)]">Blur screen when unfocused</span>
+                <label class="flex items-center gap-2">
+                    <input type="checkbox" id="blur-on-unfocus" class="w-4 h-4 border border-[var(--theme-highlight-med)] rounded bg-[var(--theme-surface)] checked:bg-[var(--theme-foam)] focus:ring-[var(--theme-foam)] focus:ring-1 transition-all duration-200">
+                    <span class="text-[var(--theme-subtle)] text-sm">Blur screen when unfocused</span>
                 </label>
             </div>
         </div>
 
         <!-- Save Settings -->
         <div class="text-center">
-            <button id="save-settings" class="px-8 py-4 bg-gradient-to-r from-[var(--theme-foam)] to-[var(--theme-pine)] text-[var(--theme-base)] rounded-lg font-medium text-lg hover:shadow-lg transition-all duration-200">
-                <i class="bx bx-check mr-2"></i>
+            <button id="save-settings" class="px-6 py-2 bg-[var(--theme-foam)] text-[var(--theme-base)] rounded-lg text-sm font-medium hover:bg-[var(--theme-foam)]/80 transition-all duration-200">
+                <i class="bx bx-check mr-1"></i>
                 Auto-Save Enabled
             </button>
         </div>
@@ -316,7 +257,6 @@
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
     <script>
-        // Firebase configuration
         const firebaseConfig = {
             apiKey: "AIzaSyC4ilHYP1T-kdXbWPoHJHhD2aj0pNWmMec",
             authDomain: "carbon-services.firebaseapp.com",
@@ -397,12 +337,12 @@
                     }
                     if (settings.theme) {
                         currentTheme = settings.theme;
-                        document.querySelectorAll('.theme-preview').forEach(el => el.classList.remove('active'));
+                        document.querySelectorAll('.theme-preview').forEach(el => el.classList.remove('active', 'border-[var(--theme-foam)]'));
                         document.querySelector(`[data-theme="${settings.theme}"]`)?.classList.add('active', 'border-[var(--theme-foam)]');
                     }
                     if (settings.background) {
                         currentBackground = settings.background;
-                        document.querySelectorAll('.bg-preview').forEach(el => el.classList.remove('active'));
+                        document.querySelectorAll('.bg-preview').forEach(el => el.classList.remove('active', 'border-[var(--theme-foam)]'));
                         document.querySelector(`[data-bg="${settings.background}"]`)?.classList.add('active', 'border-[var(--theme-foam)]');
                     }
                     if (settings.customBackground) {
@@ -410,11 +350,7 @@
                     }
                     document.getElementById('tab-cloaking-enabled').checked = settings.cloakingEnabled || false;
                     document.getElementById('cloak-title').value = settings.cloakTitle || '';
-                    document.getElementById('cloak-favicon').value = settings.cloakFavicon || '';
-                    document.getElementById('fullscreen-enabled').checked = settings.fullscreenEnabled || false;
-                    document.getElementById('close-prevention-enabled').checked = settings.closePreventionEnabled || false;
-                    document.getElementById('confirm-close').checked = settings.confirmClose || false;
-                    document.getElementById('close-message').value = settings.closeMessage || '';
+                    document.getElementById('cloak-favicon').value = settings.cloakFavicon || false;
                     document.getElementById('disable-right-click').checked = settings.disableRightClick || false;
                     document.getElementById('disable-devtools').checked = settings.disableDevtools || false;
                     document.getElementById('disable-select').checked = settings.disableSelect || false;
@@ -445,10 +381,6 @@
                     cloakingEnabled: document.getElementById('tab-cloaking-enabled').checked,
                     cloakTitle: document.getElementById('cloak-title').value,
                     cloakFavicon: document.getElementById('cloak-favicon').value,
-                    fullscreenEnabled: document.getElementById('fullscreen-enabled').checked,
-                    closePreventionEnabled: document.getElementById('close-prevention-enabled').checked,
-                    confirmClose: document.getElementById('confirm-close').checked,
-                    closeMessage: document.getElementById('close-message').value,
                     disableRightClick: document.getElementById('disable-right-click').checked,
                     disableDevtools: document.getElementById('disable-devtools').checked,
                     disableSelect: document.getElementById('disable-select').checked,
@@ -486,20 +418,15 @@
             if (savedCustomBg) {
                 showCustomBgPreview(savedCustomBg);
             }
-            const cloakingEnabled = localStorage.getItem('carbon-cloak-enabled') === 'true';
-            document.getElementById('tab-cloaking-enabled').checked = cloakingEnabled;
+            document.getElementById('tab-cloaking-enabled').checked = localStorage.getItem('carbon-cloak-enabled') === 'true';
             document.getElementById('cloak-title').value = localStorage.getItem('carbon-cloak-title') || '';
             document.getElementById('cloak-favicon').value = localStorage.getItem('carbon-cloak-favicon') || '';
-            toggleCloakingOptions();
-            document.getElementById('fullscreen-enabled').checked = localStorage.getItem('carbon-fullscreen-enabled') === 'true';
-            document.getElementById('close-prevention-enabled').checked = localStorage.getItem('carbon-close-prevention') === 'true';
-            document.getElementById('confirm-close').checked = localStorage.getItem('carbon-confirm-close') === 'true';
-            document.getElementById('close-message').value = localStorage.getItem('carbon-close-message') || '';
             document.getElementById('disable-right-click').checked = localStorage.getItem('carbon-disable-right-click') === 'true';
             document.getElementById('disable-devtools').checked = localStorage.getItem('carbon-disable-devtools') === 'true';
             document.getElementById('disable-select').checked = localStorage.getItem('carbon-disable-select') === 'true';
             document.getElementById('hide-cursor').checked = localStorage.getItem('carbon-hide-cursor') === 'true';
             document.getElementById('blur-on-unfocus').checked = localStorage.getItem('carbon-blur-unfocus') === 'true';
+            toggleCloakingOptions();
             updateStatusIndicators();
         }
 
@@ -516,13 +443,13 @@
                 customThemesSection.classList.remove('hidden');
                 Object.entries(customThemes).forEach(([name, theme]) => {
                     const themeDiv = document.createElement('div');
-                    themeDiv.className = `theme-preview custom-theme-preview rounded-lg p-2 cursor-pointer border-2 ${currentTheme === name ? 'border-[var(--theme-foam)]' : 'border-transparent'} hover:border-[var(--theme-muted)] hover:scale-105 transition-all duration-200`;
+                    themeDiv.className = `theme-preview rounded-lg p-2 cursor-pointer border ${currentTheme === name ? 'border-[var(--theme-foam)]' : 'border-transparent'} hover:border-[var(--theme-foam)] transition-all duration-200`;
                     themeDiv.dataset.theme = name;
                     themeDiv.style.background = `linear-gradient(135deg, ${theme.base} 0%, ${theme.surface} 50%, ${theme.overlay} 100%)`;
                     themeDiv.innerHTML = `
                         <div class="text-center text-xs text-white flex items-center justify-center gap-1">
                             <span class="truncate">${name}</span>
-                            <button class="delete-custom-theme ml-1 text-red-400 hover:text-red-300" data-theme="${name}">×</button>
+                            <button class="delete-custom-theme text-[var(--theme-love)] hover:text-[var(--theme-love)]/80" data-theme="${name}">×</button>
                         </div>
                     `;
                     customThemesGrid.appendChild(themeDiv);
@@ -540,10 +467,6 @@
             localStorage.setItem('carbon-cloak-enabled', document.getElementById('tab-cloaking-enabled').checked);
             localStorage.setItem('carbon-cloak-title', document.getElementById('cloak-title').value);
             localStorage.setItem('carbon-cloak-favicon', document.getElementById('cloak-favicon').value);
-            localStorage.setItem('carbon-fullscreen-enabled', document.getElementById('fullscreen-enabled').checked);
-            localStorage.setItem('carbon-close-prevention', document.getElementById('close-prevention-enabled').checked);
-            localStorage.setItem('carbon-confirm-close', document.getElementById('confirm-close').checked);
-            localStorage.setItem('carbon-close-message', document.getElementById('close-message').value);
             localStorage.setItem('carbon-disable-right-click', document.getElementById('disable-right-click').checked);
             localStorage.setItem('carbon-disable-devtools', document.getElementById('disable-devtools').checked);
             localStorage.setItem('carbon-disable-select', document.getElementById('disable-select').checked);
@@ -559,14 +482,14 @@
             updateStatusIndicators();
             const btn = document.getElementById('save-settings');
             const originalText = btn.innerHTML;
-            btn.innerHTML = '<i class="bx bx-check mr-2"></i>Saved!';
-            btn.classList.replace('from-[var(--theme-foam)]', 'from-[var(--theme-pine)]');
-            btn.classList.replace('to-[var(--theme-pine)]', 'to-[var(--theme-pine)]/80');
+            btn.innerHTML = '<i class="bx bx-check mr-1"></i>Saved!';
+            btn.classList.add('bg-[var(--theme-pine)]');
+            btn.classList.remove('bg-[var(--theme-foam)]');
             setTimeout(() => {
                 btn.innerHTML = originalText;
-                btn.classList.replace('from-[var(--theme-pine)]', 'from-[var(--theme-foam)]');
-                btn.classList.replace('to-[var(--theme-pine)]/80', 'to-[var(--theme-pine)]');
-            }, 2000);
+                btn.classList.remove('bg-[var(--theme-pine)]');
+                btn.classList.add('bg-[var(--theme-foam)]');
+            }, 1500);
         }
 
         function updateStatusIndicators() {
@@ -584,8 +507,7 @@
             applyTheme(currentTheme);
             applyBackground();
             applyTabCloaking();
-            applyTeacherPrevention();
-            applyClosePrevention();
+            applyPrivacySettings();
             if (window.parent && window.parent !== window) {
                 window.parent.postMessage({
                     type: 'carbon-settings-updated',
@@ -668,7 +590,7 @@
             }
         }
 
-        function applyTeacherPrevention() {
+        function applyPrivacySettings() {
             if (document.getElementById('disable-right-click').checked) {
                 document.addEventListener('contextmenu', e => e.preventDefault());
             }
@@ -687,25 +609,10 @@
             }
             if (document.getElementById('blur-on-unfocus').checked) {
                 window.addEventListener('blur', () => {
-                    document.body.classList.add('blur');
+                    document.body.classList.add('blur-sm');
                 });
                 window.addEventListener('focus', () => {
-                    document.body.classList.remove('blur');
-                });
-            }
-        }
-
-        function applyClosePrevention() {
-            const enabled = document.getElementById('close-prevention-enabled').checked;
-            const confirm = document.getElementById('confirm-close').checked;
-            const message = document.getElementById('close-message').value || 'Are you sure you want to close Carbon?';
-            if (enabled) {
-                window.addEventListener('beforeunload', (e) => {
-                    if (confirm) {
-                        e.preventDefault();
-                        e.returnValue = message;
-                        return message;
-                    }
+                    document.body.classList.remove('blur-sm');
                 });
             }
         }
@@ -833,18 +740,6 @@
             });
         });
 
-        document.getElementById('enter-fullscreen').addEventListener('click', function() {
-            if (document.documentElement.requestFullscreen) {
-                document.documentElement.requestFullscreen();
-            }
-        });
-
-        document.getElementById('exit-fullscreen').addEventListener('click', function() {
-            if (document.exitFullscreen) {
-                document.exitFullscreen();
-            }
-        });
-
         document.getElementById('google-signin-btn').addEventListener('click', googleSignIn);
         document.getElementById('sign-out-btn').addEventListener('click', signOut);
 
@@ -858,10 +753,10 @@
                 try {
                     isAutoSaving = true;
                     await autoSaveSettings();
-                    showAutoSaveStatus('✓ Auto-saved', 'success');
+                    showAutoSaveStatus('✓ Saved', 'success');
                 } catch (error) {
                     console.error('Auto save failed:', error);
-                    showAutoSaveStatus('⚠ Auto-save failed', 'error');
+                    showAutoSaveStatus('⚠ Failed', 'error');
                 } finally {
                     isAutoSaving = false;
                 }
@@ -877,10 +772,6 @@
             localStorage.setItem('carbon-cloak-enabled', document.getElementById('tab-cloaking-enabled').checked);
             localStorage.setItem('carbon-cloak-title', document.getElementById('cloak-title').value);
             localStorage.setItem('carbon-cloak-favicon', document.getElementById('cloak-favicon').value);
-            localStorage.setItem('carbon-fullscreen-enabled', document.getElementById('fullscreen-enabled').checked);
-            localStorage.setItem('carbon-close-prevention', document.getElementById('close-prevention-enabled').checked);
-            localStorage.setItem('carbon-confirm-close', document.getElementById('confirm-close').checked);
-            localStorage.setItem('carbon-close-message', document.getElementById('close-message').value);
             localStorage.setItem('carbon-disable-right-click', document.getElementById('disable-right-click').checked);
             localStorage.setItem('carbon-disable-devtools', document.getElementById('disable-devtools').checked);
             localStorage.setItem('carbon-disable-select', document.getElementById('disable-select').checked);
@@ -900,27 +791,25 @@
             const btn = document.getElementById('save-settings');
             const originalText = btn.innerHTML;
             btn.innerHTML = message;
-            btn.classList.remove('from-[var(--theme-foam)]', 'from-[var(--theme-pine)]', 'from-[var(--theme-love)]', 'from-[var(--theme-gold)]');
-            btn.classList.remove('to-[var(--theme-pine)]', 'to-[var(--theme-pine)]/80', 'to-[var(--theme-love)]/80', 'to-[var(--theme-gold)]/80');
+            btn.classList.remove('bg-[var(--theme-foam)]', 'bg-[var(--theme-pine)]', 'bg-[var(--theme-love)]');
             if (type === 'success') {
-                btn.classList.add('from-[var(--theme-pine)]', 'to-[var(--theme-pine)]/80');
+                btn.classList.add('bg-[var(--theme-pine)]');
             } else if (type === 'error') {
-                btn.classList.add('from-[var(--theme-love)]', 'to-[var(--theme-love)]/80');
+                btn.classList.add('bg-[var(--theme-love)]');
             } else if (type === 'saving') {
-                btn.classList.add('from-[var(--theme-gold)]', 'to-[var(--theme-gold)]/80');
+                btn.classList.add('bg-[var(--theme-gold)]');
             }
             if (type !== 'saving') {
                 setTimeout(() => {
                     btn.innerHTML = originalText;
-                    btn.classList.remove('from-[var(--theme-pine)]', 'from-[var(--theme-love)]', 'from-[var(--theme-gold)]');
-                    btn.classList.remove('to-[var(--theme-pine)]/80', 'to-[var(--theme-love)]/80', 'to-[var(--theme-gold)]/80');
-                    btn.classList.add('from-[var(--theme-foam)]', 'to-[var(--theme-pine)]');
-                }, 2000);
+                    btn.classList.remove('bg-[var(--theme-pine)]', 'bg-[var(--theme-love)]', 'bg-[var(--theme-gold)]');
+                    btn.classList.add('bg-[var(--theme-foam)]');
+                }, 1500);
             }
         }
 
         function setupAutoSaveListeners() {
-            const textInputs = ['panic-url', 'cloak-title', 'cloak-favicon', 'close-message'];
+            const textInputs = ['panic-url', 'cloak-title', 'cloak-favicon'];
             textInputs.forEach(id => {
                 const element = document.getElementById(id);
                 if (element) {
@@ -929,8 +818,7 @@
                 }
             });
             const checkboxes = [
-                'tab-cloaking-enabled', 'fullscreen-enabled', 'close-prevention-enabled',
-                'confirm-close', 'disable-right-click', 'disable-devtools',
+                'tab-cloaking-enabled', 'disable-right-click', 'disable-devtools',
                 'disable-select', 'hide-cursor', 'blur-on-unfocus'
             ];
             checkboxes.forEach(id => {
