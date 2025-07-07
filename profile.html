@@ -222,6 +222,9 @@
 </head>
 <body class="bg-rp-base min-h-screen text-rp-text font-[Inter] antialiased">
 
+  <!-- Particles Canvas -->
+  <canvas id="particles-canvas" class="fixed inset-0 pointer-events-none hidden"></canvas>
+
   <!-- Navbar -->
   <nav class="flex items-center justify-between px-6 py-4 bg-rp-surface/80 border-b border-rp-overlay backdrop-blur-sm fixed top-0 left-0 right-0 z-50">
     <a href="index.html" class="text-xl font-bold text-rp-foam tracking-tight">CARBON</a>
@@ -271,6 +274,48 @@
             </button>
           </div>
           <div id="copyFeedback" class="text-rp-foam mt-2 text-sm opacity-0 transition-opacity duration-300">Copied to clipboard!</div>
+        </div>
+      </div>
+
+      <!-- Background Selection -->
+      <div class="bg-rp-surface rounded-xl p-6 mb-8 border border-rp-overlay">
+        <h2 class="text-xl font-semibold text-rp-text mb-4 flex items-center gap-2">
+          <i class='bx bx-palette text-rp-iris'></i>
+          Background
+        </h2>
+        <p class="text-rp-subtle text-sm mb-4">Customize your background appearance</p>
+        <div class="mb-4">
+          <label class="block text-sm font-medium text-rp-text mb-2">Background Type</label>
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div class="bg-preview active rounded-lg p-2 cursor-pointer border border-rp-foam transition-all duration-200" data-bg="gradient" style="background: var(--theme-gradient);">
+              <div class="text-center text-xs text-white">Gradient</div>
+            </div>
+            <div class="bg-preview rounded-lg p-2 cursor-pointer border border-transparent hover:border-rp-foam transition-all duration-200" data-bg="solid">
+              <div class="text-center text-xs text-white">Solid</div>
+            </div>
+            <div class="bg-preview rounded-lg p-2 cursor-pointer border border-transparent hover:border-rp-foam transition-all duration-200" data-bg="pattern">
+              <div class="text-center text-xs text-white">Pattern</div>
+            </div>
+            <div class="bg-preview rounded-lg p-2 cursor-pointer border border-transparent hover:border-rp-foam transition-all duration-200" data-bg="particles">
+              <div class="text-center text-xs text-white">Particles</div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-rp-text mb-2">Custom Background</label>
+          <div id="bg-upload" class="border-2 border-dashed border-rp-highlight-med rounded-lg p-4 text-center cursor-pointer hover:bg-rp-overlay transition-all duration-200">
+            <i class="bx bx-cloud-upload text-2xl text-rp-muted mb-1"></i>
+            <p class="text-rp-muted text-sm">Upload or drag and drop an image</p>
+            <p class="text-xs text-rp-subtle">JPG, PNG, WebP</p>
+          </div>
+          <input type="file" id="bg-file-input" accept="image/*" class="hidden">
+          <div id="custom-bg-preview" class="mt-4 hidden">
+            <div id="bg-preview-image" class="w-full h-40 rounded-lg bg-cover bg-center border border-rp-highlight-med hover:border-rp-foam transition-all duration-200"></div>
+            <div class="flex gap-2 mt-2">
+              <button id="remove-bg" class="px-3 py-1 bg-rp-love text-white rounded-lg text-sm hover:bg-rp-love/80 transition-all duration-200">Remove</button>
+              <button id="change-bg" class="px-3 py-1 bg-rp-foam text-rp-base rounded-lg text-sm hover:bg-rp-foam/80 transition-all duration-200">Change</button>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -736,6 +781,10 @@
         document.getElementById('profilePhoto').src = user.photoURL;
         document.getElementById('profileName').textContent = user.displayName;
         document.getElementById('profileEmail').textContent = user.email;
+        
+        // Load background settings from Firebase
+        await loadBackgroundFromFirebase(user.uid);
+        
         const lists = await getUserGameLists(user.uid);
         renderGamesList('recentGamesList', (lists.history || []).slice().reverse(), 'recent games');
         renderGamesList('favoriteGamesList', lists.favoriteGames, 'favorite games');
@@ -782,6 +831,309 @@
     });
 
     // Initialize theme on load (carbon-theme.js handles this automatically)
+
+    // Background Selection Functionality
+    let currentBackground = 'gradient';
+    const validBackgrounds = ['gradient', 'solid', 'pattern', 'particles', 'custom'];
+
+    function initializeBackgroundSystem() {
+      // Load saved background preference
+      const savedBg = localStorage.getItem('carbon-background-global') || 'gradient';
+      if (validBackgrounds.includes(savedBg)) {
+        currentBackground = savedBg;
+        updateBackgroundUI();
+      }
+
+      // Background selection event listeners
+      document.querySelectorAll('.bg-preview').forEach(preview => {
+        preview.addEventListener('click', () => {
+          const bgType = preview.dataset.bg;
+          if (bgType && validBackgrounds.includes(bgType)) {
+            currentBackground = bgType;
+            localStorage.setItem('carbon-background-global', bgType);
+            updateBackgroundUI();
+            saveBackgroundToFirebase();
+          }
+        });
+      });
+
+      // Custom background upload
+      const bgUpload = document.getElementById('bg-upload');
+      const bgFileInput = document.getElementById('bg-file-input');
+      
+      if (bgUpload && bgFileInput) {
+        bgUpload.addEventListener('click', () => bgFileInput.click());
+        bgUpload.addEventListener('dragover', (e) => {
+          e.preventDefault();
+          bgUpload.classList.add('bg-rp-highlight-med');
+        });
+        bgUpload.addEventListener('dragleave', () => {
+          bgUpload.classList.remove('bg-rp-highlight-med');
+        });
+        bgUpload.addEventListener('drop', (e) => {
+          e.preventDefault();
+          bgUpload.classList.remove('bg-rp-highlight-med');
+          const files = e.dataTransfer.files;
+          if (files.length > 0) handleCustomBackground(files[0]);
+        });
+        
+        bgFileInput.addEventListener('change', (e) => {
+          if (e.target.files.length > 0) {
+            handleCustomBackground(e.target.files[0]);
+          }
+        });
+      }
+
+      // Custom background remove/change buttons
+      const removeBtn = document.getElementById('remove-bg');
+      const changeBtn = document.getElementById('change-bg');
+      
+      if (removeBtn) {
+        removeBtn.addEventListener('click', () => {
+          localStorage.removeItem('carbon-custom-bg-global');
+          document.getElementById('custom-bg-preview').classList.add('hidden');
+          if (currentBackground === 'custom') {
+            currentBackground = 'gradient';
+            localStorage.setItem('carbon-background-global', 'gradient');
+            updateBackgroundUI();
+          }
+          saveBackgroundToFirebase();
+        });
+      }
+      
+      if (changeBtn) {
+        changeBtn.addEventListener('click', () => bgFileInput.click());
+      }
+
+      // Check for custom background on load
+      const savedCustomBg = localStorage.getItem('carbon-custom-bg-global');
+      if (savedCustomBg && currentBackground === 'custom') {
+        showCustomBgPreview(savedCustomBg);
+      }
+    }
+
+    function updateBackgroundUI() {
+      // Update active states
+      document.querySelectorAll('.bg-preview').forEach(el => {
+        el.classList.remove('active', 'border-rp-foam');
+        el.classList.add('border-transparent');
+      });
+      
+      if (currentBackground !== 'custom') {
+        const bgElement = document.querySelector(`[data-bg="${currentBackground}"]`);
+        if (bgElement) {
+          bgElement.classList.add('active', 'border-rp-foam');
+          bgElement.classList.remove('border-transparent');
+        }
+      }
+      
+      applyBackground();
+      updateBackgroundPreviews();
+    }
+
+    function updateBackgroundPreviews() {
+      const gradientPreview = document.querySelector('[data-bg="gradient"]');
+      const solidPreview = document.querySelector('[data-bg="solid"]');
+      const patternPreview = document.querySelector('[data-bg="pattern"]');
+      const particlesPreview = document.querySelector('[data-bg="particles"]');
+      
+      const baseColor = getComputedStyle(document.documentElement).getPropertyValue('--theme-base').trim();
+      
+      if (gradientPreview) gradientPreview.style.background = 'var(--theme-gradient)';
+      if (solidPreview) solidPreview.style.background = baseColor;
+      if (patternPreview) {
+        patternPreview.style.background = `${baseColor} url('data:image/svg+xml,<svg width="20" height="20" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><circle cx="10" cy="10" r="2" fill="%23ffffff" fill-opacity="0.2"/></svg>') repeat`;
+      }
+      if (particlesPreview) particlesPreview.style.background = baseColor;
+    }
+
+    function applyBackground() {
+      const body = document.body;
+      const particlesCanvas = document.getElementById('particles-canvas');
+      const baseColor = getComputedStyle(document.documentElement).getPropertyValue('--theme-base').trim();
+      
+      // Hide particles canvas by default
+      if (particlesCanvas) particlesCanvas.classList.add('hidden');
+      
+      // Reset body background
+      body.style.background = '';
+      
+      const customBg = localStorage.getItem('carbon-custom-bg-global');
+      
+      if (currentBackground === 'custom' && customBg) {
+        body.style.background = `url(${customBg}) center/cover fixed`;
+      } else {
+        switch (currentBackground) {
+          case 'solid':
+            body.style.background = baseColor;
+            break;
+          case 'pattern':
+            body.style.background = `${baseColor} url('data:image/svg+xml,<svg width="20" height="20" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><circle cx="10" cy="10" r="2" fill="%23ffffff" fill-opacity="0.2"/></svg>') repeat`;
+            break;
+          case 'particles':
+            body.style.background = baseColor;
+            if (particlesCanvas) {
+              particlesCanvas.classList.remove('hidden');
+              initParticles();
+            }
+            break;
+          case 'gradient':
+          default:
+            body.style.background = 'var(--theme-gradient)';
+            body.style.backgroundAttachment = 'fixed';
+            break;
+        }
+      }
+    }
+
+    function handleCustomBackground(file) {
+      if (!file.type.startsWith('image/')) {
+        alert('Please select an image file');
+        return;
+      }
+      
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const dataUrl = e.target.result;
+        localStorage.setItem('carbon-custom-bg-global', dataUrl);
+        showCustomBgPreview(dataUrl);
+        currentBackground = 'custom';
+        localStorage.setItem('carbon-background-global', 'custom');
+        updateBackgroundUI();
+        saveBackgroundToFirebase();
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function showCustomBgPreview(dataUrl) {
+      const preview = document.getElementById('custom-bg-preview');
+      const image = document.getElementById('bg-preview-image');
+      if (preview && image) {
+        image.style.backgroundImage = `url(${dataUrl})`;
+        preview.classList.remove('hidden');
+      }
+    }
+
+    function initParticles() {
+      const canvas = document.getElementById('particles-canvas');
+      if (!canvas) return;
+      
+      const ctx = canvas.getContext('2d');
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      
+      const particlesArray = [];
+      const particleCount = 50;
+      
+      class Particle {
+        constructor() {
+          this.x = Math.random() * canvas.width;
+          this.y = Math.random() * canvas.height;
+          this.vx = (Math.random() - 0.5) * 2;
+          this.vy = (Math.random() - 0.5) * 2;
+          this.radius = Math.random() * 3 + 1;
+          this.opacity = Math.random() * 0.5 + 0.2;
+        }
+        
+        update() {
+          this.x += this.vx;
+          this.y += this.vy;
+          
+          if (this.x < 0 || this.x > canvas.width) this.vx *= -1;
+          if (this.y < 0 || this.y > canvas.height) this.vy *= -1;
+        }
+        
+        draw() {
+          ctx.beginPath();
+          ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(156, 207, 216, ${this.opacity})`;
+          ctx.fill();
+        }
+      }
+      
+      function createParticles() {
+        particlesArray.length = 0;
+        for (let i = 0; i < particleCount; i++) {
+          particlesArray.push(new Particle());
+        }
+      }
+      
+      function animate() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        particlesArray.forEach(particle => {
+          particle.update();
+          particle.draw();
+        });
+        
+        if (!canvas.classList.contains('hidden')) {
+          requestAnimationFrame(animate);
+        }
+      }
+      
+      createParticles();
+      animate();
+      
+      window.addEventListener('resize', () => {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        createParticles();
+      });
+    }
+
+    async function saveBackgroundToFirebase() {
+      const user = firebase.auth().currentUser;
+      if (!user) return;
+      
+      try {
+        const settings = {
+          background: currentBackground,
+          customBackground: localStorage.getItem('carbon-custom-bg-global') || '',
+        };
+        await db.collection('users').doc(user.uid).set({ settings }, { merge: true });
+      } catch (error) {
+        console.error('Error saving background to Firebase:', error);
+      }
+    }
+
+    async function loadBackgroundFromFirebase(uid) {
+      try {
+        const userDoc = await db.collection('users').doc(uid).get();
+        if (userDoc.exists) {
+          const userData = userDoc.data();
+          const settings = userData.settings || {};
+          
+          if (settings.background && validBackgrounds.includes(settings.background)) {
+            currentBackground = settings.background;
+            localStorage.setItem('carbon-background-global', currentBackground);
+          }
+          
+          if (settings.customBackground) {
+            localStorage.setItem('carbon-custom-bg-global', settings.customBackground);
+            if (currentBackground === 'custom') {
+              showCustomBgPreview(settings.customBackground);
+            }
+          }
+          
+          updateBackgroundUI();
+        }
+      } catch (error) {
+        console.error('Error loading background from Firebase:', error);
+      }
+    }
+
+    // Initialize background system when DOM is loaded
+    document.addEventListener('DOMContentLoaded', () => {
+      setTimeout(initializeBackgroundSystem, 100);
+    });
+
+    // Update background when theme changes
+    window.addEventListener('storage', (event) => {
+      if (event.key === 'carbon-background-global' && event.newValue) {
+        currentBackground = event.newValue;
+        updateBackgroundUI();
+      }
+    });
   </script>
 </body>
 </html>
