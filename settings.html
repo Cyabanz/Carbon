@@ -40,19 +40,6 @@
     <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet" />
     <style>
         :root {
-            --text-color: #e0def4;
-            --surface-color: #1f1d2e;
-            --overlay-color: #26233a;
-            --highlight-med: #403d52;
-            --highlight-high: #524f67;
-            --foam: #9ccfd8;
-            --love: #eb6f92;
-            --gold: #f6c177;
-            --pine: #31748f;
-            --iris: #c4a7e7;
-            --muted: #6e6a86;
-            --subtle: #908caa;
-            
             /* Theme variables - Rose Pine (default) */
             --theme-base: #191724;
             --theme-surface: #1f1d2e;
@@ -206,28 +193,38 @@
             --theme-gradient: linear-gradient(135deg, #282a36 0%, #44475a 50%, #6272a4 100%);
         }
         
+        /* Core Layout */
+        body {
+            background: var(--theme-gradient);
+            background-attachment: fixed;
+            color: var(--theme-text);
+            min-height: 100vh;
+        }
+        
         .settings-container {
             max-width: 900px;
             margin: 0 auto;
             padding: 2rem;
         }
         
+        /* Cards */
         .setting-card {
-            background: var(--surface-color);
-            border: 1px solid var(--overlay-color);
+            background: var(--theme-surface);
+            border: 1px solid var(--theme-overlay);
             border-radius: 1rem;
             padding: 2rem;
             margin-bottom: 2rem;
             transition: all 0.3s ease;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
         }
         
         .setting-card:hover {
-            border-color: var(--highlight-med);
-            transform: translateY(-3px);
-            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2);
+            border-color: var(--theme-foam);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
         }
         
+        /* Previews */
         .bg-preview, .theme-preview {
             width: 120px;
             height: 80px;
@@ -243,15 +240,16 @@
         }
         
         .bg-preview.active, .theme-preview.active {
-            border-color: var(--foam);
+            border-color: var(--theme-foam);
             box-shadow: 0 0 0 2px rgba(156, 207, 216, 0.3);
         }
         
         .bg-preview:hover, .theme-preview:hover {
-            border-color: var(--muted);
             transform: scale(1.05);
+            border-color: var(--theme-muted);
         }
         
+        /* Panic Key Display */
         .panic-key-display {
             min-height: 4rem;
             display: flex;
@@ -259,64 +257,40 @@
             justify-content: center;
             font-size: 1.5rem;
             font-weight: bold;
-            background: var(--overlay-color);
+            background: var(--theme-overlay);
             border-radius: 0.75rem;
-            color: var(--foam);
-            border: 2px solid var(--highlight-med);
+            color: var(--theme-foam);
+            border: 2px solid var(--theme-highlight-med);
             transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
         }
         
         .panic-key-display.recording {
-            border-color: var(--love);
-            background: var(--love);
+            border-color: var(--theme-love);
+            background: var(--theme-love);
             color: white;
             animation: pulse 2s infinite;
         }
         
-        .panic-key-display.recording::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
-            animation: shimmer 2s infinite;
-        }
-        
         @keyframes pulse {
-            0% { opacity: 1; }
+            0%, 100% { opacity: 1; }
             50% { opacity: 0.8; }
-            100% { opacity: 1; }
         }
         
-        @keyframes shimmer {
-            0% { left: -100%; }
-            100% { left: 100%; }
-        }
-        
+        /* Upload Areas */
         .image-upload {
-            border: 2px dashed var(--highlight-med);
+            border: 2px dashed var(--theme-highlight-med);
             border-radius: 0.75rem;
             padding: 3rem;
             text-align: center;
             cursor: pointer;
             transition: all 0.3s ease;
-            background: linear-gradient(135deg, var(--surface-color) 0%, var(--overlay-color) 100%);
+            background: var(--theme-surface);
         }
         
-        .image-upload:hover {
-            border-color: var(--foam);
-            background: var(--highlight-med);
+        .image-upload:hover, .image-upload.dragover {
+            border-color: var(--theme-foam);
+            background: var(--theme-highlight-med);
             transform: translateY(-2px);
-        }
-        
-        .image-upload.dragover {
-            border-color: var(--foam);
-            background: var(--highlight-med);
-            transform: scale(1.02);
         }
         
         .custom-bg-preview {
@@ -325,18 +299,17 @@
             border-radius: 12px;
             background-size: cover;
             background-position: center;
-            border: 2px solid var(--highlight-med);
+            border: 2px solid var(--theme-highlight-med);
             cursor: pointer;
             transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
         }
         
         .custom-bg-preview:hover {
-            border-color: var(--foam);
+            border-color: var(--theme-foam);
             transform: scale(1.02);
         }
         
+        /* Feature Grid */
         .feature-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
@@ -345,55 +318,69 @@
         }
         
         .feature-item {
-            background: var(--highlight-med);
+            background: var(--theme-highlight-med);
             border-radius: 0.75rem;
             padding: 1.5rem;
             transition: all 0.3s ease;
         }
         
         .feature-item:hover {
-            background: var(--highlight-high);
+            background: var(--theme-highlight-high);
             transform: translateY(-2px);
         }
         
+        /* UI Elements */
         .gradient-text {
-            background: linear-gradient(135deg, var(--foam) 0%, var(--iris) 100%);
+            background: linear-gradient(135deg, var(--theme-foam) 0%, var(--theme-iris) 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
         }
         
         .btn-primary {
-            background: linear-gradient(135deg, var(--foam) 0%, var(--pine) 100%);
+            background: linear-gradient(135deg, var(--theme-foam) 0%, var(--theme-pine) 100%);
             border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            color: var(--theme-base);
+            font-weight: 600;
+            cursor: pointer;
             transition: all 0.3s ease;
         }
         
         .btn-primary:hover {
             transform: translateY(-2px);
-            box-shadow: 0 8px 25px -5px rgba(156, 207, 216, 0.4);
+            box-shadow: 0 8px 25px rgba(156, 207, 216, 0.4);
         }
         
         .btn-danger {
-            background: linear-gradient(135deg, var(--love) 0%, #d63384 100%);
+            background: linear-gradient(135deg, var(--theme-love) 0%, #d63384 100%);
             border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
             transition: all 0.3s ease;
         }
         
         .btn-danger:hover {
             transform: translateY(-2px);
-            box-shadow: 0 8px 25px -5px rgba(235, 111, 146, 0.4);
+            box-shadow: 0 8px 25px rgba(235, 111, 146, 0.4);
         }
         
         .input-field {
-            background: var(--overlay-color);
-            border: 1px solid var(--highlight-med);
-            color: var(--text-color);
+            background: var(--theme-overlay);
+            border: 1px solid var(--theme-highlight-med);
+            color: var(--theme-text);
+            padding: 0.75rem;
+            border-radius: 0.5rem;
             transition: all 0.3s ease;
+            width: 100%;
         }
         
         .input-field:focus {
-            border-color: var(--foam);
+            border-color: var(--theme-foam);
             box-shadow: 0 0 0 3px rgba(156, 207, 216, 0.1);
             outline: none;
         }
@@ -402,17 +389,17 @@
             appearance: none;
             width: 1.2rem;
             height: 1.2rem;
-            border: 2px solid var(--highlight-med);
+            border: 2px solid var(--theme-highlight-med);
             border-radius: 0.25rem;
-            background: var(--surface-color);
+            background: var(--theme-surface);
             position: relative;
             cursor: pointer;
             transition: all 0.3s ease;
         }
         
         .checkbox-custom:checked {
-            background: var(--foam);
-            border-color: var(--foam);
+            background: var(--theme-foam);
+            border-color: var(--theme-foam);
         }
         
         .checkbox-custom:checked::before {
@@ -421,7 +408,7 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            color: var(--surface-color);
+            color: var(--theme-base);
             font-weight: bold;
             font-size: 0.8rem;
         }
@@ -431,13 +418,13 @@
             width: 8px;
             height: 8px;
             border-radius: 50%;
-            background: var(--foam);
+            background: var(--theme-foam);
             margin-right: 0.5rem;
             animation: pulse 2s infinite;
         }
         
         .status-indicator.inactive {
-            background: var(--muted);
+            background: var(--theme-muted);
             animation: none;
         }
     </style>
@@ -1191,8 +1178,6 @@
                 patternPreview.style.background = `${baseColor} url('data:image/svg+xml,<svg width="20" height="20" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><circle cx="10" cy="10" r="1" fill="%23ffffff" fill-opacity="0.1"/></svg>')`;
             }
         }
-
-
 
         function applyBackground() {
             const body = document.body;
