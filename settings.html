@@ -279,7 +279,9 @@
         let currentTheme = 'rose-pine';
         let currentBackground = 'gradient';
         let currentUser = null;
-        
+        // Fixed: Define valid backgrounds globally
+        const validBackgrounds = ['gradient', 'solid', 'pattern', 'particles', 'custom'];
+
         async function googleSignIn() {
             try {
                 const provider = new firebase.auth.GoogleAuthProvider();
@@ -310,12 +312,12 @@
             } else {
                 document.getElementById('login-screen').classList.remove('hidden');
                 document.getElementById('settings-content').classList.add('hidden');
-                loadSettings(); // Fixed: Call loadSettings for non-authenticated users
+                loadSettings();
             }
         });
         
         document.addEventListener('DOMContentLoaded', function() {
-            // Fixed: Only initialize particles, do not call loadSettings here to avoid timing issues
+            // Fixed: Initialize particles only
             initParticles();
         });
 
@@ -342,23 +344,17 @@
                         document.querySelectorAll('.theme-preview').forEach(el => el.classList.remove('active', 'border-[var(--theme-foam)]'));
                         document.querySelector(`[data-theme="${settings.theme}"]`)?.classList.add('active', 'border-[var(--theme-foam)]');
                     }
-                    // Fixed: Validate and apply background immediately
-                    const validBackgrounds = ['gradient', 'solid', 'pattern', 'particles'];
+                    // Fixed: Load and validate background
                     if (settings.background && validBackgrounds.includes(settings.background)) {
                         currentBackground = settings.background;
                         console.log('Loaded background from Firebase:', currentBackground);
-                        document.querySelectorAll('.bg-preview').forEach(el => el.classList.remove('active', 'border-[var(--theme-foam)]'));
-                        const bgElement = document.querySelector(`[data-bg="${settings.background}"]`);
-                        if (bgElement) {
-                            bgElement.classList.add('active', 'border-[var(--theme-foam)]');
-                        }
+                        updateBackgroundUI();
                     } else {
                         console.warn('Invalid or missing background in Firebase, defaulting to gradient');
                         currentBackground = 'gradient';
-                        document.querySelectorAll('.bg-preview').forEach(el => el.classList.remove('active', 'border-[var(--theme-foam)]'));
-                        document.querySelector(`[data-bg="gradient"]`)?.classList.add('active', 'border-[var(--theme-foam)]');
+                        updateBackgroundUI();
                     }
-                    if (settings.customBackground) {
+                    if (settings.customBackground && currentBackground === 'custom') {
                         showCustomBgPreview(settings.customBackground);
                     }
                     document.getElementById('tab-cloaking-enabled').checked = settings.cloakingEnabled || false;
@@ -369,7 +365,6 @@
                     document.getElementById('disable-select').checked = settings.disableSelect || false;
                     document.getElementById('hide-cursor').checked = settings.hideCursor || false;
                     document.getElementById('blur-on-unfocus').checked = settings.blurOnUnfocus || false;
-                    // Fixed: Apply settings after loading
                     applySettings();
                     toggleCloakingOptions();
                     updateStatusIndicators();
@@ -425,25 +420,19 @@
             currentTheme = savedTheme;
             document.querySelectorAll('.theme-preview').forEach(el => el.classList.remove('active', 'border-[var(--theme-foam)]'));
             document.querySelector(`[data-theme="${savedTheme}"]`)?.classList.add('active', 'border-[var(--theme-foam)]');
-            // Fixed: Validate and apply background immediately
-            const validBackgrounds = ['gradient', 'solid', 'pattern', 'particles'];
+            // Fixed: Load and validate background
             const savedBg = localStorage.getItem('carbon-background-global') || 'gradient';
             if (validBackgrounds.includes(savedBg)) {
                 currentBackground = savedBg;
                 console.log('Loaded background from localStorage:', currentBackground);
-                document.querySelectorAll('.bg-preview').forEach(el => el.classList.remove('active', 'border-[var(--theme-foam)]'));
-                const bgElement = document.querySelector(`[data-bg="${savedBg}"]`);
-                if (bgElement) {
-                    bgElement.classList.add('active', 'border-[var(--theme-foam)]');
-                }
+                updateBackgroundUI();
             } else {
                 console.warn('Invalid or missing background in localStorage, defaulting to gradient');
                 currentBackground = 'gradient';
-                document.querySelectorAll('.bg-preview').forEach(el => el.classList.remove('active', 'border-[var(--theme-foam)]'));
-                document.querySelector(`[data-bg="gradient"]`)?.classList.add('active', 'border-[var(--theme-foam)]');
+                updateBackgroundUI();
             }
             const savedCustomBg = localStorage.getItem('carbon-custom-bg-global');
-            if (savedCustomBg) {
+            if (savedCustomBg && currentBackground === 'custom') {
                 showCustomBgPreview(savedCustomBg);
             }
             document.getElementById('tab-cloaking-enabled').checked = localStorage.getItem('carbon-cloak-enabled') === 'true';
@@ -456,8 +445,22 @@
             document.getElementById('blur-on-unfocus').checked = localStorage.getItem('carbon-blur-unfocus') === 'true';
             toggleCloakingOptions();
             updateStatusIndicators();
-            // Fixed: Apply settings after loading
             applySettings();
+        }
+
+        // Fixed: Helper function to update background UI
+        function updateBackgroundUI() {
+            console.log('Updating background UI for:', currentBackground);
+            document.querySelectorAll('.bg-preview').forEach(el => el.classList.remove('active', 'border-[var(--theme-foam)]'));
+            const bgElement = document.querySelector(`[data-bg="${currentBackground}"]`);
+            if (bgElement) {
+                bgElement.classList.add('active', 'border-[var(--theme-foam)]');
+            } else if (currentBackground !== 'custom') {
+                console.warn('Background element not found, defaulting UI to gradient');
+                currentBackground = 'gradient';
+                document.querySelector(`[data-bg="gradient"]`)?.classList.add('active', 'border-[var(--theme-foam)]');
+            }
+            applyBackground();
         }
 
         function loadCustomThemes() {
@@ -585,9 +588,9 @@
             const particlesCanvas = document.getElementById('particles-canvas');
             const baseColor = getComputedStyle(document.documentElement).getPropertyValue('--theme-base').trim();
             particlesCanvas.classList.add('hidden');
-            // Fixed: Only apply custom background if explicitly selected
+            body.style.background = ''; // Reset background
             const customBg = localStorage.getItem('carbon-custom-bg-global');
-            if (customBg && currentBackground === 'custom') {
+            if (currentBackground === 'custom' && customBg) {
                 console.log('Applying custom background:', customBg);
                 body.style.background = `url(${customBg}) center/cover fixed`;
             } else {
@@ -603,7 +606,6 @@
                     case 'particles':
                         body.style.background = baseColor;
                         particlesCanvas.classList.remove('hidden');
-                        initParticles();
                         console.log('Applied particles background');
                         break;
                     case 'gradient':
@@ -612,10 +614,10 @@
                         break;
                     default:
                         console.warn('Invalid background type, defaulting to gradient:', currentBackground);
-                        body.style.background = 'var(--theme-gradient)';
                         currentBackground = 'gradient';
-                        document.querySelectorAll('.bg-preview').forEach(el => el.classList.remove('active', 'border-[var(--theme-foam)]'));
-                        document.querySelector(`[data-bg="gradient"]`)?.classList.add('active', 'border-[var(--theme-foam)]');
+                        localStorage.setItem('carbon-background-global', 'gradient');
+                        body.style.background = 'var(--theme-gradient)';
+                        updateBackgroundUI();
                         break;
                 }
                 body.style.backgroundAttachment = currentBackground === 'pattern' ? '' : 'fixed';
@@ -657,7 +659,7 @@
             }
 
             function animateParticles() {
-                if (currentBackground === 'particles' && !document.getElementById('particles-canvas').classList.contains('hidden')) {
+                if (currentBackground === 'particles' && !canvas.classList.contains('hidden')) {
                     ctx.clearRect(0, 0, canvas.width, canvas.height);
                     particlesArray.forEach(particle => {
                         particle.update();
@@ -672,7 +674,10 @@
                 canvas.height = window.innerHeight;
             });
 
-            animateParticles();
+            // Fixed: Only start animation if particles is selected
+            if (currentBackground === 'particles') {
+                animateParticles();
+            }
         }
 
         function applyTabCloaking() {
@@ -785,12 +790,13 @@
 
         document.querySelectorAll('.bg-preview').forEach(preview => {
             preview.addEventListener('click', function() {
+                console.log('Clicked background:', this.dataset.bg);
                 document.querySelectorAll('.bg-preview').forEach(el => el.classList.remove('active', 'border-[var(--theme-foam)]'));
                 this.classList.add('active', 'border-[var(--theme-foam)]');
                 currentBackground = this.dataset.bg;
-                console.log('Selected background:', currentBackground);
                 localStorage.setItem('carbon-background-global', currentBackground);
-                // Fixed: Clear custom background if a standard background is selected
+                console.log('Set currentBackground to:', currentBackground);
+                // Fixed: Clear custom background if selecting a standard background
                 if (currentBackground !== 'custom') {
                     localStorage.removeItem('carbon-custom-bg-global');
                     document.getElementById('custom-bg-preview').classList.add('hidden');
@@ -811,9 +817,9 @@
                 reader.onload = function(e) {
                     const dataUrl = e.target.result;
                     localStorage.setItem('carbon-custom-bg-global', dataUrl);
-                    // Fixed: Set currentBackground to 'custom' when uploading
                     currentBackground = 'custom';
                     localStorage.setItem('carbon-background-global', 'custom');
+                    console.log('Set custom background, currentBackground:', currentBackground);
                     document.querySelectorAll('.bg-preview').forEach(el => el.classList.remove('active', 'border-[var(--theme-foam)]'));
                     showCustomBgPreview(dataUrl);
                     applyBackground();
@@ -833,12 +839,10 @@
         document.getElementById('remove-bg').addEventListener('click', function() {
             localStorage.removeItem('carbon-custom-bg-global');
             document.getElementById('custom-bg-preview').classList.add('hidden');
-            // Fixed: Revert to gradient when custom background is removed
             currentBackground = 'gradient';
             localStorage.setItem('carbon-background-global', 'gradient');
-            document.querySelectorAll('.bg-preview').forEach(el => el.classList.remove('active', 'border-[var(--theme-foam)]'));
-            document.querySelector(`[data-bg="gradient"]`)?.classList.add('active', 'border-[var(--theme-foam)]');
-            applyBackground();
+            console.log('Removed custom background, set to gradient');
+            updateBackgroundUI();
             triggerAutoSave();
         });
 
@@ -899,6 +903,7 @@
             localStorage.setItem('carbon-disable-select', document.getElementById('disable-select').checked);
             localStorage.setItem('carbon-hide-cursor', document.getElementById('hide-cursor').checked);
             localStorage.setItem('carbon-blur-unfocus', document.getElementById('blur-on-unfocus').checked);
+            console.log('Saved settings, background:', currentBackground);
             if (currentUser) {
                 await saveSettingsToFirebase();
             }
@@ -973,9 +978,6 @@
                 }
             }
         });
-
-        // Fixed: Remove global applySettings call to avoid premature execution
-        // applySettings();
     </script>
 </body>
 </html>
