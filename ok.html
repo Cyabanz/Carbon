@@ -2,155 +2,419 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <title>CARBON Game Proxy</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800&display=swap" rel="stylesheet">
-    <link href="/css/boxicons.min.css" rel="stylesheet"/>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>New Tab - Carbon</title>
+    <script defer async>
+      function setConfig() {
+        tailwind.config = {
+          theme: {
+            extend: {
+              fontFamily: {
+                display: ["Switzer", "Helvetica", "sans-serif"],
+                inter: ["Inter", "sans-serif"],
+              },
+              colors: {
+                base: "#191724",
+                surface: "#1f1d2e",
+                overlay: "#26233a",
+                muted: "#6e6a86",
+                subtle: "#908caa",
+                text: "#e0def4",
+                love: "#eb6f92",
+                gold: "#f6c177",
+                rose: "#ebbcba",
+                pine: "#31748f",
+                foam: "#9ccfd8",
+                iris: "#c4a7e7",
+                "highlight-low": "#21202e",
+                "highlight-med": "#403d52",
+                "highlight-high": "#524f67",
+              },
+            },
+          },
+        };
+      }
+    </script>
+
+    <link rel="preconnect" href="https://unpkg.com" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://cdn.tailwindcss.com" />
+    <script
+      defer
+      async
+      src="https://cdn.tailwindcss.com"
+      onload="setConfig()"
+    ></script>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet" />
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+
     <style>
-      body { font-family: "Inter", sans-serif; }
-      .proxy-icon-btn {
-        width: 2.5rem; height: 2.5rem;
-        background: rgba(255,255,255,0.07);
-        border-radius: 9999px;
-        display: flex; align-items: center; justify-content: center;
-        transition: background 0.15s, box-shadow 0.15s;
-        cursor: pointer;
-        border: none;
-        outline: none;
-        color: #fff;
-        position: relative;
-      }
-      .proxy-icon-btn.active {
-        box-shadow: 0 0 0 2px #06b6d4;
-        background: rgba(6,182,212,0.09);
-      }
-      .proxy-dropdown {
-        min-width: 120px;
-        display: none;
+      .suggestion-box {
         position: absolute;
-        top: 44px; left: 0;
-        background: #26233a;
-        border: 2px solid #9ccfd8;
-        border-radius: 12px;
-        z-index: 1000;
-        box-shadow: 0 6px 18px 2px #0009;
-      }
-      .proxy-dropdown button {
-        width: 100%;
-        background: none;
-        border: none;
+        left: 0;
+        right: 0;
+        top: 100%;
+        z-index: 1200;
+        background: #1f1d2e;
+        border-radius: 0 0 0.75rem 0.75rem;
+        border: 1px solid #26233a;
+        border-top: none;
+        max-height: 220px;
+        overflow-y: auto;
+        box-shadow: 0 6px 20px 2px #000a;
         color: #e0def4;
         font-size: 1rem;
-        padding: 0.75rem 1.5rem;
-        text-align: left;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        gap: 0.7em;
-        transition: background 0.15s;
+        width: 100%;
       }
-      .proxy-dropdown button:hover {
-        background: #403d52;
+      .suggestion-item {
+        padding: 0.73rem 1.1rem;
+        cursor: pointer;
+        transition: background 0.16s;
+        border-bottom: 1px solid #26233a;
+      }
+      .suggestion-item:last-child {
+        border-bottom: none;
+      }
+      .suggestion-item:hover,
+      .suggestion-item.active {
+        background: #26233a;
         color: #9ccfd8;
+      }
+      .scrollbar-hide::-webkit-scrollbar {
+        display: none;
+      }
+      .scrollbar-hide {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
       }
     </style>
   </head>
-  <body class="bg-[#181b2a] text-white min-h-screen flex flex-col items-center justify-center">
-    <main class="max-w-2xl w-full rounded-xl shadow-xl bg-[#232445] mt-24">
-      <!-- Controls Bar -->
-      <div class="flex items-center justify-between px-6 pt-6">
+  <body class="font-inter bg-gradient-to-br from-base via-surface to-overlay min-h-screen text-text flex items-center justify-center">
+    <div class="max-w-4xl w-full px-4">
+      <!-- Search Bar -->
+      <form id="search-form" class="relative max-w-2xl mx-auto mb-12">
         <div class="relative">
-          <button id="proxy-toggle-btn" class="proxy-icon-btn" title="Switch Proxy">
-            <i id="proxy-toggle-icon" class="bx bx-cloud text-2xl"></i>
-          </button>
-          <div id="proxy-dropdown" class="proxy-dropdown">
-            <button data-proxy="uv"><i class="bx bx-cloud"></i>UV</button>
-            <button data-proxy="scram"><i class="bx bx-network-chart"></i>Scramjet</button>
-          </div>
+          <i class="bx bx-search absolute left-3 top-1/2 transform -translate-y-1/2 text-foam text-sm"></i>
+          <input
+            id="search-input"
+            type="text"
+            spellcheck="false"
+            autocomplete="off"
+            placeholder="Search or enter website URL"
+            class="w-full h-12 pl-10 pr-4 bg-highlight-med border border-overlay text-text rounded-full text-base focus:outline-none focus:ring-2 focus:ring-foam focus:border-transparent placeholder-muted"
+          />
         </div>
-        <span class="text-lg font-bold tracking-tight">CARBON Game Proxy</span>
-        <div></div>
-      </div>
-      <!-- Game Frame -->
-      <div class="p-6">
-        <iframe id="game-iframe"
-          class="w-full min-h-[60vh] rounded-xl border-2 border-[#343654] bg-black"
-          frameborder="0"
-          allowfullscreen
-        ></iframe>
-      </div>
-      <div class="px-6 pb-6 flex justify-end">
-        <a href="index.html" class="bg-cyan-500 px-4 py-2 rounded-lg text-black font-bold hover:bg-cyan-400 transition">Back to Home</a>
-      </div>
-    </main>
-    <script type="module">
-      import { makeURL, getProxied, setProxy, getProxy } from "/lethal.mjs";
+        <div id="suggestion-box" class="suggestion-box hidden"></div>
+      </form>
 
-      // Proxy Dropdown Logic
-      const proxyToggleBtn = document.getElementById("proxy-toggle-btn");
-      const proxyToggleIcon = document.getElementById("proxy-toggle-icon");
-      const proxyDropdown = document.getElementById("proxy-dropdown");
+      <!-- Quick Links -->
+      <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+        <a
+          href="#"
+          data-url="https://www.google.com"
+          class="quick-link flex items-center gap-3 p-3 bg-surface hover:bg-highlight-med rounded-lg transition-colors"
+        >
+          <i class="bx bxl-google text-foam text-xl"></i>
+          <span class="text-sm">Google</span>
+        </a>
+        <a
+          href="#"
+          data-url="https://www.youtube.com"
+          class="quick-link flex items-center gap-3 p-3 bg-surface hover:bg-highlight-med rounded-lg transition-colors"
+        >
+          <i class="bx bxl-youtube text-love text-xl"></i>
+          <span class="text-sm">YouTube</span>
+        </a>
+        <a
+          href="#"
+          data-url="https://github.com"
+          class="quick-link flex items-center gap-3 p-3 bg-surface hover:bg-highlight-med rounded-lg transition-colors"
+        >
+          <i class="bx bxl-github text-text text-xl"></i>
+          <span class="text-sm">GitHub</span>
+        </a>
+        <a
+          href="#"
+          data-url="carbon://settings"
+          class="quick-link flex items-center gap-3 p-3 bg-surface hover:bg-highlight-med rounded-lg transition-colors"
+        >
+          <i class="bx bx-cog text-iris text-xl"></i>
+          <span class="text-sm">Settings</span>
+        </a>
+      </div>
+    </div>
+
+    <script type="module" defer>
+      import {
+        makeURL,
+        getProxied,
+        setProxy,
+        setTransport,
+        setWisp,
+      } from "/lethal.mjs";
+
+      // Firebase configuration
+      const firebaseConfig = {
+        apiKey: "AIzaSyC4ilHYP1T-kdXbWPoHJHhD2aj0pNWmMec",
+        authDomain: "carbon-services.firebaseapp.com",
+        projectId: "carbon-services",
+        storageBucket: "carbon-services.firebasestorage.app",
+        messagingSenderId: "288385472070",
+        appId: "1:288385472070:web:c4be3ff186e248fc645c47",
+        measurementId: "G-Y2K1RQYE74"
+      };
+
+      // Initialize Firebase
+      firebase.initializeApp(firebaseConfig);
+      const auth = firebase.auth();
+      const db = firebase.firestore();
+
+      // Settings
+      let currentUser = null;
+      let tabCloakingEnabled = false;
+      let cloakTitle = '';
+      let cloakFavicon = '';
+      let panicKey = null;
+
+      // Load settings from Firebase or localStorage
+      async function loadSettings() {
+        if (currentUser) {
+          try {
+            const userSettingsDoc = await db.collection('users').doc(currentUser.uid).get();
+            if (userSettingsDoc.exists) {
+              const settings = userSettingsDoc.data().settings || {};
+              tabCloakingEnabled = settings.cloakingEnabled || false;
+              cloakTitle = settings.cloakTitle || '';
+              cloakFavicon = settings.cloakFavicon || '';
+              panicKey = settings.panicKey || null;
+              if (settings.panicUrl) {
+                localStorage.setItem('carbon-panic-url', settings.panicUrl);
+              }
+              applyTabCloaking();
+            }
+          } catch (error) {
+            console.error('Error loading settings from Firebase:', error);
+            loadLocalSettings();
+          }
+        } else {
+          loadLocalSettings();
+        }
+      }
+
+      function loadLocalSettings() {
+        tabCloakingEnabled = localStorage.getItem('carbon-cloak-enabled') === 'true';
+        cloakTitle = localStorage.getItem('carbon-cloak-title') || '';
+        cloakFavicon = localStorage.getItem('carbon-cloak-favicon') || '';
+        panicKey = localStorage.getItem('carbon-panic-key') || null;
+        applyTabCloaking();
+      }
+
+      function applyTabCloaking() {
+        if (tabCloakingEnabled && cloakTitle) {
+          document.title = cloakTitle.trim();
+          if (cloakFavicon) {
+            const existingLinks = document.querySelectorAll("link[rel*='icon']");
+            existingLinks.forEach(link => link.remove());
+            const link = document.createElement('link');
+            link.rel = 'shortcut icon';
+            link.href = cloakFavicon.trim() + '?v=' + new Date().getTime();
+            document.head.appendChild(link);
+            const iconLink = document.createElement('link');
+            iconLink.rel = 'icon';
+            iconLink.href = cloakFavicon.trim() + '?v=' + new Date().getTime();
+            document.head.appendChild(iconLink);
+          }
+        } else {
+          document.title = 'New Tab - Carbon';
+        }
+      }
+
+      // Authentication state observer
+      auth.onAuthStateChanged((user) => {
+        currentUser = user;
+        loadSettings();
+      });
+
+      // Search engine and proxy settings
+      const engines = {
+        "https://search.brave.com/search?q=%s": ["Brave", "bxl-brave"],
+        "https://duckduckgo.com/?q=%s": ["DuckDuckGo", "bxl-duckduckgo"],
+        "https://www.google.com/search?q=%s": ["Google", "bxl-google"],
+        "https://www.bing.com/search?q=%s": ["Bing", "bxl-microsoft"],
+        "https://search.yahoo.com/search?p=%s": ["Yahoo", "bxl-yahoo"],
+        "https://www.ecosia.org/search?q=%s": ["Ecosia", "bxl-leaf"],
+      };
+
+      function getCurrentSearchEngine() {
+        return localStorage.getItem("search-engine") || "https://search.brave.com/search?q=%s";
+      }
+
       function getCurrentProxy() {
         return localStorage.getItem("proxy-backend") || "uv";
       }
-      function setCurrentProxy(proxy) {
-        localStorage.setItem("proxy-backend", proxy);
-        updateProxyToggleUI(proxy);
-      }
-      function updateProxyToggleUI(proxy) {
-        if (proxy === "scram") {
-          proxyToggleBtn.classList.add("active");
-          proxyToggleIcon.className = "bx bx-network-chart text-2xl";
-          proxyToggleIcon.style.color = "#f6c177";
-          proxyToggleBtn.title = "Scramjet";
-        } else {
-          proxyToggleBtn.classList.remove("active");
-          proxyToggleIcon.className = "bx bx-cloud text-2xl";
-          proxyToggleIcon.style.color = "#9ccfd8";
-          proxyToggleBtn.title = "UV";
+
+      // Initialize proxy settings
+      let backend = getCurrentProxy();
+      let wisp = localStorage.getItem("wisp-server") || "wss://anura.pro/";
+      let transport = localStorage.getItem("proxy-transport");
+      setWisp(wisp);
+      setProxy(backend);
+      if (transport) setTransport(transport);
+      else if (navigator.userAgent.indexOf("Firefox") > 0)
+        setTransport("libcurl");
+      else setTransport("epoxy");
+
+      // Search functionality
+      const searchForm = document.getElementById("search-form");
+      const searchInput = document.getElementById("search-input");
+      const suggestionBox = document.getElementById("suggestion-box");
+      let suggestionActive = -1;
+      let currentSuggestions = [];
+
+      searchForm.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        suggestionBox.classList.add("hidden");
+        suggestionActive = -1;
+        const url = searchInput.value.trim();
+        if (url) {
+          // Send navigation request to parent
+          window.parent.postMessage({ type: 'carbon-navigate', url }, '*');
+        }
+      });
+
+      searchInput.addEventListener("input", async function () {
+        const val = searchInput.value.trim();
+        if (!val || val.startsWith("http")) {
+          suggestionBox.classList.add("hidden");
+          suggestionBox.innerHTML = "";
+          currentSuggestions = [];
+          suggestionActive = -1;
+          return;
+        }
+
+        const apiUrl = `https://corsproxy.io/?url=${encodeURIComponent(`https://duckduckgo.com/ac/?q=${encodeURIComponent(val)}&type=list`)}`;
+        try {
+          const resp = await fetch(apiUrl);
+          if (!resp.ok) throw new Error();
+          const data = await resp.json();
+          let suggestionsData = data.contents ? JSON.parse(data.contents) : data;
+          currentSuggestions = (suggestionsData[1] || []).filter(Boolean);
+          if (currentSuggestions.length === 0) {
+            suggestionBox.classList.add("hidden");
+            suggestionBox.innerHTML = "";
+            suggestionActive = -1;
+            return;
+          }
+          suggestionBox.innerHTML = currentSuggestions
+            .map(
+              (s, i) =>
+                `<div class="suggestion-item${i === suggestionActive ? " active" : ""}" data-idx="${i}">${s.replace(/</g, "<")}</div>`,
+            )
+            .join("");
+          suggestionBox.classList.remove("hidden");
+          suggestionActive = -1;
+        } catch (err) {
+          suggestionBox.classList.add("hidden");
+          suggestionBox.innerHTML = "";
+          currentSuggestions = [];
+          suggestionActive = -1;
+        }
+      });
+
+      searchInput.addEventListener("keydown", function (e) {
+        if (!currentSuggestions.length || suggestionBox.classList.contains("hidden")) return;
+        if (e.key === "ArrowDown") {
+          e.preventDefault();
+          suggestionActive = (suggestionActive + 1) % currentSuggestions.length;
+          updateSuggestionBoxActive();
+        } else if (e.key === "ArrowUp") {
+          e.preventDefault();
+          suggestionActive =
+            (suggestionActive - 1 + currentSuggestions.length) % currentSuggestions.length;
+          updateSuggestionBoxActive();
+        } else if (e.key === "Enter") {
+          if (suggestionActive !== -1) {
+            e.preventDefault();
+            selectSuggestion(suggestionActive);
+            searchForm.dispatchEvent(new Event("submit"));
+          }
+        } else if (e.key === "Escape") {
+          suggestionBox.classList.add("hidden");
+          suggestionActive = -1;
+        }
+      });
+
+      function updateSuggestionBoxActive() {
+        Array.from(suggestionBox.children).forEach((el, i) => {
+          if (i === suggestionActive) el.classList.add("active");
+          else el.classList.remove("active");
+        });
+        if (suggestionActive !== -1) {
+          const el = suggestionBox.children[suggestionActive];
+          if (el) el.scrollIntoView({ block: "nearest" });
+          searchInput.value = currentSuggestions[suggestionActive];
         }
       }
-      proxyToggleBtn.addEventListener("click", (e) => {
-        e.stopPropagation();
-        proxyDropdown.style.display =
-          proxyDropdown.style.display === "block" ? "none" : "block";
+
+      function selectSuggestion(idx) {
+        if (idx < 0 || idx >= currentSuggestions.length) return;
+        searchInput.value = currentSuggestions[idx];
+        suggestionBox.classList.add("hidden");
+        suggestionActive = -1;
+      }
+
+      suggestionBox.addEventListener("mousedown", function (e) {
+        const target = e.target.closest(".suggestion-item");
+        if (target) {
+          const idx = parseInt(target.dataset.idx);
+          selectSuggestion(idx);
+          setTimeout(() => searchForm.dispatchEvent(new Event("submit")), 0);
+        }
       });
-      document.querySelectorAll("#proxy-dropdown [data-proxy]").forEach((btn) => {
-        btn.addEventListener("click", async (e) => {
-          const proxy = e.currentTarget.dataset.proxy;
-          await setProxy(proxy);
-          setCurrentProxy(proxy);
-          proxyDropdown.style.display = "none";
-          loadGame();
+
+      document.addEventListener("click", function (e) {
+        if (!suggestionBox.contains(e.target) && e.target !== searchInput) {
+          suggestionBox.classList.add("hidden");
+          suggestionActive = -1;
+        }
+      });
+
+      // Quick links navigation
+      document.querySelectorAll(".quick-link").forEach(link => {
+        link.addEventListener("click", (e) => {
+          e.preventDefault();
+          const url = link.dataset.url;
+          window.parent.postMessage({ type: 'carbon-navigate', url }, '*');
         });
       });
-      document.addEventListener("click", (e) => {
-        if (!proxyDropdown.contains(e.target) && e.target !== proxyToggleBtn) {
-          proxyDropdown.style.display = "none";
+
+      // Request vertical tabs state from parent
+      window.addEventListener('DOMContentLoaded', () => {
+        window.parent.postMessage({ type: 'carbon-request-vertical-tabs-state' }, '*');
+      });
+
+      // Handle vertical tabs state from parent
+      window.addEventListener('message', (event) => {
+        if (event.data && event.data.type === 'carbon-vertical-tabs-state') {
+          const verticalTabsEnabled = event.data.enabled;
+          document.body.style.marginLeft = verticalTabsEnabled ? '280px' : '0';
         }
       });
-      updateProxyToggleUI(getCurrentProxy());
 
-      // Game Load Logic
-      async function loadGame() {
-        const params = new URLSearchParams(window.location.search);
-        const url = params.get("url") ||
-          "https://www.crazygames.com/game/1v1-lol";
-        try {
-          let proxied = await getProxied(url);
-          document.getElementById("game-iframe").src = proxied;
-        } catch (e) {
-          document.getElementById("game-iframe").src = url;
+      // Panic key handling
+      document.addEventListener("keydown", (e) => {
+        if (panicKey && e.key.toLowerCase() === panicKey.toLowerCase()) {
+          const panicUrl = localStorage.getItem('carbon-panic-url') || 'https://classroom.google.com';
+          window.top.location.href = panicUrl;
         }
-      }
-
-      // Proxy Setup
-      let backend = getCurrentProxy();
-      await setProxy(backend);
-
-      // Load
-      loadGame();
+      });
     </script>
   </body>
 </html>
