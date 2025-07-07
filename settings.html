@@ -310,15 +310,12 @@
             } else {
                 document.getElementById('login-screen').classList.remove('hidden');
                 document.getElementById('settings-content').classList.add('hidden');
+                loadSettings(); // Fixed: Call loadSettings for non-authenticated users
             }
         });
         
         document.addEventListener('DOMContentLoaded', function() {
-            if (auth.currentUser) {
-                loadSettingsFromFirebase();
-            } else {
-                loadSettings();
-            }
+            // Fixed: Only initialize particles, do not call loadSettings here to avoid timing issues
             initParticles();
         });
 
@@ -328,6 +325,7 @@
                 return;
             }
             try {
+                console.log('Loading settings from Firebase for user:', currentUser.uid);
                 const userSettingsDoc = await db.collection('users').doc(currentUser.uid).get();
                 if (userSettingsDoc.exists) {
                     const userData = userSettingsDoc.data();
@@ -344,21 +342,20 @@
                         document.querySelectorAll('.theme-preview').forEach(el => el.classList.remove('active', 'border-[var(--theme-foam)]'));
                         document.querySelector(`[data-theme="${settings.theme}"]`)?.classList.add('active', 'border-[var(--theme-foam)]');
                     }
-                    if (settings.background) {
+                    // Fixed: Validate and apply background immediately
+                    const validBackgrounds = ['gradient', 'solid', 'pattern', 'particles'];
+                    if (settings.background && validBackgrounds.includes(settings.background)) {
                         currentBackground = settings.background;
                         console.log('Loaded background from Firebase:', currentBackground);
                         document.querySelectorAll('.bg-preview').forEach(el => el.classList.remove('active', 'border-[var(--theme-foam)]'));
                         const bgElement = document.querySelector(`[data-bg="${settings.background}"]`);
                         if (bgElement) {
                             bgElement.classList.add('active', 'border-[var(--theme-foam)]');
-                        } else {
-                            console.warn(`Background "${settings.background}" not found, defaulting to gradient`);
-                            currentBackground = 'gradient';
-                            document.querySelector(`[data-bg="gradient"]`)?.classList.add('active', 'border-[var(--theme-foam)]');
                         }
                     } else {
-                        console.log('No background in Firebase, using default: gradient');
+                        console.warn('Invalid or missing background in Firebase, defaulting to gradient');
                         currentBackground = 'gradient';
+                        document.querySelectorAll('.bg-preview').forEach(el => el.classList.remove('active', 'border-[var(--theme-foam)]'));
                         document.querySelector(`[data-bg="gradient"]`)?.classList.add('active', 'border-[var(--theme-foam)]');
                     }
                     if (settings.customBackground) {
@@ -372,11 +369,13 @@
                     document.getElementById('disable-select').checked = settings.disableSelect || false;
                     document.getElementById('hide-cursor').checked = settings.hideCursor || false;
                     document.getElementById('blur-on-unfocus').checked = settings.blurOnUnfocus || false;
+                    // Fixed: Apply settings after loading
                     applySettings();
                     toggleCloakingOptions();
                     updateStatusIndicators();
                     loadCustomThemes();
                 } else {
+                    console.log('No Firebase settings found, falling back to localStorage');
                     loadSettings();
                 }
             } catch (error) {
@@ -404,7 +403,7 @@
                     blurOnUnfocus: document.getElementById('blur-on-unfocus').checked,
                     lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
                 };
-                await db.collection('users').doc(currentUser.uid).set({LAPTOP ({ settings }, { merge: true });
+                await db.collection('users').doc(currentUser.uid).set({ settings }, { merge: true });
                 console.log('Settings saved to Firebase successfully, background:', currentBackground);
             } catch (error) {
                 console.error('Error saving settings to Firebase:', error);
@@ -412,6 +411,7 @@
         }
 
         function loadSettings() {
+            console.log('Loading settings from localStorage');
             const savedPanicKey = localStorage.getItem('carbon-panic-key');
             if (savedPanicKey) {
                 panicKey = savedPanicKey;
@@ -425,17 +425,21 @@
             currentTheme = savedTheme;
             document.querySelectorAll('.theme-preview').forEach(el => el.classList.remove('active', 'border-[var(--theme-foam)]'));
             document.querySelector(`[data-theme="${savedTheme}"]`)?.classList.add('active', 'border-[var(--theme-foam)]');
-            loadCustomThemes();
+            // Fixed: Validate and apply background immediately
+            const validBackgrounds = ['gradient', 'solid', 'pattern', 'particles'];
             const savedBg = localStorage.getItem('carbon-background-global') || 'gradient';
-            currentBackground = savedBg;
-            console.log('Loaded background from localStorage:', currentBackground);
-            document.querySelectorAll('.bg-preview').forEach(el => el.classList.remove('active', 'border-[var(--theme-foam)]'));
-            const bgElement = document.querySelector(`[data-bg="${savedBg}"]`);
-            if (bgElement) {
-                bgElement.classList.add('active', 'border-[var(--theme-foam)]');
+            if (validBackgrounds.includes(savedBg)) {
+                currentBackground = savedBg;
+                console.log('Loaded background from localStorage:', currentBackground);
+                document.querySelectorAll('.bg-preview').forEach(el => el.classList.remove('active', 'border-[var(--theme-foam)]'));
+                const bgElement = document.querySelector(`[data-bg="${savedBg}"]`);
+                if (bgElement) {
+                    bgElement.classList.add('active', 'border-[var(--theme-foam)]');
+                }
             } else {
-                console.warn(`Background "${savedBg}" not found, defaulting to gradient`);
+                console.warn('Invalid or missing background in localStorage, defaulting to gradient');
                 currentBackground = 'gradient';
+                document.querySelectorAll('.bg-preview').forEach(el => el.classList.remove('active', 'border-[var(--theme-foam)]'));
                 document.querySelector(`[data-bg="gradient"]`)?.classList.add('active', 'border-[var(--theme-foam)]');
             }
             const savedCustomBg = localStorage.getItem('carbon-custom-bg-global');
@@ -452,6 +456,7 @@
             document.getElementById('blur-on-unfocus').checked = localStorage.getItem('carbon-blur-unfocus') === 'true';
             toggleCloakingOptions();
             updateStatusIndicators();
+            // Fixed: Apply settings after loading
             applySettings();
         }
 
@@ -492,7 +497,7 @@
             localStorage.setItem('carbon-cloak-enabled', document.getElementById('tab-cloaking-enabled').checked);
             localStorage.setItem('carbon-cloak-title', document.getElementById('cloak-title').value);
             localStorage.setItem('carbon-cloak-favicon', document.getElementById('cloak-favicon').value);
-            localStorage.setItem('carbon-disable-right-click', document.getElementById('disable-right-click').checked); // Fixed: Changed 'set personallyItem' to 'setItem'
+            localStorage.setItem('carbon-disable-right-click', document.getElementById('disable-right-click').checked);
             localStorage.setItem('carbon-disable-devtools', document.getElementById('disable-devtools').checked);
             localStorage.setItem('carbon-disable-select', document.getElementById('disable-select').checked);
             localStorage.setItem('carbon-hide-cursor', document.getElementById('hide-cursor').checked);
@@ -580,8 +585,9 @@
             const particlesCanvas = document.getElementById('particles-canvas');
             const baseColor = getComputedStyle(document.documentElement).getPropertyValue('--theme-base').trim();
             particlesCanvas.classList.add('hidden');
+            // Fixed: Only apply custom background if explicitly selected
             const customBg = localStorage.getItem('carbon-custom-bg-global');
-            if (customBg) {
+            if (customBg && currentBackground === 'custom') {
                 console.log('Applying custom background:', customBg);
                 body.style.background = `url(${customBg}) center/cover fixed`;
             } else {
@@ -608,6 +614,8 @@
                         console.warn('Invalid background type, defaulting to gradient:', currentBackground);
                         body.style.background = 'var(--theme-gradient)';
                         currentBackground = 'gradient';
+                        document.querySelectorAll('.bg-preview').forEach(el => el.classList.remove('active', 'border-[var(--theme-foam)]'));
+                        document.querySelector(`[data-bg="gradient"]`)?.classList.add('active', 'border-[var(--theme-foam)]');
                         break;
                 }
                 body.style.backgroundAttachment = currentBackground === 'pattern' ? '' : 'fixed';
@@ -649,7 +657,7 @@
             }
 
             function animateParticles() {
-                if (currentBackground !== 'particles' || !document.getElementById('particles-canvas').classList.contains('hidden')) {
+                if (currentBackground === 'particles' && !document.getElementById('particles-canvas').classList.contains('hidden')) {
                     ctx.clearRect(0, 0, canvas.width, canvas.height);
                     particlesArray.forEach(particle => {
                         particle.update();
@@ -782,6 +790,11 @@
                 currentBackground = this.dataset.bg;
                 console.log('Selected background:', currentBackground);
                 localStorage.setItem('carbon-background-global', currentBackground);
+                // Fixed: Clear custom background if a standard background is selected
+                if (currentBackground !== 'custom') {
+                    localStorage.removeItem('carbon-custom-bg-global');
+                    document.getElementById('custom-bg-preview').classList.add('hidden');
+                }
                 applyBackground();
                 triggerAutoSave();
             });
@@ -798,8 +811,13 @@
                 reader.onload = function(e) {
                     const dataUrl = e.target.result;
                     localStorage.setItem('carbon-custom-bg-global', dataUrl);
+                    // Fixed: Set currentBackground to 'custom' when uploading
+                    currentBackground = 'custom';
+                    localStorage.setItem('carbon-background-global', 'custom');
+                    document.querySelectorAll('.bg-preview').forEach(el => el.classList.remove('active', 'border-[var(--theme-foam)]'));
                     showCustomBgPreview(dataUrl);
                     applyBackground();
+                    triggerAutoSave();
                 };
                 reader.readAsDataURL(file);
             }
@@ -815,7 +833,13 @@
         document.getElementById('remove-bg').addEventListener('click', function() {
             localStorage.removeItem('carbon-custom-bg-global');
             document.getElementById('custom-bg-preview').classList.add('hidden');
+            // Fixed: Revert to gradient when custom background is removed
+            currentBackground = 'gradient';
+            localStorage.setItem('carbon-background-global', 'gradient');
+            document.querySelectorAll('.bg-preview').forEach(el => el.classList.remove('active', 'border-[var(--theme-foam)]'));
+            document.querySelector(`[data-bg="gradient"]`)?.classList.add('active', 'border-[var(--theme-foam)]');
             applyBackground();
+            triggerAutoSave();
         });
 
         document.getElementById('change-bg').addEventListener('click', () => {
@@ -950,7 +974,8 @@
             }
         });
 
-        applySettings();
+        // Fixed: Remove global applySettings call to avoid premature execution
+        // applySettings();
     </script>
 </body>
 </html>
