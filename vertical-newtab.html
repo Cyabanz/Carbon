@@ -435,64 +435,182 @@
         }
       });
 
-      // Proxy Management
-      function toggleProxy() {
-        const proxies = ['uv', 'scram'];
-        const currentIndex = proxies.indexOf(currentProxy);
-        const nextIndex = (currentIndex + 1) % proxies.length;
-        currentProxy = proxies[nextIndex];
-        
-        localStorage.setItem('proxy-backend', currentProxy);
-        setProxy(currentProxy);
-        updateProxyUI();
-        
-        // Broadcast proxy change
-        window.parent.postMessage({
-          type: 'carbon-proxy-sync',
-          proxy: currentProxy
-        }, '*');
-      }
+      // Proxy Management with Dropdown
+      let proxyDropdownOpen = false;
+      const proxies = {
+        'uv': ['UV Proxy', 'bx-cloud'],
+        'scram': ['Scramjet', 'bx-network-chart']
+      };
 
       function updateProxyUI() {
         const proxyIcon = document.getElementById('proxy-icon');
         const proxyToggle = document.getElementById('proxy-toggle');
+        const [name, icon] = proxies[currentProxy];
         
+        proxyIcon.className = `bx ${icon} text-sm`;
+        proxyToggle.title = name;
+        
+        // Update border color
         if (currentProxy === 'uv') {
-          proxyIcon.className = 'bx bx-cloud';
-          proxyToggle.title = 'UV Proxy';
           proxyToggle.style.borderColor = 'var(--theme-foam)';
         } else {
-          proxyIcon.className = 'bx bx-network-chart';
-          proxyToggle.title = 'Scramjet Proxy';
           proxyToggle.style.borderColor = 'var(--theme-pine)';
         }
       }
 
-      // Search Engine Management
-      function toggleSearchEngine() {
-        const engines = Object.keys(searchEngines);
-        const currentIndex = engines.indexOf(currentSearchEngine);
-        const nextIndex = (currentIndex + 1) % engines.length;
-        currentSearchEngine = engines[nextIndex];
+      function createProxyDropdown() {
+        const dropdown = document.createElement('div');
+        dropdown.id = 'proxy-dropdown';
+        dropdown.className = 'absolute left-0 top-full mt-2 bg-surface border border-overlay rounded-lg shadow-lg z-50 py-2 min-w-[120px] hidden';
         
-        localStorage.setItem('search-engine', currentSearchEngine);
-        updateSearchEngineUI();
+        Object.entries(proxies).forEach(([key, [name, icon]]) => {
+          const item = document.createElement('div');
+          item.className = `px-4 py-2 hover:bg-highlight-med cursor-pointer flex items-center gap-2 text-sm ${key === currentProxy ? 'bg-highlight-med text-foam' : 'text-text'}`;
+          item.innerHTML = `
+            <i class="bx ${icon}"></i>
+            <span>${name}</span>
+          `;
+          item.addEventListener('click', () => {
+            currentProxy = key;
+            localStorage.setItem('proxy-backend', currentProxy);
+            setProxy(currentProxy);
+            updateProxyUI();
+            toggleProxyDropdown();
+            
+            // Broadcast proxy change
+            window.parent.postMessage({
+              type: 'carbon-proxy-sync',
+              proxy: currentProxy
+            }, '*');
+          });
+          dropdown.appendChild(item);
+        });
         
-        // Broadcast search engine change
-        window.parent.postMessage({
-          type: 'carbon-search-engine-sync',
-          searchEngine: currentSearchEngine
-        }, '*');
+        return dropdown;
       }
+
+      function toggleProxyDropdown() {
+        const dropdown = document.getElementById('proxy-dropdown');
+        const toggle = document.getElementById('proxy-toggle');
+        
+        if (!dropdown) {
+          const newDropdown = createProxyDropdown();
+          toggle.parentElement.style.position = 'relative';
+          toggle.parentElement.appendChild(newDropdown);
+        }
+        
+        const dropdownElement = document.getElementById('proxy-dropdown');
+        proxyDropdownOpen = !proxyDropdownOpen;
+        
+        if (proxyDropdownOpen) {
+          dropdownElement.classList.remove('hidden');
+          // Update active state
+          dropdownElement.querySelectorAll('div').forEach((item, index) => {
+            const key = Object.keys(proxies)[index];
+            if (key === currentProxy) {
+              item.classList.add('bg-highlight-med', 'text-foam');
+            } else {
+              item.classList.remove('bg-highlight-med', 'text-foam');
+              item.classList.add('text-text');
+            }
+          });
+        } else {
+          dropdownElement.classList.add('hidden');
+        }
+      }
+
+      // Search Engine Management with Dropdown
+      let searchEngineDropdownOpen = false;
 
       function updateSearchEngineUI() {
         const engineIcon = document.getElementById('search-engine-icon');
         const engineToggle = document.getElementById('search-engine-toggle');
         const [name, icon] = searchEngines[currentSearchEngine];
         
-        engineIcon.className = `bx ${icon}`;
+        engineIcon.className = `bx ${icon} text-sm`;
         engineToggle.title = name;
       }
+
+      function createSearchEngineDropdown() {
+        const dropdown = document.createElement('div');
+        dropdown.id = 'search-engine-dropdown';
+        dropdown.className = 'absolute right-0 top-full mt-2 bg-surface border border-overlay rounded-lg shadow-lg z-50 py-2 min-w-[150px] hidden';
+        
+        Object.entries(searchEngines).forEach(([url, [name, icon]]) => {
+          const item = document.createElement('div');
+          item.className = `px-4 py-2 hover:bg-highlight-med cursor-pointer flex items-center gap-2 text-sm ${url === currentSearchEngine ? 'bg-highlight-med text-foam' : 'text-text'}`;
+          item.innerHTML = `
+            <i class="bx ${icon}"></i>
+            <span>${name}</span>
+          `;
+          item.addEventListener('click', () => {
+            currentSearchEngine = url;
+            localStorage.setItem('search-engine', currentSearchEngine);
+            updateSearchEngineUI();
+            toggleSearchEngineDropdown();
+            
+            // Broadcast search engine change
+            window.parent.postMessage({
+              type: 'carbon-search-engine-sync',
+              searchEngine: currentSearchEngine
+            }, '*');
+          });
+          dropdown.appendChild(item);
+        });
+        
+        return dropdown;
+      }
+
+      function toggleSearchEngineDropdown() {
+        const dropdown = document.getElementById('search-engine-dropdown');
+        const toggle = document.getElementById('search-engine-toggle');
+        
+        if (!dropdown) {
+          const newDropdown = createSearchEngineDropdown();
+          toggle.parentElement.style.position = 'relative';
+          toggle.parentElement.appendChild(newDropdown);
+        }
+        
+        const dropdownElement = document.getElementById('search-engine-dropdown');
+        searchEngineDropdownOpen = !searchEngineDropdownOpen;
+        
+        if (searchEngineDropdownOpen) {
+          dropdownElement.classList.remove('hidden');
+          // Update active state
+          dropdownElement.querySelectorAll('div').forEach((item, index) => {
+            const url = Object.keys(searchEngines)[index];
+            if (url === currentSearchEngine) {
+              item.classList.add('bg-highlight-med', 'text-foam');
+            } else {
+              item.classList.remove('bg-highlight-med', 'text-foam');
+              item.classList.add('text-text');
+            }
+          });
+        } else {
+          dropdownElement.classList.add('hidden');
+        }
+      }
+
+      // Close dropdowns when clicking outside
+      document.addEventListener('click', (e) => {
+        // Close search engine dropdown
+        const searchDropdown = document.getElementById('search-engine-dropdown');
+        const searchToggle = document.getElementById('search-engine-toggle');
+        
+        if (searchDropdown && !searchDropdown.contains(e.target) && e.target !== searchToggle) {
+          searchDropdown.classList.add('hidden');
+          searchEngineDropdownOpen = false;
+        }
+        
+        // Close proxy dropdown
+        const proxyDropdown = document.getElementById('proxy-dropdown');
+        const proxyToggle = document.getElementById('proxy-toggle');
+        
+        if (proxyDropdown && !proxyDropdown.contains(e.target) && e.target !== proxyToggle) {
+          proxyDropdown.classList.add('hidden');
+          proxyDropdownOpen = false;
+        }
+      });
 
       // Bookmark Management
       async function loadBookmarksFromFirebase() {
@@ -640,8 +758,8 @@
       }
 
       // Event Listeners
-      document.getElementById('proxy-toggle').addEventListener('click', toggleProxy);
-      document.getElementById('search-engine-toggle').addEventListener('click', toggleSearchEngine);
+      document.getElementById('proxy-toggle').addEventListener('click', toggleProxyDropdown);
+      document.getElementById('search-engine-toggle').addEventListener('click', toggleSearchEngineDropdown);
 
       document.getElementById('search-form').addEventListener('submit', (e) => {
         e.preventDefault();
