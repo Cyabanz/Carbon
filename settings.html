@@ -37,6 +37,11 @@
     <script defer async src="https://cdn.tailwindcss.com" onload="setConfig()"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
     <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet" />
+    <style>
+        :root {
+            --theme-gradient: linear-gradient(135deg, #191724 0%, #1f1d2e 50%, #26233a 100%);
+        }
+    </style>
 </head>
 <body class="font-inter min-h-screen bg-[var(--theme-base)] text-[var(--theme-text)] transition-all duration-300">
     <!-- Theme color schemes -->
@@ -279,7 +284,6 @@
         let currentTheme = 'rose-pine';
         let currentBackground = 'gradient';
         let currentUser = null;
-        // Fixed: Define valid backgrounds globally
         const validBackgrounds = ['gradient', 'solid', 'pattern', 'particles', 'custom'];
 
         async function googleSignIn() {
@@ -317,7 +321,6 @@
         });
         
         document.addEventListener('DOMContentLoaded', function() {
-            // Fixed: Initialize particles only
             initParticles();
         });
 
@@ -344,7 +347,6 @@
                         document.querySelectorAll('.theme-preview').forEach(el => el.classList.remove('active', 'border-[var(--theme-foam)]'));
                         document.querySelector(`[data-theme="${settings.theme}"]`)?.classList.add('active', 'border-[var(--theme-foam)]');
                     }
-                    // Fixed: Load and validate background
                     if (settings.background && validBackgrounds.includes(settings.background)) {
                         currentBackground = settings.background;
                         console.log('Loaded background from Firebase:', currentBackground);
@@ -355,6 +357,7 @@
                         updateBackgroundUI();
                     }
                     if (settings.customBackground && currentBackground === 'custom') {
+                        localStorage.setItem('carbon-custom-bg-global', settings.customBackground);
                         showCustomBgPreview(settings.customBackground);
                     }
                     document.getElementById('tab-cloaking-enabled').checked = settings.cloakingEnabled || false;
@@ -399,7 +402,7 @@
                     lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
                 };
                 await db.collection('users').doc(currentUser.uid).set({ settings }, { merge: true });
-                console.log('Settings saved to Firebase successfully, background:', currentBackground);
+                console.log('Settings saved to Firebase, background:', currentBackground);
             } catch (error) {
                 console.error('Error saving settings to Firebase:', error);
             }
@@ -420,7 +423,6 @@
             currentTheme = savedTheme;
             document.querySelectorAll('.theme-preview').forEach(el => el.classList.remove('active', 'border-[var(--theme-foam)]'));
             document.querySelector(`[data-theme="${savedTheme}"]`)?.classList.add('active', 'border-[var(--theme-foam)]');
-            // Fixed: Load and validate background
             const savedBg = localStorage.getItem('carbon-background-global') || 'gradient';
             if (validBackgrounds.includes(savedBg)) {
                 currentBackground = savedBg;
@@ -448,17 +450,19 @@
             applySettings();
         }
 
-        // Fixed: Helper function to update background UI
         function updateBackgroundUI() {
             console.log('Updating background UI for:', currentBackground);
             document.querySelectorAll('.bg-preview').forEach(el => el.classList.remove('active', 'border-[var(--theme-foam)]'));
-            const bgElement = document.querySelector(`[data-bg="${currentBackground}"]`);
-            if (bgElement) {
-                bgElement.classList.add('active', 'border-[var(--theme-foam)]');
-            } else if (currentBackground !== 'custom') {
-                console.warn('Background element not found, defaulting UI to gradient');
-                currentBackground = 'gradient';
-                document.querySelector(`[data-bg="gradient"]`)?.classList.add('active', 'border-[var(--theme-foam)]');
+            if (currentBackground !== 'custom') {
+                const bgElement = document.querySelector(`[data-bg="${currentBackground}"]`);
+                if (bgElement) {
+                    bgElement.classList.add('active', 'border-[var(--theme-foam)]');
+                } else {
+                    console.warn('Background element not found, defaulting UI to gradient');
+                    currentBackground = 'gradient';
+                    localStorage.setItem('carbon-background-global', 'gradient');
+                    document.querySelector(`[data-bg="gradient"]`)?.classList.add('active', 'border-[var(--theme-foam)]');
+                }
             }
             applyBackground();
         }
@@ -505,6 +509,7 @@
             localStorage.setItem('carbon-disable-select', document.getElementById('disable-select').checked);
             localStorage.setItem('carbon-hide-cursor', document.getElementById('hide-cursor').checked);
             localStorage.setItem('carbon-blur-unfocus', document.getElementById('blur-on-unfocus').checked);
+            console.log('Saved settings, background:', currentBackground);
             if (currentUser) {
                 await saveSettingsToFirebase();
             }
@@ -569,6 +574,7 @@
         }
 
         function updateBackgroundPreviews() {
+            console.log('Updating background previews for theme:', currentTheme);
             const gradientPreview = document.querySelector('[data-bg="gradient"]');
             const solidPreview = document.querySelector('[data-bg="solid"]');
             const patternPreview = document.querySelector('[data-bg="pattern"]');
@@ -588,7 +594,7 @@
             const particlesCanvas = document.getElementById('particles-canvas');
             const baseColor = getComputedStyle(document.documentElement).getPropertyValue('--theme-base').trim();
             particlesCanvas.classList.add('hidden');
-            body.style.background = ''; // Reset background
+            body.style.background = '';
             const customBg = localStorage.getItem('carbon-custom-bg-global');
             if (currentBackground === 'custom' && customBg) {
                 console.log('Applying custom background:', customBg);
@@ -606,6 +612,7 @@
                     case 'particles':
                         body.style.background = baseColor;
                         particlesCanvas.classList.remove('hidden');
+                        initParticles();
                         console.log('Applied particles background');
                         break;
                     case 'gradient':
@@ -625,6 +632,7 @@
         }
 
         function initParticles() {
+            console.log('Initializing particles');
             const canvas = document.getElementById('particles-canvas');
             const ctx = canvas.getContext('2d');
             canvas.width = window.innerWidth;
@@ -654,6 +662,8 @@
                 }
             }
 
+            // Clear existing particles to prevent duplicates
+            particlesArray.length = 0;
             for (let i = 0; i < particleCount; i++) {
                 particlesArray.push(new Particle());
             }
@@ -674,8 +684,8 @@
                 canvas.height = window.innerHeight;
             });
 
-            // Fixed: Only start animation if particles is selected
             if (currentBackground === 'particles') {
+                console.log('Starting particle animation');
                 animateParticles();
             }
         }
@@ -796,12 +806,14 @@
                 currentBackground = this.dataset.bg;
                 localStorage.setItem('carbon-background-global', currentBackground);
                 console.log('Set currentBackground to:', currentBackground);
-                // Fixed: Clear custom background if selecting a standard background
                 if (currentBackground !== 'custom') {
                     localStorage.removeItem('carbon-custom-bg-global');
                     document.getElementById('custom-bg-preview').classList.add('hidden');
                 }
-                applyBackground();
+                if (currentBackground === 'particles') {
+                    initParticles();
+                }
+                updateBackgroundUI();
                 triggerAutoSave();
             });
         });
@@ -822,7 +834,7 @@
                     console.log('Set custom background, currentBackground:', currentBackground);
                     document.querySelectorAll('.bg-preview').forEach(el => el.classList.remove('active', 'border-[var(--theme-foam)]'));
                     showCustomBgPreview(dataUrl);
-                    applyBackground();
+                    updateBackgroundUI();
                     triggerAutoSave();
                 };
                 reader.readAsDataURL(file);
@@ -903,7 +915,7 @@
             localStorage.setItem('carbon-disable-select', document.getElementById('disable-select').checked);
             localStorage.setItem('carbon-hide-cursor', document.getElementById('hide-cursor').checked);
             localStorage.setItem('carbon-blur-unfocus', document.getElementById('blur-on-unfocus').checked);
-            console.log('Saved settings, background:', currentBackground);
+            console.log('Auto-saved settings, background:', currentBackground);
             if (currentUser) {
                 await saveSettingsToFirebase();
             }
