@@ -10,6 +10,11 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
   <!-- Firebase Realtime Database -->
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+  <!-- XSS Protection Headers -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://unpkg.com; font-src 'self' https://unpkg.com; connect-src 'self' https:; img-src 'self' data: https:;">
+  <meta http-equiv="X-Content-Type-Options" content="nosniff">
+  <meta http-equiv="X-Frame-Options" content="SAMEORIGIN">
+  <meta http-equiv="X-XSS-Protection" content="1; mode=block">
   <!-- Boxicons -->
   <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
   <link rel="stylesheet" href="ai.css">
@@ -109,6 +114,58 @@
   firebase.initializeApp(firebaseConfig);
   const auth = firebase.auth();
   const db = firebase.database();
+
+  // XSS Protection and Sanitization Functions
+  function sanitizeText(input, maxLength = 1000) {
+    if (typeof input !== 'string') return '';
+    return input
+      .replace(/[<>'"&]/g, (char) => {
+        const entities = {
+          '<': '&lt;',
+          '>': '&gt;',
+          '"': '&quot;',
+          "'": '&#x27;',
+          '&': '&amp;'
+        };
+        return entities[char];
+      })
+      .slice(0, maxLength);
+  }
+
+  function sanitizeHTML(input) {
+    if (typeof input !== 'string') return '';
+    
+    // Create a temporary div to parse HTML safely
+    const temp = document.createElement('div');
+    temp.textContent = input;
+    
+    // Only allow specific, safe HTML tags
+    const allowedTags = ['b', 'i', 'em', 'strong', 'br', 'p'];
+    const sanitized = temp.innerHTML;
+    
+    // Remove any script tags or dangerous attributes
+    return sanitized
+      .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+      .replace(/on\w+="[^"]*"/gi, '')
+      .replace(/javascript:/gi, '')
+      .replace(/data:/gi, '');
+  }
+
+  function createSafeElement(tag, textContent = '', attributes = {}) {
+    const element = document.createElement(tag);
+    if (textContent) {
+      element.textContent = sanitizeText(textContent);
+    }
+    
+    // Safely set attributes
+    Object.entries(attributes).forEach(([key, value]) => {
+      if (typeof value === 'string') {
+        element.setAttribute(key, sanitizeText(value));
+      }
+    });
+    
+    return element;
+  }
 
   // --- Auth UI Logic ---
   const authSection = document.getElementById('auth-section');
@@ -408,7 +465,15 @@
       const messageContent = document.createElement('div');
       messageContent.className = 'message-content';
       const messageText = document.createElement('div');
-      messageText.innerHTML = message.html || this.formatMessage(message.text);
+      
+      // Safely set message content
+      if (message.html) {
+        // If pre-formatted HTML exists, sanitize it
+        messageText.innerHTML = sanitizeHTML(message.html);
+      } else {
+        // Format and sanitize text message
+        messageText.innerHTML = this.formatMessage(message.text);
+      }
 
       messageContent.appendChild(messageText);
 
@@ -439,7 +504,12 @@
     }
 
     formatMessage(text) {
-      return (text || '').replace(/\n/g, '<br>')
+      // First sanitize the input text
+      const sanitized = sanitizeText(text || '', 5000);
+      
+      // Apply safe formatting
+      return sanitized
+        .replace(/\n/g, '<br>')
         .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
         .replace(/\*(.*?)\*/g, '<em>$1</em>');
     }
@@ -523,8 +593,29 @@
         this.showNotice('You\'ve reached your hourly message limit (10 messages). Please wait for the limit to reset.', 'error');
         return;
       }
-      const userMessage = this.userInput.value.trim();
-      if (!userMessage || this.isTyping) return;
+      
+      const rawInput = this.userInput.value.trim();
+      if (!rawInput || this.isTyping) return;
+      
+      // Validate and sanitize user input
+      const userMessage = sanitizeText(rawInput, 500);
+      
+      // Check if sanitization changed the input
+      if (userMessage !== rawInput) {
+        this.showNotice('Your message contained invalid characters and has been sanitized.', 'error');
+        this.userInput.value = userMessage; // Update input field with sanitized version
+      }
+      
+      // Additional validation
+      if (userMessage.length < 1) {
+        this.showNotice('Message is too short after sanitization.', 'error');
+        return;
+      }
+      
+      if (userMessage.length > 500) {
+        this.showNotice('Message is too long. Maximum 500 characters allowed.', 'error');
+        return;
+      }
       this.usageData.messages.count++;
       this.firebaseUsageRef.set(this.usageData);
 
@@ -764,8 +855,22 @@
         this.showNotice('You\'ve reached your daily web search limit (5 searches). Please wait until tomorrow.', 'error');
         return;
       }
-      const query = prompt('Enter your search query:');
-      if (!query || !query.trim()) return;
+      
+      const rawQuery = prompt('Enter your search query:');
+      if (!rawQuery || !rawQuery.trim()) return;
+      
+      // Validate and sanitize search query
+      const query = sanitizeText(rawQuery.trim(), 100);
+      
+      if (query !== rawQuery.trim()) {
+        this.showNotice('Search query contained invalid characters and has been sanitized.', 'error');
+      }
+      
+      if (query.length < 1) {
+        this.showNotice('Search query is too short after sanitization.', 'error');
+        return;
+      }
+      
       this.usageData.searches.count++;
       await this.firebaseUsageRef.set(this.usageData);
       const newSearch = {
@@ -813,7 +918,8 @@
       }
       const historyHtml = this.searchHistory.map(search => {
         const date = new Date(search.timestamp).toLocaleString();
-        return `<div class="search-item"><strong>${search.query}</strong><br><small>${date}</small></div>`;
+        const safeQuery = sanitizeText(search.query || 'Unknown search', 100);
+        return `<div class="search-item"><strong>${safeQuery}</strong><br><small>${date}</small></div>`;
       }).join('');
       const historyMessage = {
         role: 'ai',
