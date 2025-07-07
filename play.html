@@ -2442,6 +2442,9 @@
           document.getElementById('gameInfoHolder').classList.add('hidden');
           document.getElementById('gameFrameContainer').classList.remove('hidden');
           
+          // Track play activity
+          await trackPlayActivity(user.uid, currentGameId, currentGame.title);
+          
           await window.loadProxiedGameIframe();
           document.getElementById('gameFrameEmbed').onload = hidePreloader;
           
@@ -2542,6 +2545,33 @@
     async function updateGameHistory(uid, gameId) {
       const ref = await getUserDocRef(uid);
       await ref.set({ history: firebase.firestore.FieldValue.arrayUnion(gameId) }, { merge: true });
+    }
+
+    async function trackPlayActivity(uid, gameId, gameTitle) {
+      try {
+        // Add to history
+        await updateGameHistory(uid, gameId);
+        
+        // Track activity
+        const activityRef = db.collection('user-activity').doc(uid);
+        const activity = {
+          action: 'play',
+          timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+          data: {
+            gameId: gameId,
+            gameTitle: gameTitle || 'Unknown Game',
+            source: 'play-page'
+          }
+        };
+        
+        await activityRef.set({
+          activities: firebase.firestore.FieldValue.arrayUnion(activity)
+        }, { merge: true });
+        
+        console.log('Play activity tracked successfully');
+      } catch (error) {
+        console.error('Error tracking play activity:', error);
+      }
     }
 
     // Initialize comment form event listeners after DOM is ready
