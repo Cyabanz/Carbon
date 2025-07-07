@@ -229,7 +229,7 @@
         --theme-highlight-high: #6272a4;
         --theme-gradient: linear-gradient(135deg, #282a36 0%, #44475a 50%, #6272a4 100%);
       }
-      /* ... existing styles ... */
+      /* Suggestion Box */
       .suggestion-box {
         position: absolute;
         left: 0;
@@ -261,6 +261,7 @@
         background: #26233a;
         color: #9ccfd8;
       }
+      /* Bookmark Grid */
       .bookmark-grid {
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
@@ -286,10 +287,6 @@
         border-color: #f6c177;
         background: #403d52;
       }
-      /* Responsive and vertical tabs styles omitted for brevity (see above) */
-      /* ... keep all the responsive CSS from your sample ... */
-    </style>
-    <style>
       /* Theme & background switching */
       body {
         background: var(--theme-gradient);
@@ -299,6 +296,9 @@
   </head>
   <body class="font-inter bg-gradient-to-br from-base via-surface to-overlay min-h-screen text-text">
     <div class="min-h-screen flex flex-col">
+      <!-- Particles Canvas -->
+      <canvas id="particles-canvas" class="fixed inset-0 pointer-events-none hidden"></canvas>
+
       <!-- Header -->
       <header class="p-6 text-center">
         <h1 class="text-4xl font-bold text-text mb-2 flex items-center justify-center gap-3">
@@ -443,31 +443,28 @@
       firebase.initializeApp(firebaseConfig);
       const auth = firebase.auth();
       const db = firebase.firestore();
-      // THEME SYNC - Now auto-syncs from settings.html via enhanced theme system
-      // The carbon-theme.js handles theme application automatically from global storage
-      
-      // Listen for theme changes from settings page
-      window.addEventListener('storage', (event) => {
-        if (event.key === 'carbon-theme-global' && event.newValue) {
-          // Theme changed in another tab/window - apply automatically
-          if (window.carbonTheme) {
-            window.carbonTheme.applyTheme(event.newValue);
-          }
-        }
-      });
-      
-      // Listen for theme broadcast messages
-      window.addEventListener('message', (event) => {
-        if (event.data && event.data.type === 'carbon-theme-change') {
-          // Theme changed in settings - apply automatically
-          if (window.carbonTheme) {
-            window.carbonTheme.applyTheme(event.data.theme);
-          }
-        }
-      });
 
-      // Initialize theme on load (carbon-theme.js handles this automatically)
-      // --- END THEME CODE ---
+      // State Management
+      let currentSearchEngine = localStorage.getItem('search-engine') || 'https://search.brave.com/search?q=%s';
+      let currentProxy = localStorage.getItem('proxy-backend') || 'uv';
+      let bookmarks = JSON.parse(localStorage.getItem('carbon-bookmarks') || '[]');
+      let currentUser = null;
+      let currentBackground = localStorage.getItem('carbon-background-global') || 'gradient';
+      
+      // DOM Elements
+      const searchInput = document.getElementById('search-input');
+      const searchForm = document.getElementById('search-form');
+      const suggestionBox = document.getElementById('suggestion-box');
+      const proxyToggle = document.getElementById('proxy-toggle');
+      const proxyIcon = document.getElementById('proxy-icon');
+      const searchEngineToggle = document.getElementById('search-engine-toggle');
+      const searchEngineIcon = document.getElementById('search-engine-icon');
+      const bookmarksGrid = document.getElementById('bookmarks-grid');
+      const addBookmarkBtn = document.getElementById('add-bookmark-btn');
+      const bookmarkModal = document.getElementById('bookmark-modal');
+      const bookmarkForm = document.getElementById('bookmark-form');
+      const cancelBookmarkBtn = document.getElementById('cancel-bookmark');
+      const particlesCanvas = document.getElementById('particles-canvas');
 
       // Search Engine Configuration
       const searchEngines = {
@@ -478,12 +475,6 @@
         'https://search.yahoo.com/search?p=%s': ['Yahoo', 'bxl-yahoo'],
       };
 
-      // State Management
-      let currentSearchEngine = localStorage.getItem('search-engine') || 'https://search.brave.com/search?q=%s';
-      let currentProxy = localStorage.getItem('proxy-backend') || 'uv';
-      let bookmarks = JSON.parse(localStorage.getItem('carbon-bookmarks') || '[]');
-      let currentUser = null;
-      
       // Firebase sync functions
       async function loadBookmarksFromFirebase() {
         if (!currentUser) return;
@@ -515,33 +506,82 @@
           console.error('Error saving bookmarks to Firebase:', error);
         }
       }
-      
+
+      async function loadSettingsFromFirebase() {
+        if (!currentUser) return;
+        try {
+          const userSettingsDoc = await db.collection('users').doc(currentUser.uid).get();
+          if (userSettingsDoc.exists) {
+            const userData = userSettingsDoc.data();
+            const settings = userData.settings || {};
+            if (settings.background) {
+              currentBackground = settings.background;
+              localStorage.setItem('carbon-background-global', currentBackground);
+            }
+            if (settings.customBackground) {
+              localStorage.setItem('carbon-custom-bg-global', settings.customBackground);
+            }
+            applyBackground();
+          }
+        } catch (error) {
+          console.error('Error loading settings from Firebase:', error);
+        }
+      }
+
       // Authentication state observer
       auth.onAuthStateChanged((user) => {
         currentUser = user;
         if (user) {
           loadBookmarksFromFirebase();
+          loadSettingsFromFirebase();
         }
       });
-
-      // DOM Elements
-      const searchInput = document.getElementById('search-input');
-      const searchForm = document.getElementById('search-form');
-      const suggestionBox = document.getElementById('suggestion-box');
-      const proxyToggle = document.getElementById('proxy-toggle');
-      const proxyIcon = document.getElementById('proxy-icon');
-      const searchEngineToggle = document.getElementById('search-engine-toggle');
-      const searchEngineIcon = document.getElementById('search-engine-icon');
-      const bookmarksGrid = document.getElementById('bookmarks-grid');
-      const addBookmarkBtn = document.getElementById('add-bookmark-btn');
-      const bookmarkModal = document.getElementById('bookmark-modal');
-      const bookmarkForm = document.getElementById('bookmark-form');
-      const cancelBookmarkBtn = document.getElementById('cancel-bookmark');
 
       // Initialize
       updateProxyUI();
       updateSearchEngineUI();
       renderBookmarks();
+      applyBackground();
+
+      // Listen for theme and background changes from settings page
+      window.addEventListener('storage', (event) => {
+        if (event.key === 'carbon-theme-global' && event.newValue) {
+          if (window.carbonTheme) {
+            window.carbonTheme.applyTheme(event.newValue);
+          }
+          applyBackground();
+        }
+        if (event.key === 'carbon-background-global' && event.newValue) {
+          currentBackground = event.newValue;
+          applyBackground();
+        }
+        if (event.key === 'carbon-custom-bg-global') {
+          applyBackground();
+        }
+      });
+      
+      // Listen for theme and settings broadcast messages
+      window.addEventListener('message', (event) => {
+        if (event.data && event.data.type === 'carbon-theme-change') {
+          if (window.carbonTheme) {
+            window.carbonTheme.applyTheme(event.data.theme);
+          }
+          applyBackground();
+        }
+        if (event.data && event.data.type === 'carbon-settings-updated') {
+          const settings = event.data.settings;
+          if (settings.background) {
+            currentBackground = settings.background;
+            localStorage.setItem('carbon-background-global', currentBackground);
+          }
+          if (settings.customBackground) {
+            localStorage.setItem('carbon-custom-bg-global', settings.customBackground);
+          } else {
+            localStorage.removeItem('carbon-custom-bg-global');
+          }
+          applyBackground();
+        }
+      });
 
       // Listen for state changes from parent frame
       window.addEventListener("message", function(event) {
@@ -566,7 +606,6 @@
         } else {
           body.classList.remove('vertical-tabs-active');
         }
-        // Mark that we've received explicit state from parent
         if (fromParent) {
           body.setAttribute('data-vertical-tabs-detected', 'true');
         }
@@ -575,12 +614,10 @@
       // Better detection: Check if we're in an iframe and request vertical tabs state
       function requestVerticalTabsState() {
         if (window.parent && window.parent !== window) {
-          // Request vertical tabs state from parent
           window.parent.postMessage({
             type: 'carbon-request-vertical-tabs-state'
           }, '*');
         } else {
-          // Not in iframe, check localStorage as fallback
           const savedVerticalMode = localStorage.getItem("vertical-tabs-mode");
           adjustForVerticalTabs(savedVerticalMode === "true");
         }
@@ -588,13 +625,11 @@
 
       // Listen for resize events as fallback
       window.addEventListener('resize', () => {
-        // Only auto-detect if we haven't received explicit state from parent
         if (!document.body.hasAttribute('data-vertical-tabs-detected')) {
           const isNarrow = window.innerWidth < 1200;
           adjustForVerticalTabs(isNarrow);
         }
       });
-      // Initial detection
       setTimeout(requestVerticalTabsState, 100);
       setTimeout(requestVerticalTabsState, 500);
 
@@ -691,7 +726,7 @@
           suggestionBox.innerHTML = currentSuggestions
             .map(
               (s, i) =>
-                `<div class="suggestion-item${i === suggestionActive ? ' active' : ''}" data-idx="${i}">${s.replace(/</g, '&lt;')}</div>`
+                `<div class="suggestion-item${i === suggestionActive ? ' active' : ''}" data-idx="${i}">${s.replace(/</g, '<')}</div>`
             )
             .join('');
           suggestionBox.classList.remove('hidden');
@@ -884,6 +919,88 @@
           bookmarkForm.reset();
         }
       });
+
+      // Background Management
+      function applyBackground() {
+        const body = document.body;
+        const baseColor = getComputedStyle(document.documentElement).getPropertyValue('--theme-base').trim();
+        particlesCanvas.classList.add('hidden');
+        const customBg = localStorage.getItem('carbon-custom-bg-global');
+        if (customBg) {
+          body.style.background = `url(${customBg}) center/cover fixed`;
+        } else {
+          switch (currentBackground) {
+            case 'solid':
+              body.style.background = baseColor;
+              break;
+            case 'pattern':
+              body.style.background = `${baseColor} url('data:image/svg+xml,<svg width="20" height="20" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><circle cx="10" cy="10" r="2" fill="%23ffffff" fill-opacity="0.2"/></svg>') repeat`;
+              break;
+            case 'particles':
+              body.style.background = baseColor;
+              particlesCanvas.classList.remove('hidden');
+              initParticles();
+              break;
+            case 'gradient':
+            default:
+              body.style.background = 'var(--theme-gradient)';
+              break;
+          }
+          body.style.backgroundAttachment = currentBackground === 'pattern' ? '' : 'fixed';
+        }
+      }
+
+      function initParticles() {
+        const canvas = particlesCanvas;
+        const ctx = canvas.getContext('2d');
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        const particlesArray = [];
+        const particleCount = 50;
+
+        class Particle {
+          constructor() {
+            this.x = Math.random() * canvas.width;
+            this.y = Math.random() * canvas.height;
+            this.size = Math.random() * 3 + 1;
+            this.speedX = Math.random() * 0.5 - 0.25;
+            this.speedY = Math.random() * 0.5 - 0.25;
+          }
+          update() {
+            this.x += this.speedX;
+            this.y += this.speedY;
+            if (this.x < 0 || this.x > canvas.width) this.speedX *= -1;
+            if (this.y < 0 || this.y > canvas.height) this.speedY *= -1;
+          }
+          draw() {
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        }
+
+        for (let i = 0; i < particleCount; i++) {
+          particlesArray.push(new Particle());
+        }
+
+        function animateParticles() {
+          if (currentBackground !== 'particles' || particlesCanvas.classList.contains('hidden')) return;
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          particlesArray.forEach(particle => {
+            particle.update();
+            particle.draw();
+          });
+          requestAnimationFrame(animateParticles);
+        }
+
+        window.addEventListener('resize', () => {
+          canvas.width = window.innerWidth;
+          canvas.height = window.innerHeight;
+        });
+
+        animateParticles();
+      }
 
       // Click outside to close suggestions
       document.addEventListener('click', function(e) {
