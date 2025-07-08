@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Playlist - Carbon</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
+  <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+  <link href='https://cdn.jsdelivr.net/npm/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+  <script src="carbon-theme.js"></script>
+  
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+  
+  <script type="module">
+    // Set Tailwind config
+    function setConfig() {
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            colors: {
+              'rp-base': '#191724',
+              'rp-surface': '#1f1d2e',
+              'rp-overlay': '#26233a',
+              'rp-muted': '#6e6a86',
+              'rp-subtle': '#908caa',
+              'rp-text': '#e0def4',
+              'rp-love': '#eb6f92',
+              'rp-gold': '#f6c177',
+              'rp-rose': '#ebbcba',
+              'rp-pine': '#31748f',
+              'rp-foam': '#9ccfd8',
+              'rp-iris': '#c4a7e7',
+              'rp-highlight-low': '#21202e',
+              'rp-highlight-med': '#403d52',
+              'rp-highlight-high': '#524f67'
+            }
+          }
+        }
+      };
+    }
+    setConfig();
+  </script>
+  
+  <style>
+    body {
+      background: linear-gradient(135deg, #191724 0%, #1f1d2e 50%, #26233a 100%);
+      color: #ffffff;
+      overflow-x: hidden;
+      transition: background 0.3s ease;
+    }
+    
+    .game-card {
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      transform: scale(1);
+    }
+    
+    .game-card:hover {
+      transform: scale(1.02);
+      box-shadow: 0 20px 40px rgba(156, 207, 216, 0.15);
+    }
+    
+    .loader {
+      border: 8px solid rgba(156, 207, 216, 0.2);
+      border-top: 8px solid #9ccfd8;
+      border-radius: 50%;
+      width: 60px;
+      height: 60px;
+      animation: spin 1s linear infinite;
+      margin: auto;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    @keyframes fadeInUp {
+      from { 
+        opacity: 0;
+        transform: translateY(30px);
+      }
+      to { 
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    
+    .fade-in-up {
+      animation: fadeInUp 0.6s ease-out;
+    }
+    
+    .playlist-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 1.5rem;
+    }
+    
+    .empty-state {
+      background: linear-gradient(135deg, rgba(156, 207, 216, 0.1), rgba(196, 167, 231, 0.1));
+      border: 2px dashed rgba(156, 207, 216, 0.3);
+    }
+  </style>
+</head>
+
+<body class="bg-rp-base min-h-screen text-rp-text overflow-x-hidden relative font-[Inter] antialiased">
+  <!-- Floating background elements -->
+  <div class="pointer-events-none absolute rounded-full opacity-5 blur-3xl w-[300px] h-[300px] top-[10%] left-[10%] bg-gradient-to-br from-rp-foam to-rp-iris animate-pulse"></div>
+  <div class="pointer-events-none absolute rounded-full opacity-5 blur-3xl w-[250px] h-[250px] top-[60%] right-[10%] bg-gradient-to-br from-rp-iris to-rp-love animate-pulse delay-700"></div>
+
+  <!-- Preloader -->
+  <div id="preloader" class="fixed z-[9999] inset-0 flex flex-col justify-center items-center bg-rp-base">
+    <div class="loader"></div>
+    <p class="mt-4 text-rp-foam font-medium">Loading your playlist...</p>
+  </div>
+
+  <!-- Navbar -->
+  <nav class="flex items-center justify-between px-8 py-4 bg-rp-surface/80 border-b border-rp-overlay backdrop-blur-md fixed top-0 left-0 right-0 z-50">
+    <div class="flex items-center gap-4">
+      <a href="index.html" class="text-2xl font-extrabold text-rp-foam tracking-tighter">CARBON</a>
+      <a href="games.html" class="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-cyan-400/20 text-white rounded-lg transition-all duration-300 border border-white/20 hover:border-cyan-400/40">
+        <i class='bx bx-arrow-back text-lg'></i>
+        <span class="font-medium">Back to Games</span>
+      </a>
+    </div>
+    <div class="flex items-center gap-4">
+      <div id="userSection"></div>
+    </div>
+  </nav>
+
+  <!-- LOGIN SCREEN -->
+  <div id="loginScreen" class="flex flex-col items-center justify-center h-screen w-full bg-rp-base fixed left-0 top-0 z-50">
+    <div class="bg-rp-surface rounded-2xl shadow-2xl p-12 border border-rp-overlay flex flex-col items-center">
+      <div class="text-3xl font-bold text-rp-foam mb-6">Sign In to View Playlist</div>
+      <button onclick="googleSignIn()" class="flex items-center gap-3 bg-rp-foam hover:bg-rp-foam/90 text-rp-base font-bold px-6 py-3 rounded-lg text-lg transition">
+        <i class='bx bxl-google text-2xl'></i> Sign in with Google
+      </button>
+      <div id="loginError" class="text-rp-love mt-6 hidden"></div>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <main class="pt-28 max-w-7xl mx-auto px-4 pb-16">
+    <!-- Header Section -->
+    <div class="text-center mb-12 fade-in-up">
+      <h1 class="text-5xl font-black text-rp-foam mb-4 tracking-tight">
+        <i class='bx bx-list-check mr-4'></i>My Playlist
+      </h1>
+      <p class="text-xl text-rp-subtle max-w-2xl mx-auto leading-relaxed">
+        Discover and play your saved games. Build your collection and never lose track of your favorites.
+      </p>
+      <div class="mt-6 flex justify-center gap-4">
+        <div class="bg-rp-surface/50 px-6 py-3 rounded-lg border border-rp-overlay">
+          <span id="playlistCount" class="text-2xl font-bold text-rp-foam">0</span>
+          <span class="text-rp-subtle ml-2">Games</span>
+        </div>
+        <div class="bg-rp-surface/50 px-6 py-3 rounded-lg border border-rp-overlay">
+          <span id="totalPlayTime" class="text-2xl font-bold text-rp-iris">0h</span>
+          <span class="text-rp-subtle ml-2">Playtime</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Playlist Controls -->
+    <div id="playlistControls" class="flex flex-wrap items-center justify-between mb-8 gap-4 fade-in-up">
+      <div class="flex items-center gap-4">
+        <button id="playAllBtn" class="flex items-center gap-2 bg-gradient-to-r from-rp-foam to-rp-iris text-rp-base font-bold px-6 py-3 rounded-lg hover:scale-105 transition-transform disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+          <i class='bx bx-play text-xl'></i>
+          <span>Play All</span>
+        </button>
+        <button id="shuffleBtn" class="flex items-center gap-2 bg-rp-surface hover:bg-rp-overlay text-rp-text px-6 py-3 rounded-lg transition-colors border border-rp-overlay">
+          <i class='bx bx-shuffle text-xl'></i>
+          <span>Shuffle</span>
+        </button>
+        <button id="clearPlaylistBtn" class="flex items-center gap-2 bg-rp-love/20 hover:bg-rp-love/30 text-rp-love px-6 py-3 rounded-lg transition-colors border border-rp-love/30">
+          <i class='bx bx-trash text-xl'></i>
+          <span>Clear All</span>
+        </button>
+      </div>
+      
+      <div class="flex items-center gap-4">
+        <div class="relative">
+          <input 
+            type="text" 
+            id="searchInput" 
+            placeholder="Search your playlist..." 
+            class="bg-rp-surface border border-rp-overlay rounded-lg px-4 py-3 pl-12 text-rp-text placeholder-rp-muted focus:outline-none focus:border-rp-foam transition-colors w-64"
+          >
+          <i class='bx bx-search absolute left-4 top-1/2 transform -translate-y-1/2 text-rp-muted'></i>
+        </div>
+        
+        <select id="sortSelect" class="bg-rp-surface border border-rp-overlay rounded-lg px-4 py-3 text-rp-text focus:outline-none focus:border-rp-foam transition-colors">
+          <option value="recent">Recently Added</option>
+          <option value="alphabetical">A-Z</option>
+          <option value="category">Category</option>
+          <option value="rating">Rating</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Playlist Content -->
+    <div id="playlistContent">
+      <!-- Loading State -->
+      <div id="loadingState" class="text-center py-16">
+        <div class="loader mb-4"></div>
+        <p class="text-rp-subtle text-lg">Loading your amazing playlist...</p>
+      </div>
+
+      <!-- Empty State -->
+      <div id="emptyState" class="empty-state rounded-2xl p-16 text-center hidden">
+        <div class="max-w-md mx-auto">
+          <i class='bx bx-playlist text-8xl text-rp-muted mb-6 block'></i>
+          <h3 class="text-2xl font-bold text-rp-text mb-4">Your playlist is empty</h3>
+          <p class="text-rp-subtle mb-8 leading-relaxed">
+            Start building your collection by adding games from the games page. Click the playlist button on any game to add it here.
+          </p>
+          <a href="games.html" class="inline-flex items-center gap-2 bg-gradient-to-r from-rp-foam to-rp-iris text-rp-base font-bold px-8 py-4 rounded-lg hover:scale-105 transition-transform">
+            <i class='bx bx-plus text-xl'></i>
+            <span>Browse Games</span>
+          </a>
+        </div>
+      </div>
+
+      <!-- Games Grid -->
+      <div id="gamesGrid" class="playlist-grid hidden">
+        <!-- Games will be rendered here -->
+      </div>
+    </div>
+  </main>
+
+  <!-- Game Details Modal -->
+  <div id="gameModal" class="hidden fixed inset-0 z-[10001] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-rp-surface rounded-2xl shadow-2xl max-w-2xl w-full border border-rp-overlay relative">
+      <button onclick="closeGameModal()" class="absolute top-4 right-4 text-rp-muted hover:text-rp-love transition-colors z-10">
+        <i class='bx bx-x text-2xl'></i>
+      </button>
+      
+      <div id="modalContent">
+        <!-- Modal content will be populated here -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script type="module">
+    import { signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+    import { doc, getDoc, updateDoc, arrayRemove, getDocs, collection, query, orderBy } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+
+    // Firebase configuration
+    const firebaseConfig = {
+      apiKey: "AIzaSyD_vxl-SB4GsGLmaVH2lNm0S62mT4CPVL4",
+      authDomain: "carbon-services.firebaseapp.com",
+      projectId: "carbon-services",
+      storageBucket: "carbon-services.firebasestorage.app",
+      messagingSenderId: "373523650000",
+      appId: "1:373523650000:web:ae9f83b99b4d14c6d0982c"
+    };
+
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+
+    // Global variables
+    let currentUser = null;
+    let playlistGames = [];
+    let allGames = [];
+    let filteredGames = [];
+
+    // Authentication functions
+    window.googleSignIn = function() {
+      const provider = new firebase.auth.GoogleAuthProvider();
+      auth.signInWithPopup(provider)
+        .catch((error) => {
+          document.getElementById('loginError').innerText = error.message;
+          document.getElementById('loginError').classList.remove('hidden');
+        });
+    };
+
+    window.signOutUser = function() {
+      auth.signOut().then(() => location.reload());
+    };
+
+    // Load all games data
+    async function loadGamesData() {
+      try {
+        const gamesQuery = query(collection(db, 'games'), orderBy('title'));
+        const querySnapshot = await getDocs(gamesQuery);
+        allGames = [];
+        querySnapshot.forEach((docSnap) => {
+          allGames.push({ ...docSnap.data(), id: docSnap.id });
+        });
+        console.log(`Loaded ${allGames.length} games from database`);
+      } catch (error) {
+        console.error('Error loading games:', error);
+      }
+    }
+
+    // Load user's playlist
+    async function loadUserPlaylist() {
+      if (!currentUser) return;
+      
+      try {
+        const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
+        if (userDoc.exists()) {
+          const userData = userDoc.data();
+          const playlistIds = userData.playlist || [];
+          
+          // Filter games that are in user's playlist
+          playlistGames = allGames.filter(game => playlistIds.includes(game.id));
+          console.log(`User has ${playlistGames.length} games in playlist`);
+          
+          renderPlaylist();
+        }
+      } catch (error) {
+        console.error('Error loading user playlist:', error);
+      }
+    }
+
+    // Remove game from playlist
+    async function removeFromPlaylist(gameId) {
+      if (!currentUser) return;
+      
+      try {
+        await updateDoc(doc(db, 'users', currentUser.uid), {
+          playlist: arrayRemove(gameId)
+        });
+        
+        // Update local data
+        playlistGames = playlistGames.filter(game => game.id !== gameId);
+        renderPlaylist();
+        
+        console.log('Game removed from playlist');
+      } catch (error) {
+        console.error('Error removing from playlist:', error);
+      }
+    }
+
+    // Render playlist
+    function renderPlaylist() {
+      const loadingState = document.getElementById('loadingState');
+      const emptyState = document.getElementById('emptyState');
+      const gamesGrid = document.getElementById('gamesGrid');
+      const playlistCount = document.getElementById('playlistCount');
+      const playAllBtn = document.getElementById('playAllBtn');
+      
+      // Hide loading state
+      loadingState.classList.add('hidden');
+      
+      // Update playlist count
+      playlistCount.textContent = playlistGames.length;
+      
+      if (playlistGames.length === 0) {
+        emptyState.classList.remove('hidden');
+        gamesGrid.classList.add('hidden');
+        playAllBtn.disabled = true;
+        return;
+      }
+      
+      emptyState.classList.add('hidden');
+      gamesGrid.classList.remove('hidden');
+      playAllBtn.disabled = false;
+      
+      // Apply current filters
+      applyFilters();
+    }
+
+    // Apply search and sort filters
+    function applyFilters() {
+      const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+      const sortBy = document.getElementById('sortSelect').value;
+      
+      // Filter by search term
+      filteredGames = playlistGames.filter(game => 
+        game.title.toLowerCase().includes(searchTerm) ||
+        game.category.toLowerCase().includes(searchTerm)
+      );
+      
+      // Sort games
+      switch (sortBy) {
+        case 'alphabetical':
+          filteredGames.sort((a, b) => a.title.localeCompare(b.title));
+          break;
+        case 'category':
+          filteredGames.sort((a, b) => a.category.localeCompare(b.category));
+          break;
+        case 'rating':
+          filteredGames.sort((a, b) => (b.rating || 0) - (a.rating || 0));
+          break;
+        case 'recent':
+        default:
+          // Keep original order (recently added first)
+          break;
+      }
+      
+      renderGamesGrid();
+    }
+
+    // Render games grid
+    function renderGamesGrid() {
+      const gamesGrid = document.getElementById('gamesGrid');
+      
+      if (filteredGames.length === 0) {
+        gamesGrid.innerHTML = `
+          <div class="col-span-full text-center py-16">
+            <i class='bx bx-search text-6xl text-rp-muted mb-4 block'></i>
+            <h3 class="text-xl font-bold text-rp-text mb-2">No games found</h3>
+            <p class="text-rp-subtle">Try adjusting your search or filters</p>
+          </div>
+        `;
+        return;
+      }
+      
+      gamesGrid.innerHTML = filteredGames.map(game => `
+        <div class="game-card bg-gradient-to-br from-rp-surface to-rp-overlay rounded-2xl overflow-hidden border border-rp-overlay hover:border-rp-foam/50 transition-all duration-300 group">
+          <div class="relative aspect-video overflow-hidden">
+            <img src="${game.image}" alt="${game.title}" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500">
+            ${game.featured ? '<div class="absolute top-3 right-3 bg-gradient-to-r from-amber-400 to-orange-500 text-black px-2 py-1 rounded-full text-xs font-bold">Featured</div>' : ''}
+            
+            <!-- Overlay on hover -->
+            <div class="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+              <div class="absolute bottom-4 left-4 right-4">
+                <div class="flex gap-2">
+                  <button onclick="playGame('${game.id}')" class="flex-1 bg-gradient-to-r from-rp-foam to-rp-iris text-rp-base font-bold py-2 px-4 rounded-lg hover:scale-105 transition-transform">
+                    <i class='bx bx-play mr-2'></i>Play Now
+                  </button>
+                  <button onclick="showGameDetails('${game.id}')" class="bg-white/20 hover:bg-white/30 text-white p-2 rounded-lg transition-colors">
+                    <i class='bx bx-info-circle text-xl'></i>
+                  </button>
+                  <button onclick="removeFromPlaylist('${game.id}')" class="bg-red-500/80 hover:bg-red-500 text-white p-2 rounded-lg transition-colors">
+                    <i class='bx bx-trash text-xl'></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="p-4">
+            <h3 class="font-bold text-rp-text text-lg mb-2 truncate">${game.title}</h3>
+            <p class="text-rp-subtle text-sm mb-3">${game.category}</p>
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-1">
+                <span class="text-yellow-400">★</span>
+                <span class="text-rp-subtle text-sm">${game.rating ? game.rating.toFixed(1) : 'N/A'}</span>
+              </div>
+              <span class="text-rp-muted text-xs">${game.plays || 0} plays</span>
+            </div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // Global functions
+    window.playGame = function(gameId) {
+      window.open(`play.html?id=${gameId}`, '_blank');
+    };
+
+    window.removeFromPlaylist = removeFromPlaylist;
+
+    window.showGameDetails = function(gameId) {
+      const game = allGames.find(g => g.id === gameId);
+      if (!game) return;
+      
+      const modalContent = document.getElementById('modalContent');
+      modalContent.innerHTML = `
+        <div class="relative">
+          <img src="${game.image}" alt="${game.title}" class="w-full h-64 object-cover rounded-t-2xl">
+          <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent rounded-t-2xl"></div>
+          <div class="absolute bottom-4 left-6">
+            <h2 class="text-3xl font-bold text-white mb-2">${game.title}</h2>
+            <span class="bg-rp-foam/20 text-rp-foam px-3 py-1 rounded-full text-sm font-medium">${game.category}</span>
+          </div>
+        </div>
+        
+        <div class="p-6">
+          <p class="text-rp-subtle mb-6 leading-relaxed">${game.description || 'No description available for this game.'}</p>
+          
+          <div class="grid grid-cols-2 gap-4 mb-6">
+            <div class="bg-rp-overlay rounded-lg p-4">
+              <div class="text-2xl font-bold text-rp-foam">${game.rating ? game.rating.toFixed(1) : 'N/A'}</div>
+              <div class="text-rp-subtle text-sm">Rating</div>
+            </div>
+            <div class="bg-rp-overlay rounded-lg p-4">
+              <div class="text-2xl font-bold text-rp-iris">${game.plays || 0}</div>
+              <div class="text-rp-subtle text-sm">Total Plays</div>
+            </div>
+          </div>
+          
+          <div class="flex gap-3">
+            <button onclick="playGame('${game.id}'); closeGameModal();" class="flex-1 bg-gradient-to-r from-rp-foam to-rp-iris text-rp-base font-bold py-3 px-6 rounded-lg hover:scale-105 transition-transform">
+              <i class='bx bx-play mr-2'></i>Play Game
+            </button>
+            <button onclick="removeFromPlaylist('${game.id}'); closeGameModal();" class="bg-rp-love/20 hover:bg-rp-love/30 text-rp-love px-6 py-3 rounded-lg transition-colors border border-rp-love/30">
+              <i class='bx bx-trash mr-2'></i>Remove
+            </button>
+          </div>
+        </div>
+      `;
+      
+      document.getElementById('gameModal').classList.remove('hidden');
+    };
+
+    window.closeGameModal = function() {
+      document.getElementById('gameModal').classList.add('hidden');
+    };
+
+    // Event listeners
+    document.getElementById('searchInput').addEventListener('input', applyFilters);
+    document.getElementById('sortSelect').addEventListener('change', applyFilters);
+
+    document.getElementById('playAllBtn').addEventListener('click', () => {
+      if (filteredGames.length > 0) {
+        // Play random game from filtered list
+        const randomGame = filteredGames[Math.floor(Math.random() * filteredGames.length)];
+        playGame(randomGame.id);
+      }
+    });
+
+    document.getElementById('shuffleBtn').addEventListener('click', () => {
+      // Shuffle the current filtered games
+      filteredGames = [...filteredGames].sort(() => Math.random() - 0.5);
+      renderGamesGrid();
+    });
+
+    document.getElementById('clearPlaylistBtn').addEventListener('click', async () => {
+      if (confirm('Are you sure you want to clear your entire playlist? This action cannot be undone.')) {
+        if (!currentUser) return;
+        
+        try {
+          await updateDoc(doc(db, 'users', currentUser.uid), {
+            playlist: []
+          });
+          
+          playlistGames = [];
+          renderPlaylist();
+        } catch (error) {
+          console.error('Error clearing playlist:', error);
+        }
+      }
+    });
+
+    // User section rendering
+    function renderUserSection(user) {
+      const section = document.getElementById('userSection');
+      if (!user) {
+        section.innerHTML = '';
+      } else {
+        const photoURL = user.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.displayName || user.email)}&background=9ccfd8&color=191724&size=128`;
+        const displayName = user.displayName || 'User';
+        
+        section.innerHTML = `
+          <img src="${photoURL}" class="w-8 h-8 rounded-full inline mr-2" title="${displayName}">
+          <span class="mr-3">${displayName}</span>
+          <button onclick="signOutUser()" class="bg-white/10 px-3 py-1 rounded hover:bg-pink-600 text-white transition-colors">Sign Out</button>
+        `;
+      }
+    }
+
+    // Hide preloader
+    function hidePreloader() {
+      document.getElementById('preloader').style.display = 'none';
+    }
+
+    // Authentication state observer
+    auth.onAuthStateChanged(async (user) => {
+      currentUser = user;
+      renderUserSection(user);
+      
+      if (user) {
+        document.getElementById('loginScreen').style.display = 'none';
+        
+        // Load data
+        await loadGamesData();
+        await loadUserPlaylist();
+        
+        hidePreloader();
+      } else {
+        document.getElementById('loginScreen').style.display = 'flex';
+        hidePreloader();
+      }
+    });
+
+    // Close modal when clicking outside
+    document.getElementById('gameModal').addEventListener('click', (e) => {
+      if (e.target.id === 'gameModal') {
+        closeGameModal();
+      }
+    });
+  </script>
+</body>
+</html>

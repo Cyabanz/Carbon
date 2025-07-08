@@ -782,7 +782,13 @@
 
   <!-- Navbar -->
   <nav class="flex items-center justify-between px-8 py-4 bg-rp-surface/80 border-b border-rp-overlay backdrop-blur-md fixed top-0 left-0 right-0 z-50">
-    <a href="index.html" class="text-2xl font-extrabold text-rp-foam tracking-tighter">CARBON</a>
+    <div class="flex items-center gap-4">
+      <a href="index.html" class="text-2xl font-extrabold text-rp-foam tracking-tighter">CARBON</a>
+      <a href="games.html" class="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-cyan-400/20 text-white rounded-lg transition-all duration-300 border border-white/20 hover:border-cyan-400/40">
+        <i class='bx bx-arrow-back text-lg'></i>
+        <span class="font-medium">Back to Games</span>
+      </a>
+    </div>
     <div class="flex items-center gap-4">
       <div id="userSection"></div>
     </div>
@@ -909,7 +915,7 @@
           </div>
         </div>
         
-        <div id="gameActionButtons" class="absolute top-4 right-4 flex gap-3 z-[9999] transition-all duration-300">
+        <div id="gameActionButtons" class="absolute top-4 right-4 flex gap-3 z-[9999] transition-all duration-300 opacity-0 pointer-events-none">
           <button id="likeBtn" class="w-12 h-12 bg-black/60 backdrop-blur-md hover:bg-cyan-500/90 text-white rounded-full flex items-center justify-center transition-all duration-300 border-2 border-white/20 hover:border-cyan-400/60 shadow-lg hover:shadow-cyan-400/30 hover:scale-110 game-action-btn" title="Like">
             <i class='bx bx-like text-xl'></i>
           </button>
@@ -2761,6 +2767,13 @@
           
           // Initialize new game frame features
           initializeGameFrameFeatures(currentGameId, user.uid);
+          
+          // Show game action buttons after everything loads
+          const gameActionButtons = document.getElementById('gameActionButtons');
+          if (gameActionButtons) {
+            gameActionButtons.classList.remove('opacity-0', 'pointer-events-none');
+            gameActionButtons.classList.add('opacity-100', 'pointer-events-auto');
+          }
           
           let lists = await getUserGameLists(user.uid);
           setButtonActive(document.getElementById('likeBtn'), lists.likedGames?.includes(currentGameId));
