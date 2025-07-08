@@ -1,0 +1,914 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Fusion AI Chat – Multi-Conversation</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- Firebase Core -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <!-- Firebase Auth -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <!-- Firebase Realtime Database -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+  <!-- Boxicons -->
+  <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="ai.css">
+  <!-- DOMPurify for XSS sanitization -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js"></script>
+</head>
+<body>
+<div id="auth-section">
+  <h2><i class='bx bx-bot'></i> Sign in to Fusion AI Chat</h2>
+  <p>Please sign in with your Google account to start chatting</p>
+  <button id="google-btn" class="btn-info"><i class='bx bxl-google'></i> Sign in with Google</button>
+  <div id="auth-error" style="color:#c00;font-size:14px;margin-top:10px;"></div>
+</div>
+<div id="main-flex" style="display:none;">
+  <div id="sidebar">
+    <div id="sidebar-header"><i class='bx bx-chat'></i> Conversations</div>
+    <div id="sidebar-btns">
+      <button id="new-convo-btn"><i class='bx bx-plus'></i> New conversation</button>
+      <button id="logout-btn"><i class='bx bx-log-out'></i> Logout</button>
+    </div>
+    <ul id="convo-list"></ul>
+  </div>
+  <div id="container">
+    <div class="header">
+      <i class='bx bx-bot'></i>
+      <h1 id="convo-title">Fusion AI Chat</h1>
+    </div>
+    <div class="usage-bar">
+      <div class="usage-item">
+        <span class="usage-label"><i class='bx bx-message-square-dots'></i> Messages (per hour)</span>
+        <span id="message-count" class="usage-count normal">0/10</span>
+      </div>
+      <div class="usage-item">
+        <span class="usage-label"><i class='bx bx-search-alt-2'></i> Web Searches (per day)</span>
+        <span id="search-count" class="usage-count normal">0/5</span>
+      </div>
+    </div>
+    <div class="controls">
+      <div>
+        <label for="personality"><i class='bx bx-user-circle'></i> AI Personality:</label>
+        <select id="personality">
+          <option value="Friendly">Friendly (GPT-3.5)</option>
+          <option value="Professional">Professional (GPT-4o Mini)</option>
+          <option value="Humorous">Humorous (Claude-3 Haiku)</option>
+          <option value="Creative">Creative (GPT-4o)</option>
+          <option value="Analytical">Analytical (GPT-4o)</option>
+        </select>
+      </div>
+      <div>
+        <label for="model-select"><i class='bx bx-chip'></i> Model Override:</label>
+        <select id="model-select">
+          <option value="">Auto (based on personality)</option>
+          <option value="openai/gpt-3.5-turbo">GPT-3.5 Turbo</option>
+          <option value="openai/gpt-4o-mini">GPT-4o Mini</option>
+          <option value="openai/gpt-4o">GPT-4o</option>
+          <option value="anthropic/claude-3-haiku">Claude-3 Haiku</option>
+          <option value="anthropic/claude-3-sonnet">Claude-3 Sonnet</option>
+          <option value="google/gemini-pro">Gemini Pro</option>
+        </select>
+      </div>
+      <div>
+        <label for="reasoning-mode"><i class='bx bx-brain'></i> Reasoning Mode:</label>
+        <select id="reasoning-mode">
+          <option value="focused">Focused (Deterministic, logical, step-by-step)</option>
+          <option value="balanced" selected>Balanced (Blend of focus and creativity)</option>
+          <option value="creative">Creative (Open, lateral, imaginative)</option>
+        </select>
+      </div>
+    </div>
+    <div id="chat-box"></div>
+    <div class="input-section">
+      <div class="input-row">
+        <input type="text" id="user-input" placeholder="Type your message here..." maxlength="500">
+        <button id="send-btn" class="btn-primary">Send</button>
+      </div>
+      <div class="button-row">
+        <button id="clear-history" class="btn-secondary"><i class='bx bx-trash'></i> Clear Conversation</button>
+        <button id="export-history" class="btn-secondary"><i class='bx bx-download'></i> Export Conversation</button>
+        <button id="web-search" class="btn-info"><i class='bx bx-search'></i> Web Search</button>
+        <button id="view-search-history" class="btn-info"><i class='bx bx-history'></i> Search History</button>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+  // --- Firebase Setup ---
+  const firebaseConfig = {
+    apiKey: "AIzaSyADCVIINCBgvTBvClWqWI5o3SlVS47IJnw",
+    authDomain: "fusioncya-cc20a.firebaseapp.com",
+    databaseURL: "https://fusioncya-cc20a-default-rtdb.firebaseio.com",
+    projectId: "fusioncya-cc20a",
+    storageBucket: "fusioncya-cc20a.appspot.com",
+    messagingSenderId: "765164293111",
+    appId: "1:765164293111:web:43e051c755c4690c0c3cf2",
+    measurementId: "G-4DT52P7MPB"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const auth = firebase.auth();
+  const db = firebase.database();
+
+  // --- Auth UI Logic ---
+  const authSection = document.getElementById('auth-section');
+  const mainFlex = document.getElementById('main-flex');
+  const logoutBtn = document.getElementById('logout-btn');
+  const googleBtn = document.getElementById('google-btn');
+  const authError = document.getElementById('auth-error');
+
+  function showAuthError(msg) { 
+    authError.textContent = DOMPurify.sanitize(msg); 
+  }
+  function clearAuthError() { 
+    authError.textContent = ""; 
+  }
+
+  googleBtn.onclick = async () => {
+    clearAuthError();
+    googleBtn.disabled = true;
+    googleBtn.innerHTML = "<i class='bx bxs-hourglass bx-spin'></i> Signing in...";
+    const provider = new firebase.auth.GoogleAuthProvider();
+    provider.addScope('profile');
+    provider.addScope('email');
+    try {
+      await auth.signInWithPopup(provider);
+    } catch (e) {
+      showAuthError(`Authentication failed: ${DOMPurify.sanitize(e.message)}`);
+    } finally {
+      googleBtn.disabled = false;
+      googleBtn.innerHTML = "<i class='bx bxl-google'></i> Sign in with Google";
+    }
+  };
+
+  logoutBtn.onclick = () => {
+    if (confirm('Are you sure you want to sign out?')) {
+      auth.signOut();
+    }
+  };
+
+  // --- Multi-Convo Chat Logic ---
+  let fusionChat = null;
+  let userId = null;
+
+  auth.onAuthStateChanged(user => {
+    if (user) {
+      userId = user.uid;
+      mainFlex.style.display = '';
+      authSection.style.display = 'none';
+      if (!fusionChat) {
+        fusionChat = new FusionAIChat(userId);
+      }
+    } else {
+      userId = null;
+      mainFlex.style.display = 'none';
+      authSection.style.display = '';
+      fusionChat = null;
+    }
+  });
+
+  function uuid() {
+    return 'xxyxxyxxxyx'.replace(/[xy]/g, function(c) {
+      const r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
+      return v.toString(16);
+    }) + Date.now();
+  }
+
+  class FusionAIChat {
+    constructor(uid) {
+      this.uid = uid;
+      this.convoListEl = document.getElementById('convo-list');
+      this.newConvoBtn = document.getElementById('new-convo-btn');
+      this.logoutBtn = document.getElementById('logout-btn');
+      this.chatBox = document.getElementById('chat-box');
+      this.userInput = document.getElementById('user-input');
+      this.sendBtn = document.getElementById('send-btn');
+      this.clearHistoryBtn = document.getElementById('clear-history');
+      this.exportHistoryBtn = document.getElementById('export-history');
+      this.webSearchBtn = document.getElementById('web-search');
+      this.viewSearchHistoryBtn = document.getElementById('view-search-history');
+      this.personalitySelect = document.getElementById('personality');
+      this.modelSelect = document.getElementById('model-select');
+      this.reasoningSelect = document.getElementById('reasoning-mode');
+      this.messageCountEl = document.getElementById('message-count');
+      this.searchCountEl = document.getElementById('search-count');
+      this.convoTitle = document.getElementById('convo-title');
+      this.conversations = {};
+      this.activeConvoId = null;
+      this.usageData = this.initializeUsageData();
+      this.searchHistory = [];
+      this.isTyping = false;
+      this.firebaseConvoListRef = db.ref(`users/${this.uid}/conversations`);
+      this.firebaseUsageRef = db.ref(`users/${this.uid}/usageData`);
+      this.firebaseSearchRef = db.ref(`users/${this.uid}/searchHistory`);
+      this.initializeEventListeners();
+      this.listenToFirebase();
+      this.updateUsageDisplay();
+      this.startUsageResetTimer();
+    }
+
+    initializeEventListeners() {
+      this.newConvoBtn.addEventListener('click', () => this.createNewConversation());
+      this.sendBtn.addEventListener('click', () => this.sendMessage());
+      this.clearHistoryBtn.addEventListener('click', () => this.clearConversation());
+      this.exportHistoryBtn.addEventListener('click', () => this.exportConversation());
+      this.webSearchBtn.addEventListener('click', () => this.performWebSearch());
+      this.viewSearchHistoryBtn.addEventListener('click', () => this.showSearchHistory());
+      this.userInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault();
+          this.sendMessage();
+        }
+      });
+      this.userInput.addEventListener('input', () => this.updateSendButtonState());
+      setTimeout(() => this.userInput.focus(), 500);
+    }
+
+    listenToFirebase() {
+      this.firebaseConvoListRef.on('value', (snapshot) => {
+        this.conversations = snapshot.val() || {};
+        this.renderSidebar();
+        if (!this.activeConvoId && Object.keys(this.conversations).length > 0) {
+          this.setActiveConversation(Object.keys(this.conversations)[0]);
+        }
+        if (Object.keys(this.conversations).length === 0) {
+          this.createNewConversation();
+        }
+        if (this.activeConvoId && this.conversations[this.activeConvoId]) {
+          this.renderChatHistory();
+        }
+      });
+      this.firebaseUsageRef.on('value', (snapshot) => {
+        if (snapshot.exists()) {
+          this.usageData = snapshot.val();
+          this.updateUsageDisplay();
+        }
+      });
+      this.firebaseSearchRef.on('value', (snapshot) => {
+        this.searchHistory = snapshot.val() || [];
+      });
+    }
+
+    initializeUsageData() {
+      const now = new Date();
+      return {
+        messages: { count: 0, resetTime: new Date(now.getTime() + 60 * 60 * 1000).toISOString() },
+        searches: { count: 0, resetTime: new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1).toISOString() }
+      };
+    }
+
+    startUsageResetTimer() {
+      setInterval(() => {
+        const now = new Date();
+        let changed = false;
+        let usage = {...this.usageData};
+        if (now >= new Date(usage.messages.resetTime)) {
+          usage.messages.count = 0;
+          usage.messages.resetTime = new Date(now.getTime() + 60 * 60 * 1000).toISOString();
+          changed = true;
+        }
+        if (now >= new Date(usage.searches.resetTime)) {
+          usage.searches.count = 0;
+          usage.searches.resetTime = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1).toISOString();
+          changed = true;
+        }
+        if (changed) {
+          this.usageData = usage;
+          this.firebaseUsageRef.set(usage);
+        }
+      }, 60000);
+    }
+
+    updateUsageDisplay() {
+      this.messageCountEl.textContent = DOMPurify.sanitize(`${this.usageData.messages.count}/10`);
+      this.messageCountEl.className = 'usage-count ' + this.getUsageClass(this.usageData.messages.count, 10);
+      this.searchCountEl.textContent = DOMPurify.sanitize(`${this.usageData.searches.count}/5`);
+      this.searchCountEl.className = 'usage-count ' + this.getUsageClass(this.usageData.searches.count, 5);
+      this.webSearchBtn.disabled = this.usageData.searches.count >= 5;
+      this.updateSendButtonState();
+    }
+
+    getUsageClass(current, limit) {
+      if (current >= limit) return 'limit';
+      if (current >= limit * 0.8) return 'warning';
+      return 'normal';
+    }
+
+    renderSidebar() {
+      this.convoListEl.innerHTML = '';
+      const ids = Object.keys(this.conversations);
+      if (ids.length === 0) return;
+      ids.sort((a, b) => {
+        const aTime = this.conversations[a].meta && this.conversations[a].meta.lastUpdated
+          ? this.conversations[a].meta.lastUpdated : 0;
+        const bTime = this.conversations[b].meta && this.conversations[b].meta.lastUpdated
+          ? this.conversations[b].meta.lastUpdated : 0;
+        return bTime - aTime;
+      });
+      ids.forEach(convoId => {
+        const convo = this.conversations[convoId];
+        const li = document.createElement('li');
+        li.className = 'convo-item' + (convoId === this.activeConvoId ? ' active' : '');
+        li.dataset.id = convoId;
+        const title = document.createElement('span');
+        title.className = 'convo-title';
+        title.textContent = DOMPurify.sanitize((convo.meta && convo.meta.title) ? convo.meta.title : 'Conversation');
+        li.appendChild(title);
+
+        // Delete button
+        const actions = document.createElement('span');
+        actions.className = 'convo-actions';
+        const delBtn = document.createElement('button');
+        delBtn.title = 'Delete';
+        delBtn.innerHTML = "<i class='bx bx-trash'></i>";
+        delBtn.onclick = (e) => {
+          e.stopPropagation();
+          if (confirm('Delete this conversation?')) {
+            this.deleteConversation(convoId);
+          }
+        };
+        actions.appendChild(delBtn);
+        li.appendChild(actions);
+        li.onclick = () => this.setActiveConversation(convoId);
+        this.convoListEl.appendChild(li);
+      });
+    }
+
+    setActiveConversation(convoId) {
+      if (!this.conversations[convoId]) return;
+      this.activeConvoId = convoId;
+      this.renderSidebar();
+      this.renderChatHistory();
+      this.convoTitle.textContent = DOMPurify.sanitize(this.conversations[convoId].meta && this.conversations[convoId].meta.title
+        ? this.conversations[convoId].meta.title : 'Conversation');
+    }
+
+    createNewConversation() {
+      const id = uuid();
+      const now = Date.now();
+      const welcomeMsg = {
+        role: 'ai',
+        text: "Hello! I'm Fusion AI. Start chatting or asking questions. You can create and switch conversations using the sidebar.",
+        timestamp: new Date().toISOString()
+      };
+      const meta = {
+        created: now,
+        lastUpdated: now,
+        title: "New conversation"
+      };
+      this.firebaseConvoListRef.child(id).set({meta, messages: [welcomeMsg]}, () => {
+        this.setActiveConversation(id);
+      });
+    }
+
+    deleteConversation(convoId) {
+      this.firebaseConvoListRef.child(convoId).remove(() => {
+        if (this.activeConvoId === convoId) {
+          const ids = Object.keys(this.conversations).filter(id => id !== convoId);
+          if (ids.length > 0) {
+            this.setActiveConversation(ids[0]);
+          } else {
+            this.createNewConversation();
+          }
+        }
+      });
+    }
+
+    renderChatHistory() {
+      this.chatBox.innerHTML = '';
+      if (!this.activeConvoId || !this.conversations[this.activeConvoId]) return;
+      const messages = this.conversations[this.activeConvoId].messages || [];
+      messages.forEach((message, index) => {
+        this.createMessageElement(message, index);
+      });
+      this.scrollToBottom();
+    }
+
+    createMessageElement(message, index) {
+      const messageDiv = document.createElement('div');
+      messageDiv.className = `message ${message.role}`;
+      messageDiv.dataset.messageIndex = index;
+
+      const senderRow = document.createElement('div');
+      senderRow.className = 'message-sender-row';
+
+      if (message.role === 'ai') {
+        const aiProfile = document.createElement('div');
+        aiProfile.className = 'profile-circle-ai';
+        aiProfile.innerHTML = "<i class='bx bx-bot'></i>";
+        senderRow.appendChild(aiProfile);
+      } else {
+        const userProfile = document.createElement('div');
+        userProfile.className = 'profile-circle-user';
+        userProfile.innerHTML = "<i class='bx bx-user'></i>";
+        senderRow.appendChild(userProfile);
+      }
+
+      const messageSender = document.createElement('div');
+      messageSender.className = 'message-sender';
+      messageSender.textContent = DOMPurify.sanitize(message.role === 'user' ? "You" : "Fusion AI");
+      senderRow.appendChild(messageSender);
+
+      const messageContent = document.createElement('div');
+      messageContent.className = 'message-content';
+      const messageText = document.createElement('div');
+      messageText.innerHTML = message.html ? DOMPurify.sanitize(message.html) : DOMPurify.sanitize(this.formatMessage(message.text));
+
+      messageContent.appendChild(messageText);
+
+      // Regenerate & Reasoning logic buttons for AI messages only
+      if (message.role === 'ai') {
+        const btnRow = document.createElement('div');
+        btnRow.className = 'ai-action-row';
+        // Regenerate button
+        const regenBtn = document.createElement('button');
+        regenBtn.className = 'regen-btn';
+        regenBtn.title = "Regenerate response";
+        regenBtn.innerHTML = "<i class='bx bx-refresh'></i> Regenerate";
+        regenBtn.onclick = () => this.regenerateAIResponse(index);
+        btnRow.appendChild(regenBtn);
+        // Show Reasoning button
+        const reasoningBtn = document.createElement('button');
+        reasoningBtn.className = 'reasoning-btn';
+        reasoningBtn.title = "Show AI Reasoning";
+        reasoningBtn.innerHTML = "<i class='bx bx-brain'></i> Reasoning";
+        reasoningBtn.onclick = () => this.showReasoning(index);
+        btnRow.appendChild(reasoningBtn);
+        messageContent.appendChild(btnRow);
+      }
+
+      messageDiv.appendChild(senderRow);
+      messageDiv.appendChild(messageContent);
+      this.chatBox.appendChild(messageDiv);
+    }
+
+    formatMessage(text) {
+      return DOMPurify.sanitize((text || '')
+        .replace(/\n/g, '<br>')
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*(.*?)\*/g, '<em>$1</em>'));
+    }
+
+    showTypingIndicator() {
+      this.hideTypingIndicator();
+      const typingDiv = document.createElement('div');
+      typingDiv.className = 'message ai';
+      typingDiv.id = 'typing-indicator';
+
+      const senderRow = document.createElement('div');
+      senderRow.className = 'message-sender-row';
+      const aiProfile = document.createElement('div');
+      aiProfile.className = 'profile-circle-ai';
+      aiProfile.innerHTML = "<i class='bx bx-bot'></i>";
+      senderRow.appendChild(aiProfile);
+      const messageSender = document.createElement('div');
+      messageSender.className = 'message-sender';
+      messageSender.textContent = DOMPurify.sanitize('Fusion AI');
+      senderRow.appendChild(messageSender);
+      typingDiv.appendChild(senderRow);
+
+      const typingContent = document.createElement('div');
+      typingContent.className = 'typing-indicator';
+      const typingDots = document.createElement('div');
+      typingDots.className = 'typing-dots';
+      for (let i = 0; i < 3; i++) {
+        const dot = document.createElement('div');
+        dot.className = 'typing-dot';
+        typingDots.appendChild(dot);
+      }
+      typingContent.appendChild(typingDots);
+      typingDiv.appendChild(typingContent);
+      this.chatBox.appendChild(typingDiv);
+      this.scrollToBottom();
+    }
+
+    hideTypingIndicator() {
+      const typingIndicator = document.getElementById('typing-indicator');
+      if (typingIndicator) typingIndicator.remove();
+    }
+
+    getSelectedModel() {
+      const selected = this.modelSelect.value;
+      if (selected) return DOMPurify.sanitize(selected);
+      const personality = this.personalitySelect.value;
+      const modelMap = {
+        "Friendly": "openai/gpt-3.5-turbo",
+        "Professional": "openai/gpt-4o-mini",
+        "Humorous": "anthropic/claude-3-haiku",
+        "Creative": "openai/gpt-4o",
+        "Analytical": "openai/gpt-4o"
+      };
+      return modelMap[personality] || "openai/gpt-3.5-turbo";
+    }
+
+    getPersonalityPrompt(personality) {
+      const prompts = {
+        "Friendly": "You are a friendly, helpful, and approachable AI assistant. Be warm and conversational.",
+        "Professional": "You are a professional, concise, and businesslike AI assistant. Be direct and efficient.",
+        "Humorous": "You are a witty, humorous, and light-hearted AI assistant. Add some humor when appropriate.",
+        "Creative": "You are a creative, imaginative, and original AI assistant. Think outside the box.",
+        "Analytical": "You are an analytical, logical, and precise AI assistant. Focus on facts and reasoning."
+      };
+      return prompts[personality] || "";
+    }
+
+    getReasoningPrompt(reasoningMode) {
+      if (reasoningMode === "focused") {
+        return "Please reason step by step, be deterministic, logical, and avoid unnecessary creativity.";
+      } else if (reasoningMode === "creative") {
+        return "You are encouraged to be imaginative, use lateral thinking, and propose novel or unorthodox ideas.";
+      } else {
+        return "Balance logic and creativity, offering a clear answer but also open to alternative perspectives.";
+      }
+    }
+
+    sendMessage() {
+      if (!this.activeConvoId) return;
+      if (this.usageData.messages.count >= 10) {
+        this.showNotice('You\'ve reached your hourly message limit (10 messages). Please wait for the limit to reset.', 'error');
+        return;
+      }
+      const userMessage = DOMPurify.sanitize(this.userInput.value.trim());
+      if (!userMessage || this.isTyping) return;
+      this.usageData.messages.count++;
+      this.firebaseUsageRef.set(this.usageData);
+
+      const convoRef = this.firebaseConvoListRef.child(this.activeConvoId);
+
+      const addAndSend = (convo) => {
+        const messages = (convo.messages || []);
+        const newMsg = {
+          role: 'user',
+          text: userMessage,
+          timestamp: new Date().toISOString()
+        };
+        if (!this.conversations[this.activeConvoId])
+          this.conversations[this.activeConvoId] = { meta: {}, messages: [] };
+        this.conversations[this.activeConvoId].messages = [...messages, newMsg];
+        this.renderChatHistory();
+
+        this.userInput.value = '';
+        this.isTyping = true;
+        this.updateSendButtonState();
+        this.showTypingIndicator();
+
+        const meta = {
+          ...convo.meta,
+          lastUpdated: Date.now(),
+          title: (convo.meta && convo.meta.title && convo.meta.title !== 'New conversation')
+            ? convo.meta.title
+            : this.suggestTitleForConversation([...messages, newMsg])
+        };
+        convoRef.set({meta, messages: [...messages, newMsg]}).then(async () => {
+          try {
+            const aiResponse = await this.callOpenRouterAPI([...messages, newMsg]);
+            this.hideTypingIndicator();
+            const newMessages = [...messages, newMsg, {
+              role: 'ai',
+              text: DOMPurify.sanitize(aiResponse.finalAnswer),
+              reasoning: aiResponse.reasoning ? DOMPurify.sanitize(aiResponse.reasoning) : null,
+              timestamp: new Date().toISOString()
+            }];
+            convoRef.set({meta: {...meta, lastUpdated: Date.now()}, messages: newMessages});
+          } catch (error) {
+            this.hideTypingIndicator();
+            const errorMessage = {
+              role: 'ai',
+              text: DOMPurify.sanitize(`Sorry, I encountered an error: ${error.message}. Please try again.`),
+              timestamp: new Date().toISOString()
+            };
+            convoRef.set({meta: {...meta, lastUpdated: Date.now()}, messages: [...messages, newMsg, errorMessage]});
+          } finally {
+            this.isTyping = false;
+            this.updateSendButtonState();
+            this.userInput.focus();
+          }
+        });
+      };
+
+      convoRef.once('value', (snapshot) => {
+        addAndSend(snapshot.val() || {meta: {}, messages: []});
+      });
+    }
+
+    suggestTitleForConversation(messages) {
+      const firstUser = messages.find(m => m.role === "user");
+      if (firstUser && firstUser.text) {
+        let s = DOMPurify.sanitize(firstUser.text.trim());
+        if (s.length > 32) s = s.slice(0, 32) + '…';
+        return s;
+      }
+      return "Conversation";
+    }
+
+    async callOpenRouterAPI(historyOverride, reasoningRequest = false, regenIndex = null) {
+      const selectedModel = this.getSelectedModel();
+      const personality = this.personalitySelect.value;
+      const reasoningMode = this.reasoningSelect.value;
+      const personalityPrompt = this.getPersonalityPrompt(personality);
+      const reasoningPrompt = this.getReasoningPrompt(reasoningMode);
+      let apiHistory = (historyOverride || []).filter(msg =>
+        !(msg.text && msg.text.includes('Hello! I\'m Fusion AI') && msg.role === 'ai')
+      );
+      let historyWithContext = [...apiHistory];
+
+      // Add system prompt for first user message
+      if (apiHistory.length === 1 && personalityPrompt) {
+        historyWithContext = [
+          { role: 'system', text: personalityPrompt },
+          ...apiHistory
+        ];
+      }
+
+      // AI Reasoning request
+      let reasoningInstruction = "";
+      if (reasoningRequest) {
+        reasoningInstruction = "Show your full step-by-step reasoning for your previous answer.";
+      } else if (reasoningMode) {
+        reasoningInstruction = reasoningPrompt;
+      }
+
+      // Determine user prompt for reasoning (last user message)
+      let userForReasoning;
+      if (reasoningRequest && regenIndex !== null && Array.isArray(historyWithContext)) {
+        userForReasoning = historyWithContext.filter(m => m.role === 'user')[regenIndex];
+      }
+
+      // Compose payload
+      const payload = {
+        history: historyWithContext.map(msg => ({
+          ...msg,
+          text: DOMPurify.sanitize(msg.text)
+        })),
+        model: selectedModel,
+        reasoningMode,
+        reasoningRequest,
+        userForReasoning: userForReasoning ? { ...userForReasoning, text: DOMPurify.sanitize(userForReasoning.text) } : null,
+        personalityPrompt: DOMPurify.sanitize(personalityPrompt),
+        reasoningPrompt: DOMPurify.sanitize(reasoningInstruction)
+      };
+
+      // You must implement /api/openrouter to return: { text: "...", reasoning: "..." }
+      const response = await fetch('/api/openrouter', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        let errorData = {};
+        try { errorData = await response.json(); } catch (e) {}
+        throw new Error(DOMPurify.sanitize(errorData.error || `API request failed (${response.status})`));
+      }
+      const data = await response.json();
+
+      // Always return both finalAnswer and reasoning (or null if not available)
+      return {
+        finalAnswer: DOMPurify.sanitize(data.text || 'Sorry, I could not generate a response.'),
+        reasoning: data.reasoning ? DOMPurify.sanitize(data.reasoning) : null
+      };
+    }
+
+    async regenerateAIResponse(aiMsgIndex) {
+      if (!this.activeConvoId || this.isTyping) return;
+      const convo = this.conversations[this.activeConvoId];
+      if (!convo || !convo.messages) return;
+      // Find last user message before aiMsgIndex
+      let userMsgIndex = -1;
+      for (let i = aiMsgIndex - 1; i >= 0; i--) {
+        if (convo.messages[i].role === "user") {
+          userMsgIndex = i;
+          break;
+        }
+      }
+      if (userMsgIndex === -1) return;
+      const messagesUpToUser = convo.messages.slice(0, userMsgIndex + 1);
+      this.isTyping = true;
+      this.showTypingIndicator();
+      try {
+        const aiResponse = await this.callOpenRouterAPI(messagesUpToUser, false, userMsgIndex);
+        this.hideTypingIndicator();
+        // Replace the AI message at aiMsgIndex
+        const newMessages = [...convo.messages];
+        newMessages[aiMsgIndex] = {
+          role: 'ai',
+          text: DOMPurify.sanitize(aiResponse.finalAnswer),
+          reasoning: aiResponse.reasoning ? DOMPurify.sanitize(aiResponse.reasoning) : null,
+          timestamp: new Date().toISOString()
+        };
+        this.firebaseConvoListRef.child(this.activeConvoId).set({
+          meta: { ...convo.meta, lastUpdated: Date.now() },
+          messages: newMessages
+        });
+      } catch (error) {
+        this.hideTypingIndicator();
+        this.showNotice(DOMPurify.sanitize('Failed to regenerate response. Please try again.'), 'error');
+      } finally {
+        this.isTyping = false;
+        this.updateSendButtonState();
+      }
+    }
+
+    async showReasoning(aiMsgIndex) {
+      if (!this.activeConvoId || this.isTyping) return;
+      const convo = this.conversations[this.activeConvoId];
+      if (!convo || !convo.messages) return;
+      const aiMsg = convo.messages[aiMsgIndex];
+      if (aiMsg.reasoning) {
+        // Already has reasoning, show as AI message
+        const reasoningMsg = {
+          role: 'ai',
+          text: DOMPurify.sanitize('🧠 <strong>AI Reasoning:</strong><br>' + this.formatMessage(aiMsg.reasoning)),
+          timestamp: new Date().toISOString()
+        };
+        await this.appendMessageToActiveConvo(reasoningMsg);
+        return;
+      }
+      // Find last user message before aiMsgIndex
+      let userMsgIndex = -1;
+      for (let i = aiMsgIndex - 1; i >= 0; i--) {
+        if (convo.messages[i].role === "user") {
+          userMsgIndex = i;
+          break;
+        }
+      }
+      if (userMsgIndex === -1) return;
+      const messagesUpToAI = convo.messages.slice(0, aiMsgIndex + 1);
+      this.isTyping = true;
+      this.showTypingIndicator();
+      try {
+        const aiReasoned = await this.callOpenRouterAPI(messagesUpToAI, true, userMsgIndex);
+        this.hideTypingIndicator();
+        // Optionally: Save reasoning to original AI message in database
+        const updatedMessages = [...convo.messages];
+        updatedMessages[aiMsgIndex] = {
+          ...updatedMessages[aiMsgIndex],
+          reasoning: DOMPurify.sanitize(aiReasoned.reasoning || aiReasoned.finalAnswer)
+        };
+        await this.firebaseConvoListRef.child(this.activeConvoId).set({
+          meta: { ...convo.meta, lastUpdated: Date.now() },
+          messages: updatedMessages
+        });
+        // Show as new message
+        const reasoningMsg = {
+          role: 'ai',
+          text: DOMPurify.sanitize('🧠 <strong>AI Reasoning:</strong><br>' + this.formatMessage(aiReasoned.reasoning || aiReasoned.finalAnswer)),
+          timestamp: new Date().toISOString()
+        };
+        await this.appendMessageToActiveConvo(reasoningMsg);
+      } catch (error) {
+        this.hideTypingIndicator();
+        this.showNotice(DOMPurify.sanitize('Could not retrieve AI reasoning. Please try again.'), 'error');
+      } finally {
+        this.isTyping = false;
+        this.updateSendButtonState();
+      }
+    }
+
+    async performWebSearch() {
+      if (this.usageData.searches.count >= 5) {
+        this.showNotice(DOMPurify.sanitize('You\'ve reached your daily web search limit (5 searches). Please wait until tomorrow.'), 'error');
+        return;
+      }
+      const query = DOMPurify.sanitize(prompt('Enter your search query:') || '');
+      if (!query || !query.trim()) return;
+      this.usageData.searches.count++;
+      await this.firebaseUsageRef.set(this.usageData);
+      const newSearch = {
+        query: query.trim(),
+        timestamp: new Date().toISOString(),
+        results: 'Search completed'
+      };
+      const updatedSearches = [...this.searchHistory, newSearch];
+      await this.firebaseSearchRef.set(updatedSearches);
+      this.isTyping = true;
+      this.showTypingIndicator();
+      try {
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        this.hideTypingIndicator();
+        const searchMessage = {
+          role: 'ai',
+          text: DOMPurify.sanitize(`Here are the search results for "${query}":<br><br>🔍 Found 3 relevant results:<br>1. Example Result 1 - Brief description<br>2. Example Result 2 - Brief description<br>3. Example Result 3 - Brief description<br><br>Would you like me to search for something more specific?`),
+          timestamp: new Date().toISOString()
+        };
+        await this.appendMessageToActiveConvo(searchMessage);
+      } catch (error) {
+        this.hideTypingIndicator();
+        this.showNotice(DOMPurify.sanitize('Error performing web search. Please try again later.'), 'error');
+      } finally {
+        this.isTyping = false;
+        this.updateSendButtonState();
+      }
+    }
+
+    async appendMessageToActiveConvo(message) {
+      if (!this.activeConvoId) return;
+      const convoRef = this.firebaseConvoListRef.child(this.activeConvoId);
+      convoRef.once('value', (snapshot) => {
+        const convo = snapshot.val() || {meta: {}, messages: []};
+        const messages = (convo.messages || []).concat([{
+          ...message,
+          text: DOMPurify.sanitize(message.text),
+          html: message.html ? DOMPurify.sanitize(message.html) : undefined
+        }]);
+        const meta = {...convo.meta, lastUpdated: Date.now()};
+        convoRef.set({meta, messages});
+      });
+    }
+
+    showSearchHistory() {
+      if (this.searchHistory.length === 0) {
+        this.showNotice(DOMPurify.sanitize('No search history available.'), 'error');
+        return;
+      }
+      const historyHtml = this.searchHistory.map(search => {
+        const date = new Date(search.timestamp).toLocaleString();
+        return DOMPurify.sanitize(`<div class="search-item"><strong>${search.query}</strong><br><small>${date}</small></div>`);
+      }).join('');
+      const historyMessage = {
+        role: 'ai',
+        text: 'Search History',
+        html: DOMPurify.sanitize(`<div class="search-history"><h4><i class='bx bx-history'></i> Your Search History</h4>${historyHtml}</div>`),
+        timestamp: new Date().toISOString()
+      };
+      this.appendMessageToActiveConvo(historyMessage);
+    }
+
+    showNotice(message, type='info') {
+      const noticeDiv = document.createElement('div');
+      noticeDiv.className = type === 'error' ? 'error-notice' : 'limit-notice';
+      noticeDiv.textContent = DOMPurify.sanitize(message);
+      this.chatBox.appendChild(noticeDiv);
+      this.scrollToBottom();
+      setTimeout(() => { noticeDiv.remove(); }, 5000);
+    }
+
+    clearConversation() {
+      if (!this.activeConvoId) return;
+      if (confirm('Are you sure you want to clear this conversation history? This action cannot be undone.')) {
+        const meta = {
+          ...this.conversations[this.activeConvoId].meta,
+          lastUpdated: Date.now()
+        };
+        const welcomeMessage = {
+          role: 'ai',
+          text: DOMPurify.sanitize("Hello! I'm Fusion AI. Start chatting or asking questions. You can create and switch conversations using the sidebar."),
+          timestamp: new Date().toISOString()
+        };
+        this.firebaseConvoListRef.child(this.activeConvoId).set({meta, messages: [welcomeMessage]});
+      }
+    }
+
+    exportConversation() {
+      if (!this.activeConvoId || !this.conversations[this.activeConvoId]) {
+        alert('No conversation to export!');
+        return;
+      }
+      const messages = this.conversations[this.activeConvoId].messages || [];
+      if (messages.length === 0) {
+        alert('No conversation to export!');
+        return;
+      }
+      const chatText = messages.map(message => {
+        const sender = message.role === 'user' ? 'You' : 'Fusion AI';
+        const timestamp = new Date(message.timestamp).toLocaleString();
+        let msgStr = `[${timestamp}] ${sender}: ${DOMPurify.sanitize(message.text)}`;
+        if (message.reasoning) {
+          msgStr += `\nReasoning:\n${DOMPurify.sanitize(message.reasoning)}`;
+        }
+        return msgStr;
+      }).join('\n\n');
+      const usageStats = `\n\n--- Usage Statistics ---\nMessages this hour: ${this.usageData.messages.count}/10\nWeb searches today: ${this.usageData.searches.count}/5\n\n--- Search History ---\n${this.searchHistory.map(s => `${DOMPurify.sanitize(s.query)} (${new Date(s.timestamp).toLocaleString()})`).join('\n')}`;
+      const blob = new Blob([chatText + usageStats], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `fusion-ai-convo-${this.activeConvoId}.txt`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+    updateSendButtonState() {
+      const hasText = this.userInput.value.trim() !== '';
+      const withinMessageLimit = this.usageData.messages.count < 10;
+      this.sendBtn.disabled = !hasText || this.isTyping || !withinMessageLimit;
+      if (!withinMessageLimit) {
+        this.sendBtn.textContent = DOMPurify.sanitize('Limit Reached');
+      } else if (this.isTyping) {
+        this.sendBtn.textContent = DOMPurify.sanitize('Sending...');
+      } else {
+        this.sendBtn.textContent = DOMPurify.sanitize('Send');
+      }
+    }
+
+    scrollToBottom() {
+      setTimeout(() => { this.chatBox.scrollTop = this.chatBox.scrollHeight; }, 100);
+    }
+  }
+</script>
+</body>
+</html>
