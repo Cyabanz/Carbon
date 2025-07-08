@@ -905,12 +905,26 @@
             <i class='bx bx-joystick text-3xl'></i>
             You Might Also Like
           </h3>
-          <div id="suggestedGamesList" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            <!-- Suggested games will be rendered here -->
-            <div class="text-center py-8" style="color: var(--theme-muted);">
-              <i class='bx bx-loader-alt text-4xl mb-2 block animate-spin'></i>
-              <p>Loading suggested games...</p>
+          <div class="relative">
+            <div class="overflow-hidden rounded-2xl">
+              <div id="suggestedGamesList" class="flex transition-transform duration-500 ease-in-out">
+                <!-- Suggested games will be rendered here -->
+                <div class="flex-shrink-0 w-full text-center py-8" style="color: var(--theme-muted);">
+                  <i class='bx bx-loader-alt text-4xl mb-2 block animate-spin'></i>
+                  <p>Loading suggested games...</p>
+                </div>
+              </div>
             </div>
+            <button id="suggestedPrevBtn" class="absolute left-2 top-1/2 -translate-y-1/2 bg-black/60 hover:bg-black/80 text-white p-3 rounded-full transition-all duration-300 backdrop-blur-md border border-cyan-400/30 hover:border-cyan-400/60 shadow-lg hover:shadow-cyan-400/20 opacity-0 pointer-events-none z-10">
+              <i class='bx bx-chevron-left text-2xl'></i>
+            </button>
+            <button id="suggestedNextBtn" class="absolute right-2 top-1/2 -translate-y-1/2 bg-black/60 hover:bg-black/80 text-white p-3 rounded-full transition-all duration-300 backdrop-blur-md border border-cyan-400/30 hover:border-cyan-400/60 shadow-lg hover:shadow-cyan-400/20 opacity-0 pointer-events-none z-10">
+              <i class='bx bx-chevron-right text-2xl'></i>
+            </button>
+          </div>
+          <!-- Carousel indicators -->
+          <div id="suggestedCarouselDots" class="flex justify-center mt-6 gap-2">
+            <!-- Dots will be rendered here -->
           </div>
         </div>
       </div>
@@ -2509,6 +2523,9 @@
           // Load suggested games
           await loadSuggestedGames();
           
+          // Initialize suggested games carousel
+          initializeSuggestedCarousel();
+          
           // Initialize comment system event listeners
           initializeCommentSystem();
           
@@ -2638,38 +2655,244 @@
       }
     }
 
+    let suggestedCurrentSlide = 0;
+    let suggestedGamesData = [];
+    let suggestedAutoplayInterval = null;
+
     function renderSuggestedGames(games) {
       const container = document.getElementById('suggestedGamesList');
       if (!container) return;
 
+      suggestedGamesData = games;
+      suggestedCurrentSlide = 0;
+
       if (games.length === 0) {
         container.innerHTML = `
-          <div class="col-span-full text-center py-8" style="color: var(--theme-muted);">
+          <div class="flex-shrink-0 w-full text-center py-8" style="color: var(--theme-muted);">
             <i class='bx bx-game text-4xl mb-2 block'></i>
             <p>No suggested games available</p>
           </div>
         `;
+        updateSuggestedCarouselButtons();
         return;
       }
 
-      container.innerHTML = games.map(game => `
-        <div class="bg-white/5 border border-white/10 rounded-xl hover:border-cyan-400/30 transition-all duration-300 overflow-hidden group cursor-pointer" onclick="window.location.href='play.html?id=${game.id}';">
-          <div class="relative">
-            <img src="${game.image}" alt="${game.title}" class="w-full h-32 object-cover group-hover:scale-110 transition-transform duration-300">
-            ${game.featured ? '<div class="absolute top-2 right-2 bg-gradient-to-r from-amber-400 to-orange-500 text-black px-2 py-1 rounded-full text-xs font-bold">Featured</div>' : ''}
-          </div>
-          <div class="p-4">
-            <h4 class="font-semibold text-white mb-1 truncate">${game.title}</h4>
-            <p class="text-white/60 text-sm mb-2">${game.category}</p>
-            <p class="text-white/70 text-xs leading-relaxed line-clamp-2">${game.description || 'No description available'}</p>
-            <div class="mt-3">
-              <button class="w-full bg-gradient-to-r from-cyan-400 to-indigo-500 text-black font-semibold px-4 py-2 rounded-lg hover:scale-105 transition-transform duration-300 text-sm">
-                Play Now
-              </button>
-            </div>
+      // Group games into slides of 3
+      const slidesData = [];
+      for (let i = 0; i < games.length; i += 3) {
+        slidesData.push(games.slice(i, i + 3));
+      }
+
+      container.innerHTML = slidesData.map((slideGames, slideIndex) => `
+        <div class="flex-shrink-0 w-full px-4">
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                         ${slideGames.map(game => `
+               <div class="bg-gradient-to-br from-white/10 to-white/5 border border-white/20 rounded-2xl hover:border-cyan-400/50 hover:shadow-lg hover:shadow-cyan-400/20 transition-all duration-300 overflow-hidden group cursor-pointer relative backdrop-blur-sm" onclick="window.location.href='play.html?id=${game.id}';">
+                 <div class="relative aspect-[16/9] overflow-hidden rounded-2xl">
+                   <img src="${game.image}" alt="${game.title}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out">
+                   ${game.featured ? '<div class="absolute top-3 right-3 bg-gradient-to-r from-amber-400 to-orange-500 text-black px-3 py-1 rounded-full text-xs font-bold shadow-lg">Featured</div>' : ''}
+                   
+                   <!-- Game title overlay on hover -->
+                   <div class="absolute inset-0 bg-gradient-to-t from-black/95 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-300 ease-in-out">
+                     <div class="absolute bottom-0 left-0 right-0 p-4">
+                       <div class="transform translate-y-4 group-hover:translate-y-0 transition-transform duration-300 ease-out">
+                         <h4 class="font-bold text-white text-xl mb-2 drop-shadow-lg">${game.title}</h4>
+                         <p class="text-cyan-200 text-sm mb-3 font-medium">${game.category}</p>
+                         <div class="flex items-center gap-3">
+                           <span class="bg-gradient-to-r from-cyan-400 to-indigo-500 text-black font-bold px-4 py-2 rounded-lg text-sm shadow-lg hover:scale-105 transition-transform duration-200">
+                             <i class='bx bx-play mr-1'></i>Play Now
+                           </span>
+                           <div class="flex items-center text-white/80 text-xs">
+                             <i class='bx bx-joystick mr-1'></i>
+                             Quick Play
+                           </div>
+                         </div>
+                       </div>
+                     </div>
+                   </div>
+                   
+                   <!-- Subtle glow effect on hover -->
+                   <div class="absolute inset-0 rounded-2xl ring-2 ring-cyan-400/0 group-hover:ring-cyan-400/30 transition-all duration-300"></div>
+                 </div>
+               </div>
+             `).join('')}
           </div>
         </div>
       `).join('');
+
+      updateSuggestedCarousel();
+      updateSuggestedCarouselButtons();
+      renderCarouselDots();
+      startSuggestedAutoplay();
+    }
+
+    function updateSuggestedCarousel() {
+      const container = document.getElementById('suggestedGamesList');
+      if (!container) return;
+      
+      container.style.transform = `translateX(-${suggestedCurrentSlide * 100}%)`;
+      updateCarouselDots();
+    }
+
+    function renderCarouselDots() {
+      const dotsContainer = document.getElementById('suggestedCarouselDots');
+      if (!dotsContainer) return;
+
+      const totalSlides = Math.ceil(suggestedGamesData.length / 3);
+      
+      if (totalSlides <= 1) {
+        dotsContainer.innerHTML = '';
+        return;
+      }
+
+      const dots = Array.from({ length: totalSlides }, (_, index) => `
+        <button 
+          class="w-3 h-3 rounded-full transition-all duration-300 border-2 border-cyan-400/50 hover:border-cyan-400/80 ${
+            index === suggestedCurrentSlide 
+              ? 'bg-cyan-400 shadow-lg shadow-cyan-400/30' 
+              : 'bg-transparent hover:bg-cyan-400/30'
+          }" 
+          onclick="goToSuggestedSlide(${index})"
+          aria-label="Go to slide ${index + 1}"
+        ></button>
+      `).join('');
+
+      dotsContainer.innerHTML = dots;
+    }
+
+    function updateCarouselDots() {
+      const dots = document.querySelectorAll('#suggestedCarouselDots button');
+      dots.forEach((dot, index) => {
+        if (index === suggestedCurrentSlide) {
+          dot.className = dot.className.replace('bg-transparent hover:bg-cyan-400/30', 'bg-cyan-400 shadow-lg shadow-cyan-400/30');
+        } else {
+          dot.className = dot.className.replace('bg-cyan-400 shadow-lg shadow-cyan-400/30', 'bg-transparent hover:bg-cyan-400/30');
+        }
+      });
+    }
+
+    function goToSuggestedSlide(slideIndex) {
+      suggestedCurrentSlide = slideIndex;
+      updateSuggestedCarousel();
+      updateSuggestedCarouselButtons();
+      pauseSuggestedAutoplay();
+    }
+
+    function updateSuggestedCarouselButtons() {
+      const prevBtn = document.getElementById('suggestedPrevBtn');
+      const nextBtn = document.getElementById('suggestedNextBtn');
+      
+      if (!prevBtn || !nextBtn) return;
+
+      const totalSlides = Math.ceil(suggestedGamesData.length / 3);
+      
+      if (totalSlides <= 1) {
+        prevBtn.classList.add('opacity-0', 'pointer-events-none');
+        nextBtn.classList.add('opacity-0', 'pointer-events-none');
+      } else {
+        prevBtn.classList.remove('opacity-0', 'pointer-events-none');
+        nextBtn.classList.remove('opacity-0', 'pointer-events-none');
+        
+        // Disable/enable buttons based on current slide
+        if (suggestedCurrentSlide === 0) {
+          prevBtn.classList.add('opacity-50', 'pointer-events-none');
+        } else {
+          prevBtn.classList.remove('opacity-50', 'pointer-events-none');
+        }
+        
+        if (suggestedCurrentSlide >= totalSlides - 1) {
+          nextBtn.classList.add('opacity-50', 'pointer-events-none');
+        } else {
+          nextBtn.classList.remove('opacity-50', 'pointer-events-none');
+        }
+      }
+    }
+
+    function nextSuggestedSlide() {
+      const totalSlides = Math.ceil(suggestedGamesData.length / 3);
+      if (suggestedCurrentSlide < totalSlides - 1) {
+        suggestedCurrentSlide++;
+        updateSuggestedCarousel();
+        updateSuggestedCarouselButtons();
+      }
+    }
+
+    function prevSuggestedSlide() {
+      if (suggestedCurrentSlide > 0) {
+        suggestedCurrentSlide--;
+        updateSuggestedCarousel();
+        updateSuggestedCarouselButtons();
+      }
+    }
+
+    function startSuggestedAutoplay() {
+      stopSuggestedAutoplay();
+      const totalSlides = Math.ceil(suggestedGamesData.length / 3);
+      if (totalSlides > 1) {
+        suggestedAutoplayInterval = setInterval(() => {
+          if (suggestedCurrentSlide >= totalSlides - 1) {
+            suggestedCurrentSlide = 0;
+          } else {
+            suggestedCurrentSlide++;
+          }
+          updateSuggestedCarousel();
+          updateSuggestedCarouselButtons();
+        }, 5000); // Auto-advance every 5 seconds
+      }
+    }
+
+    function stopSuggestedAutoplay() {
+      if (suggestedAutoplayInterval) {
+        clearInterval(suggestedAutoplayInterval);
+        suggestedAutoplayInterval = null;
+      }
+    }
+
+    function pauseSuggestedAutoplay() {
+      stopSuggestedAutoplay();
+      // Restart autoplay after 10 seconds of inactivity
+      setTimeout(() => {
+        startSuggestedAutoplay();
+      }, 10000);
+    }
+
+    // Initialize suggested games carousel
+    function initializeSuggestedCarousel() {
+      const prevBtn = document.getElementById('suggestedPrevBtn');
+      const nextBtn = document.getElementById('suggestedNextBtn');
+      const carousel = document.getElementById('suggestedGamesList');
+      
+      if (prevBtn) {
+        prevBtn.addEventListener('click', () => {
+          prevSuggestedSlide();
+          pauseSuggestedAutoplay();
+        });
+      }
+      if (nextBtn) {
+        nextBtn.addEventListener('click', () => {
+          nextSuggestedSlide();
+          pauseSuggestedAutoplay();
+        });
+      }
+
+      // Pause autoplay on hover
+      if (carousel) {
+        carousel.addEventListener('mouseenter', stopSuggestedAutoplay);
+        carousel.addEventListener('mouseleave', startSuggestedAutoplay);
+      }
+
+      // Keyboard navigation
+      document.addEventListener('keydown', (e) => {
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+        
+        if (e.key === 'ArrowLeft') {
+          prevSuggestedSlide();
+          pauseSuggestedAutoplay();
+        } else if (e.key === 'ArrowRight') {
+          nextSuggestedSlide();
+          pauseSuggestedAutoplay();
+        }
+      });
     }
 
     // User functions
