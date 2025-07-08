@@ -442,6 +442,23 @@
                     id="dropdown-menu"
                     class="hidden absolute right-0 top-10 bg-overlay border border-highlight-med rounded-lg shadow-lg z-50 py-2 min-w-64"
                   >
+                    <!-- User Profile -->
+                    <div id="user-profile-section" class="hidden px-3 py-3 border-b border-highlight-med mb-2">
+                      <div class="flex items-center gap-3">
+                        <div class="relative">
+                          <img id="user-profile-pic" src="" alt="Profile" class="w-10 h-10 rounded-full border-2 border-foam object-cover">
+                          <div class="absolute -bottom-1 -right-1 w-4 h-4 bg-green-400 rounded-full border-2 border-overlay"></div>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                          <p id="user-display-name" class="text-sm font-medium text-text truncate">User Name</p>
+                          <p id="user-email" class="text-xs text-muted truncate">user@example.com</p>
+                        </div>
+                        <button id="profile-menu-btn" class="p-1 text-muted hover:text-foam transition-colors">
+                          <i class="bx bx-user text-lg"></i>
+                        </button>
+                      </div>
+                    </div>
+                    
                     <!-- Tab Management -->
                     <div class="px-3 py-1 text-xs font-medium text-muted uppercase tracking-wide border-b border-highlight-med mb-2">
                       Tab Management
@@ -3345,9 +3362,44 @@
       
 
       
+      // Update user profile display
+      function updateUserProfile(user) {
+        const profileSection = document.getElementById('user-profile-section');
+        const profilePic = document.getElementById('user-profile-pic');
+        const displayName = document.getElementById('user-display-name');
+        const email = document.getElementById('user-email');
+        const profileMenuBtn = document.getElementById('profile-menu-btn');
+        
+        if (user) {
+          // Show profile section
+          profileSection.classList.remove('hidden');
+          
+          // Update profile picture with fallback
+          const photoURL = user.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.displayName || user.email)}&background=9ccfd8&color=191724&size=128`;
+          profilePic.src = photoURL;
+          profilePic.onerror = () => {
+            profilePic.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(user.displayName || user.email || 'User')}&background=9ccfd8&color=191724&size=128`;
+          };
+          
+          // Update display name and email
+          displayName.textContent = user.displayName || 'User';
+          email.textContent = user.email || '';
+          
+          // Add profile menu click handler
+          profileMenuBtn.onclick = () => {
+            window.open('profile.html', '_blank');
+          };
+        } else {
+          // Hide profile section when not signed in
+          profileSection.classList.add('hidden');
+        }
+      }
+
       // Authentication state observer
       auth.onAuthStateChanged((user) => {
         currentUser = user;
+        updateUserProfile(user);
+        
         if (user) {
           console.log('👤 User signed in, loading all settings and data...');
           loadSettingsFromFirebase();
