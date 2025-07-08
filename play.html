@@ -16,10 +16,26 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
   <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
   <script src="carbon-theme.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
   <script type="module" src="https://cdn.jsdelivr.net/npm/emoji-picker-element@^1/index.js"></script>
+  <script type="module">
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+    import { getFirestore } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+    import { getAuth } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyC4ilHYP1T-kdXbWPoHJHhD2aj0pNWmMec",
+      authDomain: "carbon-services.firebaseapp.com",
+      projectId: "carbon-services",
+      storageBucket: "carbon-services.appspot.com",
+      messagingSenderId: "288385472070",
+      appId: "1:288385472070:web:c4be3ff186e248fc645c47",
+      measurementId: "G-Y2K1RQYE74"
+    };
+
+    window.firebaseApp = initializeApp(firebaseConfig);
+    window.db = getFirestore(window.firebaseApp);
+    window.auth = getAuth(window.firebaseApp);
+  </script>
   <script>
     function setConfig() {
         tailwind.config = {
@@ -1014,30 +1030,24 @@
     window.updateProxyToggleUI = updateProxyToggleUI;
   </script>
 
-  <script>
-    const firebaseConfig = {
-      apiKey: "AIzaSyC4ilHYP1T-kdXbWPoHJHhD2aj0pNWmMec",
-      authDomain: "carbon-services.firebaseapp.com",
-      projectId: "carbon-services",
-      storageBucket: "carbon-services.appspot.com",
-      messagingSenderId: "288385472070",
-      appId: "1:288385472070:web:c4be3ff186e248fc645c47",
-      measurementId: "G-Y2K1RQYE74"
-    };
-    firebase.initializeApp(firebaseConfig);
-    const auth = firebase.auth();
-    const db = firebase.firestore();
+  <script type="module">
+    import { signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+    import { doc, setDoc, getDoc, updateDoc, arrayUnion, arrayRemove, onSnapshot, collection, getDocs, query, orderBy, addDoc, serverTimestamp, limit, startAfter } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+
+    const auth = window.auth;
+    const db = window.db;
 
     function googleSignIn() {
-      const provider = new firebase.auth.GoogleAuthProvider();
-      auth.signInWithPopup(provider)
+      const provider = new GoogleAuthProvider();
+      signInWithPopup(auth, provider)
         .catch((error) => {
           document.getElementById('loginError').innerText = error.message;
           document.getElementById('loginError').classList.remove('hidden');
         });
     }
-    function signOut() {
-      auth.signOut().then(() => location.reload());
+    
+    function signOutUser() {
+      signOut(auth).then(() => location.reload());
     }
 
     let gamesData = [];
@@ -1047,20 +1057,31 @@
     let tagCounts = {};
 
     async function loadGamesData() {
-      const res = await fetch('games.json');
-      gamesData = await res.json();
-      window.gamesData = gamesData;
-      // Build category and tag counts for tag modal
-      categoryCounts = {};
-      tagCounts = {};
-      gamesData.forEach(game => {
-        if (game.category) categoryCounts[game.category] = (categoryCounts[game.category] || 0) + 1;
-        if (game.tags && Array.isArray(game.tags)) {
-          game.tags.forEach(t => tagCounts[t] = (tagCounts[t] || 0) + 1);
-        }
-      });
-      window.categoryCounts = categoryCounts;
-      window.tagCounts = tagCounts;
+      try {
+        const gamesQuery = query(collection(db, 'games'), orderBy('title'));
+        const querySnapshot = await getDocs(gamesQuery);
+        gamesData = [];
+        querySnapshot.forEach((docSnap) => {
+          const game = { ...docSnap.data(), id: docSnap.id };
+          gamesData.push(game);
+        });
+        window.gamesData = gamesData;
+        
+        // Build category and tag counts for tag modal
+        categoryCounts = {};
+        tagCounts = {};
+        gamesData.forEach(game => {
+          if (game.category) categoryCounts[game.category] = (categoryCounts[game.category] || 0) + 1;
+          if (game.tags && Array.isArray(game.tags)) {
+            game.tags.forEach(t => tagCounts[t] = (tagCounts[t] || 0) + 1);
+          }
+        });
+        window.categoryCounts = categoryCounts;
+        window.tagCounts = tagCounts;
+      } catch (error) {
+        console.error('Failed to load games from Firebase:', error);
+        throw error;
+      }
     }
 
     function getGameIdFromURL() {
@@ -1071,22 +1092,22 @@
     function setButtonActive(btn, isActive, activeClass='bg-cyan-500/80') {
       btn.classList.toggle(activeClass, isActive);
     }
-    function renderUserSection(user) {
-      const section = document.getElementById('userSection');
-      if (!user) {
-        section.innerHTML = '';
-      } else {
-        const photoURL = validateUrl(user.photoURL) || '/default-avatar.png';
-        const displayName = escapeHtml(user.displayName) || 'User';
-        const titleAttr = escapeHtmlAttribute(user.displayName) || 'User';
-        
-        section.innerHTML = `
-          <img src="${escapeHtmlAttribute(photoURL)}" class="w-8 h-8 rounded-full inline mr-2" title="${titleAttr}">
-          <span class="mr-3">${displayName}</span>
-          <button onclick="signOut()" class="bg-white/10 px-3 py-1 rounded hover:bg-pink-600 text-white">Sign Out</button>
-        `;
+    function       renderUserSection(user) {
+        const section = document.getElementById('userSection');
+        if (!user) {
+          section.innerHTML = '';
+        } else {
+          const photoURL = validateUrl(user.photoURL) || '/default-avatar.png';
+          const displayName = escapeHtml(user.displayName) || 'User';
+          const titleAttr = escapeHtmlAttribute(user.displayName) || 'User';
+          
+          section.innerHTML = `
+            <img src="${escapeHtmlAttribute(photoURL)}" class="w-8 h-8 rounded-full inline mr-2" title="${titleAttr}">
+            <span class="mr-3">${displayName}</span>
+            <button onclick="signOutUser()" class="bg-white/10 px-3 py-1 rounded hover:bg-pink-600 text-white">Sign Out</button>
+          `;
+        }
       }
-    }
     function showPreloader() {
       document.getElementById('preloader').style.display = '';
     }
@@ -1121,9 +1142,9 @@
         star.textContent = '★';
         star.className = 'transition-colors duration-150 select-none ' +
           (i <= fill ? 'star-filled' : 'star-empty') +
-          (firebase.auth().currentUser ? ' cursor-pointer star-hover' : ' cursor-not-allowed');
+          (auth.currentUser ? ' cursor-pointer star-hover' : ' cursor-not-allowed');
         star.style.color = i <= fill ? 'var(--theme-gold)' : 'var(--theme-muted)';
-        if (firebase.auth().currentUser) {
+        if (auth.currentUser) {
                       star.addEventListener('mouseenter', () => {
               for (let j = 0; j < 5; j++) {
                 container.children[j].style.color = j < i ? 'var(--theme-gold)' : 'var(--theme-muted)';
@@ -1156,9 +1177,9 @@
       starRatingData.yourRating = 0;
       starRatingData.percent = 0;
       try {
-        const ratingsRef = db.collection("games").doc(gameId).collection("ratings");
-        const snap = await ratingsRef.get();
-        let total = 0, count = 0, your = 0, user = firebase.auth().currentUser;
+        const ratingsRef = collection(db, "games", gameId, "ratings");
+        const snap = await getDocs(ratingsRef);
+        let total = 0, count = 0, your = 0, user = auth.currentUser;
         let highCount = 0;
         snap.forEach(doc => {
           const d = doc.data();
@@ -1182,7 +1203,7 @@
     }
 
     async function submitStarRating(stars) {
-      if (!firebase.auth().currentUser) {
+      if (!auth.currentUser) {
         starRatingData.error = "Sign in first!";
         renderStarRatingUI();
         renderStarRatingUI("Frame");
@@ -1205,10 +1226,10 @@
       renderStarRatingUI();
       renderStarRatingUI("Frame");
       try {
-        const ref = db.collection("games").doc(currentGameId).collection("ratings").doc(firebase.auth().currentUser.uid);
-        await ref.set({
+        const ref = doc(db, "games", currentGameId, "ratings", auth.currentUser.uid);
+        await setDoc(ref, {
           rating: stars,
-          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+          updatedAt: serverTimestamp()
         });
         starRatingData.yourRating = stars;
         await loadStarRating(currentGameId);
@@ -1418,15 +1439,22 @@
       updateCommentsUI();
       
       try {
-        let query = db.collection("games").doc(gameId).collection("comments")
-          .orderBy("createdAt", "desc")
-          .limit(commentsData.commentsPerPage);
+        let commentsQuery = query(
+          collection(db, "games", gameId, "comments"),
+          orderBy("createdAt", "desc"),
+          limit(commentsData.commentsPerPage)
+        );
         
         if (loadMore && commentsData.lastVisible) {
-          query = query.startAfter(commentsData.lastVisible);
+          commentsQuery = query(
+            collection(db, "games", gameId, "comments"),
+            orderBy("createdAt", "desc"),
+            startAfter(commentsData.lastVisible),
+            limit(commentsData.commentsPerPage)
+          );
         }
         
-        const snapshot = await query.get();
+        const snapshot = await getDocs(commentsQuery);
         
         if (loadMore) {
           snapshot.forEach(doc => {
@@ -1444,11 +1472,11 @@
         // Load replies for each comment
         for (let comment of commentsData.comments) {
           if (!comment.replies) {
-            const repliesSnapshot = await db.collection("games").doc(gameId)
-              .collection("comments").doc(comment.id)
-              .collection("replies")
-              .orderBy("createdAt", "asc")
-              .get();
+            const repliesQuery = query(
+              collection(db, "games", gameId, "comments", comment.id, "replies"),
+              orderBy("createdAt", "asc")
+            );
+            const repliesSnapshot = await getDocs(repliesQuery);
             
             comment.replies = [];
             repliesSnapshot.forEach(replyDoc => {
@@ -1467,7 +1495,7 @@
 
     // Submit new comment
     async function submitComment() {
-      const user = firebase.auth().currentUser;
+      const user = auth.currentUser;
       const text = document.getElementById('commentText').value.trim();
       
       if (!user) {
@@ -1505,13 +1533,12 @@
           authorId: user.uid,
           authorName: user.displayName || 'Anonymous',
           authorPhoto: user.photoURL || '/default-avatar.png',
-          createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+          createdAt: serverTimestamp(),
           reactions: {},
           reactionCounts: {}
         };
         
-        const docRef = await db.collection("games").doc(validatedGameId)
-          .collection("comments").add(commentData);
+        const docRef = await addDoc(collection(db, "games", validatedGameId, "comments"), commentData);
         
         // Reset form
         document.getElementById('commentText').value = '';
@@ -2410,7 +2437,7 @@
       document.getElementById('gameInfoHolder').classList.add('hidden');
       document.getElementById('loginScreen').classList.remove('hidden');
       
-      auth.onAuthStateChanged(async (user) => {
+      onAuthStateChanged(auth, async (user) => {
         renderUserSection(user);
         if (!user) {
           hidePreloader();
@@ -2770,11 +2797,15 @@
       initCommentStarInput();
     }
 
-    // Setup event listeners when the game loads
-    function initializeCommentSystem() {
-      // Set up form event listeners with a slight delay to ensure DOM elements exist
-      setTimeout(setupCommentEventListeners, 100);
-    }
+          // Setup event listeners when the game loads
+      function initializeCommentSystem() {
+        // Set up form event listeners with a slight delay to ensure DOM elements exist
+        setTimeout(setupCommentEventListeners, 100);
+      }
+
+      // Expose functions to global scope for HTML onclick handlers
+      window.googleSignIn = googleSignIn;
+      window.signOut = signOutUser;
 
     // Background System - Apply settings from settings.html
     let currentBackground = 'gradient';
