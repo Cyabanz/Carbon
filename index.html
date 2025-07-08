@@ -420,6 +420,15 @@
                   </div>
                 </div>
 
+                <!-- Fullscreen Toggle -->
+                <button
+                  id="fullscreen-toggle-btn"
+                  class="w-8 h-8 rounded-md bg-transparent hover:bg-highlight-med text-muted hover:text-text transition-all flex items-center justify-center"
+                  title="Enter Fullscreen (F11)"
+                >
+                  <i id="fullscreen-toggle-icon" class="bx bx-fullscreen text-lg"></i>
+                </button>
+
                 <!-- Browser Menu -->
                 <div class="relative">
                   <button
@@ -902,6 +911,71 @@
           });
         });
       updateProxyToggleUI(getCurrentProxy());
+
+      // --- Fullscreen Functionality ---
+      const fullscreenToggleBtn = document.getElementById("fullscreen-toggle-btn");
+      const fullscreenToggleIcon = document.getElementById("fullscreen-toggle-icon");
+      
+      function updateFullscreenUI() {
+        if (document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement) {
+          fullscreenToggleIcon.className = "bx bx-exit-fullscreen text-lg";
+          fullscreenToggleBtn.title = "Exit Fullscreen (F11)";
+        } else {
+          fullscreenToggleIcon.className = "bx bx-fullscreen text-lg";
+          fullscreenToggleBtn.title = "Enter Fullscreen (F11)";
+        }
+      }
+
+      async function toggleFullscreen() {
+        try {
+          if (document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement) {
+            // Exit fullscreen
+            if (document.exitFullscreen) {
+              await document.exitFullscreen();
+            } else if (document.webkitExitFullscreen) {
+              await document.webkitExitFullscreen();
+            } else if (document.mozCancelFullScreen) {
+              await document.mozCancelFullScreen();
+            } else if (document.msExitFullscreen) {
+              await document.msExitFullscreen();
+            }
+          } else {
+            // Enter fullscreen
+            const element = document.documentElement;
+            if (element.requestFullscreen) {
+              await element.requestFullscreen();
+            } else if (element.webkitRequestFullscreen) {
+              await element.webkitRequestFullscreen();
+            } else if (element.mozRequestFullScreen) {
+              await element.mozRequestFullScreen();
+            } else if (element.msRequestFullscreen) {
+              await element.msRequestFullscreen();
+            }
+          }
+        } catch (error) {
+          console.error('Error toggling fullscreen:', error);
+        }
+      }
+
+      // Add event listeners for fullscreen
+      fullscreenToggleBtn.addEventListener("click", toggleFullscreen);
+      
+      // Listen for fullscreen changes
+      document.addEventListener("fullscreenchange", updateFullscreenUI);
+      document.addEventListener("webkitfullscreenchange", updateFullscreenUI);
+      document.addEventListener("mozfullscreenchange", updateFullscreenUI);
+      document.addEventListener("MSFullscreenChange", updateFullscreenUI);
+      
+      // Initialize fullscreen UI
+      updateFullscreenUI();
+
+      // Add F11 keyboard shortcut
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "F11") {
+          e.preventDefault();
+          toggleFullscreen();
+        }
+      });
 
       // --- Proxy Setup ---
       let backend = getCurrentProxy();
