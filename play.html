@@ -1223,7 +1223,7 @@
 
   <script type="module">
     import { signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
-    import { doc, setDoc, getDoc, updateDoc, arrayUnion, arrayRemove, onSnapshot, collection, getDocs, query, orderBy, addDoc, serverTimestamp, limit, startAfter } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+    import { doc, setDoc, getDoc, updateDoc, arrayUnion, arrayRemove, onSnapshot, collection, getDocs, query, orderBy, addDoc, serverTimestamp, limit, startAfter, increment } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 
     const auth = window.auth;
     const db = window.db;
@@ -1807,7 +1807,7 @@
 
     // Submit reply
     async function submitReply() {
-      const user = firebase.auth().currentUser;
+      const user = auth.currentUser;
       const text = document.getElementById('replyText').value.trim();
       
       if (!user || !text || !commentsData.currentReplyingTo) {
@@ -1833,14 +1833,13 @@
           authorId: user.uid,
           authorName: user.displayName || 'Anonymous',
           authorPhoto: user.photoURL || '/default-avatar.png',
-          createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+          createdAt: serverTimestamp(),
           reactions: {},
           reactionCounts: {}
         };
         
-        await db.collection("games").doc(validatedGameId)
-          .collection("comments").doc(commentsData.currentReplyingTo)
-          .collection("replies").add(replyData);
+        const repliesRef = collection(db, 'games', validatedGameId, 'comments', commentsData.currentReplyingTo, 'replies');
+        await addDoc(repliesRef, replyData);
         
         closeReplyModal();
         await loadComments(validatedGameId);
@@ -1853,7 +1852,7 @@
 
     // Add or remove reaction
     async function toggleReaction(commentId, emoji, isReply = false, replyId = null) {
-      const user = firebase.auth().currentUser;
+      const user = auth.currentUser;
       if (!user || !currentGameId) {
         console.log('User not authenticated or game not loaded');
         return;
@@ -1865,15 +1864,15 @@
           docPath += `/replies/${replyId}`;
         }
         
-        const docRef = db.doc(docPath);
-        const doc = await docRef.get();
+        const docRef = doc(db, ...docPath.split('/'));
+        const docSnap = await getDoc(docRef);
         
-        if (!doc.exists) {
+        if (!docSnap.exists()) {
           console.error('Document does not exist:', docPath);
           return;
         }
         
-        const data = doc.data();
+        const data = docSnap.data();
         const reactions = data.reactions || {};
         const reactionCounts = data.reactionCounts || {};
         
@@ -1898,7 +1897,7 @@
           reactionCounts[emoji] = (reactionCounts[emoji] || 0) + 1;
         }
         
-        await docRef.update({ reactions, reactionCounts });
+        await updateDoc(docRef, { reactions, reactionCounts });
         await loadComments(currentGameId);
         
       } catch (error) {
@@ -2063,16 +2062,16 @@
       
       try {
         // Get current play count from Firebase
-        const gameStatsRef = db.collection("games").doc(gameId).collection("stats").doc("general");
-        const userStatsRef = db.collection("users").doc(userId);
+        const gameStatsRef = doc(db, 'games', gameId, 'stats', 'general');
+        const userStatsRef = doc(db, 'users', userId);
         
         const [gameStatsDoc, userStatsDoc] = await Promise.all([
-          gameStatsRef.get(),
-          userStatsRef.get()
+          getDoc(gameStatsRef),
+          getDoc(userStatsRef)
         ]);
         
-        const gameStats = gameStatsDoc.exists ? gameStatsDoc.data() : {};
-        const userStats = userStatsDoc.exists ? userStatsDoc.data() : {};
+        const gameStats = gameStatsDoc.exists() ? gameStatsDoc.data() : {};
+        const userStats = userStatsDoc.exists() ? userStatsDoc.data() : {};
         
         // Update play count
         const newPlayCount = (gameStats.totalPlays || 0) + 1;
@@ -2080,10 +2079,10 @@
         
         // Update Firebase
         await Promise.all([
-          gameStatsRef.set({ totalPlays: newPlayCount }, { merge: true }),
-          userStatsRef.set({ 
-            [`gameStats.${gameId}.plays`]: firebase.firestore.FieldValue.increment(1),
-            [`gameStats.${gameId}.lastPlayed`]: firebase.firestore.FieldValue.serverTimestamp()
+          setDoc(gameStatsRef, { totalPlays: newPlayCount }, { merge: true }),
+          setDoc(userStatsRef, { 
+            [`gameStats.${gameId}.plays`]: increment(1),
+            [`gameStats.${gameId}.lastPlayed`]: serverTimestamp()
           }, { merge: true })
         ]);
         
@@ -2183,7 +2182,7 @@
 
     // Enhanced submit comment with rate limiting
     async function submitCommentWithRateLimit() {
-      const user = firebase.auth().currentUser;
+      const user = auth.currentUser;
       if (!user) {
         alert('Please sign in to comment');
         return;
@@ -2487,7 +2486,7 @@
     }
 
     function renderComment(comment) {
-      const user = firebase.auth().currentUser;
+      const user = auth.currentUser;
       const reactions = Object.entries(comment.reactionCounts || {})
         .map(([emoji, count]) => {
           const userReacted = user && comment.reactions && comment.reactions[user.uid] === emoji;
@@ -2571,7 +2570,7 @@
     }
 
     function renderReply(reply, commentId) {
-      const user = firebase.auth().currentUser;
+      const user = auth.currentUser;
       const reactions = Object.entries(reply.reactionCounts || {})
         .map(([emoji, count]) => {
           const userReacted = user && reply.reactions && reply.reactions[user.uid] === emoji;
@@ -2678,7 +2677,7 @@
     window.openTagGamesModal = openTagGamesModal;
     window.closeTagGamesModal = closeTagGamesModal;
     window.googleSignIn = googleSignIn;
-    window.signOut = signOut;
+    window.signOut = signOutUser;
 
     // Re-initialize the main document loading logic
     document.addEventListener('DOMContentLoaded', async () => {
@@ -3604,8 +3603,9 @@
 
     async function loadBackgroundFromFirebase(uid) {
       try {
-        const userDoc = await db.collection('users').doc(uid).get();
-        if (userDoc.exists) {
+        const userRef = doc(db, 'users', uid);
+        const userDoc = await getDoc(userRef);
+        if (userDoc.exists()) {
           const userData = userDoc.data();
           const settings = userData.settings || {};
           
