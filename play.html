@@ -2579,7 +2579,7 @@
           // Load comments when game starts
           await loadComments(currentGameId);
           
-          // Load suggested games
+          // Load suggested games (always load fresh)
           await loadSuggestedGames();
           
           // Initialize suggested games carousel
@@ -2662,8 +2662,15 @@
           clickedCard.style.pointerEvents = 'none';
         }
         
-        // Navigate to the game
-        window.location.href = `play.html?id=${encodeURIComponent(gameId)}`;
+        // Clear any cached data to ensure fresh load
+        if (window.gamesData) {
+          window.gamesData = null;
+        }
+        
+        // Navigate to the game with cache buster
+        const url = new URL(`play.html?id=${encodeURIComponent(gameId)}`, window.location.origin);
+        url.searchParams.set('_t', Date.now()); // Cache buster
+        window.location.href = url.toString();
       } catch (error) {
         console.error('Navigation error:', error);
         // Reset card state on error
@@ -2681,7 +2688,10 @@
       if (!container) return;
 
       try {
-        console.log('Loading suggested games...');
+        // Get current game ID from URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const currentGameId = urlParams.get('id');
+        console.log(`Loading suggested games for game ID: ${currentGameId}`);
         
         // Show loading state
         container.innerHTML = `
@@ -2691,10 +2701,18 @@
           </div>
         `;
 
-        // Ensure Firebase is ready
+        // Ensure Firebase is ready with retry logic
         if (!window.db) {
-          console.error('Firebase database not initialized');
-          throw new Error('Firebase not available');
+          console.warn('Firebase database not initialized, waiting...');
+          let retries = 0;
+          while (!window.db && retries < 10) {
+            await new Promise(resolve => setTimeout(resolve, 500));
+            retries++;
+          }
+          if (!window.db) {
+            console.error('Firebase database still not available after retries');
+            throw new Error('Firebase not available');
+          }
         }
 
         // Load all games from Firebase
@@ -2739,8 +2757,6 @@
         }
 
         // Get current game info
-        const urlParams = new URLSearchParams(window.location.search);
-        const currentGameId = urlParams.get('id');
         let currentGame = null;
         
         if (currentGameId) {
@@ -2789,10 +2805,18 @@
           console.log(`Added ${additionalRandom.length} random games`);
         }
 
+        // Ensure we have at least some games to suggest
+        if (suggested.length === 0) {
+          // If no suggestions found, add some random games
+          const randomGames = availableGames.sort(() => 0.5 - Math.random()).slice(0, 6);
+          suggested = randomGames;
+          console.log(`No targeted suggestions found, using ${suggested.length} random games`);
+        }
+
         // Limit to 9 games max (3 slides of 3 games each)
         suggested = suggested.slice(0, 9);
         
-        console.log(`Rendering ${suggested.length} suggested games`);
+        console.log(`Rendering ${suggested.length} suggested games for game ID: ${currentGameId}`);
         renderSuggestedGames(suggested);
         
       } catch (error) {
@@ -3182,6 +3206,25 @@
       window.signOut = signOutUser;
       window.navigateToGame = navigateToGame;
       window.loadSuggestedGames = loadSuggestedGames;
+      window.goToSuggestedSlide = goToSuggestedSlide;
+
+      // Additional safety net - reload suggested games on page ready
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => {
+          setTimeout(() => {
+            if (document.getElementById('suggestedGamesList')) {
+              loadSuggestedGames();
+            }
+          }, 2000);
+        });
+      } else {
+        // Document already loaded
+        setTimeout(() => {
+          if (document.getElementById('suggestedGamesList')) {
+            loadSuggestedGames();
+          }
+        }, 2000);
+      }
 
     // Background System - Apply settings from settings.html
     let currentBackground = 'gradient';
