@@ -15,6 +15,7 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
   <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+  <link href='https://cdn.jsdelivr.net/npm/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
   <script src="carbon-theme.js"></script>
   <script type="module" src="https://cdn.jsdelivr.net/npm/emoji-picker-element@^1/index.js"></script>
   <script type="module">
@@ -643,6 +644,116 @@
       margin-top: 8px;
     }
     
+    /* Enhanced game action buttons - visible in fullscreen */
+    .game-action-btn {
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    .game-action-btn:hover {
+      transform: scale(1.1);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+    }
+    
+    .game-action-btn:active {
+      transform: scale(0.95);
+    }
+    
+    /* Keep buttons visible in fullscreen mode */
+    iframe:fullscreen ~ #gameActionButtons,
+    video:fullscreen ~ #gameActionButtons,
+    :fullscreen #gameActionButtons {
+      position: fixed !important;
+      top: 20px !important;
+      right: 20px !important;
+      z-index: 2147483647 !important;
+    }
+    
+    /* Webkit fullscreen support */
+    iframe:-webkit-full-screen ~ #gameActionButtons,
+    video:-webkit-full-screen ~ #gameActionButtons,
+    :-webkit-full-screen #gameActionButtons {
+      position: fixed !important;
+      top: 20px !important;
+      right: 20px !important;
+      z-index: 2147483647 !important;
+    }
+    
+    /* Mozilla fullscreen support */
+    iframe:-moz-full-screen ~ #gameActionButtons,
+    video:-moz-full-screen ~ #gameActionButtons,
+    :-moz-full-screen #gameActionButtons {
+      position: fixed !important;
+      top: 20px !important;
+      right: 20px !important;
+      z-index: 2147483647 !important;
+    }
+    
+    /* Button active states */
+    .game-action-btn.liked {
+      background: rgba(34, 197, 94, 0.8) !important;
+      border-color: rgba(34, 197, 94, 0.8) !important;
+      color: white !important;
+    }
+    
+    .game-action-btn.favorited {
+      background: rgba(236, 72, 153, 0.8) !important;
+      border-color: rgba(236, 72, 153, 0.8) !important;
+      color: white !important;
+    }
+    
+    .game-action-btn.in-playlist {
+      background: rgba(234, 179, 8, 0.8) !important;
+      border-color: rgba(234, 179, 8, 0.8) !important;
+      color: white !important;
+    }
+    
+    /* Ensure boxicons load properly */
+    @import url('https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css');
+    
+         /* Fallback icon styles if boxicons don't load */
+     .bx:before {
+       font-family: 'boxicons' !important;
+       font-style: normal !important;
+       font-weight: normal !important;
+       font-variant: normal !important;
+       text-transform: none !important;
+       line-height: 1 !important;
+       -webkit-font-smoothing: antialiased !important;
+       -moz-osx-font-smoothing: grayscale !important;
+     }
+     
+     /* Fullscreen mode specific styles */
+     .fullscreen-mode {
+       animation: fadeInScale 0.3s ease-out;
+     }
+     
+     .fullscreen-mode .game-action-btn {
+       background: rgba(0, 0, 0, 0.8) !important;
+       border-width: 2px !important;
+       backdrop-filter: blur(15px) !important;
+       -webkit-backdrop-filter: blur(15px) !important;
+     }
+     
+     @keyframes fadeInScale {
+       0% {
+         opacity: 0;
+         transform: scale(0.8);
+       }
+       100% {
+         opacity: 1;
+         transform: scale(1);
+       }
+     }
+     
+     /* Enhanced button hover states for fullscreen */
+     .fullscreen-mode .game-action-btn:hover {
+       transform: scale(1.15) !important;
+       box-shadow: 0 8px 25px rgba(0, 0, 0, 0.6) !important;
+     }
+    
     @keyframes pulse {
       0%, 100% { opacity: 1; }
       50% { opacity: 0.6; }
@@ -798,23 +909,23 @@
           </div>
         </div>
         
-        <div class="absolute top-4 right-4 flex gap-2 z-10">
-          <button id="likeBtn" class="w-10 h-10 bg-white/10 hover:bg-cyan-500/80 text-white rounded-full flex items-center justify-center transition" title="Like">
+        <div id="gameActionButtons" class="absolute top-4 right-4 flex gap-3 z-[9999] transition-all duration-300">
+          <button id="likeBtn" class="w-12 h-12 bg-black/60 backdrop-blur-md hover:bg-cyan-500/90 text-white rounded-full flex items-center justify-center transition-all duration-300 border-2 border-white/20 hover:border-cyan-400/60 shadow-lg hover:shadow-cyan-400/30 hover:scale-110 game-action-btn" title="Like">
             <i class='bx bx-like text-xl'></i>
           </button>
-          <button id="favBtn" class="w-10 h-10 bg-white/10 hover:bg-pink-500/80 text-white rounded-full flex items-center justify-center transition" title="Favorite">
+          <button id="favBtn" class="w-12 h-12 bg-black/60 backdrop-blur-md hover:bg-pink-500/90 text-white rounded-full flex items-center justify-center transition-all duration-300 border-2 border-white/20 hover:border-pink-400/60 shadow-lg hover:shadow-pink-400/30 hover:scale-110 game-action-btn" title="Favorite">
             <i class='bx bx-heart text-xl'></i>
           </button>
-          <button id="dislikeBtn" class="w-10 h-10 bg-white/10 hover:bg-red-500/80 text-white rounded-full flex items-center justify-center transition" title="Dislike">
+          <button id="dislikeBtn" class="w-12 h-12 bg-black/60 backdrop-blur-md hover:bg-red-500/90 text-white rounded-full flex items-center justify-center transition-all duration-300 border-2 border-white/20 hover:border-red-400/60 shadow-lg hover:shadow-red-400/30 hover:scale-110 game-action-btn" title="Dislike">
             <i class='bx bx-dislike text-xl'></i>
           </button>
-          <button id="proxyToggleBtn" class="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center transition border-2 border-cyan-400" title="Toggle Proxy">
-            <i id="proxyToggleIcon" class="bx bx-cloud text-xl"></i>
+          <button id="proxyToggleBtn" class="w-12 h-12 bg-black/60 backdrop-blur-md rounded-full flex items-center justify-center transition-all duration-300 border-2 border-cyan-400/60 hover:border-cyan-400 shadow-lg hover:shadow-cyan-400/30 hover:scale-110 game-action-btn" title="Toggle Proxy">
+            <i id="proxyToggleIcon" class="bx bx-cloud text-xl text-cyan-400"></i>
           </button>
-          <button id="shareBtn" class="w-10 h-10 bg-white/10 hover:bg-indigo-500/80 text-white rounded-full flex items-center justify-center transition" title="Share">
+          <button id="shareBtn" class="w-12 h-12 bg-black/60 backdrop-blur-md hover:bg-indigo-500/90 text-white rounded-full flex items-center justify-center transition-all duration-300 border-2 border-white/20 hover:border-indigo-400/60 shadow-lg hover:shadow-indigo-400/30 hover:scale-110 game-action-btn" title="Share">
             <i class='bx bx-share-alt text-xl'></i>
           </button>
-          <button id="playlistBtn" class="w-10 h-10 bg-white/10 hover:bg-yellow-400/80 text-white rounded-full flex items-center justify-center transition" title="Add to Playlist">
+          <button id="playlistBtn" class="w-12 h-12 bg-black/60 backdrop-blur-md hover:bg-yellow-400/90 text-white rounded-full flex items-center justify-center transition-all duration-300 border-2 border-white/20 hover:border-yellow-400/60 shadow-lg hover:shadow-yellow-400/30 hover:scale-110 game-action-btn" title="Add to Playlist">
             <i class='bx bx-list-plus text-xl'></i>
           </button>
         </div>
@@ -1066,16 +1177,17 @@
       const proxyToggleBtn = document.getElementById("proxyToggleBtn");
       const proxyToggleIcon = document.getElementById("proxyToggleIcon");
       if (!proxyToggleBtn || !proxyToggleIcon) return;
+      
       if (proxy === "scram") {
-        proxyToggleBtn.classList.remove("border-cyan-400");
-        proxyToggleBtn.classList.add("border-gold", "bg-gold/20");
-        proxyToggleIcon.className = "bx bx-network-chart text-xl";
-        proxyToggleBtn.title = "Scramjet";
+        proxyToggleBtn.classList.remove("border-cyan-400/60", "hover:border-cyan-400");
+        proxyToggleBtn.classList.add("border-yellow-400/60", "hover:border-yellow-400");
+        proxyToggleIcon.className = "bx bx-network-chart text-xl text-yellow-400";
+        proxyToggleBtn.title = "Scramjet Proxy";
       } else {
-        proxyToggleBtn.classList.remove("border-gold", "bg-gold/20");
-        proxyToggleBtn.classList.add("border-cyan-400");
-        proxyToggleIcon.className = "bx bx-cloud text-xl";
-        proxyToggleBtn.title = "UV";
+        proxyToggleBtn.classList.remove("border-yellow-400/60", "hover:border-yellow-400");
+        proxyToggleBtn.classList.add("border-cyan-400/60", "hover:border-cyan-400");
+        proxyToggleIcon.className = "bx bx-cloud text-xl text-cyan-400";
+        proxyToggleBtn.title = "UV Proxy";
       }
     }
     document.getElementById("proxyToggleBtn").addEventListener("click", async () => {
@@ -1163,7 +1275,21 @@
       return validateGameId(id);
     }
     function setButtonActive(btn, isActive, activeClass='bg-cyan-500/80') {
-      btn.classList.toggle(activeClass, isActive);
+      // Remove old active classes
+      btn.classList.remove('liked', 'favorited', 'in-playlist');
+      
+      if (isActive) {
+        // Add new active class based on button type
+        if (btn.id === 'likeBtn') {
+          btn.classList.add('liked');
+        } else if (btn.id === 'favBtn') {
+          btn.classList.add('favorited');
+        } else if (btn.id === 'playlistBtn') {
+          btn.classList.add('in-playlist');
+        } else {
+          btn.classList.add(activeClass);
+        }
+      }
     }
     function       renderUserSection(user) {
         const section = document.getElementById('userSection');
@@ -1193,6 +1319,51 @@
       else if (element.msRequestFullscreen) element.msRequestFullscreen();
       else if (element.mozRequestFullScreen) element.mozRequestFullScreen();
     }
+
+    // Enhanced fullscreen handling for game action buttons
+    function handleFullscreenChange() {
+      const gameActionButtons = document.getElementById('gameActionButtons');
+      const gameFrame = document.getElementById('gameFrameEmbed');
+      
+      if (!gameActionButtons) return;
+      
+      const isFullscreen = document.fullscreenElement || 
+                          document.webkitFullscreenElement || 
+                          document.mozFullScreenElement || 
+                          document.msFullscreenElement;
+      
+      if (isFullscreen) {
+        // In fullscreen mode - ensure buttons are visible and properly positioned
+        gameActionButtons.style.position = 'fixed';
+        gameActionButtons.style.top = '20px';
+        gameActionButtons.style.right = '20px';
+        gameActionButtons.style.zIndex = '2147483647';
+        gameActionButtons.style.pointerEvents = 'auto';
+        
+        // Add fullscreen class for additional styling
+        gameActionButtons.classList.add('fullscreen-mode');
+        
+        // Make sure buttons are visible over the iframe
+        if (gameFrame) {
+          gameFrame.style.pointerEvents = 'auto';
+        }
+      } else {
+        // Not in fullscreen - reset to normal positioning
+        gameActionButtons.style.position = 'absolute';
+        gameActionButtons.style.top = '16px';
+        gameActionButtons.style.right = '16px';
+        gameActionButtons.style.zIndex = '9999';
+        
+        // Remove fullscreen class
+        gameActionButtons.classList.remove('fullscreen-mode');
+      }
+    }
+
+    // Listen for fullscreen changes
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+    document.addEventListener('mozfullscreenchange', handleFullscreenChange);
+    document.addEventListener('MSFullscreenChange', handleFullscreenChange);
 
     // --- STAR RATING SYSTEM ---
     let starRatingData = {
@@ -3070,54 +3241,109 @@
       });
     }
 
-    // User functions
-    async function getUserDocRef(uid) {
-      return db.collection('users').doc(uid);
-    }
-    
+    // User functions - Fixed for Firebase v10.7.1 modular SDK
     async function updateUserArray(uid, field, gameId, add = true) {
-      const ref = await getUserDocRef(uid);
-      if (add) {
-        await ref.set({ [field]: firebase.firestore.FieldValue.arrayUnion(gameId) }, { merge: true });
-      } else {
-        await ref.set({ [field]: firebase.firestore.FieldValue.arrayRemove(gameId) }, { merge: true });
+      try {
+        const userRef = doc(db, 'users', uid);
+        if (add) {
+          await updateDoc(userRef, {
+            [field]: arrayUnion(gameId)
+          });
+        } else {
+          await updateDoc(userRef, {
+            [field]: arrayRemove(gameId)
+          });
+        }
+      } catch (error) {
+        // If document doesn't exist, create it
+        if (error.code === 'not-found') {
+          await setDoc(userRef, {
+            [field]: add ? [gameId] : []
+          }, { merge: true });
+        } else {
+          console.error('Error updating user array:', error);
+        }
       }
     }
     
     async function getUserGameLists(uid) {
-      const doc = await db.collection('users').doc(uid).get();
-      return doc.exists ? doc.data() : { likedGames: [], favoriteGames: [], playlist: [], history: [] };
+      try {
+        const userRef = doc(db, 'users', uid);
+        const userDoc = await getDoc(userRef);
+        return userDoc.exists() ? userDoc.data() : { likedGames: [], favoriteGames: [], playlist: [], history: [] };
+      } catch (error) {
+        console.error('Error getting user game lists:', error);
+        return { likedGames: [], favoriteGames: [], playlist: [], history: [] };
+      }
     }
     
     async function updateGameHistory(uid, gameId) {
-      const ref = await getUserDocRef(uid);
-      await ref.set({ history: firebase.firestore.FieldValue.arrayUnion(gameId) }, { merge: true });
+      try {
+        const userRef = doc(db, 'users', uid);
+        await updateDoc(userRef, {
+          history: arrayUnion(gameId)
+        });
+      } catch (error) {
+        // If document doesn't exist, create it
+        if (error.code === 'not-found') {
+          await setDoc(userRef, {
+            history: [gameId]
+          }, { merge: true });
+        } else {
+          console.error('Error updating game history:', error);
+        }
+      }
     }
 
     async function trackPlayActivity(uid, gameId, gameTitle) {
       try {
-        // Add to history
+        console.log(`Tracking play activity for user ${uid}, game ${gameId}`);
+        
+        // Add to history first
         await updateGameHistory(uid, gameId);
         
-        // Track activity
-        const activityRef = db.collection('user-activity').doc(uid);
+        // Track detailed activity
+        const activityRef = doc(db, 'user-activity', uid);
         const activity = {
           action: 'play',
-          timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+          timestamp: serverTimestamp(),
           data: {
             gameId: gameId,
             gameTitle: gameTitle || 'Unknown Game',
-            source: 'play-page'
+            source: 'play-page',
+            url: window.location.href
           }
         };
         
-        await activityRef.set({
-          activities: firebase.firestore.FieldValue.arrayUnion(activity)
-        }, { merge: true });
+        // Create or update the activity document
+        try {
+          await updateDoc(activityRef, {
+            activities: arrayUnion(activity),
+            lastActivity: serverTimestamp()
+          });
+        } catch (error) {
+          // If document doesn't exist, create it
+          if (error.code === 'not-found') {
+            await setDoc(activityRef, {
+              activities: [activity],
+              lastActivity: serverTimestamp()
+            });
+          } else {
+            throw error;
+          }
+        }
         
-        console.log('Play activity tracked successfully');
+        console.log('✅ Play activity tracked successfully');
       } catch (error) {
-        console.error('Error tracking play activity:', error);
+        console.error('❌ Error tracking play activity:', error);
+        
+        // Fallback: Still try to update history even if activity tracking fails
+        try {
+          await updateGameHistory(uid, gameId);
+          console.log('✅ Game history updated as fallback');
+        } catch (historyError) {
+          console.error('❌ Failed to update game history as fallback:', historyError);
+        }
       }
     }
 
