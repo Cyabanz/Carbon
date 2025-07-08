@@ -5,13 +5,12 @@
   <title>Fusion AI Chat – Multi-Conversation</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <!-- Firebase Core -->
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
   <!-- Firebase Auth -->
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
   <!-- Firebase Realtime Database -->
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
-  <!-- XSS Protection Headers -->
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://unpkg.com; font-src 'self' https://unpkg.com; connect-src 'self' https:; img-src 'self' data: https:;">
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+  <!-- Security Headers -->
   <meta http-equiv="X-Content-Type-Options" content="nosniff">
   <meta http-equiv="X-Frame-Options" content="SAMEORIGIN">
   <meta http-equiv="X-XSS-Protection" content="1; mode=block">
@@ -150,16 +149,21 @@
 <script>
   // --- Firebase Setup ---
   const firebaseConfig = {
-    apiKey: "AIzaSyADCVIINCBgvTBvClWqWI5o3SlVS47IJnw",
-    authDomain: "fusioncya-cc20a.firebaseapp.com",
-    databaseURL: "https://fusioncya-cc20a-default-rtdb.firebaseio.com",
-    projectId: "fusioncya-cc20a",
-    storageBucket: "fusioncya-cc20a.appspot.com",
-    messagingSenderId: "765164293111",
-    appId: "1:765164293111:web:43e051c755c4690c0c3cf2",
-    measurementId: "G-4DT52P7MPB"
+    apiKey: "AIzaSyD_vxl-SB4GsGLmaVH2lNm0S62mT4CPVL4",
+    authDomain: "carbon-services.firebaseapp.com",
+    databaseURL: "https://carbon-services-default-rtdb.firebaseio.com",
+    projectId: "carbon-services",
+    storageBucket: "carbon-services.firebasestorage.app",
+    messagingSenderId: "373523650000",
+    appId: "1:373523650000:web:ae9f83b99b4d14c6d0982c"
   };
-  firebase.initializeApp(firebaseConfig);
+  try {
+    firebase.initializeApp(firebaseConfig);
+    console.log('Firebase initialized successfully');
+  } catch (error) {
+    console.error('Firebase initialization error:', error);
+  }
+  
   const auth = firebase.auth();
   const db = firebase.database();
 
@@ -233,9 +237,19 @@
     provider.addScope('profile');
     provider.addScope('email');
     try {
-      await auth.signInWithPopup(provider);
+      console.log('Attempting Google sign-in...');
+      const result = await auth.signInWithPopup(provider);
+      console.log('Sign-in successful:', result.user);
     } catch (e) {
+      console.error('Authentication error:', e);
       showAuthError(`Authentication failed: ${e.message}`);
+      
+      // If popup was blocked, provide alternative
+      if (e.code === 'auth/popup-blocked') {
+        showAuthError('Popup was blocked. Please allow popups for this site and try again.');
+      } else if (e.code === 'auth/popup-closed-by-user') {
+        showAuthError('Sign-in was cancelled. Please try again.');
+      }
     } finally {
       googleBtn.disabled = false;
       googleBtn.innerHTML = "<i class='bx bxl-google'></i> Sign in with Google";
@@ -253,14 +267,19 @@
   let userId = null;
 
   auth.onAuthStateChanged(user => {
+    console.log('Auth state changed:', user ? `User logged in: ${user.email}` : 'User logged out');
+    
     if (user) {
       userId = user.uid;
+      console.log('Setting up UI for logged in user');
       mainFlex.style.display = '';
       authSection.style.display = 'none';
       if (!fusionChat) {
+        console.log('Initializing FusionAIChat');
         fusionChat = new FusionAIChat(userId);
       }
     } else {
+      console.log('User not authenticated, showing login screen');
       userId = null;
       mainFlex.style.display = 'none';
       authSection.style.display = '';
@@ -779,21 +798,31 @@
         reasoningPrompt: reasoningInstruction
       };
 
-      // You must implement /api/openrouter to return: { text: "...", reasoning: "..." }
-      const response = await fetch('/api/openrouter', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
-      });
-
-      if (!response.ok) {
-        let errorData = {};
-        try { errorData = await response.json(); } catch (e) {}
-        throw new Error(errorData.error || `API request failed (${response.status})`);
+      // Mock API response for testing - replace with real API implementation
+      await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 2000)); // Simulate API delay
+      
+      const lastUserMessage = historyWithContext.filter(m => m.role === 'user').pop();
+      const userText = lastUserMessage?.text || '';
+      
+      // Simple mock responses based on keywords
+      let mockResponse = "I understand your question. Here's my response based on the " + selectedModel + " model with " + personality.toLowerCase() + " personality.";
+      
+      if (userText.toLowerCase().includes('hello') || userText.toLowerCase().includes('hi')) {
+        mockResponse = "Hello! I'm Fusion AI, powered by " + selectedModel + ". How can I help you today?";
+      } else if (userText.toLowerCase().includes('help')) {
+        mockResponse = "I'm here to help! You can ask me questions, have conversations, or request information on various topics. What would you like to know?";
+      } else if (userText.toLowerCase().includes('weather')) {
+        mockResponse = "I don't have access to real-time weather data at the moment, but I'd be happy to discuss weather patterns or help you find weather resources!";
+      } else if (userText.toLowerCase().includes('code') || userText.toLowerCase().includes('programming')) {
+        mockResponse = "I'd be happy to help with programming questions! I can assist with various languages like JavaScript, Python, HTML/CSS, and more. What specific coding challenge are you working on?";
+      } else if (reasoningRequest) {
+        mockResponse = "Here's my reasoning process: I analyzed your question step by step, considering the context and your " + reasoningMode + " reasoning preference. I then formulated a response that balances accuracy with your selected " + personality.toLowerCase() + " personality style.";
       }
-      const data = await response.json();
+      
+      const data = {
+        text: mockResponse,
+        reasoning: reasoningRequest ? mockResponse : "I processed your input using " + reasoningMode + " reasoning, considering context and personality settings."
+      };
 
       // Always return both finalAnswer and reasoning (or null if not available)
       return {
