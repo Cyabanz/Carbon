@@ -2436,6 +2436,13 @@
 
     function renderActivityFeed(activities, feedId) {
       const feed = document.getElementById(feedId);
+      
+      // If feed element doesn't exist, don't try to render
+      if (!feed) {
+        console.log('Activity feed element not found for feedId:', feedId, ', skipping render');
+        return;
+      }
+      
       const loader = document.getElementById(feedId === 'activityFeed' ? 'activityLoader' : 'publicActivityLoader');
       const noActivity = document.getElementById(feedId === 'activityFeed' ? 'noActivity' : 'publicNoActivity');
 
@@ -2465,7 +2472,7 @@
       }).filter(item => item).join('');
     }
 
-    async function loadActivityFeed(uid, feedId) {
+    async function loadPublicActivityFeed(uid, feedId) {
       const loader = document.getElementById(feedId === 'activityFeed' ? 'activityLoader' : 'publicActivityLoader');
       const noActivity = document.getElementById(feedId === 'activityFeed' ? 'noActivity' : 'publicNoActivity');
       if (loader) loader.classList.remove('hidden');
@@ -2510,7 +2517,7 @@
       renderGamesList('publicRecentGamesList', (userProfile.history || []).slice().reverse(), 'recent games');
       renderGamesList('publicFavoriteGamesList', userProfile.favoriteGames, 'favorite games');
       renderGamesList('publicLikedGamesList', userProfile.likedGames, 'liked games');
-      await loadActivityFeed(uid, 'publicActivityFeed');
+      await loadPublicActivityFeed(uid, 'publicActivityFeed');
       
       // Setup friend actions if user is logged in
       if (currentUser && currentUser.uid !== uid) {
@@ -2682,7 +2689,11 @@
         await updateOnlineFriendsList();
         // Only load activity feed if elements exist
         if (document.getElementById('activityFeed')) {
-          await loadActivityFeed();
+          try {
+            await loadActivityFeed();
+          } catch (error) {
+            console.log('Activity feed load failed, skipping:', error.message);
+          }
         }
         initializeFriendSystemEvents();
         
