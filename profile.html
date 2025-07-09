@@ -907,7 +907,9 @@
           updateData.currentGame = null;
         }
         
+        console.log('Updating user status to:', status, 'with data:', updateData);
         await db.collection('users').doc(currentUser.uid).update(updateData);
+        console.log('Status updated successfully in Firebase');
         
         // Update UI
         updateStatusIndicator(status);
@@ -920,12 +922,14 @@
     function updateStatusIndicator(status) {
       const indicator = document.getElementById('statusIndicator');
       if (indicator) {
-        // Remove all status classes
-        Object.values(statusColors).forEach(color => indicator.classList.remove(color));
-        // Add current status class
-        indicator.classList.add(statusColors[status] || statusColors.online);
+        // Remove all possible status color classes
+        indicator.classList.remove('bg-green-500', 'bg-yellow-500', 'bg-red-500', 'bg-gray-500', 'bg-blue-500');
         
-        console.log('Status indicator updated to:', status, statusColors[status]);
+        // Add current status class
+        const statusClass = statusColors[status] || statusColors.online;
+        indicator.classList.add(statusClass);
+        
+        console.log('Status indicator updated:', status, 'class:', statusClass);
       }
     }
 
@@ -1681,17 +1685,23 @@
       }
     }
 
-    // Activity Feed Functions
+    // Activity Feed Functions - only load if element exists
     async function loadActivityFeed() {
       const activityContainer = document.getElementById('activityFeed');
       const activityLoader = document.getElementById('activityLoader');
       const noActivity = document.getElementById('noActivity');
       
+      // If activity feed elements don't exist, don't try to load
+      if (!activityContainer) {
+        console.log('Activity feed elements not found, skipping activity feed load');
+        return;
+      }
+      
       if (!currentUser) return;
       
       try {
-        activityLoader.classList.remove('hidden');
-        noActivity.classList.add('hidden');
+        if (activityLoader) activityLoader.classList.remove('hidden');
+        if (noActivity) noActivity.classList.add('hidden');
         
         // Get current user's friends
         const userDoc = await db.collection('users').doc(currentUser.uid).get();
@@ -1713,10 +1723,10 @@
           activities.push({ id: doc.id, ...doc.data() });
         });
         
-        activityLoader.classList.add('hidden');
+        if (activityLoader) activityLoader.classList.add('hidden');
         
         if (activities.length === 0) {
-          noActivity.classList.remove('hidden');
+          if (noActivity) noActivity.classList.remove('hidden');
           activityContainer.innerHTML = '';
           return;
         }
@@ -1725,13 +1735,14 @@
         
       } catch (error) {
         console.error('Error loading activity feed:', error);
-        activityLoader.classList.add('hidden');
-        noActivity.classList.remove('hidden');
+        if (activityLoader) activityLoader.classList.add('hidden');
+        if (noActivity) noActivity.classList.remove('hidden');
       }
     }
 
     function renderActivityFeed(activities) {
       const activityContainer = document.getElementById('activityFeed');
+      if (!activityContainer) return;
       
       activityContainer.innerHTML = activities.map(activity => {
         const timeAgo = getTimeAgo(activity.timestamp?.toDate());
@@ -1788,10 +1799,12 @@
         document.getElementById('userAvatar').src = currentUser.photoURL || '/default-avatar.png';
         document.getElementById('userDisplayName').textContent = sanitizeText(currentUser.displayName || 'Anonymous');
         
-        // Set status selector
+        // Set status selector and indicator
         const statusSelector = document.getElementById('statusSelector');
-        statusSelector.value = userData.status || 'online';
-        updateStatusIndicator(userData.status || 'online');
+        const currentStatus = userData.status || 'online';
+        statusSelector.value = currentStatus;
+        updateStatusIndicator(currentStatus);
+        console.log('Loaded user status from Firebase:', currentStatus);
         
         // Show current game if playing
         if (userData.currentGame && userData.status === 'ingame') {
@@ -2142,12 +2155,18 @@
       // Status selector
       document.getElementById('statusSelector').addEventListener('change', async (e) => {
         const newStatus = e.target.value;
+        console.log('Status selector changed to:', newStatus);
+        
+        // Update status in Firebase and UI
         await updateUserStatus(newStatus);
         
         // Hide current game display if not in game
         if (newStatus !== 'ingame') {
           document.getElementById('currentGameDisplay').classList.add('hidden');
         }
+        
+        // Force update status indicator
+        updateStatusIndicator(newStatus);
       });
       
       // Chat system
@@ -2661,7 +2680,10 @@
         await loadFriendRequests();
         await loadUserProfile();
         await updateOnlineFriendsList();
-        await loadActivityFeed();
+        // Only load activity feed if elements exist
+        if (document.getElementById('activityFeed')) {
+          await loadActivityFeed();
+        }
         initializeFriendSystemEvents();
         
         console.log('🎉 Friend system initialized successfully!');
