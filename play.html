@@ -1275,13 +1275,8 @@
 
     async function loadGamesData() {
       try {
-        const gamesQuery = db.collection('games').orderBy('title');
-        const querySnapshot = await gamesQuery.get();
-        gamesData = [];
-        querySnapshot.forEach((docSnap) => {
-          const game = { ...docSnap.data(), id: docSnap.id };
-          gamesData.push(game);
-        });
+        const res = await fetch('games.json');
+        gamesData = await res.json();
         window.gamesData = gamesData;
         
         // Build category and tag counts for tag modal
@@ -1296,7 +1291,7 @@
         window.categoryCounts = categoryCounts;
         window.tagCounts = tagCounts;
       } catch (error) {
-        console.error('Failed to load games from Firebase:', error);
+        console.error('Error loading games data:', error);
         throw error;
       }
     }
@@ -3048,37 +3043,20 @@
           }
         }
 
-        // Load all games from Firebase
+        // Use existing games data that was loaded from games.json
         let allGames = [];
-        try {
-          const gamesQuery = db.collection('games').orderBy('title');
-          const querySnapshot = await gamesQuery.get();
-          
-          querySnapshot.forEach((doc) => {
-            const gameData = doc.data();
-            if (gameData && gameData.title && gameData.image) {
-              allGames.push({
-                id: doc.id,
-                title: gameData.title || 'Untitled Game',
-                category: gameData.category || 'Uncategorized',
-                image: gameData.image || '/images/default-game.png',
-                featured: gameData.featured || false,
-                description: gameData.description || '',
-                url: gameData.url || '',
-                ...gameData
-              });
-            }
-          });
-          
-          console.log(`Loaded ${allGames.length} games from Firebase`);
-        } catch (firebaseError) {
-          console.error('Firebase query failed, falling back to local data:', firebaseError);
-          
-          // Fallback to existing gamesData if Firebase fails
-          if (window.gamesData && window.gamesData.length > 0) {
-            allGames = window.gamesData;
-            console.log(`Using cached games data: ${allGames.length} games`);
-          } else {
+        
+        if (window.gamesData && window.gamesData.length > 0) {
+          allGames = window.gamesData;
+          console.log(`Using games data: ${allGames.length} games`);
+        } else {
+          // Fallback: try to load games.json directly
+          try {
+            const res = await fetch('games.json');
+            allGames = await res.json();
+            console.log(`Loaded ${allGames.length} games from games.json`);
+          } catch (error) {
+            console.error('Failed to load games.json:', error);
             throw new Error('No games data available');
           }
         }
@@ -3441,37 +3419,66 @@
     
     async function updateGameHistory(uid, gameId) {
       try {
+        console.log(`🎮 Updating game history for user ${uid}, game ${gameId}`);
         const userRef = db.collection('users').doc(uid);
         
         // Get current user data
         const userDoc = await userRef.get();
-        const userData = userDoc.exists ? userDoc.data() : {};
-        let currentHistory = userData.history || [];
         
-        // Remove the game if it already exists in history
-        currentHistory = currentHistory.filter(id => String(id) !== String(gameId));
-        
-        // Add the game to the front of the history
-        currentHistory.unshift(gameId);
-        
-        // Limit history to last 50 games to prevent unlimited growth
-        if (currentHistory.length > 50) {
-          currentHistory = currentHistory.slice(0, 50);
+        if (userDoc.exists) {
+          const userData = userDoc.data();
+          let currentHistory = userData.history || [];
+          
+          console.log('📜 Current history before update:', currentHistory);
+          
+          // Remove the game if it already exists in history (to avoid duplicates)
+          currentHistory = currentHistory.filter(id => String(id) !== String(gameId));
+          
+          // Add the game to the front of the history
+          currentHistory.unshift(gameId);
+          
+          // Limit history to last 50 games to prevent unlimited growth
+          if (currentHistory.length > 50) {
+            currentHistory = currentHistory.slice(0, 50);
+          }
+          
+          console.log('📜 New history after update:', currentHistory);
+          
+          // Update the history
+          await userRef.update({
+            history: currentHistory
+          });
+          
+          console.log('✅ Game history updated successfully');
+        } else {
+          // Create new user document with this game in history
+          console.log('👤 Creating new user document');
+          await userRef.set({
+            history: [gameId],
+            displayName: "",
+            photoURL: "",
+            email: "",
+            username: "",
+            likedGames: [],
+            favoriteGames: [],
+            playlist: []
+          });
+          console.log('✅ New user document created with game in history');
         }
         
-        // Update the history
-        await userRef.set({
-          history: currentHistory
-        }, { merge: true });
-        
       } catch (error) {
-        // If document doesn't exist, create it
-        if (error.code === 'not-found') {
+        console.error('❌ Error updating game history:', error);
+        
+        // Try fallback approach
+        try {
+          console.log('🔄 Trying fallback approach...');
+          const userRef = db.collection('users').doc(uid);
           await userRef.set({
             history: [gameId]
           }, { merge: true });
-        } else {
-          console.error('Error updating game history:', error);
+          console.log('✅ Fallback approach succeeded');
+        } catch (fallbackError) {
+          console.error('❌ Fallback approach also failed:', fallbackError);
         }
       }
     }

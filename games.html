@@ -152,8 +152,12 @@
       measurementId: "G-Y2K1RQYE74"
     };
     firebase.initializeApp(firebaseConfig);
-    const auth = firebase.auth();
-    const db = firebase.firestore();
+    window.auth = firebase.auth();
+    window.db = firebase.firestore();
+  </script>
+  <script>
+    const auth = window.auth;
+    const db = window.db;
   </script>
 </head>
 <body class="min-h-screen text-rp-text overflow-x-hidden relative font-[Inter] antialiased">
@@ -325,16 +329,11 @@
 
     async function fetchGames() {
       try {
-        const gamesQuery = db.collection('games').orderBy('title');
-        const querySnapshot = await gamesQuery.get();
-        const games = [];
-        querySnapshot.forEach((docSnap) => {
-          const game = { ...docSnap.data(), id: docSnap.id };
-          games.push(game);
-        });
+        const res = await fetch('games.json');
+        const games = await res.json();
         return games;
       } catch (error) {
-        console.error('[Firestore] Failed to fetch games:', error);
+        console.error('Error loading games data:', error);
         throw error;
       }
     }
