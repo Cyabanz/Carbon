@@ -18,24 +18,24 @@
   <link href='https://cdn.jsdelivr.net/npm/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
   <script src="carbon-theme.js"></script>
   <script type="module" src="https://cdn.jsdelivr.net/npm/emoji-picker-element@^1/index.js"></script>
-  <script type="module">
-    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
-    import { getFirestore } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
-    import { getAuth } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
-
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <script>
+    // FIREBASE INIT
     const firebaseConfig = {
       apiKey: "AIzaSyC4ilHYP1T-kdXbWPoHJHhD2aj0pNWmMec",
       authDomain: "carbon-services.firebaseapp.com",
       projectId: "carbon-services",
-      storageBucket: "carbon-services.appspot.com",
+      storageBucket: "carbon-services.firebasestorage.app",
       messagingSenderId: "288385472070",
       appId: "1:288385472070:web:c4be3ff186e248fc645c47",
       measurementId: "G-Y2K1RQYE74"
     };
-
-    window.firebaseApp = initializeApp(firebaseConfig);
-    window.db = getFirestore(window.firebaseApp);
-    window.auth = getAuth(window.firebaseApp);
+    firebase.initializeApp(firebaseConfig);
+    window.auth = firebase.auth();
+    window.db = firebase.firestore();
   </script>
   <script>
     function setConfig() {
@@ -1221,16 +1221,11 @@
     window.updateProxyToggleUI = updateProxyToggleUI;
   </script>
 
-  <script type="module">
-    import { signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
-    import { doc, setDoc, getDoc, updateDoc, arrayUnion, arrayRemove, onSnapshot, collection, getDocs, query, orderBy, addDoc, serverTimestamp, limit, startAfter, increment } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
-
-    const auth = window.auth;
-    const db = window.db;
-
+           <script>
+    
     function googleSignIn() {
-      const provider = new GoogleAuthProvider();
-      signInWithPopup(auth, provider)
+      const provider = new firebase.auth.GoogleAuthProvider();
+      window.auth.signInWithPopup(provider)
         .catch((error) => {
           document.getElementById('loginError').innerText = error.message;
           document.getElementById('loginError').classList.remove('hidden');
@@ -1238,7 +1233,36 @@
     }
     
     function signOutUser() {
-      signOut(auth).then(() => location.reload());
+      window.auth.signOut().then(() => location.reload());
+    }
+
+    async function ensureUserDoc(user) {
+      const userRef = window.db.collection('users').doc(user.uid);
+      const doc = await userRef.get();
+      if (!doc.exists) {
+        await userRef.set({
+          displayName: user.displayName || "",
+          photoURL: user.photoURL || "",
+          email: user.email || "",
+          username: "",
+          likedGames: [],
+          favoriteGames: [],
+          history: [],
+        });
+      } else {
+        let needsUpdate = false;
+        const data = doc.data();
+        const updateFields = {};
+        if (!data.displayName && user.displayName) {
+          updateFields.displayName = user.displayName;
+          needsUpdate = true;
+        }
+        if (!data.photoURL && user.photoURL) {
+          updateFields.photoURL = user.photoURL;
+          needsUpdate = true;
+        }
+        if (needsUpdate) await userRef.update(updateFields);
+      }
     }
 
     let gamesData = [];
@@ -1249,13 +1273,8 @@
 
     async function loadGamesData() {
       try {
-        const gamesQuery = query(collection(db, 'games'), orderBy('title'));
-        const querySnapshot = await getDocs(gamesQuery);
-        gamesData = [];
-        querySnapshot.forEach((docSnap) => {
-          const game = { ...docSnap.data(), id: docSnap.id };
-          gamesData.push(game);
-        });
+        const res = await fetch('games.json');
+        gamesData = await res.json();
         window.gamesData = gamesData;
         
         // Build category and tag counts for tag modal
@@ -1270,7 +1289,7 @@
         window.categoryCounts = categoryCounts;
         window.tagCounts = tagCounts;
       } catch (error) {
-        console.error('Failed to load games from Firebase:', error);
+        console.error('Error loading games data:', error);
         throw error;
       }
     }
@@ -1392,9 +1411,9 @@
         star.textContent = '★';
         star.className = 'transition-colors duration-150 select-none ' +
           (i <= fill ? 'star-filled' : 'star-empty') +
-          (auth.currentUser ? ' cursor-pointer star-hover' : ' cursor-not-allowed');
+          (window.auth.currentUser ? ' cursor-pointer star-hover' : ' cursor-not-allowed');
         star.style.color = i <= fill ? 'var(--theme-gold)' : 'var(--theme-muted)';
-        if (auth.currentUser) {
+        if (window.auth.currentUser) {
                       star.addEventListener('mouseenter', () => {
               for (let j = 0; j < 5; j++) {
                 container.children[j].style.color = j < i ? 'var(--theme-gold)' : 'var(--theme-muted)';
@@ -1427,9 +1446,9 @@
       starRatingData.yourRating = 0;
       starRatingData.percent = 0;
       try {
-        const ratingsRef = collection(db, "games", gameId, "ratings");
-        const snap = await getDocs(ratingsRef);
-        let total = 0, count = 0, your = 0, user = auth.currentUser;
+        const ratingsRef = window.db.collection("games").doc(gameId).collection("ratings");
+        const snap = await ratingsRef.get();
+        let total = 0, count = 0, your = 0, user = window.auth.currentUser;
         let highCount = 0;
         snap.forEach(doc => {
           const d = doc.data();
@@ -1453,7 +1472,7 @@
     }
 
     async function submitStarRating(stars) {
-      if (!auth.currentUser) {
+      if (!window.auth.currentUser) {
         starRatingData.error = "Sign in first!";
         renderStarRatingUI();
         renderStarRatingUI("Frame");
@@ -1476,10 +1495,10 @@
       renderStarRatingUI();
       renderStarRatingUI("Frame");
       try {
-        const ref = doc(db, "games", currentGameId, "ratings", auth.currentUser.uid);
-        await setDoc(ref, {
+        const ref = window.db.collection("games").doc(currentGameId).collection("ratings").doc(window.auth.currentUser.uid);
+        await ref.set({
           rating: stars,
-          updatedAt: serverTimestamp()
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
         });
         starRatingData.yourRating = stars;
         await loadStarRating(currentGameId);
@@ -1689,22 +1708,18 @@
       updateCommentsUI();
       
       try {
-        let commentsQuery = query(
-          collection(db, "games", gameId, "comments"),
-          orderBy("createdAt", "desc"),
-          limit(commentsData.commentsPerPage)
-        );
+        let commentsQuery = window.db.collection("games").doc(gameId).collection("comments")
+          .orderBy("createdAt", "desc")
+          .limit(commentsData.commentsPerPage);
         
         if (loadMore && commentsData.lastVisible) {
-          commentsQuery = query(
-            collection(db, "games", gameId, "comments"),
-            orderBy("createdAt", "desc"),
-            startAfter(commentsData.lastVisible),
-            limit(commentsData.commentsPerPage)
-          );
+          commentsQuery = window.db.collection("games").doc(gameId).collection("comments")
+            .orderBy("createdAt", "desc")
+            .startAfter(commentsData.lastVisible)
+            .limit(commentsData.commentsPerPage);
         }
         
-        const snapshot = await getDocs(commentsQuery);
+        const snapshot = await commentsQuery.get();
         
         if (loadMore) {
           snapshot.forEach(doc => {
@@ -1722,11 +1737,9 @@
         // Load replies for each comment
         for (let comment of commentsData.comments) {
           if (!comment.replies) {
-            const repliesQuery = query(
-              collection(db, "games", gameId, "comments", comment.id, "replies"),
-              orderBy("createdAt", "asc")
-            );
-            const repliesSnapshot = await getDocs(repliesQuery);
+            const repliesQuery = window.db.collection("games").doc(gameId).collection("comments").doc(comment.id).collection("replies")
+              .orderBy("createdAt", "asc");
+            const repliesSnapshot = await repliesQuery.get();
             
             comment.replies = [];
             repliesSnapshot.forEach(replyDoc => {
@@ -1745,7 +1758,7 @@
 
     // Submit new comment
     async function submitComment() {
-      const user = auth.currentUser;
+      const user = window.auth.currentUser;
       const text = document.getElementById('commentText').value.trim();
       
       if (!user) {
@@ -1783,12 +1796,12 @@
           authorId: user.uid,
           authorName: user.displayName || 'Anonymous',
           authorPhoto: user.photoURL || '/default-avatar.png',
-          createdAt: serverTimestamp(),
+          createdAt: firebase.firestore.FieldValue.serverTimestamp(),
           reactions: {},
           reactionCounts: {}
         };
         
-        const docRef = await addDoc(collection(db, "games", validatedGameId, "comments"), commentData);
+        const docRef = await window.db.collection("games").doc(validatedGameId).collection("comments").add(commentData);
         
         // Reset form
         document.getElementById('commentText').value = '';
@@ -1807,7 +1820,7 @@
 
     // Submit reply
     async function submitReply() {
-      const user = auth.currentUser;
+      const user = window.auth.currentUser;
       const text = document.getElementById('replyText').value.trim();
       
       if (!user || !text || !commentsData.currentReplyingTo) {
@@ -1833,13 +1846,13 @@
           authorId: user.uid,
           authorName: user.displayName || 'Anonymous',
           authorPhoto: user.photoURL || '/default-avatar.png',
-          createdAt: serverTimestamp(),
+          createdAt: firebase.firestore.FieldValue.serverTimestamp(),
           reactions: {},
           reactionCounts: {}
         };
         
-        const repliesRef = collection(db, 'games', validatedGameId, 'comments', commentsData.currentReplyingTo, 'replies');
-        await addDoc(repliesRef, replyData);
+        const repliesRef = window.db.collection('games').doc(validatedGameId).collection('comments').doc(commentsData.currentReplyingTo).collection('replies');
+        await repliesRef.add(replyData);
         
         closeReplyModal();
         await loadComments(validatedGameId);
@@ -1852,23 +1865,24 @@
 
     // Add or remove reaction
     async function toggleReaction(commentId, emoji, isReply = false, replyId = null) {
-      const user = auth.currentUser;
+      const user = window.auth.currentUser;
       if (!user || !currentGameId) {
         console.log('User not authenticated or game not loaded');
         return;
       }
       
       try {
-        let docPath = `games/${currentGameId}/comments/${commentId}`;
+        let docRef;
         if (isReply) {
-          docPath += `/replies/${replyId}`;
+                  docRef = window.db.collection('games').doc(currentGameId).collection('comments').doc(commentId).collection('replies').doc(replyId);
+      } else {
+        docRef = window.db.collection('games').doc(currentGameId).collection('comments').doc(commentId);
         }
         
-        const docRef = doc(db, ...docPath.split('/'));
-        const docSnap = await getDoc(docRef);
+        const docSnap = await docRef.get();
         
-        if (!docSnap.exists()) {
-          console.error('Document does not exist:', docPath);
+        if (!docSnap.exists) {
+          console.error('Document does not exist');
           return;
         }
         
@@ -1897,7 +1911,7 @@
           reactionCounts[emoji] = (reactionCounts[emoji] || 0) + 1;
         }
         
-        await updateDoc(docRef, { reactions, reactionCounts });
+        await docRef.update({ reactions, reactionCounts });
         await loadComments(currentGameId);
         
       } catch (error) {
@@ -2031,6 +2045,133 @@
       return text.replace(/\0/g, '').substring(0, maxLength);
     }
 
+    // Update comments UI
+    function updateCommentsUI() {
+      const commentsLoader = document.getElementById('commentsLoader');
+      const noComments = document.getElementById('noComments');
+      const commentsList = document.getElementById('commentsList');
+      const commentsCount = document.getElementById('commentsCount');
+      
+      if (commentsData.loading) {
+        if (commentsLoader) commentsLoader.classList.remove('hidden');
+        if (noComments) noComments.classList.add('hidden');
+        return;
+      }
+      
+      if (commentsLoader) commentsLoader.classList.add('hidden');
+      
+      if (commentsData.comments.length === 0) {
+        if (noComments) noComments.classList.remove('hidden');
+        if (commentsList) commentsList.innerHTML = '';
+      } else {
+        if (noComments) noComments.classList.add('hidden');
+        renderComments();
+      }
+      
+      if (commentsCount) {
+        commentsCount.textContent = `(${commentsData.comments.length})`;
+      }
+    }
+
+    function renderComments() {
+      const commentsList = document.getElementById('commentsList');
+      if (!commentsList) return;
+      
+      const filteredComments = commentsData.comments.filter(comment => {
+        if (commentsData.currentFilter === 'all') return true;
+        if (commentsData.currentFilter === 'no-rating') return !comment.rating;
+        return comment.rating && comment.rating.toString() === commentsData.currentFilter;
+      });
+      
+      commentsList.innerHTML = filteredComments.map(comment => {
+        const stars = comment.rating ? '★'.repeat(comment.rating) + '☆'.repeat(5 - comment.rating) : '';
+        return `
+          <div class="comment-item bg-white/5 rounded-lg p-4 border border-white/10">
+            <div class="flex items-start gap-3">
+              <img src="${comment.authorPhoto || '/default-avatar.png'}" class="w-8 h-8 rounded-full flex-shrink-0" alt="${comment.authorName}">
+              <div class="flex-1">
+                <div class="flex items-center gap-2 mb-2">
+                  <span class="font-medium text-sm" style="color: var(--theme-foam);">${comment.authorName}</span>
+                  ${comment.rating ? `<span class="comment-stars text-xs">${stars}</span>` : ''}
+                  <span class="text-xs" style="color: var(--theme-muted);">${formatDate(comment.createdAt)}</span>
+                </div>
+                <p class="text-white/80 text-sm mb-3">${escapeHtml(comment.text)}</p>
+                <div class="flex items-center gap-2">
+                  <button onclick="openReplyModal('${comment.id}')" class="text-xs px-3 py-1 rounded-full border border-white/20 hover:border-cyan-400/50 transition">
+                    Reply
+                  </button>
+                  <button onclick="showReactionPicker('${comment.id}', event)" class="text-xs px-3 py-1 rounded-full border border-white/20 hover:border-cyan-400/50 transition">
+                    React
+                  </button>
+                </div>
+              </div>
+            </div>
+            ${comment.replies && comment.replies.length > 0 ? `
+              <div class="ml-11 mt-4 space-y-3">
+                ${comment.replies.map(reply => `
+                  <div class="reply-item bg-white/5 rounded-lg p-3">
+                    <div class="flex items-start gap-3">
+                      <img src="${reply.authorPhoto || '/default-avatar.png'}" class="w-6 h-6 rounded-full flex-shrink-0" alt="${reply.authorName}">
+                      <div class="flex-1">
+                        <div class="flex items-center gap-2 mb-1">
+                          <span class="font-medium text-xs" style="color: var(--theme-foam);">${reply.authorName}</span>
+                          <span class="text-xs" style="color: var(--theme-muted);">${formatDate(reply.createdAt)}</span>
+                        </div>
+                        <p class="text-white/80 text-xs">${escapeHtml(reply.text)}</p>
+                      </div>
+                    </div>
+                  </div>
+                `).join('')}
+              </div>
+            ` : ''}
+          </div>
+        `;
+      }).join('');
+    }
+
+    function formatDate(timestamp) {
+      if (!timestamp) return 'Just now';
+      let date;
+      if (timestamp && timestamp.toDate) {
+        date = timestamp.toDate();
+      } else if (timestamp && timestamp.seconds) {
+        date = new Date(timestamp.seconds * 1000);
+      } else {
+        return 'Just now';
+      }
+      
+      const now = new Date();
+      const diff = now - date;
+      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+      const hours = Math.floor(diff / (1000 * 60 * 60));
+      const minutes = Math.floor(diff / (1000 * 60));
+      
+      if (days > 0) return `${days}d ago`;
+      if (hours > 0) return `${hours}h ago`;
+      if (minutes > 0) return `${minutes}m ago`;
+      return 'Just now';
+    }
+
+    function updateSubmitButtonState() {
+      const submitBtn = document.getElementById('submitComment');
+      const commentText = document.getElementById('commentText');
+      
+      if (submitBtn && commentText) {
+        const hasText = commentText.value.trim().length > 0;
+        submitBtn.disabled = !hasText;
+      }
+    }
+
+    function updateReplyButtonState() {
+      const submitBtn = document.getElementById('submitReply');
+      const replyText = document.getElementById('replyText');
+      
+      if (submitBtn && replyText) {
+        const hasText = replyText.value.trim().length > 0;
+        submitBtn.disabled = !hasText;
+      }
+    }
+
     // Expose all functions to global scope immediately
     window.openReplyModal = openReplyModal;
     window.closeReplyModal = closeReplyModal;
@@ -2039,6 +2180,8 @@
     window.submitComment = submitComment;
     window.submitReply = submitReply;
     window.loadComments = loadComments;
+    window.updateSubmitButtonState = updateSubmitButtonState;
+    window.updateReplyButtonState = updateReplyButtonState;
 
     // --- NEW GAME FRAME FEATURES ---
     
@@ -2062,16 +2205,16 @@
       
       try {
         // Get current play count from Firebase
-        const gameStatsRef = doc(db, 'games', gameId, 'stats', 'general');
-        const userStatsRef = doc(db, 'users', userId);
+        const gameStatsRef = window.db.collection('games').doc(gameId).collection('stats').doc('general');
+        const userStatsRef = window.db.collection('users').doc(userId);
         
         const [gameStatsDoc, userStatsDoc] = await Promise.all([
-          getDoc(gameStatsRef),
-          getDoc(userStatsRef)
+          gameStatsRef.get(),
+          userStatsRef.get()
         ]);
         
-        const gameStats = gameStatsDoc.exists() ? gameStatsDoc.data() : {};
-        const userStats = userStatsDoc.exists() ? userStatsDoc.data() : {};
+        const gameStats = gameStatsDoc.exists ? gameStatsDoc.data() : {};
+        const userStats = userStatsDoc.exists ? userStatsDoc.data() : {};
         
         // Update play count
         const newPlayCount = (gameStats.totalPlays || 0) + 1;
@@ -2079,10 +2222,10 @@
         
         // Update Firebase
         await Promise.all([
-          setDoc(gameStatsRef, { totalPlays: newPlayCount }, { merge: true }),
-          setDoc(userStatsRef, { 
-            [`gameStats.${gameId}.plays`]: increment(1),
-            [`gameStats.${gameId}.lastPlayed`]: serverTimestamp()
+          gameStatsRef.set({ totalPlays: newPlayCount }, { merge: true }),
+          userStatsRef.set({ 
+            [`gameStats.${gameId}.plays`]: firebase.firestore.FieldValue.increment(1),
+            [`gameStats.${gameId}.lastPlayed`]: firebase.firestore.FieldValue.serverTimestamp()
           }, { merge: true })
         ]);
         
@@ -2182,7 +2325,7 @@
 
     // Enhanced submit comment with rate limiting
     async function submitCommentWithRateLimit() {
-      const user = auth.currentUser;
+      const user = window.auth.currentUser;
       if (!user) {
         alert('Please sign in to comment');
         return;
@@ -2486,7 +2629,7 @@
     }
 
     function renderComment(comment) {
-      const user = auth.currentUser;
+      const user = window.auth.currentUser;
       const reactions = Object.entries(comment.reactionCounts || {})
         .map(([emoji, count]) => {
           const userReacted = user && comment.reactions && comment.reactions[user.uid] === emoji;
@@ -2570,7 +2713,7 @@
     }
 
     function renderReply(reply, commentId) {
-      const user = auth.currentUser;
+      const user = window.auth.currentUser;
       const reactions = Object.entries(reply.reactionCounts || {})
         .map(([emoji, count]) => {
           const userReacted = user && reply.reactions && reply.reactions[user.uid] === emoji;
@@ -2686,7 +2829,7 @@
       document.getElementById('gameInfoHolder').classList.add('hidden');
       document.getElementById('loginScreen').classList.remove('hidden');
       
-      onAuthStateChanged(auth, async (user) => {
+      window.auth.onAuthStateChanged(async (user) => {
         renderUserSection(user);
         if (!user) {
           hidePreloader();
@@ -2884,51 +3027,26 @@
           </div>
         `;
 
-        // Ensure Firebase is ready with retry logic
+        // Firebase should be ready since it's initialized at page load
         if (!window.db) {
-          console.warn('Firebase database not initialized, waiting...');
-          let retries = 0;
-          while (!window.db && retries < 10) {
-            await new Promise(resolve => setTimeout(resolve, 500));
-            retries++;
-          }
-          if (!window.db) {
-            console.error('Firebase database still not available after retries');
-            throw new Error('Firebase not available');
-          }
+          console.error('Firebase database not available');
+          throw new Error('Firebase not available');
         }
 
-        // Load all games from Firebase
+        // Use existing games data that was loaded from games.json
         let allGames = [];
-        try {
-          const gamesQuery = query(collection(window.db, 'games'), orderBy('title'));
-          const querySnapshot = await getDocs(gamesQuery);
-          
-          querySnapshot.forEach((doc) => {
-            const gameData = doc.data();
-            if (gameData && gameData.title && gameData.image) {
-              allGames.push({
-                id: doc.id,
-                title: gameData.title || 'Untitled Game',
-                category: gameData.category || 'Uncategorized',
-                image: gameData.image || '/images/default-game.png',
-                featured: gameData.featured || false,
-                description: gameData.description || '',
-                url: gameData.url || '',
-                ...gameData
-              });
-            }
-          });
-          
-          console.log(`Loaded ${allGames.length} games from Firebase`);
-        } catch (firebaseError) {
-          console.error('Firebase query failed, falling back to local data:', firebaseError);
-          
-          // Fallback to existing gamesData if Firebase fails
-          if (window.gamesData && window.gamesData.length > 0) {
-            allGames = window.gamesData;
-            console.log(`Using cached games data: ${allGames.length} games`);
-          } else {
+        
+        if (window.gamesData && window.gamesData.length > 0) {
+          allGames = window.gamesData;
+          console.log(`Using games data: ${allGames.length} games`);
+        } else {
+          // Fallback: try to load games.json directly
+          try {
+            const res = await fetch('games.json');
+            allGames = await res.json();
+            console.log(`Loaded ${allGames.length} games from games.json`);
+          } catch (error) {
+            console.error('Failed to load games.json:', error);
             throw new Error('No games data available');
           }
         }
@@ -3256,20 +3374,20 @@
     // User functions - Fixed for Firebase v10.7.1 modular SDK
     async function updateUserArray(uid, field, gameId, add = true) {
       try {
-        const userRef = doc(db, 'users', uid);
+        const userRef = window.db.collection('users').doc(uid);
         if (add) {
-          await updateDoc(userRef, {
-            [field]: arrayUnion(gameId)
+          await userRef.update({
+            [field]: firebase.firestore.FieldValue.arrayUnion(gameId)
           });
         } else {
-          await updateDoc(userRef, {
-            [field]: arrayRemove(gameId)
+          await userRef.update({
+            [field]: firebase.firestore.FieldValue.arrayRemove(gameId)
           });
         }
       } catch (error) {
         // If document doesn't exist, create it
         if (error.code === 'not-found') {
-          await setDoc(userRef, {
+          await userRef.set({
             [field]: add ? [gameId] : []
           }, { merge: true });
         } else {
@@ -3280,9 +3398,9 @@
     
     async function getUserGameLists(uid) {
       try {
-        const userRef = doc(db, 'users', uid);
-        const userDoc = await getDoc(userRef);
-        return userDoc.exists() ? userDoc.data() : { likedGames: [], favoriteGames: [], playlist: [], history: [] };
+        const userRef = window.db.collection('users').doc(uid);
+        const userDoc = await userRef.get();
+        return userDoc.exists ? userDoc.data() : { likedGames: [], favoriteGames: [], playlist: [], history: [] };
       } catch (error) {
         console.error('Error getting user game lists:', error);
         return { likedGames: [], favoriteGames: [], playlist: [], history: [] };
@@ -3291,18 +3409,66 @@
     
     async function updateGameHistory(uid, gameId) {
       try {
-        const userRef = doc(db, 'users', uid);
-        await updateDoc(userRef, {
-          history: arrayUnion(gameId)
-        });
+        console.log(`🎮 Updating game history for user ${uid}, game ${gameId}`);
+        const userRef = window.db.collection('users').doc(uid);
+        
+        // Get current user data
+        const userDoc = await userRef.get();
+        
+        if (userDoc.exists) {
+          const userData = userDoc.data();
+          let currentHistory = userData.history || [];
+          
+          console.log('📜 Current history before update:', currentHistory);
+          
+          // Remove the game if it already exists in history (to avoid duplicates)
+          currentHistory = currentHistory.filter(id => String(id) !== String(gameId));
+          
+          // Add the game to the front of the history
+          currentHistory.unshift(gameId);
+          
+          // Limit history to last 50 games to prevent unlimited growth
+          if (currentHistory.length > 50) {
+            currentHistory = currentHistory.slice(0, 50);
+          }
+          
+          console.log('📜 New history after update:', currentHistory);
+          
+          // Update the history
+          await userRef.update({
+            history: currentHistory
+          });
+          
+          console.log('✅ Game history updated successfully');
+        } else {
+          // Create new user document with this game in history
+          console.log('👤 Creating new user document');
+          await userRef.set({
+            history: [gameId],
+            displayName: "",
+            photoURL: "",
+            email: "",
+            username: "",
+            likedGames: [],
+            favoriteGames: [],
+            playlist: []
+          });
+          console.log('✅ New user document created with game in history');
+        }
+        
       } catch (error) {
-        // If document doesn't exist, create it
-        if (error.code === 'not-found') {
-          await setDoc(userRef, {
+        console.error('❌ Error updating game history:', error);
+        
+        // Try fallback approach
+        try {
+          console.log('🔄 Trying fallback approach...');
+          const userRef = window.db.collection('users').doc(uid);
+          await userRef.set({
             history: [gameId]
           }, { merge: true });
-        } else {
-          console.error('Error updating game history:', error);
+          console.log('✅ Fallback approach succeeded');
+        } catch (fallbackError) {
+          console.error('❌ Fallback approach also failed:', fallbackError);
         }
       }
     }
@@ -3315,10 +3481,10 @@
         await updateGameHistory(uid, gameId);
         
         // Track detailed activity
-        const activityRef = doc(db, 'user-activity', uid);
+        const activityRef = window.db.collection('user-activity').doc(uid);
         const activity = {
           action: 'play',
-          timestamp: serverTimestamp(),
+          timestamp: firebase.firestore.FieldValue.serverTimestamp(),
           data: {
             gameId: gameId,
             gameTitle: gameTitle || 'Unknown Game',
@@ -3329,16 +3495,16 @@
         
         // Create or update the activity document
         try {
-          await updateDoc(activityRef, {
-            activities: arrayUnion(activity),
-            lastActivity: serverTimestamp()
+          await activityRef.update({
+            activities: firebase.firestore.FieldValue.arrayUnion(activity),
+            lastActivity: firebase.firestore.FieldValue.serverTimestamp()
           });
         } catch (error) {
           // If document doesn't exist, create it
           if (error.code === 'not-found') {
-            await setDoc(activityRef, {
+            await activityRef.set({
               activities: [activity],
-              lastActivity: serverTimestamp()
+              lastActivity: firebase.firestore.FieldValue.serverTimestamp()
             });
           } else {
             throw error;
@@ -3439,12 +3605,43 @@
         setTimeout(setupCommentEventListeners, 100);
       }
 
+      // Game frame features initialization
+      function initializeGameFrameFeatures(gameId, userId) {
+        // Initialize play tracking
+        initializePlayTracking(gameId, userId);
+        
+        // Initialize keyboard shortcuts
+        initializeKeyboardShortcuts();
+        
+        console.log('Game frame features initialized');
+      }
+
+      function cleanupGameFrameFeatures() {
+        // Clear any timers
+        if (gameState.playTimer) {
+          clearInterval(gameState.playTimer);
+          gameState.playTimer = null;
+        }
+        if (gameState.activityTimer) {
+          clearInterval(gameState.activityTimer);
+          gameState.activityTimer = null;
+        }
+        if (suggestedAutoplayInterval) {
+          clearInterval(suggestedAutoplayInterval);
+          suggestedAutoplayInterval = null;
+        }
+        
+        console.log('Game frame features cleaned up');
+      }
+
       // Expose functions to global scope for HTML onclick handlers
       window.googleSignIn = googleSignIn;
       window.signOut = signOutUser;
       window.navigateToGame = navigateToGame;
       window.loadSuggestedGames = loadSuggestedGames;
       window.goToSuggestedSlide = goToSuggestedSlide;
+      window.initializeGameFrameFeatures = initializeGameFrameFeatures;
+      window.cleanupGameFrameFeatures = cleanupGameFrameFeatures;
 
       // Additional safety net - reload suggested games on page ready
       if (document.readyState === 'loading') {
@@ -3603,9 +3800,9 @@
 
     async function loadBackgroundFromFirebase(uid) {
       try {
-        const userRef = doc(db, 'users', uid);
-        const userDoc = await getDoc(userRef);
-        if (userDoc.exists()) {
+        const userRef = db.collection('users').doc(uid);
+        const userDoc = await userRef.get();
+        if (userDoc.exists) {
           const userData = userDoc.data();
           const settings = userData.settings || {};
           

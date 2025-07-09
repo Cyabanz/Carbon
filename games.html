@@ -136,24 +136,28 @@
       transform: translateY(-1px);
     }
   </style>
-  <script type="module">
-    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
-    import { getFirestore } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
-    import { getAuth } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
-
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <script>
+    // FIREBASE INIT
     const firebaseConfig = {
       apiKey: "AIzaSyC4ilHYP1T-kdXbWPoHJHhD2aj0pNWmMec",
       authDomain: "carbon-services.firebaseapp.com",
       projectId: "carbon-services",
-      storageBucket: "carbon-services.appspot.com",
+      storageBucket: "carbon-services.firebasestorage.app",
       messagingSenderId: "288385472070",
       appId: "1:288385472070:web:c4be3ff186e248fc645c47",
       measurementId: "G-Y2K1RQYE74"
     };
-
-    window.firebaseApp = initializeApp(firebaseConfig);
-    window.db = getFirestore(window.firebaseApp);
-    window.auth = getAuth(window.firebaseApp);
+    firebase.initializeApp(firebaseConfig);
+    window.auth = firebase.auth();
+    window.db = firebase.firestore();
+  </script>
+  <script>
+    const auth = window.auth;
+    const db = window.db;
   </script>
 </head>
 <body class="min-h-screen text-rp-text overflow-x-hidden relative font-[Inter] antialiased">
@@ -177,11 +181,11 @@
         </button>
       </div>
       <div id="authContainer" class="flex items-center gap-2">
-        <button id="signInBtn" onclick="signInUser()" class="btn-primary font-semibold px-4 py-2 rounded-lg hover:scale-105 transition-all duration-300 text-sm">Sign In</button>
+        <button id="signInBtn" onclick="googleSignIn()" class="btn-primary font-semibold px-4 py-2 rounded-lg hover:scale-105 transition-all duration-300 text-sm">Sign In</button>
         <div id="userProfile" class="hidden flex items-center gap-2">
           <img id="userAvatar" src="" alt="User" class="w-8 h-8 rounded-full border-2 border-rp-foam/30">
           <span id="userName" class="text-sm font-medium text-rp-text"></span>
-          <button onclick="signOutUser()" class="text-rp-muted hover:text-rp-love transition-colors">
+          <button onclick="signOut()" class="text-rp-muted hover:text-rp-love transition-colors">
             <i class='bx bx-log-out text-lg'></i>
           </button>
         </div>
@@ -304,9 +308,7 @@
     </div>
   </footer>
 
-  <script type="module">
-    import { doc, setDoc, getDoc, updateDoc, arrayUnion, arrayRemove, onSnapshot, collection, getDocs, query, orderBy } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
-    import { signInAnonymously, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+  <script>
 
     let gamesData = [];
     let currentSlide = 0;
@@ -327,16 +329,11 @@
 
     async function fetchGames() {
       try {
-        const gamesQuery = query(collection(window.db, 'games'), orderBy('title'));
-        const querySnapshot = await getDocs(gamesQuery);
-        const games = [];
-        querySnapshot.forEach((docSnap) => {
-          const game = { ...docSnap.data(), id: docSnap.id };
-          games.push(game);
-        });
+        const res = await fetch('games.json');
+        const games = await res.json();
         return games;
       } catch (error) {
-        console.error('[Firestore] Failed to fetch games:', error);
+        console.error('Error loading games data:', error);
         throw error;
       }
     }
@@ -367,13 +364,25 @@
       }
     }
 
+    function googleSignIn() {
+      const provider = new firebase.auth.GoogleAuthProvider();
+      auth.signInWithPopup(provider)
+        .catch((error) => {
+          console.error('Sign in error:', error);
+        });
+    }
+
+    function signOut() {
+      auth.signOut().then(() => location.reload());
+    }
+
     async function setupAuth() {
-      onAuthStateChanged(window.auth, async (user) => {
+      auth.onAuthStateChanged(async (user) => {
         if (user) {
           currentUser = user;
           document.getElementById('signInBtn').classList.add('hidden');
           document.getElementById('userProfile').classList.remove('hidden');
-          document.getElementById('userName').textContent = user.isAnonymous ? 'Guest' : user.displayName || 'User';
+          document.getElementById('userName').textContent = user.displayName || 'User';
           document.getElementById('userAvatar').src = user.photoURL || 'https://via.placeholder.com/32x32/06b6d4/ffffff?text=U';
           await loadUserProgress();
           await loadPinnedGames();
@@ -394,8 +403,8 @@
       }
       try {
         console.log('Loading settings from Firebase for user:', currentUser.uid);
-        const userSettingsDoc = await getDoc(doc(window.db, 'users', currentUser.uid));
-        if (userSettingsDoc.exists()) {
+        const userSettingsDoc = await db.collection('users').doc(currentUser.uid).get();
+        if (userSettingsDoc.exists) {
           const userData = userSettingsDoc.data();
           const settings = userData.settings || {};
           if (settings.background && validBackgrounds.includes(settings.background)) {
@@ -534,20 +543,7 @@
       }
     }
 
-    window.signInUser = async () => {
-      try {
-        await signInAnonymously(window.auth);
-      } catch (error) {
-        console.error('Sign in failed:', error);
-      }
-    };
-    window.signOutUser = async () => {
-      try {
-        await window.auth.signOut();
-      } catch (error) {
-        console.error('Sign out failed:', error);
-      }
-    };
+    // Remove old signInUser/signOutUser functions - replaced with googleSignIn/signOut above
 
     function setupAutocomplete() {
       autocompleteData = gamesData.map(game => ({
@@ -656,15 +652,15 @@
     async function generateDailyContent() {
       const today = new Date().toDateString();
       try {
-        const dailyDoc = await getDoc(doc(window.db, 'daily-content', today));
-        if (dailyDoc.exists()) {
+        const dailyDoc = await db.collection('daily-content').doc(today).get();
+        if (dailyDoc.exists) {
           const data = dailyDoc.data();
           gameOfTheDay = data.gameOfTheDay;
           dailyPicks = data.dailyPicks;
         } else {
           gameOfTheDay = gamesData[Math.floor(Math.random() * gamesData.length)];
           dailyPicks = getRandomGames(4);
-          await setDoc(doc(window.db, 'daily-content', today), {
+          await db.collection('daily-content').doc(today).set({
             gameOfTheDay,
             dailyPicks,
             date: today
@@ -720,8 +716,8 @@
     async function loadUserProgress() {
       if (!currentUser) return;
       try {
-        const progressDoc = await getDoc(doc(window.db, 'user-progress', currentUser.uid));
-        if (progressDoc.exists()) {
+        const progressDoc = await db.collection('user-progress').doc(currentUser.uid).get();
+        if (progressDoc.exists) {
           userProgress = progressDoc.data();
           renderContinuePlaying();
         }
@@ -770,8 +766,8 @@
     async function loadPinnedGames() {
       if (!currentUser) return;
       try {
-        const pinnedDoc = await getDoc(doc(window.db, 'user-pins', currentUser.uid));
-        if (pinnedDoc.exists()) {
+        const pinnedDoc = await db.collection('user-pins').doc(currentUser.uid).get();
+        if (pinnedDoc.exists) {
           const pinnedGameId = pinnedDoc.data().gameId;
           if (pinnedGameId) {
             const game = gamesData.find(g => g.id === pinnedGameId);
@@ -790,7 +786,7 @@
       const game = gamesData.find(g => g.id === gameId);
       if (!game || !currentUser) return;
       try {
-        await setDoc(doc(window.db, 'user-pins', currentUser.uid), {
+        await db.collection('user-pins').doc(currentUser.uid).set({
           gameId: gameId,
           timestamp: Date.now()
         });
@@ -804,7 +800,7 @@
     window.unpinGame = async () => {
       if (!currentUser) return;
       try {
-        await setDoc(doc(window.db, 'user-pins', currentUser.uid), {
+        await db.collection('user-pins').doc(currentUser.uid).set({
           gameId: null,
           timestamp: Date.now()
         });
