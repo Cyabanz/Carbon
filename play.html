@@ -2487,28 +2487,95 @@
         OFFLINE: 'offline'
       },
       
-      // Initialize status management
-      init() {
-        this.restoreUserStatus();
-        this.setupActivityTracking();
-        this.setupVisibilityTracking();
-        this.resetActivityTimer();
-      },
+             // Initialize status management
+       init() {
+         this.initializeUserDocument();
+         this.restoreUserStatus();
+         this.setupActivityTracking();
+         this.setupVisibilityTracking();
+         this.resetActivityTimer();
+       },
+       
+       // Ensure user document has all required fields for profile
+       async initializeUserDocument() {
+         const currentUser = auth.currentUser;
+         if (!currentUser) return;
+         
+         try {
+           const userRef = db.collection('users').doc(currentUser.uid);
+           const userDoc = await userRef.get();
+           
+           if (!userDoc.exists) {
+             // Create new user document with all required fields
+             await userRef.set({
+               uid: currentUser.uid,
+               email: currentUser.email || '',
+               displayName: currentUser.displayName || '',
+               photoURL: currentUser.photoURL || '',
+               username: '',
+               bio: '',
+               status: 'online',
+               currentGame: null,
+               lastPlayedGame: null,
+               lastPlayedTime: null,
+               lastSeen: firebase.firestore.FieldValue.serverTimestamp(),
+               likedGames: [],
+               favoriteGames: [],
+               playlist: [],
+               history: [],
+               friends: [],
+               friendRequests: [],
+               createdAt: firebase.firestore.FieldValue.serverTimestamp()
+             });
+             console.log('User document initialized with all required fields');
+           } else {
+             // Ensure existing document has required fields
+             const userData = userDoc.data();
+             const updates = {};
+             
+             if (!userData.hasOwnProperty('lastPlayedGame')) updates.lastPlayedGame = null;
+             if (!userData.hasOwnProperty('lastPlayedTime')) updates.lastPlayedTime = null;
+             if (!userData.hasOwnProperty('currentGame')) updates.currentGame = null;
+             if (!userData.hasOwnProperty('status')) updates.status = 'online';
+             if (!userData.hasOwnProperty('history')) updates.history = [];
+             
+             if (Object.keys(updates).length > 0) {
+               await userRef.update(updates);
+               console.log('User document updated with missing fields:', updates);
+             }
+           }
+         } catch (error) {
+           console.error('Error initializing user document:', error);
+         }
+       },
       
-      // Restore user status from localStorage and set to online
-      async restoreUserStatus() {
-        const currentUser = auth.currentUser;
-        if (!currentUser) return;
-        
-        try {
-          // Always set to online when page loads
-          await this.updateUserStatus(this.STATUS_TYPES.ONLINE);
-          localStorage.setItem('carbon-user-status', this.STATUS_TYPES.ONLINE);
-          localStorage.setItem('carbon-last-activity', Date.now().toString());
-        } catch (error) {
-          console.error('Error restoring user status:', error);
-        }
-      },
+             // Restore user status from localStorage and set appropriate status
+       async restoreUserStatus() {
+         const currentUser = auth.currentUser;
+         if (!currentUser) return;
+         
+         try {
+           // Check if we're on a game page (has gameId parameter)
+           const urlParams = new URLSearchParams(window.location.search);
+           const gameId = urlParams.get('id');
+           
+           if (gameId) {
+             // If on a game page, set status to in-game
+             await this.updateUserStatus(this.STATUS_TYPES.INGAME, gameId);
+             localStorage.setItem('carbon-user-status', this.STATUS_TYPES.INGAME);
+             console.log(`User status restored as in-game for game: ${gameId}`);
+           } else {
+             // If not on a game page, set to online
+             await this.updateUserStatus(this.STATUS_TYPES.ONLINE);
+             localStorage.setItem('carbon-user-status', this.STATUS_TYPES.ONLINE);
+             console.log('User status restored as online');
+           }
+           
+           localStorage.setItem('carbon-last-activity', Date.now().toString());
+         } catch (error) {
+           console.error('Error restoring user status:', error);
+         }
+       },
       
       // Setup activity tracking
       setupActivityTracking() {
@@ -2621,11 +2688,38 @@
         }
       },
       
-      // Set user status to in-game
-      async setInGame(gameId) {
-        await this.updateUserStatus(this.STATUS_TYPES.INGAME, gameId);
-        this.resetActivityTimer();
-      },
+             // Set user status to in-game
+       async setInGame(gameId) {
+         await this.updateUserStatus(this.STATUS_TYPES.INGAME, gameId);
+         
+         // Also update last played game for profile display
+         try {
+           const currentUser = auth.currentUser;
+           if (currentUser && gameId) {
+             await db.collection('users').doc(currentUser.uid).update({
+               lastPlayedGame: gameId,
+               lastPlayedTime: firebase.firestore.FieldValue.serverTimestamp()
+             });
+             console.log(`Last played game updated to: ${gameId}`);
+           }
+         } catch (error) {
+           console.error('Error updating last played game:', error);
+           // Try merge approach if document doesn't exist
+           try {
+             const currentUser = auth.currentUser;
+             if (currentUser && gameId) {
+               await db.collection('users').doc(currentUser.uid).set({
+                 lastPlayedGame: gameId,
+                 lastPlayedTime: firebase.firestore.FieldValue.serverTimestamp()
+               }, { merge: true });
+             }
+           } catch (mergeError) {
+             console.error('Error with merge approach:', mergeError);
+           }
+         }
+         
+         this.resetActivityTimer();
+       },
       
       // Set user status to online
       async setOnline() {
@@ -2645,6 +2739,39 @@
         if (this.visibilityTimer) clearTimeout(this.visibilityTimer);
       }
     };
+
+    // Update visual status display
+    async function updateStatusDisplay(user) {
+      if (!user) return;
+      
+      try {
+        const userRef = db.collection('users').doc(user.uid);
+        const userDoc = await userRef.get();
+        
+        if (userDoc.exists) {
+          const userData = userDoc.data();
+          const status = userData.status || 'online';
+          const currentGame = userData.currentGame;
+          
+          console.log(`Current user status: ${status}, current game: ${currentGame}`);
+          
+          // Check if we're on a game page
+          const urlParams = new URLSearchParams(window.location.search);
+          const gameId = urlParams.get('id');
+          
+          // If we're on a game page and status shows we're in that game, everything is correct
+          if (gameId && status === 'ingame' && currentGame === gameId) {
+            console.log('✅ Status display is correct for current game');
+          } else if (gameId && status !== 'ingame') {
+            // We're on a game page but status doesn't reflect it - fix it
+            console.log('🔄 Fixing status for current game page');
+            await userStatusManager.setInGame(gameId);
+          }
+        }
+      } catch (error) {
+        console.error('Error updating status display:', error);
+      }
+    }
 
     // Legacy inactivity functions (kept for compatibility)
     function initializeInactivityDetection() {
@@ -3039,8 +3166,11 @@
           return;
         }
         
-        // Initialize status manager for logged in user
-        userStatusManager.init();
+                 // Initialize status manager for logged in user
+         await userStatusManager.init();
+         
+         // Update visual status indicators
+         updateStatusDisplay(user);
         
         await loadGamesData();
         
@@ -3707,7 +3837,15 @@
       try {
         console.log(`Tracking play activity for user ${uid}, game ${gameId}`);
         
-        // Add to history first
+        // Update user document with last played game info (for profile display)
+        const userRef = db.collection('users').doc(uid);
+        await userRef.update({
+          lastPlayedGame: gameId,
+          lastPlayedTime: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        console.log('✅ Last played game updated in user profile');
+        
+        // Add to history
         await updateGameHistory(uid, gameId);
         
         // Track detailed activity
@@ -3745,12 +3883,18 @@
       } catch (error) {
         console.error('❌ Error tracking play activity:', error);
         
-        // Fallback: Still try to update history even if activity tracking fails
+        // Fallback: Still try to update critical fields
         try {
+          const userRef = db.collection('users').doc(uid);
+          await userRef.set({
+            lastPlayedGame: gameId,
+            lastPlayedTime: firebase.firestore.FieldValue.serverTimestamp()
+          }, { merge: true });
+          
           await updateGameHistory(uid, gameId);
-          console.log('✅ Game history updated as fallback');
-        } catch (historyError) {
-          console.error('❌ Failed to update game history as fallback:', historyError);
+          console.log('✅ Critical updates completed as fallback');
+        } catch (fallbackError) {
+          console.error('❌ Fallback approach also failed:', fallbackError);
         }
       }
     }
