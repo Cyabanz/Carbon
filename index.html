@@ -1007,47 +1007,72 @@
       const redirectBtn = document.getElementById("redirect-btn");
       
       function redirectToCarbonWebsite() {
+        console.log("🔄 Redirect button clicked!");
+        
         const tab = getActiveTab();
-        if (!tab) return;
+        if (!tab) {
+          console.log("❌ No active tab found");
+          return;
+        }
         
         const currentUrl = tab.history[tab.pointer] || "";
+        console.log("🔍 Current URL:", currentUrl);
+        console.log("🔍 Tab pointer:", tab.pointer);
+        console.log("🔍 Tab history:", tab.history);
         
-                 // Check if current URL is a carbon:// URL
-         if (currentUrl.startsWith("carbon://")) {
-           const carbonPath = currentUrl.replace("carbon://", "");
-           let redirectUrl = "https://carbon-git-cursor-align-authentication-64a676-cyabanzs-projects.vercel.app/";
-           
-           // Map carbon:// paths to actual website URLs
-           switch (carbonPath) {
-             case "settings":
-               redirectUrl = "https://carbon-git-cursor-align-authentication-64a676-cyabanzs-projects.vercel.app/settings.html";
-               break;
-             case "games":
-               redirectUrl = "https://carbon-git-cursor-align-authentication-64a676-cyabanzs-projects.vercel.app/games.html";
-               break;
-             case "ai":
-               redirectUrl = "https://carbon-git-cursor-align-authentication-64a676-cyabanzs-projects.vercel.app/ai.html";
-               break;
-             case "account":
-               redirectUrl = "https://carbon-git-cursor-align-authentication-64a676-cyabanzs-projects.vercel.app/profile.html";
-               break;
-             case "history":
-               redirectUrl = "https://carbon-git-cursor-align-authentication-64a676-cyabanzs-projects.vercel.app/history.html";
-               break;
-             case "newtab":
-             default:
-               redirectUrl = "https://carbon-git-cursor-align-authentication-64a676-cyabanzs-projects.vercel.app/index.html";
-               break;
-           }
-           
-           // Navigate to the redirect URL in a new tab
-           const newTab = createTab(redirectUrl);
-           setActiveTab(newTab.id);
-         } else {
-           // If not a carbon:// URL, just go to the main website
-           const newTab = createTab("https://carbon-git-cursor-align-authentication-64a676-cyabanzs-projects.vercel.app/");
-           setActiveTab(newTab.id);
-         }
+        // Check if current URL is a carbon:// URL
+        if (currentUrl.startsWith("carbon://")) {
+          const carbonPath = currentUrl.replace("carbon://", "");
+          console.log("🎯 Carbon path detected:", carbonPath);
+          
+          let redirectUrl = "https://carbon-git-cursor-align-authentication-64a676-cyabanzs-projects.vercel.app/";
+          
+          // Map carbon:// paths to actual website URLs
+          switch (carbonPath) {
+            case "settings":
+              redirectUrl = "https://carbon-git-cursor-align-authentication-64a676-cyabanzs-projects.vercel.app/settings.html";
+              break;
+            case "games":
+              redirectUrl = "https://carbon-git-cursor-align-authentication-64a676-cyabanzs-projects.vercel.app/games.html";
+              break;
+            case "ai":
+              redirectUrl = "https://carbon-git-cursor-align-authentication-64a676-cyabanzs-projects.vercel.app/ai.html";
+              break;
+            case "account":
+              redirectUrl = "https://carbon-git-cursor-align-authentication-64a676-cyabanzs-projects.vercel.app/profile.html";
+              break;
+            case "history":
+              redirectUrl = "https://carbon-git-cursor-align-authentication-64a676-cyabanzs-projects.vercel.app/history.html";
+              break;
+            case "play":
+              redirectUrl = "https://carbon-git-cursor-align-authentication-64a676-cyabanzs-projects.vercel.app/play.html";
+              break;
+            case "chat":
+              redirectUrl = "https://carbon-git-cursor-align-authentication-64a676-cyabanzs-projects.vercel.app/carbon.html";
+              break;
+            case "code":
+              redirectUrl = "https://carbon-git-cursor-align-authentication-64a676-cyabanzs-projects.vercel.app/code.html";
+              break;
+            case "no":
+              redirectUrl = "https://carbon-git-cursor-align-authentication-64a676-cyabanzs-projects.vercel.app/no.html";
+              break;
+            case "newtab":
+            default:
+              redirectUrl = "https://carbon-git-cursor-align-authentication-64a676-cyabanzs-projects.vercel.app/index.html";
+              break;
+          }
+          
+          console.log("🚀 Redirecting to:", redirectUrl);
+          
+          // Navigate to the redirect URL in a new tab
+          const newTab = createTab(redirectUrl);
+          setActiveTab(newTab.id);
+        } else {
+          console.log("ℹ️ Not a carbon:// URL, redirecting to main website");
+          // If not a carbon:// URL, just go to the main website
+          const newTab = createTab("https://carbon-git-cursor-align-authentication-64a676-cyabanzs-projects.vercel.app/");
+          setActiveTab(newTab.id);
+        }
       }
       
       redirectBtn.addEventListener("click", (e) => {
