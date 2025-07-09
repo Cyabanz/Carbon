@@ -2822,6 +2822,34 @@
     window.googleSignIn = googleSignIn;
     window.signOut = signOutUser;
 
+    // Function to track when user stops playing
+    async function updateUserStatusToOnline() {
+      const currentUser = auth.currentUser;
+      if (!currentUser) return;
+      
+      if (window.trackGameEnd) {
+        await window.trackGameEnd();
+      } else {
+        // Fallback: update user status directly
+        try {
+          await db.collection('users').doc(currentUser.uid).update({
+            status: 'online',
+            currentGame: null,
+            lastSeen: firebase.firestore.FieldValue.serverTimestamp()
+          });
+        } catch (error) {
+          console.error('Error updating user status to online:', error);
+        }
+      }
+    }
+
+    // Track when user leaves the game
+    window.addEventListener('beforeunload', updateUserStatusToOnline);
+    window.addEventListener('pagehide', updateUserStatusToOnline);
+    
+    // Track when user navigates away
+    window.addEventListener('unload', updateUserStatusToOnline);
+
     // Re-initialize the main document loading logic
     document.addEventListener('DOMContentLoaded', async () => {
       showPreloader();
@@ -2884,6 +2912,22 @@
           
           // Track play activity
           await trackPlayActivity(user.uid, currentGameId, currentGame.title);
+          
+          // Update user status to "in game" for friends to see
+          if (window.trackGameStart) {
+            await window.trackGameStart(currentGameId);
+          } else {
+            // Fallback: update user status directly if profile.html functions not available
+            try {
+              await db.collection('users').doc(user.uid).update({
+                status: 'ingame',
+                currentGame: currentGameId,
+                lastSeen: firebase.firestore.FieldValue.serverTimestamp()
+              });
+            } catch (error) {
+              console.error('Error updating game status:', error);
+            }
+          }
           
           await window.loadProxiedGameIframe();
           document.getElementById('gameFrameEmbed').onload = hidePreloader;

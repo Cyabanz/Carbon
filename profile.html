@@ -12,6 +12,9 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  
+  <!-- DOMPurify for XSS protection -->
+  <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.5/dist/purify.min.js"></script>
   <script>
     // Tailwind config will be dynamically updated by the enhanced theme system
     tailwind.config = {
@@ -715,6 +718,23 @@
     const auth = firebase.auth();
     const db = firebase.firestore();
 
+    // XSS Protection Functions using DOMPurify
+    function sanitizeHTML(dirty) {
+      return DOMPurify.sanitize(dirty, { ALLOWED_TAGS: [], ALLOWED_ATTR: [] });
+    }
+    
+    function sanitizeHTMLWithBasicTags(dirty) {
+      return DOMPurify.sanitize(dirty, { 
+        ALLOWED_TAGS: ['b', 'i', 'em', 'strong', 'br'], 
+        ALLOWED_ATTR: [] 
+      });
+    }
+    
+    function sanitizeText(text) {
+      if (!text) return '';
+      return sanitizeHTML(String(text));
+    }
+
     function googleSignIn() {
       const provider = new firebase.auth.GoogleAuthProvider();
       auth.signInWithPopup(provider)
@@ -1062,18 +1082,25 @@
           ? `Playing ${getGameTitle(friend.currentGame)}` 
           : '';
         
+        // Sanitize friend data to prevent XSS
+        const safeDisplayName = sanitizeText(friend.displayName || 'Unknown User');
+        const safeUsername = sanitizeText(friend.username || '');
+        const safePhotoURL = friend.photoURL || '/default-avatar.png';
+        const safeUid = sanitizeText(friend.uid || '');
+        const safeCurrentGame = sanitizeText(friend.currentGame || '');
+        
         return `
           <div class="bg-rp-surface border border-rp-overlay rounded-lg p-4 hover:border-rp-foam/50 transition-all">
             <div class="flex items-center gap-3 mb-3">
               <div class="relative">
-                <img src="${friend.photoURL || '/default-avatar.png'}" 
-                     alt="${friend.displayName}" 
+                <img src="${safePhotoURL}" 
+                     alt="${safeDisplayName}" 
                      class="w-12 h-12 rounded-full">
                 <div class="${statusColor} w-3 h-3 rounded-full absolute -bottom-1 -right-1 border-2 border-rp-surface"></div>
               </div>
               <div class="flex-1 min-w-0">
-                <h4 class="font-medium text-rp-text truncate">${friend.displayName}</h4>
-                <p class="text-xs text-rp-subtle">${friend.username ? '@' + friend.username : ''}</p>
+                <h4 class="font-medium text-rp-text truncate">${safeDisplayName}</h4>
+                <p class="text-xs text-rp-subtle">${safeUsername ? '@' + safeUsername : ''}</p>
                 <p class="text-xs text-rp-foam">${statusText}</p>
                 ${currentGameText ? `<p class="text-xs text-rp-gold">${currentGameText}</p>` : ''}
               </div>
@@ -1081,18 +1108,18 @@
             
             <div class="flex gap-2">
               ${friend.status === 'ingame' && friend.currentGame ? `
-                <button onclick="inviteToGame('${friend.uid}', '${friend.currentGame}')" 
+                <button onclick="inviteToGame('${safeUid}', '${safeCurrentGame}')" 
                         class="flex-1 px-3 py-2 bg-rp-gold hover:bg-rp-gold/90 text-rp-base rounded-lg text-xs transition-colors">
                   <i class='bx bx-game mr-1'></i>
                   Join Game
                 </button>
               ` : ''}
-              <button onclick="startChat('${friend.uid}', '${friend.displayName}')" 
+              <button onclick="startChat('${safeUid}', '${safeDisplayName}')" 
                       class="flex-1 px-3 py-2 bg-rp-iris hover:bg-rp-iris/90 text-white rounded-lg text-xs transition-colors">
                 <i class='bx bx-message mr-1'></i>
                 Chat
               </button>
-              <button onclick="removeFriend('${friend.uid}')" 
+              <button onclick="removeFriend('${safeUid}')" 
                       class="px-3 py-2 bg-rp-love/20 hover:bg-rp-love/30 text-rp-love rounded-lg text-xs transition-colors">
                 <i class='bx bx-user-minus'></i>
               </button>
@@ -1179,11 +1206,14 @@
         const isOwn = message.sender === currentUser.uid;
         const messageTime = message.timestamp?.toDate()?.toLocaleTimeString() || '';
         
+        // Sanitize message content to prevent XSS
+        const safeMessageText = sanitizeHTMLWithBasicTags(message.text || '');
+        
         return `
           <div class="flex ${isOwn ? 'justify-end' : 'justify-start'} mb-2">
             <div class="max-w-xs ${isOwn ? 'bg-rp-foam text-rp-base' : 'bg-rp-highlight-med text-rp-text'} 
                         rounded-lg px-3 py-2 text-sm">
-              <p>${message.text}</p>
+              <p>${safeMessageText}</p>
               <p class="text-xs opacity-70 mt-1">${messageTime}</p>
             </div>
           </div>
@@ -1200,13 +1230,22 @@
       
       if (!text || !activeChatUser) return;
       
+      // Sanitize message text to prevent XSS
+      const safeText = sanitizeText(text);
+      
+      // Validate message length
+      if (safeText.length > 500) {
+        showNotification('Message Too Long', 'Messages must be 500 characters or less', 'error');
+        return;
+      }
+      
       const chatRoomId = [currentUser.uid, activeChatUser.uid].sort().join('_');
       
       try {
         await db.collection('chats').doc(chatRoomId).collection('messages').add({
-          text: text,
+          text: safeText,
           sender: currentUser.uid,
-          senderName: currentUser.displayName,
+          senderName: sanitizeText(currentUser.displayName),
           timestamp: firebase.firestore.FieldValue.serverTimestamp()
         });
         
@@ -1284,27 +1323,34 @@
         
         console.log('👤 Rendering user:', user.displayName, 'Already friend:', isAlreadyFriend);
         
+        // Sanitize user data to prevent XSS
+        const safeDisplayName = sanitizeText(user.displayName || 'Unknown User');
+        const safeUsername = sanitizeText(user.username || '');
+        const safeBio = sanitizeText(user.bio || '');
+        const safePhotoURL = user.photoURL || '/default-avatar.png';
+        const safeUid = sanitizeText(user.uid || '');
+        
         return `
           <div class="flex items-center gap-3 p-3 bg-rp-overlay rounded-lg">
-            <img src="${user.photoURL || '/default-avatar.png'}" 
-                 alt="${user.displayName}" 
+            <img src="${safePhotoURL}" 
+                 alt="${safeDisplayName}" 
                  class="w-10 h-10 rounded-full">
             <div class="flex-1 min-w-0">
-              <h4 class="font-medium text-rp-text truncate">${user.displayName}</h4>
-              <p class="text-xs text-rp-subtle">${user.username ? '@' + user.username : user.uid.substring(0, 8) + '...'}</p>
-              ${user.bio ? `<p class="text-xs text-rp-muted truncate">${user.bio}</p>` : ''}
+              <h4 class="font-medium text-rp-text truncate">${safeDisplayName}</h4>
+              <p class="text-xs text-rp-subtle">${safeUsername ? '@' + safeUsername : safeUid.substring(0, 8) + '...'}</p>
+              ${safeBio ? `<p class="text-xs text-rp-muted truncate">${safeBio}</p>` : ''}
             </div>
             <div class="flex gap-2">
               ${isAlreadyFriend ? `
                 <span class="px-3 py-1 bg-rp-foam/20 text-rp-foam rounded text-xs">Friends</span>
               ` : `
-                <button onclick="window.sendFriendRequest('${user.uid}')" 
+                <button onclick="window.sendFriendRequest('${safeUid}')" 
                         class="px-3 py-1 bg-rp-foam hover:bg-rp-foam/90 text-rp-base rounded text-xs transition-colors"
-                        data-uid="${user.uid}">
+                        data-uid="${safeUid}">
                   Add Friend
                 </button>
               `}
-              <button onclick="window.viewUserProfile('${user.uid}')" 
+              <button onclick="window.viewUserProfile('${safeUid}')" 
                       class="px-3 py-1 bg-rp-iris/20 text-rp-iris rounded text-xs hover:bg-rp-iris/30 transition-colors">
                 View
               </button>
@@ -1418,27 +1464,36 @@
         noIncoming.classList.remove('hidden');
       } else {
         noIncoming.classList.add('hidden');
-        incomingContainer.innerHTML = incoming.map(request => `
-          <div class="flex items-center gap-3 p-3 bg-rp-overlay rounded-lg">
-            <img src="${request.fromUserData.photoURL || '/default-avatar.png'}" 
-                 alt="${request.fromUserData.displayName}" 
-                 class="w-10 h-10 rounded-full">
-            <div class="flex-1 min-w-0">
-              <h4 class="font-medium text-rp-text">${request.fromUserData.displayName}</h4>
-              <p class="text-xs text-rp-subtle">${request.fromUserData.username ? '@' + request.fromUserData.username : ''}</p>
+        incomingContainer.innerHTML = incoming.map(request => {
+          // Sanitize incoming request data to prevent XSS
+          const safeDisplayName = sanitizeText(request.fromUserData.displayName || 'Unknown User');
+          const safeUsername = sanitizeText(request.fromUserData.username || '');
+          const safePhotoURL = request.fromUserData.photoURL || '/default-avatar.png';
+          const safeRequestId = sanitizeText(request.id || '');
+          const safeFromUid = sanitizeText(request.from || '');
+          
+          return `
+            <div class="flex items-center gap-3 p-3 bg-rp-overlay rounded-lg">
+              <img src="${safePhotoURL}" 
+                   alt="${safeDisplayName}" 
+                   class="w-10 h-10 rounded-full">
+              <div class="flex-1 min-w-0">
+                <h4 class="font-medium text-rp-text">${safeDisplayName}</h4>
+                <p class="text-xs text-rp-subtle">${safeUsername ? '@' + safeUsername : ''}</p>
+              </div>
+              <div class="flex gap-2">
+                <button onclick="acceptFriendRequest('${safeRequestId}', '${safeFromUid}')" 
+                        class="px-3 py-1 bg-rp-foam hover:bg-rp-foam/90 text-rp-base rounded text-xs">
+                  Accept
+                </button>
+                <button onclick="declineFriendRequest('${safeRequestId}')" 
+                        class="px-3 py-1 bg-rp-love/20 hover:bg-rp-love/30 text-rp-love rounded text-xs">
+                  Decline
+                </button>
+              </div>
             </div>
-            <div class="flex gap-2">
-              <button onclick="acceptFriendRequest('${request.id}', '${request.from}')" 
-                      class="px-3 py-1 bg-rp-foam hover:bg-rp-foam/90 text-rp-base rounded text-xs">
-                Accept
-              </button>
-              <button onclick="declineFriendRequest('${request.id}')" 
-                      class="px-3 py-1 bg-rp-love/20 hover:bg-rp-love/30 text-rp-love rounded text-xs">
-                Decline
-              </button>
-            </div>
-          </div>
-        `).join('');
+          `;
+        }).join('');
       }
       
       // Render outgoing requests
@@ -1450,23 +1505,30 @@
         noOutgoing.classList.remove('hidden');
       } else {
         noOutgoing.classList.add('hidden');
-        outgoingContainer.innerHTML = outgoing.map(request => `
-          <div class="flex items-center gap-3 p-3 bg-rp-overlay rounded-lg">
-            <img src="${request.toUserData.photoURL || '/default-avatar.png'}" 
-                 alt="${request.toUserData.displayName}" 
-                 class="w-10 h-10 rounded-full">
-            <div class="flex-1 min-w-0">
-              <h4 class="font-medium text-rp-text">${request.toUserData.displayName}</h4>
-              <p class="text-xs text-rp-subtle">Request sent</p>
+        outgoingContainer.innerHTML = outgoing.map(request => {
+          // Sanitize outgoing request data to prevent XSS
+          const safeDisplayName = sanitizeText(request.toUserData.displayName || 'Unknown User');
+          const safePhotoURL = request.toUserData.photoURL || '/default-avatar.png';
+          const safeRequestId = sanitizeText(request.id || '');
+          
+          return `
+            <div class="flex items-center gap-3 p-3 bg-rp-overlay rounded-lg">
+              <img src="${safePhotoURL}" 
+                   alt="${safeDisplayName}" 
+                   class="w-10 h-10 rounded-full">
+              <div class="flex-1 min-w-0">
+                <h4 class="font-medium text-rp-text">${safeDisplayName}</h4>
+                <p class="text-xs text-rp-subtle">Request sent</p>
+              </div>
+              <div>
+                <button onclick="cancelFriendRequest('${safeRequestId}')" 
+                        class="px-3 py-1 bg-rp-subtle/20 hover:bg-rp-subtle/30 text-rp-subtle rounded text-xs">
+                  Cancel
+                </button>
+              </div>
             </div>
-            <div>
-              <button onclick="cancelFriendRequest('${request.id}')" 
-                      class="px-3 py-1 bg-rp-subtle/20 hover:bg-rp-subtle/30 text-rp-subtle rounded text-xs">
-                Cancel
-              </button>
-            </div>
-          </div>
-        `).join('');
+          `;
+        }).join('');
       }
     }
 
@@ -1488,9 +1550,12 @@
         const userDoc = await db.collection('users').doc(currentUser.uid).get();
         const userData = userDoc.data();
         
-        // Display current profile info
-        document.getElementById('displayUsername').textContent = userData.username || 'Not set';
-        document.getElementById('displayBio').textContent = userData.bio || 'No bio set';
+        // Sanitize and display current profile info
+        const safeUsername = sanitizeText(userData.username || 'Not set');
+        const safeBio = sanitizeText(userData.bio || 'No bio set');
+        
+        document.getElementById('displayUsername').textContent = safeUsername;
+        document.getElementById('displayBio').textContent = safeBio;
         document.getElementById('displayPrivacy').textContent = 
           userData.privacy === 'public' ? 'Public Profile' :
           userData.privacy === 'friends' ? 'Friends Only' : 'Private Profile';
@@ -1500,9 +1565,11 @@
         if (userData.favoriteGames && userData.favoriteGames.length > 0) {
           favoriteGamesContainer.innerHTML = userData.favoriteGames.slice(0, 3).map(gameId => {
             const game = gamesData.find(g => String(g.id) === String(gameId));
-            return game ? `
-              <span class="px-2 py-1 bg-rp-foam/20 text-rp-foam rounded text-xs">${game.title}</span>
-            ` : '';
+            if (game) {
+              const safeGameTitle = sanitizeText(game.title);
+              return `<span class="px-2 py-1 bg-rp-foam/20 text-rp-foam rounded text-xs">${safeGameTitle}</span>`;
+            }
+            return '';
           }).join('');
         } else {
           favoriteGamesContainer.innerHTML = '<span class="text-rp-subtle text-xs">None selected</span>';
@@ -1548,22 +1615,33 @@
       const bio = document.getElementById('editBio').value.trim();
       const privacy = document.getElementById('editPrivacy').value;
       
+      // Sanitize inputs to prevent XSS
+      const safeUsername = sanitizeText(username);
+      const safeBio = sanitizeText(bio);
+      const safePrivacy = ['public', 'friends', 'private'].includes(privacy) ? privacy : 'public';
+      
       // Validate username
-      if (username && !/^[a-zA-Z0-9_]+$/.test(username)) {
+      if (safeUsername && !/^[a-zA-Z0-9_]+$/.test(safeUsername)) {
         showNotification('Invalid Username', 'Username can only contain letters, numbers, and underscores', 'error');
         return;
       }
       
-      if (username && username.length < 3) {
+      if (safeUsername && safeUsername.length < 3) {
         showNotification('Invalid Username', 'Username must be at least 3 characters', 'error');
+        return;
+      }
+      
+      // Validate bio length
+      if (safeBio.length > 200) {
+        showNotification('Bio Too Long', 'Bio must be 200 characters or less', 'error');
         return;
       }
       
       try {
         // Check if username is already taken
-        if (username) {
+        if (safeUsername) {
           const usernameQuery = await db.collection('users')
-            .where('username', '==', username.toLowerCase())
+            .where('username', '==', safeUsername.toLowerCase())
             .get();
           
           if (!usernameQuery.empty && usernameQuery.docs[0].id !== currentUser.uid) {
@@ -1572,11 +1650,11 @@
           }
         }
         
-        // Update user profile
+        // Update user profile with sanitized data
         await db.collection('users').doc(currentUser.uid).update({
-          username: username.toLowerCase(),
-          bio: bio,
-          privacy: privacy
+          username: safeUsername.toLowerCase(),
+          bio: safeBio,
+          privacy: safePrivacy
         });
         
         showNotification('Profile Updated', 'Your profile has been updated successfully', 'success');
@@ -1633,19 +1711,25 @@
             const gameText = friend.currentGame && friend.status === 'ingame' 
               ? getGameTitle(friend.currentGame) : '';
             
+            // Sanitize friend data to prevent XSS
+            const safeDisplayName = sanitizeText(friend.displayName || 'Unknown User');
+            const safePhotoURL = friend.photoURL || '/default-avatar.png';
+            const safeUid = sanitizeText(friend.uid || '');
+            const safeGameText = sanitizeText(gameText || '');
+            
             return `
               <div class="flex items-center gap-2 p-2 bg-rp-overlay rounded-lg hover:bg-rp-highlight-med transition-colors cursor-pointer"
-                   onclick="startChat('${friend.uid}', '${friend.displayName}')">
+                   onclick="startChat('${safeUid}', '${safeDisplayName}')">
                 <div class="relative">
-                  <img src="${friend.photoURL || '/default-avatar.png'}" 
-                       alt="${friend.displayName}" 
+                  <img src="${safePhotoURL}" 
+                       alt="${safeDisplayName}" 
                        class="w-8 h-8 rounded-full">
                   <div class="${statusColor} w-2.5 h-2.5 rounded-full absolute -bottom-0.5 -right-0.5 border border-rp-surface"></div>
                 </div>
                 <div class="flex-1 min-w-0">
-                  <p class="text-sm font-medium text-rp-text truncate">${friend.displayName}</p>
+                  <p class="text-sm font-medium text-rp-text truncate">${safeDisplayName}</p>
                   <p class="text-xs text-rp-foam">${statusText}</p>
-                  ${gameText ? `<p class="text-xs text-rp-gold truncate">${gameText}</p>` : ''}
+                  ${safeGameText ? `<p class="text-xs text-rp-gold truncate">${safeGameText}</p>` : ''}
                 </div>
               </div>
             `;
