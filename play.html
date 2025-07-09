@@ -1715,22 +1715,18 @@
       updateCommentsUI();
       
       try {
-        let commentsQuery = query(
-          collection(db, "games", gameId, "comments"),
-          orderBy("createdAt", "desc"),
-          limit(commentsData.commentsPerPage)
-        );
+        let commentsQuery = db.collection("games").doc(gameId).collection("comments")
+          .orderBy("createdAt", "desc")
+          .limit(commentsData.commentsPerPage);
         
         if (loadMore && commentsData.lastVisible) {
-          commentsQuery = query(
-            collection(db, "games", gameId, "comments"),
-            orderBy("createdAt", "desc"),
-            startAfter(commentsData.lastVisible),
-            limit(commentsData.commentsPerPage)
-          );
+          commentsQuery = db.collection("games").doc(gameId).collection("comments")
+            .orderBy("createdAt", "desc")
+            .startAfter(commentsData.lastVisible)
+            .limit(commentsData.commentsPerPage);
         }
         
-        const snapshot = await getDocs(commentsQuery);
+        const snapshot = await commentsQuery.get();
         
         if (loadMore) {
           snapshot.forEach(doc => {
@@ -1748,11 +1744,9 @@
         // Load replies for each comment
         for (let comment of commentsData.comments) {
           if (!comment.replies) {
-            const repliesQuery = query(
-              collection(db, "games", gameId, "comments", comment.id, "replies"),
-              orderBy("createdAt", "asc")
-            );
-            const repliesSnapshot = await getDocs(repliesQuery);
+            const repliesQuery = db.collection("games").doc(gameId).collection("comments").doc(comment.id).collection("replies")
+              .orderBy("createdAt", "asc");
+            const repliesSnapshot = await repliesQuery.get();
             
             comment.replies = [];
             repliesSnapshot.forEach(replyDoc => {
@@ -1809,12 +1803,12 @@
           authorId: user.uid,
           authorName: user.displayName || 'Anonymous',
           authorPhoto: user.photoURL || '/default-avatar.png',
-          createdAt: serverTimestamp(),
+          createdAt: firebase.firestore.FieldValue.serverTimestamp(),
           reactions: {},
           reactionCounts: {}
         };
         
-        const docRef = await addDoc(collection(db, "games", validatedGameId, "comments"), commentData);
+        const docRef = await db.collection("games").doc(validatedGameId).collection("comments").add(commentData);
         
         // Reset form
         document.getElementById('commentText').value = '';
@@ -1859,13 +1853,13 @@
           authorId: user.uid,
           authorName: user.displayName || 'Anonymous',
           authorPhoto: user.photoURL || '/default-avatar.png',
-          createdAt: serverTimestamp(),
+          createdAt: firebase.firestore.FieldValue.serverTimestamp(),
           reactions: {},
           reactionCounts: {}
         };
         
-        const repliesRef = collection(db, 'games', validatedGameId, 'comments', commentsData.currentReplyingTo, 'replies');
-        await addDoc(repliesRef, replyData);
+        const repliesRef = db.collection('games').doc(validatedGameId).collection('comments').doc(commentsData.currentReplyingTo).collection('replies');
+        await repliesRef.add(replyData);
         
         closeReplyModal();
         await loadComments(validatedGameId);
@@ -1885,16 +1879,17 @@
       }
       
       try {
-        let docPath = `games/${currentGameId}/comments/${commentId}`;
+        let docRef;
         if (isReply) {
-          docPath += `/replies/${replyId}`;
+          docRef = db.collection('games').doc(currentGameId).collection('comments').doc(commentId).collection('replies').doc(replyId);
+        } else {
+          docRef = db.collection('games').doc(currentGameId).collection('comments').doc(commentId);
         }
         
-        const docRef = doc(db, ...docPath.split('/'));
-        const docSnap = await getDoc(docRef);
+        const docSnap = await docRef.get();
         
-        if (!docSnap.exists()) {
-          console.error('Document does not exist:', docPath);
+        if (!docSnap.exists) {
+          console.error('Document does not exist');
           return;
         }
         
@@ -1923,7 +1918,7 @@
           reactionCounts[emoji] = (reactionCounts[emoji] || 0) + 1;
         }
         
-        await updateDoc(docRef, { reactions, reactionCounts });
+        await docRef.update({ reactions, reactionCounts });
         await loadComments(currentGameId);
         
       } catch (error) {
@@ -2057,6 +2052,133 @@
       return text.replace(/\0/g, '').substring(0, maxLength);
     }
 
+    // Update comments UI
+    function updateCommentsUI() {
+      const commentsLoader = document.getElementById('commentsLoader');
+      const noComments = document.getElementById('noComments');
+      const commentsList = document.getElementById('commentsList');
+      const commentsCount = document.getElementById('commentsCount');
+      
+      if (commentsData.loading) {
+        if (commentsLoader) commentsLoader.classList.remove('hidden');
+        if (noComments) noComments.classList.add('hidden');
+        return;
+      }
+      
+      if (commentsLoader) commentsLoader.classList.add('hidden');
+      
+      if (commentsData.comments.length === 0) {
+        if (noComments) noComments.classList.remove('hidden');
+        if (commentsList) commentsList.innerHTML = '';
+      } else {
+        if (noComments) noComments.classList.add('hidden');
+        renderComments();
+      }
+      
+      if (commentsCount) {
+        commentsCount.textContent = `(${commentsData.comments.length})`;
+      }
+    }
+
+    function renderComments() {
+      const commentsList = document.getElementById('commentsList');
+      if (!commentsList) return;
+      
+      const filteredComments = commentsData.comments.filter(comment => {
+        if (commentsData.currentFilter === 'all') return true;
+        if (commentsData.currentFilter === 'no-rating') return !comment.rating;
+        return comment.rating && comment.rating.toString() === commentsData.currentFilter;
+      });
+      
+      commentsList.innerHTML = filteredComments.map(comment => {
+        const stars = comment.rating ? '★'.repeat(comment.rating) + '☆'.repeat(5 - comment.rating) : '';
+        return `
+          <div class="comment-item bg-white/5 rounded-lg p-4 border border-white/10">
+            <div class="flex items-start gap-3">
+              <img src="${comment.authorPhoto || '/default-avatar.png'}" class="w-8 h-8 rounded-full flex-shrink-0" alt="${comment.authorName}">
+              <div class="flex-1">
+                <div class="flex items-center gap-2 mb-2">
+                  <span class="font-medium text-sm" style="color: var(--theme-foam);">${comment.authorName}</span>
+                  ${comment.rating ? `<span class="comment-stars text-xs">${stars}</span>` : ''}
+                  <span class="text-xs" style="color: var(--theme-muted);">${formatDate(comment.createdAt)}</span>
+                </div>
+                <p class="text-white/80 text-sm mb-3">${escapeHtml(comment.text)}</p>
+                <div class="flex items-center gap-2">
+                  <button onclick="openReplyModal('${comment.id}')" class="text-xs px-3 py-1 rounded-full border border-white/20 hover:border-cyan-400/50 transition">
+                    Reply
+                  </button>
+                  <button onclick="showReactionPicker('${comment.id}', event)" class="text-xs px-3 py-1 rounded-full border border-white/20 hover:border-cyan-400/50 transition">
+                    React
+                  </button>
+                </div>
+              </div>
+            </div>
+            ${comment.replies && comment.replies.length > 0 ? `
+              <div class="ml-11 mt-4 space-y-3">
+                ${comment.replies.map(reply => `
+                  <div class="reply-item bg-white/5 rounded-lg p-3">
+                    <div class="flex items-start gap-3">
+                      <img src="${reply.authorPhoto || '/default-avatar.png'}" class="w-6 h-6 rounded-full flex-shrink-0" alt="${reply.authorName}">
+                      <div class="flex-1">
+                        <div class="flex items-center gap-2 mb-1">
+                          <span class="font-medium text-xs" style="color: var(--theme-foam);">${reply.authorName}</span>
+                          <span class="text-xs" style="color: var(--theme-muted);">${formatDate(reply.createdAt)}</span>
+                        </div>
+                        <p class="text-white/80 text-xs">${escapeHtml(reply.text)}</p>
+                      </div>
+                    </div>
+                  </div>
+                `).join('')}
+              </div>
+            ` : ''}
+          </div>
+        `;
+      }).join('');
+    }
+
+    function formatDate(timestamp) {
+      if (!timestamp) return 'Just now';
+      let date;
+      if (timestamp && timestamp.toDate) {
+        date = timestamp.toDate();
+      } else if (timestamp && timestamp.seconds) {
+        date = new Date(timestamp.seconds * 1000);
+      } else {
+        return 'Just now';
+      }
+      
+      const now = new Date();
+      const diff = now - date;
+      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+      const hours = Math.floor(diff / (1000 * 60 * 60));
+      const minutes = Math.floor(diff / (1000 * 60));
+      
+      if (days > 0) return `${days}d ago`;
+      if (hours > 0) return `${hours}h ago`;
+      if (minutes > 0) return `${minutes}m ago`;
+      return 'Just now';
+    }
+
+    function updateSubmitButtonState() {
+      const submitBtn = document.getElementById('submitComment');
+      const commentText = document.getElementById('commentText');
+      
+      if (submitBtn && commentText) {
+        const hasText = commentText.value.trim().length > 0;
+        submitBtn.disabled = !hasText;
+      }
+    }
+
+    function updateReplyButtonState() {
+      const submitBtn = document.getElementById('submitReply');
+      const replyText = document.getElementById('replyText');
+      
+      if (submitBtn && replyText) {
+        const hasText = replyText.value.trim().length > 0;
+        submitBtn.disabled = !hasText;
+      }
+    }
+
     // Expose all functions to global scope immediately
     window.openReplyModal = openReplyModal;
     window.closeReplyModal = closeReplyModal;
@@ -2065,6 +2187,8 @@
     window.submitComment = submitComment;
     window.submitReply = submitReply;
     window.loadComments = loadComments;
+    window.updateSubmitButtonState = updateSubmitButtonState;
+    window.updateReplyButtonState = updateReplyButtonState;
 
     // --- NEW GAME FRAME FEATURES ---
     
@@ -2088,16 +2212,16 @@
       
       try {
         // Get current play count from Firebase
-        const gameStatsRef = doc(db, 'games', gameId, 'stats', 'general');
-        const userStatsRef = doc(db, 'users', userId);
+        const gameStatsRef = db.collection('games').doc(gameId).collection('stats').doc('general');
+        const userStatsRef = db.collection('users').doc(userId);
         
         const [gameStatsDoc, userStatsDoc] = await Promise.all([
-          getDoc(gameStatsRef),
-          getDoc(userStatsRef)
+          gameStatsRef.get(),
+          userStatsRef.get()
         ]);
         
-        const gameStats = gameStatsDoc.exists() ? gameStatsDoc.data() : {};
-        const userStats = userStatsDoc.exists() ? userStatsDoc.data() : {};
+        const gameStats = gameStatsDoc.exists ? gameStatsDoc.data() : {};
+        const userStats = userStatsDoc.exists ? userStatsDoc.data() : {};
         
         // Update play count
         const newPlayCount = (gameStats.totalPlays || 0) + 1;
@@ -2105,10 +2229,10 @@
         
         // Update Firebase
         await Promise.all([
-          setDoc(gameStatsRef, { totalPlays: newPlayCount }, { merge: true }),
-          setDoc(userStatsRef, { 
-            [`gameStats.${gameId}.plays`]: increment(1),
-            [`gameStats.${gameId}.lastPlayed`]: serverTimestamp()
+          gameStatsRef.set({ totalPlays: newPlayCount }, { merge: true }),
+          userStatsRef.set({ 
+            [`gameStats.${gameId}.plays`]: firebase.firestore.FieldValue.increment(1),
+            [`gameStats.${gameId}.lastPlayed`]: firebase.firestore.FieldValue.serverTimestamp()
           }, { merge: true })
         ]);
         
@@ -3318,9 +3442,28 @@
     async function updateGameHistory(uid, gameId) {
       try {
         const userRef = db.collection('users').doc(uid);
-        await userRef.update({
-          history: firebase.firestore.FieldValue.arrayUnion(gameId)
-        });
+        
+        // Get current user data
+        const userDoc = await userRef.get();
+        const userData = userDoc.exists ? userDoc.data() : {};
+        let currentHistory = userData.history || [];
+        
+        // Remove the game if it already exists in history
+        currentHistory = currentHistory.filter(id => String(id) !== String(gameId));
+        
+        // Add the game to the front of the history
+        currentHistory.unshift(gameId);
+        
+        // Limit history to last 50 games to prevent unlimited growth
+        if (currentHistory.length > 50) {
+          currentHistory = currentHistory.slice(0, 50);
+        }
+        
+        // Update the history
+        await userRef.set({
+          history: currentHistory
+        }, { merge: true });
+        
       } catch (error) {
         // If document doesn't exist, create it
         if (error.code === 'not-found') {
@@ -3465,12 +3608,43 @@
         setTimeout(setupCommentEventListeners, 100);
       }
 
+      // Game frame features initialization
+      function initializeGameFrameFeatures(gameId, userId) {
+        // Initialize play tracking
+        initializePlayTracking(gameId, userId);
+        
+        // Initialize keyboard shortcuts
+        initializeKeyboardShortcuts();
+        
+        console.log('Game frame features initialized');
+      }
+
+      function cleanupGameFrameFeatures() {
+        // Clear any timers
+        if (gameState.playTimer) {
+          clearInterval(gameState.playTimer);
+          gameState.playTimer = null;
+        }
+        if (gameState.activityTimer) {
+          clearInterval(gameState.activityTimer);
+          gameState.activityTimer = null;
+        }
+        if (suggestedAutoplayInterval) {
+          clearInterval(suggestedAutoplayInterval);
+          suggestedAutoplayInterval = null;
+        }
+        
+        console.log('Game frame features cleaned up');
+      }
+
       // Expose functions to global scope for HTML onclick handlers
       window.googleSignIn = googleSignIn;
       window.signOut = signOutUser;
       window.navigateToGame = navigateToGame;
       window.loadSuggestedGames = loadSuggestedGames;
       window.goToSuggestedSlide = goToSuggestedSlide;
+      window.initializeGameFrameFeatures = initializeGameFrameFeatures;
+      window.cleanupGameFrameFeatures = cleanupGameFrameFeatures;
 
       // Additional safety net - reload suggested games on page ready
       if (document.readyState === 'loading') {
