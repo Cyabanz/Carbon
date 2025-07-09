@@ -18,24 +18,24 @@
   <link href='https://cdn.jsdelivr.net/npm/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
   <script src="carbon-theme.js"></script>
   <script type="module" src="https://cdn.jsdelivr.net/npm/emoji-picker-element@^1/index.js"></script>
-  <script type="module">
-    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
-    import { getFirestore } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
-    import { getAuth } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
-
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <script>
+    // FIREBASE INIT
     const firebaseConfig = {
       apiKey: "AIzaSyC4ilHYP1T-kdXbWPoHJHhD2aj0pNWmMec",
       authDomain: "carbon-services.firebaseapp.com",
       projectId: "carbon-services",
-      storageBucket: "carbon-services.appspot.com",
+      storageBucket: "carbon-services.firebasestorage.app",
       messagingSenderId: "288385472070",
       appId: "1:288385472070:web:c4be3ff186e248fc645c47",
       measurementId: "G-Y2K1RQYE74"
     };
-
-    window.firebaseApp = initializeApp(firebaseConfig);
-    window.db = getFirestore(window.firebaseApp);
-    window.auth = getAuth(window.firebaseApp);
+    firebase.initializeApp(firebaseConfig);
+    window.auth = firebase.auth();
+    window.db = firebase.firestore();
   </script>
   <script>
     function setConfig() {
@@ -1221,16 +1221,13 @@
     window.updateProxyToggleUI = updateProxyToggleUI;
   </script>
 
-  <script type="module">
-    import { signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
-    import { doc, setDoc, getDoc, updateDoc, arrayUnion, arrayRemove, onSnapshot, collection, getDocs, query, orderBy, addDoc, serverTimestamp, limit, startAfter, increment } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
-
+           <script>
     const auth = window.auth;
     const db = window.db;
-
+    
     function googleSignIn() {
-      const provider = new GoogleAuthProvider();
-      signInWithPopup(auth, provider)
+      const provider = new firebase.auth.GoogleAuthProvider();
+      auth.signInWithPopup(provider)
         .catch((error) => {
           document.getElementById('loginError').innerText = error.message;
           document.getElementById('loginError').classList.remove('hidden');
@@ -1238,7 +1235,36 @@
     }
     
     function signOutUser() {
-      signOut(auth).then(() => location.reload());
+      auth.signOut().then(() => location.reload());
+    }
+
+    async function ensureUserDoc(user) {
+      const userRef = db.collection('users').doc(user.uid);
+      const doc = await userRef.get();
+      if (!doc.exists) {
+        await userRef.set({
+          displayName: user.displayName || "",
+          photoURL: user.photoURL || "",
+          email: user.email || "",
+          username: "",
+          likedGames: [],
+          favoriteGames: [],
+          history: [],
+        });
+      } else {
+        let needsUpdate = false;
+        const data = doc.data();
+        const updateFields = {};
+        if (!data.displayName && user.displayName) {
+          updateFields.displayName = user.displayName;
+          needsUpdate = true;
+        }
+        if (!data.photoURL && user.photoURL) {
+          updateFields.photoURL = user.photoURL;
+          needsUpdate = true;
+        }
+        if (needsUpdate) await userRef.update(updateFields);
+      }
     }
 
     let gamesData = [];
@@ -1249,8 +1275,8 @@
 
     async function loadGamesData() {
       try {
-        const gamesQuery = query(collection(db, 'games'), orderBy('title'));
-        const querySnapshot = await getDocs(gamesQuery);
+        const gamesQuery = db.collection('games').orderBy('title');
+        const querySnapshot = await gamesQuery.get();
         gamesData = [];
         querySnapshot.forEach((docSnap) => {
           const game = { ...docSnap.data(), id: docSnap.id };
@@ -1427,8 +1453,8 @@
       starRatingData.yourRating = 0;
       starRatingData.percent = 0;
       try {
-        const ratingsRef = collection(db, "games", gameId, "ratings");
-        const snap = await getDocs(ratingsRef);
+        const ratingsRef = db.collection("games").doc(gameId).collection("ratings");
+        const snap = await ratingsRef.get();
         let total = 0, count = 0, your = 0, user = auth.currentUser;
         let highCount = 0;
         snap.forEach(doc => {
@@ -1476,10 +1502,10 @@
       renderStarRatingUI();
       renderStarRatingUI("Frame");
       try {
-        const ref = doc(db, "games", currentGameId, "ratings", auth.currentUser.uid);
-        await setDoc(ref, {
+        const ref = db.collection("games").doc(currentGameId).collection("ratings").doc(auth.currentUser.uid);
+        await ref.set({
           rating: stars,
-          updatedAt: serverTimestamp()
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
         });
         starRatingData.yourRating = stars;
         await loadStarRating(currentGameId);
@@ -2686,7 +2712,7 @@
       document.getElementById('gameInfoHolder').classList.add('hidden');
       document.getElementById('loginScreen').classList.remove('hidden');
       
-      onAuthStateChanged(auth, async (user) => {
+      auth.onAuthStateChanged(async (user) => {
         renderUserSection(user);
         if (!user) {
           hidePreloader();
@@ -2901,8 +2927,8 @@
         // Load all games from Firebase
         let allGames = [];
         try {
-          const gamesQuery = query(collection(window.db, 'games'), orderBy('title'));
-          const querySnapshot = await getDocs(gamesQuery);
+          const gamesQuery = db.collection('games').orderBy('title');
+          const querySnapshot = await gamesQuery.get();
           
           querySnapshot.forEach((doc) => {
             const gameData = doc.data();
@@ -3256,20 +3282,20 @@
     // User functions - Fixed for Firebase v10.7.1 modular SDK
     async function updateUserArray(uid, field, gameId, add = true) {
       try {
-        const userRef = doc(db, 'users', uid);
+        const userRef = db.collection('users').doc(uid);
         if (add) {
-          await updateDoc(userRef, {
-            [field]: arrayUnion(gameId)
+          await userRef.update({
+            [field]: firebase.firestore.FieldValue.arrayUnion(gameId)
           });
         } else {
-          await updateDoc(userRef, {
-            [field]: arrayRemove(gameId)
+          await userRef.update({
+            [field]: firebase.firestore.FieldValue.arrayRemove(gameId)
           });
         }
       } catch (error) {
         // If document doesn't exist, create it
         if (error.code === 'not-found') {
-          await setDoc(userRef, {
+          await userRef.set({
             [field]: add ? [gameId] : []
           }, { merge: true });
         } else {
@@ -3280,9 +3306,9 @@
     
     async function getUserGameLists(uid) {
       try {
-        const userRef = doc(db, 'users', uid);
-        const userDoc = await getDoc(userRef);
-        return userDoc.exists() ? userDoc.data() : { likedGames: [], favoriteGames: [], playlist: [], history: [] };
+        const userRef = db.collection('users').doc(uid);
+        const userDoc = await userRef.get();
+        return userDoc.exists ? userDoc.data() : { likedGames: [], favoriteGames: [], playlist: [], history: [] };
       } catch (error) {
         console.error('Error getting user game lists:', error);
         return { likedGames: [], favoriteGames: [], playlist: [], history: [] };
@@ -3291,14 +3317,14 @@
     
     async function updateGameHistory(uid, gameId) {
       try {
-        const userRef = doc(db, 'users', uid);
-        await updateDoc(userRef, {
-          history: arrayUnion(gameId)
+        const userRef = db.collection('users').doc(uid);
+        await userRef.update({
+          history: firebase.firestore.FieldValue.arrayUnion(gameId)
         });
       } catch (error) {
         // If document doesn't exist, create it
         if (error.code === 'not-found') {
-          await setDoc(userRef, {
+          await userRef.set({
             history: [gameId]
           }, { merge: true });
         } else {
@@ -3315,10 +3341,10 @@
         await updateGameHistory(uid, gameId);
         
         // Track detailed activity
-        const activityRef = doc(db, 'user-activity', uid);
+        const activityRef = db.collection('user-activity').doc(uid);
         const activity = {
           action: 'play',
-          timestamp: serverTimestamp(),
+          timestamp: firebase.firestore.FieldValue.serverTimestamp(),
           data: {
             gameId: gameId,
             gameTitle: gameTitle || 'Unknown Game',
@@ -3329,16 +3355,16 @@
         
         // Create or update the activity document
         try {
-          await updateDoc(activityRef, {
-            activities: arrayUnion(activity),
-            lastActivity: serverTimestamp()
+          await activityRef.update({
+            activities: firebase.firestore.FieldValue.arrayUnion(activity),
+            lastActivity: firebase.firestore.FieldValue.serverTimestamp()
           });
         } catch (error) {
           // If document doesn't exist, create it
           if (error.code === 'not-found') {
-            await setDoc(activityRef, {
+            await activityRef.set({
               activities: [activity],
-              lastActivity: serverTimestamp()
+              lastActivity: firebase.firestore.FieldValue.serverTimestamp()
             });
           } else {
             throw error;
@@ -3603,9 +3629,9 @@
 
     async function loadBackgroundFromFirebase(uid) {
       try {
-        const userRef = doc(db, 'users', uid);
-        const userDoc = await getDoc(userRef);
-        if (userDoc.exists()) {
+        const userRef = db.collection('users').doc(uid);
+        const userDoc = await userRef.get();
+        if (userDoc.exists) {
           const userData = userDoc.data();
           const settings = userData.settings || {};
           
