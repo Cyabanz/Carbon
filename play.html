@@ -2913,7 +2913,7 @@
           // Track play activity
           await trackPlayActivity(user.uid, currentGameId, currentGame.title);
           
-          // Update user status to "in game" for friends to see
+          // Update user status to "in game" for friends to see and track activity
           if (window.trackGameStart) {
             await window.trackGameStart(currentGameId);
           } else {
@@ -2924,6 +2924,21 @@
                 currentGame: currentGameId,
                 lastSeen: firebase.firestore.FieldValue.serverTimestamp()
               });
+              
+              // Track activity for activity feed
+              const game = gamesData.find(g => String(g.id) === String(currentGameId));
+              if (game) {
+                await db.collection('activity').add({
+                  userId: user.uid,
+                  userName: user.displayName || 'Anonymous',
+                  userPhoto: user.photoURL || '/default-avatar.png',
+                  gameId: currentGameId,
+                  gameTitle: game.title,
+                  gameImage: game.image || '/default-game.png',
+                  action: 'played',
+                  timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                });
+              }
             } catch (error) {
               console.error('Error updating game status:', error);
             }

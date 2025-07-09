@@ -385,6 +385,30 @@
             <!-- Friends will be populated here -->
           </div>
           
+          <!-- Status Selector -->
+          <div class="bg-rp-surface rounded-xl border border-rp-overlay p-4 mb-6">
+            <div class="flex items-center gap-4">
+              <div class="relative">
+                <img id="userAvatar" src="" alt="Your Avatar" class="w-14 h-14 rounded-full ring-2 ring-rp-foam/50">
+                <div id="statusIndicator" class="absolute -bottom-1 -right-1 w-5 h-5 rounded-full border-2 border-rp-surface bg-green-500"></div>
+              </div>
+              <div class="flex-1">
+                <h4 id="userDisplayName" class="font-semibold text-rp-text text-lg">Loading...</h4>
+                <div class="flex items-center gap-3 mt-1">
+                  <select id="statusSelector" class="bg-rp-highlight-med text-rp-text border border-rp-overlay rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-rp-foam transition-colors">
+                    <option value="online">🟢 Online</option>
+                    <option value="idle">🟡 Idle</option>
+                    <option value="dnd">🔴 Do Not Disturb</option>
+                    <option value="offline">⚫ Offline</option>
+                  </select>
+                  <div id="currentGameDisplay" class="text-sm text-rp-subtle hidden">
+                    Playing <span id="currentGameName" class="text-rp-gold font-medium"></span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <!-- Bio Section -->
           <div class="bg-rp-surface rounded-xl border border-rp-overlay p-6">
             <div class="flex items-center justify-between mb-4">
@@ -405,6 +429,16 @@
               <div>
                 <label class="block text-sm font-medium text-rp-text mb-1">Bio</label>
                 <p id="displayBio" class="text-rp-subtle">No bio set</p>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-rp-text mb-1">Last Played Game</label>
+                <div id="displayLastGame" class="flex items-center gap-3 p-3 bg-rp-overlay rounded-lg">
+                  <img id="lastGameImage" src="" alt="Game" class="w-12 h-12 rounded-lg object-cover">
+                  <div class="flex-1 min-w-0">
+                    <p id="lastGameTitle" class="font-medium text-rp-text truncate">No games played yet</p>
+                    <p id="lastGameTime" class="text-xs text-rp-subtle">-</p>
+                  </div>
+                </div>
               </div>
               <div>
                 <label class="block text-sm font-medium text-rp-text mb-1">Favorite Games</label>
@@ -491,17 +525,26 @@
 
       <!-- Activity Feed -->
       <div id="activityFeedSection" class="mb-8">
-        <h2 class="text-xl font-semibold text-rp-text mb-4 flex items-center gap-2">
-          <i class='bx bx-activity text-rp-pine'></i>
-          Recent Activity
-        </h2>
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-xl font-semibold text-rp-text flex items-center gap-2">
+            <i class='bx bx-activity text-rp-pine'></i>
+            Recent Activity
+          </h2>
+          <button onclick="loadActivityFeed()" class="px-3 py-1 bg-rp-foam/20 text-rp-foam rounded-lg hover:bg-rp-foam/30 transition-colors text-sm">
+            <i class='bx bx-refresh mr-1'></i>
+            Refresh
+          </button>
+        </div>
         <div class="bg-rp-surface rounded-xl border border-rp-overlay p-4">
-          <div id="activityFeed" class="max-h-64 overflow-y-auto"></div>
+          <div id="activityFeed" class="max-h-80 overflow-y-auto space-y-2"></div>
           <div id="activityLoader" class="text-center py-8 hidden">
             <div class="inline-block w-6 h-6 border-2 border-rp-foam border-t-transparent rounded-full animate-spin"></div>
-            <p class="text-rp-foam mt-2">Loading activity...</p>
+            <p class="text-rp-foam mt-2 text-sm">Loading activity...</p>
           </div>
-          <div id="noActivity" class="text-rp-subtle text-sm text-center py-4 hidden">No recent activity</div>
+          <div id="noActivity" class="text-rp-subtle text-sm text-center py-8 hidden">
+            <i class='bx bx-time text-2xl mb-2 block'></i>
+            No recent activity to show
+          </div>
         </div>
       </div>
     </div>
@@ -838,20 +881,93 @@
     let activeChatUser = null;
     let chatListener = null;
 
+    // Status system functions
+    const statusColors = {
+      online: 'bg-green-500',
+      idle: 'bg-yellow-500', 
+      dnd: 'bg-red-500',
+      offline: 'bg-gray-500',
+      ingame: 'bg-blue-500'
+    };
+
     // Real-time status tracking
     async function updateUserStatus(status, gameId = null) {
       if (!currentUser) return;
       
       try {
-        await db.collection('users').doc(currentUser.uid).update({
+        const updateData = {
           status: status,
-          currentGame: gameId,
           lastSeen: firebase.firestore.FieldValue.serverTimestamp()
-        });
+        };
+        
+        if (gameId) {
+          updateData.currentGame = gameId;
+          updateData.status = 'ingame';
+        } else if (!gameId && status !== 'ingame') {
+          updateData.currentGame = null;
+        }
+        
+        await db.collection('users').doc(currentUser.uid).update(updateData);
+        
+        // Update UI
+        updateStatusIndicator(status);
+        
       } catch (error) {
         console.error('Error updating status:', error);
       }
     }
+
+    function updateStatusIndicator(status) {
+      const indicator = document.getElementById('statusIndicator');
+      if (indicator) {
+        // Remove all status classes
+        Object.values(statusColors).forEach(color => indicator.classList.remove(color));
+        // Add current status class
+        indicator.classList.add(statusColors[status] || statusColors.online);
+      }
+    }
+
+    // Track game activity for activity feed
+    async function trackGameActivity(gameId, action = 'played') {
+      if (!currentUser || !gameId) return;
+      
+      try {
+        const game = gamesData.find(g => String(g.id) === String(gameId));
+        if (!game) return;
+        
+        const activityData = {
+          userId: currentUser.uid,
+          userName: sanitizeText(currentUser.displayName || 'Anonymous'),
+          userPhoto: currentUser.photoURL || '/default-avatar.png',
+          gameId: gameId,
+          gameTitle: sanitizeText(game.title),
+          gameImage: game.image || '/default-game.png',
+          action: action,
+          timestamp: firebase.firestore.FieldValue.serverTimestamp()
+        };
+        
+        await db.collection('activity').add(activityData);
+        
+        // Update user's last played game
+        await db.collection('users').doc(currentUser.uid).update({
+          lastPlayedGame: gameId,
+          lastPlayedTime: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        
+      } catch (error) {
+        console.error('Error tracking game activity:', error);
+      }
+    }
+
+    // Functions for play.html to call
+    window.trackGameStart = async function(gameId) {
+      await updateUserStatus('ingame', gameId);
+      await trackGameActivity(gameId, 'started');
+    };
+
+    window.trackGameEnd = async function() {
+      await updateUserStatus('online');
+    };
 
     // Set user online when page loads
     async function setUserOnline() {
@@ -1073,10 +1189,8 @@
       const friendsList = document.getElementById('friendsList');
       
       friendsList.innerHTML = friends.map(friend => {
-        const isOnline = friend.status === 'online';
-        const statusColor = isOnline ? 'bg-green-500' : 'bg-gray-500';
-        const statusText = friend.status === 'online' ? 'Online' : 
-                          friend.status === 'ingame' ? 'In Game' : 'Offline';
+        const statusColor = statusColors[friend.status] || statusColors.offline;
+        const statusText = getStatusText(friend.status);
         
         const currentGameText = friend.currentGame && friend.status === 'ingame' 
           ? `Playing ${getGameTitle(friend.currentGame)}` 
@@ -1090,35 +1204,43 @@
         const safeCurrentGame = sanitizeText(friend.currentGame || '');
         
         return `
-          <div class="bg-rp-surface border border-rp-overlay rounded-lg p-4 hover:border-rp-foam/50 transition-all">
+          <div class="bg-rp-surface border border-rp-overlay rounded-xl p-4 hover:border-rp-foam/50 transition-all group">
             <div class="flex items-center gap-3 mb-3">
               <div class="relative">
                 <img src="${safePhotoURL}" 
                      alt="${safeDisplayName}" 
-                     class="w-12 h-12 rounded-full">
-                <div class="${statusColor} w-3 h-3 rounded-full absolute -bottom-1 -right-1 border-2 border-rp-surface"></div>
+                     class="w-12 h-12 rounded-full ring-2 ring-rp-overlay group-hover:ring-rp-foam/50 transition-all">
+                <div class="${statusColor} w-4 h-4 rounded-full absolute -bottom-1 -right-1 border-2 border-rp-surface"></div>
               </div>
               <div class="flex-1 min-w-0">
                 <h4 class="font-medium text-rp-text truncate">${safeDisplayName}</h4>
                 <p class="text-xs text-rp-subtle">${safeUsername ? '@' + safeUsername : ''}</p>
-                <p class="text-xs text-rp-foam">${statusText}</p>
-                ${currentGameText ? `<p class="text-xs text-rp-gold">${currentGameText}</p>` : ''}
+                <p class="text-xs text-rp-foam font-medium">${statusText}</p>
+                ${currentGameText ? `<p class="text-xs text-rp-gold truncate">${currentGameText}</p>` : ''}
+                ${friend.lastPlayedGame ? `<p class="text-xs text-rp-subtle">Last: ${getGameTitle(friend.lastPlayedGame)}</p>` : ''}
               </div>
             </div>
             
             <div class="flex gap-2">
               ${friend.status === 'ingame' && friend.currentGame ? `
-                <button onclick="inviteToGame('${safeUid}', '${safeCurrentGame}')" 
-                        class="flex-1 px-3 py-2 bg-rp-gold hover:bg-rp-gold/90 text-rp-base rounded-lg text-xs transition-colors">
-                  <i class='bx bx-game mr-1'></i>
+                <button onclick="playGame('${safeCurrentGame}')" 
+                        class="flex-1 px-3 py-2 bg-rp-gold hover:bg-rp-gold/90 text-rp-base rounded-lg text-xs transition-colors font-medium">
+                  <i class='bx bx-play mr-1'></i>
                   Join Game
                 </button>
               ` : ''}
-              <button onclick="startChat('${safeUid}', '${safeDisplayName}')" 
-                      class="flex-1 px-3 py-2 bg-rp-iris hover:bg-rp-iris/90 text-white rounded-lg text-xs transition-colors">
-                <i class='bx bx-message mr-1'></i>
-                Chat
-              </button>
+              ${friend.status !== 'dnd' ? `
+                <button onclick="startChat('${safeUid}', '${safeDisplayName}')" 
+                        class="flex-1 px-3 py-2 bg-rp-iris hover:bg-rp-iris/90 text-white rounded-lg text-xs transition-colors">
+                  <i class='bx bx-message mr-1'></i>
+                  Chat
+                </button>
+              ` : `
+                <span class="flex-1 px-3 py-2 bg-rp-subtle/20 text-rp-subtle rounded-lg text-xs text-center">
+                  <i class='bx bx-minus-circle mr-1'></i>
+                  Do Not Disturb
+                </span>
+              `}
               <button onclick="removeFriend('${safeUid}')" 
                       class="px-3 py-2 bg-rp-love/20 hover:bg-rp-love/30 text-rp-love rounded-lg text-xs transition-colors">
                 <i class='bx bx-user-minus'></i>
@@ -1127,6 +1249,21 @@
           </div>
         `;
       }).join('');
+    }
+
+    function getStatusText(status) {
+      switch(status) {
+        case 'online': return '🟢 Online';
+        case 'idle': return '🟡 Idle';
+        case 'dnd': return '🔴 Do Not Disturb';
+        case 'ingame': return '🎮 In Game';
+        case 'offline': 
+        default: return '⚫ Offline';
+      }
+    }
+
+    function playGame(gameId) {
+      window.open(`/play.html?id=${gameId}`, '_blank');
     }
 
     function setupFriendsStatusListeners(friendUids) {
@@ -1542,6 +1679,101 @@
       }
     }
 
+    // Activity Feed Functions
+    async function loadActivityFeed() {
+      const activityContainer = document.getElementById('activityFeed');
+      const activityLoader = document.getElementById('activityLoader');
+      const noActivity = document.getElementById('noActivity');
+      
+      if (!currentUser) return;
+      
+      try {
+        activityLoader.classList.remove('hidden');
+        noActivity.classList.add('hidden');
+        
+        // Get current user's friends
+        const userDoc = await db.collection('users').doc(currentUser.uid).get();
+        const userData = userDoc.data();
+        const friendUids = userData.friends || [];
+        
+        // Include current user in activity
+        const allUids = [currentUser.uid, ...friendUids];
+        
+        // Load recent activity from friends and self
+        const activityQuery = await db.collection('activity')
+          .where('userId', 'in', allUids.slice(0, 10)) // Firestore 'in' limit is 10
+          .orderBy('timestamp', 'desc')
+          .limit(20)
+          .get();
+        
+        const activities = [];
+        activityQuery.forEach(doc => {
+          activities.push({ id: doc.id, ...doc.data() });
+        });
+        
+        activityLoader.classList.add('hidden');
+        
+        if (activities.length === 0) {
+          noActivity.classList.remove('hidden');
+          activityContainer.innerHTML = '';
+          return;
+        }
+        
+        renderActivityFeed(activities);
+        
+      } catch (error) {
+        console.error('Error loading activity feed:', error);
+        activityLoader.classList.add('hidden');
+        noActivity.classList.remove('hidden');
+      }
+    }
+
+    function renderActivityFeed(activities) {
+      const activityContainer = document.getElementById('activityFeed');
+      
+      activityContainer.innerHTML = activities.map(activity => {
+        const timeAgo = getTimeAgo(activity.timestamp?.toDate());
+        const isCurrentUser = activity.userId === currentUser.uid;
+        const userName = isCurrentUser ? 'You' : sanitizeText(activity.userName);
+        const actionText = activity.action === 'started' ? 'started playing' : 'played';
+        
+        return `
+          <div class="flex items-center gap-3 p-3 bg-rp-overlay rounded-lg hover:bg-rp-highlight-med transition-colors">
+            <img src="${activity.userPhoto || '/default-avatar.png'}" 
+                 alt="${userName}" 
+                 class="w-10 h-10 rounded-full">
+            <div class="flex-1 min-w-0">
+              <p class="text-sm text-rp-text">
+                <span class="font-medium ${isCurrentUser ? 'text-rp-foam' : 'text-rp-text'}">${userName}</span>
+                ${actionText}
+                <span class="font-medium text-rp-gold">${sanitizeText(activity.gameTitle)}</span>
+              </p>
+              <p class="text-xs text-rp-subtle">${timeAgo}</p>
+            </div>
+            <img src="${activity.gameImage || '/default-game.png'}" 
+                 alt="${activity.gameTitle}" 
+                 class="w-8 h-8 rounded object-cover">
+          </div>
+        `;
+      }).join('');
+    }
+
+    function getTimeAgo(date) {
+      if (!date) return 'recently';
+      
+      const now = new Date();
+      const diff = now - date;
+      const minutes = Math.floor(diff / 60000);
+      const hours = Math.floor(diff / 3600000);
+      const days = Math.floor(diff / 86400000);
+      
+      if (minutes < 1) return 'just now';
+      if (minutes < 60) return `${minutes} minute${minutes === 1 ? '' : 's'} ago`;
+      if (hours < 24) return `${hours} hour${hours === 1 ? '' : 's'} ago`;
+      if (days < 30) return `${days} day${days === 1 ? '' : 's'} ago`;
+      return date.toLocaleDateString();
+    }
+
     // Profile bio editing
     async function loadUserProfile() {
       if (!currentUser) return;
@@ -1549,6 +1781,24 @@
       try {
         const userDoc = await db.collection('users').doc(currentUser.uid).get();
         const userData = userDoc.data();
+        
+        // Update user avatar and name in status section
+        document.getElementById('userAvatar').src = currentUser.photoURL || '/default-avatar.png';
+        document.getElementById('userDisplayName').textContent = sanitizeText(currentUser.displayName || 'Anonymous');
+        
+        // Set status selector
+        const statusSelector = document.getElementById('statusSelector');
+        statusSelector.value = userData.status || 'online';
+        updateStatusIndicator(userData.status || 'online');
+        
+        // Show current game if playing
+        if (userData.currentGame && userData.status === 'ingame') {
+          const game = gamesData.find(g => String(g.id) === String(userData.currentGame));
+          if (game) {
+            document.getElementById('currentGameDisplay').classList.remove('hidden');
+            document.getElementById('currentGameName').textContent = sanitizeText(game.title);
+          }
+        }
         
         // Sanitize and display current profile info
         const safeUsername = sanitizeText(userData.username || 'Not set');
@@ -1559,6 +1809,18 @@
         document.getElementById('displayPrivacy').textContent = 
           userData.privacy === 'public' ? 'Public Profile' :
           userData.privacy === 'friends' ? 'Friends Only' : 'Private Profile';
+        
+        // Show last played game
+        if (userData.lastPlayedGame) {
+          const lastGame = gamesData.find(g => String(g.id) === String(userData.lastPlayedGame));
+          if (lastGame) {
+            document.getElementById('lastGameImage').src = lastGame.image || '/default-game.png';
+            document.getElementById('lastGameTitle').textContent = sanitizeText(lastGame.title);
+            if (userData.lastPlayedTime) {
+              document.getElementById('lastGameTime').textContent = getTimeAgo(userData.lastPlayedTime.toDate());
+            }
+          }
+        }
         
         // Show favorite games
         const favoriteGamesContainer = document.getElementById('displayFavoriteGames');
@@ -1691,7 +1953,7 @@
           const friendDoc = await db.collection('users').doc(uid).get();
           if (friendDoc.exists) {
             const friendData = friendDoc.data();
-            if (friendData.status === 'online' || friendData.status === 'ingame') {
+            if (friendData.status && friendData.status !== 'offline') {
               onlineFriendsData.push({ uid, ...friendData });
             }
           }
@@ -1706,8 +1968,8 @@
         } else {
           noOnlineEl.classList.add('hidden');
           onlineContainer.innerHTML = onlineFriendsData.map(friend => {
-            const statusText = friend.status === 'ingame' ? 'In Game' : 'Online';
-            const statusColor = friend.status === 'ingame' ? 'bg-orange-500' : 'bg-green-500';
+            const statusColor = statusColors[friend.status] || statusColors.online;
+            const statusText = getStatusText(friend.status);
             const gameText = friend.currentGame && friend.status === 'ingame' 
               ? getGameTitle(friend.currentGame) : '';
             
@@ -1717,20 +1979,29 @@
             const safeUid = sanitizeText(friend.uid || '');
             const safeGameText = sanitizeText(gameText || '');
             
+            const clickAction = friend.status !== 'dnd' ? 
+              `onclick="startChat('${safeUid}', '${safeDisplayName}')"` : '';
+            
             return `
-              <div class="flex items-center gap-2 p-2 bg-rp-overlay rounded-lg hover:bg-rp-highlight-med transition-colors cursor-pointer"
-                   onclick="startChat('${safeUid}', '${safeDisplayName}')">
+              <div class="flex items-center gap-3 p-3 bg-rp-overlay rounded-lg hover:bg-rp-highlight-med transition-colors ${friend.status !== 'dnd' ? 'cursor-pointer' : ''}"
+                   ${clickAction}>
                 <div class="relative">
                   <img src="${safePhotoURL}" 
                        alt="${safeDisplayName}" 
-                       class="w-8 h-8 rounded-full">
-                  <div class="${statusColor} w-2.5 h-2.5 rounded-full absolute -bottom-0.5 -right-0.5 border border-rp-surface"></div>
+                       class="w-10 h-10 rounded-full ring-2 ring-rp-overlay">
+                  <div class="${statusColor} w-3 h-3 rounded-full absolute -bottom-0.5 -right-0.5 border-2 border-rp-surface"></div>
                 </div>
                 <div class="flex-1 min-w-0">
                   <p class="text-sm font-medium text-rp-text truncate">${safeDisplayName}</p>
-                  <p class="text-xs text-rp-foam">${statusText}</p>
+                  <p class="text-xs text-rp-foam font-medium">${statusText}</p>
                   ${safeGameText ? `<p class="text-xs text-rp-gold truncate">${safeGameText}</p>` : ''}
                 </div>
+                ${friend.status === 'ingame' && friend.currentGame ? `
+                  <button onclick="event.stopPropagation(); playGame('${sanitizeText(friend.currentGame)}')" 
+                          class="px-2 py-1 bg-rp-gold/20 hover:bg-rp-gold/30 text-rp-gold rounded text-xs transition-colors">
+                    <i class='bx bx-play'></i>
+                  </button>
+                ` : ''}
               </div>
             `;
           }).join('');
@@ -1866,6 +2137,17 @@
       document.getElementById('saveBioBtn').addEventListener('click', saveBio);
       document.getElementById('cancelBioBtn').addEventListener('click', cancelBioEdit);
       
+      // Status selector
+      document.getElementById('statusSelector').addEventListener('change', async (e) => {
+        const newStatus = e.target.value;
+        await updateUserStatus(newStatus);
+        
+        // Hide current game display if not in game
+        if (newStatus !== 'ingame') {
+          document.getElementById('currentGameDisplay').classList.add('hidden');
+        }
+      });
+      
       // Chat system
       document.getElementById('closeChatBtn').addEventListener('click', () => {
         document.getElementById('quickChatSection').classList.add('hidden');
@@ -1909,8 +2191,9 @@
         }
       });
       
-      // Periodic update of online friends
+      // Periodic updates
       setInterval(updateOnlineFriendsList, 15000); // Update every 15 seconds
+      setInterval(loadActivityFeed, 30000); // Update activity feed every 30 seconds
     }
 
     // Test function to verify friend system is working
@@ -2376,6 +2659,7 @@
         await loadFriendRequests();
         await loadUserProfile();
         await updateOnlineFriendsList();
+        await loadActivityFeed();
         initializeFriendSystemEvents();
         
         console.log('🎉 Friend system initialized successfully!');
@@ -2387,7 +2671,6 @@
         renderGamesList('recentGamesList', (lists.history || []).slice().reverse(), 'recent games');
         renderGamesList('favoriteGamesList', lists.favoriteGames, 'favorite games');
         renderGamesList('likedGamesList', lists.likedGames, 'liked games');
-        await loadActivityFeed(user.uid, 'activityFeed');
         
         // Set up clear recent games button
         const clearBtn = document.getElementById('clearRecentGamesBtn');
