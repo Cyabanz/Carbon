@@ -321,10 +321,16 @@
 
       <!-- Recent Games -->
       <div id="recentGamesContainer" class="mb-8">
-        <h2 class="text-xl font-semibold text-rp-text mb-4 flex items-center gap-2">
-          <i class='bx bx-time text-rp-gold'></i>
-          Recently Played
-        </h2>
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-xl font-semibold text-rp-text flex items-center gap-2">
+            <i class='bx bx-time text-rp-gold'></i>
+            Recently Played
+          </h2>
+          <button id="clearRecentGamesBtn" class="px-4 py-2 bg-rp-love/20 hover:bg-rp-love/30 text-rp-love border border-rp-love/30 hover:border-rp-love/50 rounded-lg transition-all duration-200 text-sm font-medium flex items-center gap-2">
+            <i class='bx bx-trash'></i>
+            Clear History
+          </button>
+        </div>
         <div id="recentGamesList" class="space-y-3"></div>
       </div>
 
@@ -524,6 +530,60 @@
         }
         if (needsUpdate) await userRef.update(updateFields);
       }
+    }
+
+    async function clearRecentGames() {
+      const user = auth.currentUser;
+      if (!user) return;
+
+      if (confirm('Are you sure you want to clear your entire game history? This action cannot be undone.')) {
+        try {
+          const userRef = db.collection('users').doc(user.uid);
+          await userRef.update({
+            history: []
+          });
+          
+          // Refresh the recent games list
+          renderGamesList('recentGamesList', [], 'recent games');
+          
+          // Show success message
+          showTemporaryMessage('Game history cleared successfully!', 'success');
+        } catch (error) {
+          console.error('Error clearing game history:', error);
+          showTemporaryMessage('Failed to clear game history. Please try again.', 'error');
+        }
+      }
+    }
+
+    function showTemporaryMessage(message, type = 'info') {
+      const messageEl = document.createElement('div');
+      messageEl.className = `fixed top-4 right-4 px-6 py-3 rounded-lg font-medium shadow-lg z-50 transition-all duration-300 transform translate-x-full`;
+      
+      if (type === 'success') {
+        messageEl.className += ' bg-green-500 text-white';
+      } else if (type === 'error') {
+        messageEl.className += ' bg-red-500 text-white';
+      } else {
+        messageEl.className += ' bg-rp-foam text-rp-base';
+      }
+      
+      messageEl.textContent = message;
+      document.body.appendChild(messageEl);
+      
+      // Animate in
+      setTimeout(() => {
+        messageEl.classList.remove('translate-x-full');
+      }, 100);
+      
+      // Animate out and remove
+      setTimeout(() => {
+        messageEl.classList.add('translate-x-full');
+        setTimeout(() => {
+          if (messageEl.parentNode) {
+            document.body.removeChild(messageEl);
+          }
+        }, 300);
+      }, 3000);
     }
 
     function renderUserSection(user) {
@@ -790,6 +850,12 @@
         renderGamesList('favoriteGamesList', lists.favoriteGames, 'favorite games');
         renderGamesList('likedGamesList', lists.likedGames, 'liked games');
         await loadActivityFeed(user.uid, 'activityFeed');
+        
+        // Set up clear recent games button
+        const clearBtn = document.getElementById('clearRecentGamesBtn');
+        if (clearBtn) {
+          clearBtn.onclick = clearRecentGames;
+        }
         
         const url = `${window.location.origin}${window.location.pathname}?uid=${encodeURIComponent(user.uid)}`;
         const linkInput = document.getElementById('publicProfileLink');

@@ -34,8 +34,8 @@
       measurementId: "G-Y2K1RQYE74"
     };
     firebase.initializeApp(firebaseConfig);
-    window.auth = firebase.auth();
-    window.db = firebase.firestore();
+    const auth = firebase.auth();
+    const db = firebase.firestore();
   </script>
   <script>
     function setConfig() {
@@ -1225,7 +1225,7 @@
     
     function googleSignIn() {
       const provider = new firebase.auth.GoogleAuthProvider();
-      window.auth.signInWithPopup(provider)
+      auth.signInWithPopup(provider)
         .catch((error) => {
           document.getElementById('loginError').innerText = error.message;
           document.getElementById('loginError').classList.remove('hidden');
@@ -1233,11 +1233,11 @@
     }
     
     function signOutUser() {
-      window.auth.signOut().then(() => location.reload());
+      auth.signOut().then(() => location.reload());
     }
 
     async function ensureUserDoc(user) {
-      const userRef = window.db.collection('users').doc(user.uid);
+      const userRef = db.collection('users').doc(user.uid);
       const doc = await userRef.get();
       if (!doc.exists) {
         await userRef.set({
@@ -1411,9 +1411,9 @@
         star.textContent = '★';
         star.className = 'transition-colors duration-150 select-none ' +
           (i <= fill ? 'star-filled' : 'star-empty') +
-          (window.auth.currentUser ? ' cursor-pointer star-hover' : ' cursor-not-allowed');
+          (auth.currentUser ? ' cursor-pointer star-hover' : ' cursor-not-allowed');
         star.style.color = i <= fill ? 'var(--theme-gold)' : 'var(--theme-muted)';
-        if (window.auth.currentUser) {
+        if (auth.currentUser) {
                       star.addEventListener('mouseenter', () => {
               for (let j = 0; j < 5; j++) {
                 container.children[j].style.color = j < i ? 'var(--theme-gold)' : 'var(--theme-muted)';
@@ -1446,9 +1446,9 @@
       starRatingData.yourRating = 0;
       starRatingData.percent = 0;
       try {
-        const ratingsRef = window.db.collection("games").doc(gameId).collection("ratings");
+        const ratingsRef = db.collection("games").doc(gameId).collection("ratings");
         const snap = await ratingsRef.get();
-        let total = 0, count = 0, your = 0, user = window.auth.currentUser;
+        let total = 0, count = 0, your = 0, user = auth.currentUser;
         let highCount = 0;
         snap.forEach(doc => {
           const d = doc.data();
@@ -1472,7 +1472,7 @@
     }
 
     async function submitStarRating(stars) {
-      if (!window.auth.currentUser) {
+      if (!auth.currentUser) {
         starRatingData.error = "Sign in first!";
         renderStarRatingUI();
         renderStarRatingUI("Frame");
@@ -1495,7 +1495,7 @@
       renderStarRatingUI();
       renderStarRatingUI("Frame");
       try {
-        const ref = window.db.collection("games").doc(currentGameId).collection("ratings").doc(window.auth.currentUser.uid);
+        const ref = db.collection("games").doc(currentGameId).collection("ratings").doc(auth.currentUser.uid);
         await ref.set({
           rating: stars,
           updatedAt: firebase.firestore.FieldValue.serverTimestamp()
@@ -1708,12 +1708,12 @@
       updateCommentsUI();
       
       try {
-        let commentsQuery = window.db.collection("games").doc(gameId).collection("comments")
+        let commentsQuery = db.collection("games").doc(gameId).collection("comments")
           .orderBy("createdAt", "desc")
           .limit(commentsData.commentsPerPage);
         
         if (loadMore && commentsData.lastVisible) {
-          commentsQuery = window.db.collection("games").doc(gameId).collection("comments")
+          commentsQuery = db.collection("games").doc(gameId).collection("comments")
             .orderBy("createdAt", "desc")
             .startAfter(commentsData.lastVisible)
             .limit(commentsData.commentsPerPage);
@@ -1737,7 +1737,7 @@
         // Load replies for each comment
         for (let comment of commentsData.comments) {
           if (!comment.replies) {
-            const repliesQuery = window.db.collection("games").doc(gameId).collection("comments").doc(comment.id).collection("replies")
+            const repliesQuery = db.collection("games").doc(gameId).collection("comments").doc(comment.id).collection("replies")
               .orderBy("createdAt", "asc");
             const repliesSnapshot = await repliesQuery.get();
             
@@ -1758,7 +1758,7 @@
 
     // Submit new comment
     async function submitComment() {
-      const user = window.auth.currentUser;
+      const user = auth.currentUser;
       const text = document.getElementById('commentText').value.trim();
       
       if (!user) {
@@ -1801,7 +1801,7 @@
           reactionCounts: {}
         };
         
-        const docRef = await window.db.collection("games").doc(validatedGameId).collection("comments").add(commentData);
+        const docRef = await db.collection("games").doc(validatedGameId).collection("comments").add(commentData);
         
         // Reset form
         document.getElementById('commentText').value = '';
@@ -1820,7 +1820,7 @@
 
     // Submit reply
     async function submitReply() {
-      const user = window.auth.currentUser;
+      const user = auth.currentUser;
       const text = document.getElementById('replyText').value.trim();
       
       if (!user || !text || !commentsData.currentReplyingTo) {
@@ -1851,7 +1851,7 @@
           reactionCounts: {}
         };
         
-        const repliesRef = window.db.collection('games').doc(validatedGameId).collection('comments').doc(commentsData.currentReplyingTo).collection('replies');
+        const repliesRef = db.collection('games').doc(validatedGameId).collection('comments').doc(commentsData.currentReplyingTo).collection('replies');
         await repliesRef.add(replyData);
         
         closeReplyModal();
@@ -1865,7 +1865,7 @@
 
     // Add or remove reaction
     async function toggleReaction(commentId, emoji, isReply = false, replyId = null) {
-      const user = window.auth.currentUser;
+      const user = auth.currentUser;
       if (!user || !currentGameId) {
         console.log('User not authenticated or game not loaded');
         return;
@@ -1874,9 +1874,9 @@
       try {
         let docRef;
         if (isReply) {
-                  docRef = window.db.collection('games').doc(currentGameId).collection('comments').doc(commentId).collection('replies').doc(replyId);
+                  docRef = db.collection('games').doc(currentGameId).collection('comments').doc(commentId).collection('replies').doc(replyId);
       } else {
-        docRef = window.db.collection('games').doc(currentGameId).collection('comments').doc(commentId);
+        docRef = db.collection('games').doc(currentGameId).collection('comments').doc(commentId);
         }
         
         const docSnap = await docRef.get();
@@ -2205,8 +2205,8 @@
       
       try {
         // Get current play count from Firebase
-        const gameStatsRef = window.db.collection('games').doc(gameId).collection('stats').doc('general');
-        const userStatsRef = window.db.collection('users').doc(userId);
+        const gameStatsRef = db.collection('games').doc(gameId).collection('stats').doc('general');
+        const userStatsRef = db.collection('users').doc(userId);
         
         const [gameStatsDoc, userStatsDoc] = await Promise.all([
           gameStatsRef.get(),
@@ -2325,7 +2325,7 @@
 
     // Enhanced submit comment with rate limiting
     async function submitCommentWithRateLimit() {
-      const user = window.auth.currentUser;
+      const user = auth.currentUser;
       if (!user) {
         alert('Please sign in to comment');
         return;
@@ -2629,7 +2629,7 @@
     }
 
     function renderComment(comment) {
-      const user = window.auth.currentUser;
+      const user = auth.currentUser;
       const reactions = Object.entries(comment.reactionCounts || {})
         .map(([emoji, count]) => {
           const userReacted = user && comment.reactions && comment.reactions[user.uid] === emoji;
@@ -2829,7 +2829,7 @@
       document.getElementById('gameInfoHolder').classList.add('hidden');
       document.getElementById('loginScreen').classList.remove('hidden');
       
-      window.auth.onAuthStateChanged(async (user) => {
+      auth.onAuthStateChanged(async (user) => {
         renderUserSection(user);
         if (!user) {
           hidePreloader();
@@ -3028,7 +3028,7 @@
         `;
 
         // Firebase should be ready since it's initialized at page load
-        if (!window.db) {
+        if (!db) {
           console.error('Firebase database not available');
           throw new Error('Firebase not available');
         }
@@ -3374,7 +3374,7 @@
     // User functions - Fixed for Firebase v10.7.1 modular SDK
     async function updateUserArray(uid, field, gameId, add = true) {
       try {
-        const userRef = window.db.collection('users').doc(uid);
+        const userRef = db.collection('users').doc(uid);
         if (add) {
           await userRef.update({
             [field]: firebase.firestore.FieldValue.arrayUnion(gameId)
@@ -3398,7 +3398,7 @@
     
     async function getUserGameLists(uid) {
       try {
-        const userRef = window.db.collection('users').doc(uid);
+        const userRef = db.collection('users').doc(uid);
         const userDoc = await userRef.get();
         return userDoc.exists ? userDoc.data() : { likedGames: [], favoriteGames: [], playlist: [], history: [] };
       } catch (error) {
@@ -3410,7 +3410,7 @@
     async function updateGameHistory(uid, gameId) {
       try {
         console.log(`🎮 Updating game history for user ${uid}, game ${gameId}`);
-        const userRef = window.db.collection('users').doc(uid);
+        const userRef = db.collection('users').doc(uid);
         
         // Get current user data
         const userDoc = await userRef.get();
@@ -3462,7 +3462,7 @@
         // Try fallback approach
         try {
           console.log('🔄 Trying fallback approach...');
-          const userRef = window.db.collection('users').doc(uid);
+          const userRef = db.collection('users').doc(uid);
           await userRef.set({
             history: [gameId]
           }, { merge: true });
@@ -3481,7 +3481,7 @@
         await updateGameHistory(uid, gameId);
         
         // Track detailed activity
-        const activityRef = window.db.collection('user-activity').doc(uid);
+        const activityRef = db.collection('user-activity').doc(uid);
         const activity = {
           action: 'play',
           timestamp: firebase.firestore.FieldValue.serverTimestamp(),
