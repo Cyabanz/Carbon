@@ -12,6 +12,9 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  
+  <!-- DOMPurify for XSS protection -->
+  <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.5/dist/purify.min.js"></script>
   <script>
     // Tailwind config will be dynamically updated by the enhanced theme system
     tailwind.config = {
@@ -321,10 +324,16 @@
 
       <!-- Recent Games -->
       <div id="recentGamesContainer" class="mb-8">
-        <h2 class="text-xl font-semibold text-rp-text mb-4 flex items-center gap-2">
-          <i class='bx bx-time text-rp-gold'></i>
-          Recently Played
-        </h2>
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-xl font-semibold text-rp-text flex items-center gap-2">
+            <i class='bx bx-time text-rp-gold'></i>
+            Recently Played
+          </h2>
+          <button id="clearRecentGamesBtn" class="px-4 py-2 bg-rp-love/20 hover:bg-rp-love/30 text-rp-love border border-rp-love/30 hover:border-rp-love/50 rounded-lg transition-all duration-200 text-sm font-medium flex items-center gap-2">
+            <i class='bx bx-trash'></i>
+            Clear History
+          </button>
+        </div>
         <div id="recentGamesList" class="space-y-3"></div>
       </div>
 
@@ -349,19 +358,193 @@
         </div>
       </div>
 
+      <!-- Friends & Social Section -->
+      <div class="grid lg:grid-cols-3 gap-8 mb-8">
+        <!-- Friends List -->
+        <div class="lg:col-span-2">
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="text-xl font-semibold text-rp-text flex items-center gap-2">
+              <i class='bx bx-group text-rp-foam'></i>
+              Friends <span id="friendsCount" class="text-sm bg-rp-foam/20 text-rp-foam px-2 py-1 rounded-full">0</span>
+            </h2>
+            <div class="flex gap-2">
+              <button id="searchUsersBtn" class="px-3 py-2 bg-rp-foam hover:bg-rp-foam/90 text-rp-base rounded-lg transition-colors text-sm flex items-center gap-2">
+                <i class='bx bx-search'></i>
+                Find Friends
+              </button>
+              <button id="friendRequestsBtn" class="relative px-3 py-2 bg-rp-iris hover:bg-rp-iris/90 text-white rounded-lg transition-colors text-sm flex items-center gap-2">
+                <i class='bx bx-user-plus'></i>
+                Requests
+                <span id="requestsBadge" class="absolute -top-2 -right-2 bg-rp-love text-white text-xs rounded-full w-5 h-5 flex items-center justify-center hidden">0</span>
+              </button>
+            </div>
+          </div>
+          
+          <!-- Friends Grid -->
+          <div id="friendsList" class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+            <!-- Friends will be populated here -->
+          </div>
+          
+          <!-- Status Selector -->
+          <div class="bg-rp-surface rounded-xl border border-rp-overlay p-4 mb-6">
+            <div class="flex items-center gap-4">
+              <div class="relative">
+                <img id="userAvatar" src="" alt="Your Avatar" class="w-14 h-14 rounded-full ring-2 ring-rp-foam/50">
+                <div id="statusIndicator" class="absolute -bottom-1 -right-1 w-5 h-5 rounded-full border-2 border-rp-surface bg-green-500"></div>
+              </div>
+              <div class="flex-1">
+                <h4 id="userDisplayName" class="font-semibold text-rp-text text-lg">Loading...</h4>
+                <div class="flex items-center gap-3 mt-1">
+                  <select id="statusSelector" class="bg-rp-highlight-med text-rp-text border border-rp-overlay rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-rp-foam transition-colors">
+                    <option value="online">🟢 Online</option>
+                    <option value="idle">🟡 Idle</option>
+                    <option value="dnd">🔴 Do Not Disturb</option>
+                    <option value="offline">⚫ Offline</option>
+                  </select>
+                  <div id="currentGameDisplay" class="text-sm text-rp-subtle hidden">
+                    Playing <span id="currentGameName" class="text-rp-gold font-medium"></span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Bio Section -->
+          <div class="bg-rp-surface rounded-xl border border-rp-overlay p-6">
+            <div class="flex items-center justify-between mb-4">
+              <h3 class="text-lg font-semibold text-rp-text flex items-center gap-2">
+                <i class='bx bx-edit text-rp-gold'></i>
+                Bio & Profile
+              </h3>
+              <button id="editBioBtn" class="px-3 py-2 bg-rp-gold hover:bg-rp-gold/90 text-rp-base rounded-lg transition-colors text-sm">
+                Edit
+              </button>
+            </div>
+            
+            <div id="bioDisplay" class="space-y-4">
+              <div>
+                <label class="block text-sm font-medium text-rp-text mb-1">Username</label>
+                <p id="displayUsername" class="text-rp-subtle">Not set</p>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-rp-text mb-1">Bio</label>
+                <p id="displayBio" class="text-rp-subtle">No bio set</p>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-rp-text mb-1">Last Played Game</label>
+                <div id="displayLastGame" class="flex items-center gap-3 p-3 bg-rp-overlay rounded-lg">
+                  <img id="lastGameImage" src="" alt="Game" class="w-12 h-12 rounded-lg object-cover">
+                  <div class="flex-1 min-w-0">
+                    <p id="lastGameTitle" class="font-medium text-rp-text truncate">No games played yet</p>
+                    <p id="lastGameTime" class="text-xs text-rp-subtle">-</p>
+                  </div>
+                </div>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-rp-text mb-1">Favorite Games</label>
+                <div id="displayFavoriteGames" class="flex flex-wrap gap-2">
+                  <!-- Favorite games tags will be shown here -->
+                </div>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-rp-text mb-1">Privacy</label>
+                <p id="displayPrivacy" class="text-rp-subtle">Public Profile</p>
+              </div>
+            </div>
+            
+            <div id="bioEditor" class="space-y-4 hidden">
+              <div>
+                <label class="block text-sm font-medium text-rp-text mb-1">Username</label>
+                <input id="editUsername" type="text" maxlength="20" class="w-full px-3 py-2 bg-rp-overlay border border-rp-highlight-med rounded-lg text-rp-text focus:outline-none focus:ring-2 focus:ring-rp-foam/50" placeholder="Enter username">
+                <p class="text-xs text-rp-muted mt-1">Letters, numbers, and underscores only</p>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-rp-text mb-1">Bio</label>
+                <textarea id="editBio" maxlength="200" rows="3" class="w-full px-3 py-2 bg-rp-overlay border border-rp-highlight-med rounded-lg text-rp-text focus:outline-none focus:ring-2 focus:ring-rp-foam/50 resize-none" placeholder="Tell others about yourself..."></textarea>
+                <p class="text-xs text-rp-muted mt-1"><span id="bioCharCount">0</span>/200 characters</p>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-rp-text mb-1">Profile Privacy</label>
+                <select id="editPrivacy" class="w-full px-3 py-2 bg-rp-overlay border border-rp-highlight-med rounded-lg text-rp-text focus:outline-none focus:ring-2 focus:ring-rp-foam/50">
+                  <option value="public">Public - Anyone can see</option>
+                  <option value="friends">Friends Only</option>
+                  <option value="private">Private - Hidden</option>
+                </select>
+              </div>
+              <div class="flex gap-2">
+                <button id="saveBioBtn" class="px-4 py-2 bg-rp-foam hover:bg-rp-foam/90 text-rp-base rounded-lg transition-colors text-sm">
+                  Save Changes
+                </button>
+                <button id="cancelBioBtn" class="px-4 py-2 bg-rp-highlight-med hover:bg-rp-highlight-high text-rp-text rounded-lg transition-colors text-sm">
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Chat & Online Friends -->
+        <div class="space-y-6">
+          <!-- Online Friends -->
+          <div class="bg-rp-surface rounded-xl border border-rp-overlay p-4">
+            <h3 class="text-lg font-semibold text-rp-text mb-4 flex items-center gap-2">
+              <i class='bx bx-wifi text-rp-pine'></i>
+              Online Friends
+            </h3>
+            <div id="onlineFriendsList" class="space-y-2">
+              <!-- Online friends will be populated here -->
+            </div>
+            <div id="noOnlineFriends" class="text-rp-subtle text-sm text-center py-4">No friends online</div>
+          </div>
+          
+          <!-- Quick Chat -->
+          <div id="quickChatSection" class="bg-rp-surface rounded-xl border border-rp-overlay p-4 hidden">
+            <div class="flex items-center justify-between mb-4">
+              <h3 class="text-lg font-semibold text-rp-text flex items-center gap-2">
+                <i class='bx bx-message-dots text-rp-iris'></i>
+                Chat with <span id="chatFriendName">Friend</span>
+              </h3>
+              <button id="closeChatBtn" class="text-rp-subtle hover:text-rp-love transition-colors">
+                <i class='bx bx-x text-xl'></i>
+              </button>
+            </div>
+            
+            <div id="chatMessages" class="h-48 overflow-y-auto bg-rp-overlay rounded-lg p-3 mb-3 space-y-2">
+              <!-- Chat messages will be populated here -->
+            </div>
+            
+            <div class="flex gap-2">
+              <input id="chatInput" type="text" maxlength="500" placeholder="Type a message..." class="flex-1 px-3 py-2 bg-rp-overlay border border-rp-highlight-med rounded-lg text-rp-text focus:outline-none focus:ring-2 focus:ring-rp-foam/50 text-sm">
+              <button id="sendMessageBtn" class="px-4 py-2 bg-rp-foam hover:bg-rp-foam/90 text-rp-base rounded-lg transition-colors">
+                <i class='bx bx-send'></i>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- Activity Feed -->
       <div id="activityFeedSection" class="mb-8">
-        <h2 class="text-xl font-semibold text-rp-text mb-4 flex items-center gap-2">
-          <i class='bx bx-activity text-rp-pine'></i>
-          Recent Activity
-        </h2>
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-xl font-semibold text-rp-text flex items-center gap-2">
+            <i class='bx bx-activity text-rp-pine'></i>
+            Recent Activity
+          </h2>
+          <button onclick="if(document.getElementById('activityFeed')) loadActivityFeed().catch(console.error)" class="px-3 py-1 bg-rp-foam/20 text-rp-foam rounded-lg hover:bg-rp-foam/30 transition-colors text-sm">
+            <i class='bx bx-refresh mr-1'></i>
+            Refresh
+          </button>
+        </div>
         <div class="bg-rp-surface rounded-xl border border-rp-overlay p-4">
-          <div id="activityFeed" class="max-h-64 overflow-y-auto"></div>
+          <div id="activityFeed" class="max-h-80 overflow-y-auto space-y-2"></div>
           <div id="activityLoader" class="text-center py-8 hidden">
             <div class="inline-block w-6 h-6 border-2 border-rp-foam border-t-transparent rounded-full animate-spin"></div>
-            <p class="text-rp-foam mt-2">Loading activity...</p>
+            <p class="text-rp-foam mt-2 text-sm">Loading activity...</p>
           </div>
-          <div id="noActivity" class="text-rp-subtle text-sm text-center py-4 hidden">No recent activity</div>
+          <div id="noActivity" class="text-rp-subtle text-sm text-center py-8 hidden">
+            <i class='bx bx-time text-2xl mb-2 block'></i>
+            No recent activity to show
+          </div>
         </div>
       </div>
     </div>
@@ -378,8 +561,29 @@
           </div>
         </div>
         
+              <!-- Friend Actions & Share Profile -->
+      <div class="mt-6 pt-6 border-t border-rp-overlay space-y-4">
+        <!-- Friend Actions -->
+        <div id="publicProfileActions" class="hidden">
+          <div class="flex gap-2">
+            <button id="addFriendBtn" class="flex-1 px-4 py-2 bg-rp-foam hover:bg-rp-foam/90 text-rp-base rounded-lg transition-colors text-sm flex items-center justify-center gap-2">
+              <i class='bx bx-user-plus'></i>
+              Add Friend
+            </button>
+            <button id="removeFriendBtn" class="flex-1 px-4 py-2 bg-rp-love/20 hover:bg-rp-love/30 text-rp-love border border-rp-love/30 rounded-lg transition-colors text-sm hidden">
+              <i class='bx bx-user-minus'></i>
+              Remove Friend
+            </button>
+            <button id="chatWithUserBtn" class="flex-1 px-4 py-2 bg-rp-iris hover:bg-rp-iris/90 text-white rounded-lg transition-colors text-sm hidden">
+              <i class='bx bx-message'></i>
+              Chat
+            </button>
+          </div>
+          <div id="friendshipStatus" class="text-center text-sm text-rp-subtle mt-2"></div>
+        </div>
+        
         <!-- Share Profile -->
-        <div class="mt-6 pt-6 border-t border-rp-overlay">
+        <div>
           <label class="block text-sm font-medium text-rp-text mb-2">Share this profile</label>
           <div class="flex gap-2">
             <input id="publicProfileUrl" type="text" class="flex-1 px-3 py-2 bg-rp-overlay border border-rp-highlight-med rounded-lg text-rp-text text-sm font-mono focus:outline-none focus:ring-2 focus:ring-rp-foam/50" readonly>
@@ -389,6 +593,7 @@
           </div>
           <div id="copyPublicFeedback" class="text-rp-foam mt-2 text-sm opacity-0 transition-opacity duration-300">Copied to clipboard!</div>
         </div>
+      </div>
       </div>
 
       <!-- Public Recent Games -->
@@ -439,6 +644,108 @@
     </div>
   </main>
 
+  <!-- Modal Overlays -->
+  <!-- User Search Modal -->
+  <div id="userSearchModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 hidden">
+    <div class="bg-rp-surface rounded-xl border border-rp-overlay p-6 w-full max-w-md mx-4">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg font-semibold text-rp-text">Find Friends</h3>
+        <button id="closeSearchModal" class="text-rp-subtle hover:text-rp-love transition-colors">
+          <i class='bx bx-x text-xl'></i>
+        </button>
+      </div>
+      
+      <div class="space-y-4">
+        <div>
+          <input id="userSearchInput" type="text" placeholder="Search by username or UID..." class="w-full px-3 py-2 bg-rp-overlay border border-rp-highlight-med rounded-lg text-rp-text focus:outline-none focus:ring-2 focus:ring-rp-foam/50">
+        </div>
+        
+        <div id="searchResults" class="max-h-64 overflow-y-auto space-y-2">
+          <!-- Search results will be populated here -->
+        </div>
+        
+        <div id="searchLoading" class="text-center py-4 hidden">
+          <div class="inline-block w-6 h-6 border-2 border-rp-foam border-t-transparent rounded-full animate-spin"></div>
+          <p class="text-rp-foam mt-2 text-sm">Searching...</p>
+        </div>
+        
+        <div id="noSearchResults" class="text-rp-subtle text-sm text-center py-4 hidden">
+          No users found
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Friend Requests Modal -->
+  <div id="friendRequestsModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 hidden">
+    <div class="bg-rp-surface rounded-xl border border-rp-overlay p-6 w-full max-w-lg mx-4">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg font-semibold text-rp-text">Friend Requests</h3>
+        <button id="closeRequestsModal" class="text-rp-subtle hover:text-rp-love transition-colors">
+          <i class='bx bx-x text-xl'></i>
+        </button>
+      </div>
+      
+      <div class="space-y-4">
+        <!-- Incoming Requests -->
+        <div>
+          <h4 class="text-md font-medium text-rp-text mb-2 flex items-center gap-2">
+            <i class='bx bx-download text-rp-foam'></i>
+            Incoming Requests
+          </h4>
+          <div id="incomingRequests" class="space-y-2">
+            <!-- Incoming requests will be populated here -->
+          </div>
+          <div id="noIncomingRequests" class="text-rp-subtle text-sm text-center py-2">No incoming requests</div>
+        </div>
+        
+        <!-- Outgoing Requests -->
+        <div>
+          <h4 class="text-md font-medium text-rp-text mb-2 flex items-center gap-2">
+            <i class='bx bx-upload text-rp-iris'></i>
+            Sent Requests
+          </h4>
+          <div id="outgoingRequests" class="space-y-2">
+            <!-- Outgoing requests will be populated here -->
+          </div>
+          <div id="noOutgoingRequests" class="text-rp-subtle text-sm text-center py-2">No sent requests</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Game Invite Modal -->
+  <div id="gameInviteModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 hidden">
+    <div class="bg-rp-surface rounded-xl border border-rp-overlay p-6 w-full max-w-md mx-4">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg font-semibold text-rp-text">Game Invitation</h3>
+        <button id="closeInviteModal" class="text-rp-subtle hover:text-rp-love transition-colors">
+          <i class='bx bx-x text-xl'></i>
+        </button>
+      </div>
+      
+      <div id="inviteContent" class="space-y-4">
+        <!-- Invite content will be populated here -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Notification Toast -->
+  <div id="notificationToast" class="fixed top-4 right-4 bg-rp-surface border border-rp-overlay rounded-lg p-4 shadow-lg z-50 transform translate-x-full transition-transform duration-300">
+    <div class="flex items-center gap-3">
+      <div id="notificationIcon" class="w-8 h-8 rounded-full bg-rp-foam flex items-center justify-center">
+        <i class='bx bx-bell text-rp-base'></i>
+      </div>
+      <div class="flex-1">
+        <p id="notificationTitle" class="text-rp-text font-medium text-sm"></p>
+        <p id="notificationMessage" class="text-rp-subtle text-xs"></p>
+      </div>
+      <button id="closeNotification" class="text-rp-subtle hover:text-rp-love transition-colors">
+        <i class='bx bx-x'></i>
+      </button>
+    </div>
+  </div>
+
   <script>
     // FIREBASE INIT
     const firebaseConfig = {
@@ -453,6 +760,23 @@
     firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
     const db = firebase.firestore();
+
+    // XSS Protection Functions using DOMPurify
+    function sanitizeHTML(dirty) {
+      return DOMPurify.sanitize(dirty, { ALLOWED_TAGS: [], ALLOWED_ATTR: [] });
+    }
+    
+    function sanitizeHTMLWithBasicTags(dirty) {
+      return DOMPurify.sanitize(dirty, { 
+        ALLOWED_TAGS: ['b', 'i', 'em', 'strong', 'br'], 
+        ALLOWED_ATTR: [] 
+      });
+    }
+    
+    function sanitizeText(text) {
+      if (!text) return '';
+      return sanitizeHTML(String(text));
+    }
 
     function googleSignIn() {
       const provider = new firebase.auth.GoogleAuthProvider();
@@ -509,6 +833,12 @@
           likedGames: [],
           favoriteGames: [],
           history: [],
+          friends: [],
+          bio: "",
+          privacy: "public",
+          status: "online",
+          lastSeen: firebase.firestore.FieldValue.serverTimestamp(),
+          currentGame: null
         });
       } else {
         let needsUpdate = false;
@@ -522,8 +852,1452 @@
           updateFields.photoURL = user.photoURL;
           needsUpdate = true;
         }
+        // Initialize new fields if they don't exist
+        if (!data.hasOwnProperty('friends')) {
+          updateFields.friends = [];
+          needsUpdate = true;
+        }
+        if (!data.hasOwnProperty('bio')) {
+          updateFields.bio = "";
+          needsUpdate = true;
+        }
+        if (!data.hasOwnProperty('privacy')) {
+          updateFields.privacy = "public";
+          needsUpdate = true;
+        }
+        if (!data.hasOwnProperty('status')) {
+          updateFields.status = "online";
+          needsUpdate = true;
+        }
         if (needsUpdate) await userRef.update(updateFields);
       }
+    }
+
+    // === FRIEND SYSTEM FUNCTIONALITY ===
+    
+    let currentUser = null;
+    let onlineFriends = new Set();
+    let friendsStatusListeners = new Map();
+    let activeChatUser = null;
+    let chatListener = null;
+
+    // Status system functions
+    const statusColors = {
+      online: 'bg-green-500',
+      idle: 'bg-yellow-500', 
+      dnd: 'bg-red-500',
+      offline: 'bg-gray-500',
+      ingame: 'bg-blue-500'
+    };
+
+    // Real-time status tracking
+    async function updateUserStatus(status, gameId = null) {
+      if (!currentUser) return;
+      
+      try {
+        const updateData = {
+          status: status,
+          lastSeen: firebase.firestore.FieldValue.serverTimestamp()
+        };
+        
+        if (gameId) {
+          updateData.currentGame = gameId;
+          updateData.status = 'ingame';
+        } else if (!gameId && status !== 'ingame') {
+          updateData.currentGame = null;
+        }
+        
+        console.log('Updating user status to:', status, 'with data:', updateData);
+        await db.collection('users').doc(currentUser.uid).update(updateData);
+        console.log('Status updated successfully in Firebase');
+        
+        // Update UI
+        updateStatusIndicator(status);
+        
+      } catch (error) {
+        console.error('Error updating status:', error);
+      }
+    }
+
+    function updateStatusIndicator(status) {
+      const indicator = document.getElementById('statusIndicator');
+      if (indicator) {
+        // Remove all possible status color classes
+        indicator.classList.remove('bg-green-500', 'bg-yellow-500', 'bg-red-500', 'bg-gray-500', 'bg-blue-500');
+        
+        // Add current status class
+        const statusClass = statusColors[status] || statusColors.online;
+        indicator.classList.add(statusClass);
+        
+        console.log('Status indicator updated:', status, 'class:', statusClass);
+      }
+    }
+
+    // Track game activity for activity feed
+    async function trackGameActivity(gameId, action = 'played') {
+      if (!currentUser || !gameId) return;
+      
+      try {
+        const game = gamesData.find(g => String(g.id) === String(gameId));
+        if (!game) return;
+        
+        const activityData = {
+          userId: currentUser.uid,
+          userName: sanitizeText(currentUser.displayName || 'Anonymous'),
+          userPhoto: currentUser.photoURL || '/default-avatar.png',
+          gameId: gameId,
+          gameTitle: sanitizeText(game.title),
+          gameImage: game.image || '/default-game.png',
+          action: action,
+          timestamp: firebase.firestore.FieldValue.serverTimestamp()
+        };
+        
+        await db.collection('activity').add(activityData);
+        
+        // Update user's last played game
+        await db.collection('users').doc(currentUser.uid).update({
+          lastPlayedGame: gameId,
+          lastPlayedTime: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        
+      } catch (error) {
+        console.error('Error tracking game activity:', error);
+      }
+    }
+
+    // Functions for play.html to call
+    window.trackGameStart = async function(gameId) {
+      await updateUserStatus('ingame', gameId);
+      await trackGameActivity(gameId, 'started');
+    };
+
+    window.trackGameEnd = async function() {
+      await updateUserStatus('online');
+    };
+
+    // Set user online when page loads
+    async function setUserOnline() {
+      if (!currentUser) return;
+      await updateUserStatus('online');
+      
+      // Set user offline when page unloads
+      window.addEventListener('beforeunload', async () => {
+        if (currentUser) {
+          await updateUserStatus('offline');
+        }
+      });
+      
+      // Periodic heartbeat to maintain online status
+      setInterval(async () => {
+        if (currentUser && document.visibilityState === 'visible') {
+          await updateUserStatus('online');
+        }
+      }, 30000); // Update every 30 seconds
+    }
+
+    // Friend management functions
+    async function sendFriendRequest(targetUid) {
+      console.log('🔄 Attempting to send friend request to:', targetUid);
+      
+      if (!currentUser) {
+        console.error('❌ No current user');
+        showNotification('Error', 'Please sign in first', 'error');
+        return;
+      }
+      
+      if (targetUid === currentUser.uid) {
+        console.error('❌ Cannot send friend request to self');
+        showNotification('Error', 'Cannot send friend request to yourself', 'error');
+        return;
+      }
+      
+      try {
+        // Check if request already exists
+        const existingRequest = await db.collection('friendRequests')
+          .where('from', '==', currentUser.uid)
+          .where('to', '==', targetUid)
+          .where('status', '==', 'pending')
+          .get();
+        
+        if (!existingRequest.empty) {
+          console.log('⚠️ Friend request already exists');
+          showNotification('Already Sent', 'Friend request already sent', 'warning');
+          return;
+        }
+        
+        // Check if already friends
+        const currentUserDoc = await db.collection('users').doc(currentUser.uid).get();
+        const userData = currentUserDoc.data();
+        if (userData.friends && userData.friends.includes(targetUid)) {
+          console.log('⚠️ Already friends');
+          showNotification('Already Friends', 'You are already friends with this user', 'info');
+          return;
+        }
+        
+        const requestData = {
+          from: currentUser.uid,
+          to: targetUid,
+          fromName: currentUser.displayName,
+          fromPhoto: currentUser.photoURL,
+          timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+          status: 'pending'
+        };
+        
+        console.log('📤 Sending friend request with data:', requestData);
+        await db.collection('friendRequests').add(requestData);
+        console.log('✅ Friend request sent successfully');
+        
+        showNotification('Friend Request Sent', `Request sent successfully`, 'success');
+        
+        // Close search modal if open
+        const searchModal = document.getElementById('userSearchModal');
+        if (!searchModal.classList.contains('hidden')) {
+          document.getElementById('closeSearchModal').click();
+        }
+        
+      } catch (error) {
+        console.error('❌ Error sending friend request:', error);
+        showNotification('Error', `Failed to send friend request: ${error.message}`, 'error');
+      }
+    }
+
+    async function acceptFriendRequest(requestId, fromUid) {
+      console.log('🔄 Attempting to accept friend request:', requestId, 'from:', fromUid);
+      
+      if (!currentUser) {
+        console.error('❌ No current user');
+        showNotification('Error', 'Please sign in first', 'error');
+        return;
+      }
+      
+      try {
+        console.log('📝 Creating batch operation...');
+        
+        // Add to both users' friends lists
+        const batch = db.batch();
+        
+        const currentUserRef = db.collection('users').doc(currentUser.uid);
+        const friendUserRef = db.collection('users').doc(fromUid);
+        const requestRef = db.collection('friendRequests').doc(requestId);
+        
+        batch.update(currentUserRef, {
+          friends: firebase.firestore.FieldValue.arrayUnion(fromUid)
+        });
+        
+        batch.update(friendUserRef, {
+          friends: firebase.firestore.FieldValue.arrayUnion(currentUser.uid)
+        });
+        
+        batch.update(requestRef, { status: 'accepted' });
+        
+        console.log('💾 Committing batch operation...');
+        await batch.commit();
+        console.log('✅ Friend request accepted successfully');
+        
+        showNotification('Friend Added', 'Friend request accepted!', 'success');
+        await loadFriends();
+        await loadFriendRequests();
+      } catch (error) {
+        console.error('❌ Error accepting friend request:', error);
+        showNotification('Error', `Failed to accept request: ${error.message}`, 'error');
+      }
+    }
+
+    async function declineFriendRequest(requestId) {
+      console.log('🔄 Attempting to decline friend request:', requestId);
+      
+      if (!currentUser) {
+        console.error('❌ No current user');
+        showNotification('Error', 'Please sign in first', 'error');
+        return;
+      }
+      
+      try {
+        console.log('📝 Updating request status to declined...');
+        await db.collection('friendRequests').doc(requestId).update({
+          status: 'declined'
+        });
+        console.log('✅ Friend request declined successfully');
+        
+        showNotification('Request Declined', 'Friend request declined', 'info');
+        await loadFriendRequests();
+      } catch (error) {
+        console.error('❌ Error declining friend request:', error);
+        showNotification('Error', `Failed to decline request: ${error.message}`, 'error');
+      }
+    }
+
+    async function removeFriend(friendUid) {
+      if (!currentUser || !confirm('Are you sure you want to remove this friend?')) return;
+      
+      try {
+        const batch = db.batch();
+        
+        const currentUserRef = db.collection('users').doc(currentUser.uid);
+        const friendUserRef = db.collection('users').doc(friendUid);
+        
+        batch.update(currentUserRef, {
+          friends: firebase.firestore.FieldValue.arrayRemove(friendUid)
+        });
+        
+        batch.update(friendUserRef, {
+          friends: firebase.firestore.FieldValue.arrayRemove(currentUser.uid)
+        });
+        
+        await batch.commit();
+        
+        showNotification('Friend Removed', 'Friend removed successfully', 'info');
+        await loadFriends();
+      } catch (error) {
+        console.error('Error removing friend:', error);
+        showNotification('Error', 'Failed to remove friend', 'error');
+      }
+    }
+
+    // Load and display friends
+    async function loadFriends() {
+      if (!currentUser) return;
+      
+      try {
+        const userDoc = await db.collection('users').doc(currentUser.uid).get();
+        const userData = userDoc.data();
+        const friendUids = userData.friends || [];
+        
+        document.getElementById('friendsCount').textContent = friendUids.length;
+        
+        if (friendUids.length === 0) {
+          document.getElementById('friendsList').innerHTML = `
+            <div class="col-span-full text-center py-8 text-rp-subtle">
+              <i class='bx bx-user-plus text-4xl mb-2'></i>
+              <p>No friends yet. Start by searching for friends!</p>
+            </div>
+          `;
+          return;
+        }
+        
+        // Load friend data
+        const friendsData = await Promise.all(
+          friendUids.map(async (uid) => {
+            const doc = await db.collection('users').doc(uid).get();
+            return { uid, ...doc.data() };
+          })
+        );
+        
+        renderFriendsList(friendsData);
+        setupFriendsStatusListeners(friendUids);
+        
+      } catch (error) {
+        console.error('Error loading friends:', error);
+      }
+    }
+
+    function renderFriendsList(friends) {
+      const friendsList = document.getElementById('friendsList');
+      
+      friendsList.innerHTML = friends.map(friend => {
+        const statusColor = statusColors[friend.status] || statusColors.offline;
+        const statusText = getStatusText(friend.status);
+        
+        const currentGameText = friend.currentGame && friend.status === 'ingame' 
+          ? `Playing ${getGameTitle(friend.currentGame)}` 
+          : '';
+        
+        // Sanitize friend data to prevent XSS
+        const safeDisplayName = sanitizeText(friend.displayName || 'Unknown User');
+        const safeUsername = sanitizeText(friend.username || '');
+        const safePhotoURL = friend.photoURL || '/default-avatar.png';
+        const safeUid = sanitizeText(friend.uid || '');
+        const safeCurrentGame = sanitizeText(friend.currentGame || '');
+        
+        return `
+          <div class="bg-rp-surface border border-rp-overlay rounded-xl p-4 hover:border-rp-foam/50 transition-all group">
+            <div class="flex items-center gap-3 mb-3">
+              <div class="relative">
+                <img src="${safePhotoURL}" 
+                     alt="${safeDisplayName}" 
+                     class="w-12 h-12 rounded-full ring-2 ring-rp-overlay group-hover:ring-rp-foam/50 transition-all">
+                <div class="${statusColor} w-4 h-4 rounded-full absolute -bottom-1 -right-1 border-2 border-rp-surface"></div>
+              </div>
+              <div class="flex-1 min-w-0">
+                <h4 class="font-medium text-rp-text truncate">${safeDisplayName}</h4>
+                <p class="text-xs text-rp-subtle">${safeUsername ? '@' + safeUsername : ''}</p>
+                <p class="text-xs text-rp-foam font-medium">${statusText}</p>
+                ${currentGameText ? `<p class="text-xs text-rp-gold truncate">${currentGameText}</p>` : ''}
+                ${friend.lastPlayedGame ? `<p class="text-xs text-rp-subtle">Last: ${getGameTitle(friend.lastPlayedGame)}</p>` : ''}
+              </div>
+            </div>
+            
+            <div class="flex gap-2">
+              ${friend.status === 'ingame' && friend.currentGame ? `
+                <button onclick="playGame('${safeCurrentGame}')" 
+                        class="flex-1 px-3 py-2 bg-rp-gold hover:bg-rp-gold/90 text-rp-base rounded-lg text-xs transition-colors font-medium">
+                  <i class='bx bx-play mr-1'></i>
+                  Join Game
+                </button>
+              ` : ''}
+              ${friend.status !== 'dnd' ? `
+                <button onclick="startChat('${safeUid}', '${safeDisplayName}')" 
+                        class="flex-1 px-3 py-2 bg-rp-iris hover:bg-rp-iris/90 text-white rounded-lg text-xs transition-colors">
+                  <i class='bx bx-message mr-1'></i>
+                  Chat
+                </button>
+              ` : `
+                <span class="flex-1 px-3 py-2 bg-rp-subtle/20 text-rp-subtle rounded-lg text-xs text-center">
+                  <i class='bx bx-minus-circle mr-1'></i>
+                  Do Not Disturb
+                </span>
+              `}
+              <button onclick="removeFriend('${safeUid}')" 
+                      class="px-3 py-2 bg-rp-love/20 hover:bg-rp-love/30 text-rp-love rounded-lg text-xs transition-colors">
+                <i class='bx bx-user-minus'></i>
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function getStatusText(status) {
+      switch(status) {
+        case 'online': return '🟢 Online';
+        case 'idle': return '🟡 Idle';
+        case 'dnd': return '🔴 Do Not Disturb';
+        case 'ingame': return '🎮 In Game';
+        case 'offline': 
+        default: return '⚫ Offline';
+      }
+    }
+
+    function playGame(gameId) {
+      window.open(`/play.html?id=${gameId}`, '_blank');
+    }
+
+    function setupFriendsStatusListeners(friendUids) {
+      // Clear existing listeners
+      friendsStatusListeners.forEach(unsubscribe => unsubscribe());
+      friendsStatusListeners.clear();
+      
+      // Set up real-time listeners for each friend
+      friendUids.forEach(uid => {
+        const unsubscribe = db.collection('users').doc(uid).onSnapshot(doc => {
+          if (doc.exists) {
+            const data = doc.data();
+            updateFriendStatus(uid, data.status, data.currentGame);
+          }
+        });
+        friendsStatusListeners.set(uid, unsubscribe);
+      });
+    }
+
+    function updateFriendStatus(uid, status, currentGame) {
+      const friendElement = document.querySelector(`[data-friend-uid="${uid}"]`);
+      if (friendElement) {
+        // Update status indicator and text
+        const statusDot = friendElement.querySelector('.status-dot');
+        const statusText = friendElement.querySelector('.status-text');
+        const gameText = friendElement.querySelector('.game-text');
+        
+        if (statusDot && statusText) {
+          const isOnline = status === 'online';
+          statusDot.className = `status-dot w-3 h-3 rounded-full absolute -bottom-1 -right-1 border-2 border-rp-surface ${isOnline ? 'bg-green-500' : 'bg-gray-500'}`;
+          statusText.textContent = status === 'online' ? 'Online' : status === 'ingame' ? 'In Game' : 'Offline';
+          
+          if (gameText) {
+            gameText.textContent = status === 'ingame' && currentGame ? `Playing ${getGameTitle(currentGame)}` : '';
+          }
+        }
+      }
+      
+      // Update online friends list
+      updateOnlineFriendsList();
+    }
+
+    function getGameTitle(gameId) {
+      if (!gamesData || !gameId) return 'Unknown Game';
+      const game = gamesData.find(g => String(g.id) === String(gameId));
+      return game ? game.title : 'Unknown Game';
+    }
+
+    // Chat system
+    async function startChat(friendUid, friendName) {
+      activeChatUser = { uid: friendUid, name: friendName };
+      
+      document.getElementById('chatFriendName').textContent = friendName;
+      document.getElementById('quickChatSection').classList.remove('hidden');
+      document.getElementById('chatMessages').innerHTML = '';
+      
+      // Create chat room ID (sorted UIDs to ensure consistency)
+      const chatRoomId = [currentUser.uid, friendUid].sort().join('_');
+      
+      // Set up real-time chat listener
+      if (chatListener) chatListener();
+      chatListener = db.collection('chats').doc(chatRoomId).collection('messages')
+        .orderBy('timestamp', 'asc')
+        .onSnapshot(snapshot => {
+          const messages = snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+          }));
+          renderChatMessages(messages);
+        });
+    }
+
+    function renderChatMessages(messages) {
+      const chatContainer = document.getElementById('chatMessages');
+      
+      chatContainer.innerHTML = messages.map(message => {
+        const isOwn = message.sender === currentUser.uid;
+        const messageTime = message.timestamp?.toDate()?.toLocaleTimeString() || '';
+        
+        // Sanitize message content to prevent XSS
+        const safeMessageText = sanitizeHTMLWithBasicTags(message.text || '');
+        
+        return `
+          <div class="flex ${isOwn ? 'justify-end' : 'justify-start'} mb-2">
+            <div class="max-w-xs ${isOwn ? 'bg-rp-foam text-rp-base' : 'bg-rp-highlight-med text-rp-text'} 
+                        rounded-lg px-3 py-2 text-sm">
+              <p>${safeMessageText}</p>
+              <p class="text-xs opacity-70 mt-1">${messageTime}</p>
+            </div>
+          </div>
+        `;
+      }).join('');
+      
+      // Scroll to bottom
+      chatContainer.scrollTop = chatContainer.scrollHeight;
+    }
+
+    async function sendMessage() {
+      const input = document.getElementById('chatInput');
+      const text = input.value.trim();
+      
+      if (!text || !activeChatUser) return;
+      
+      // Sanitize message text to prevent XSS
+      const safeText = sanitizeText(text);
+      
+      // Validate message length
+      if (safeText.length > 500) {
+        showNotification('Message Too Long', 'Messages must be 500 characters or less', 'error');
+        return;
+      }
+      
+      const chatRoomId = [currentUser.uid, activeChatUser.uid].sort().join('_');
+      
+      try {
+        await db.collection('chats').doc(chatRoomId).collection('messages').add({
+          text: safeText,
+          sender: currentUser.uid,
+          senderName: sanitizeText(currentUser.displayName),
+          timestamp: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        
+        input.value = '';
+      } catch (error) {
+        console.error('Error sending message:', error);
+        showNotification('Error', 'Failed to send message', 'error');
+      }
+    }
+
+    // User search functionality
+    async function searchUsers(query) {
+      if (!query.trim()) return [];
+      
+      try {
+        const searchResults = [];
+        
+        // Search by username
+        const usernameQuery = await db.collection('users')
+          .where('username', '>=', query.toLowerCase())
+          .where('username', '<=', query.toLowerCase() + '\uf8ff')
+          .limit(10)
+          .get();
+        
+        usernameQuery.forEach(doc => {
+          const data = doc.data();
+          if (doc.id !== currentUser.uid) {
+            searchResults.push({ uid: doc.id, ...data });
+          }
+        });
+        
+        // Search by UID if it looks like a UID
+        if (query.length > 10) {
+          try {
+            const uidDoc = await db.collection('users').doc(query).get();
+            if (uidDoc.exists && query !== currentUser.uid) {
+              const data = uidDoc.data();
+              const alreadyIncluded = searchResults.some(user => user.uid === query);
+              if (!alreadyIncluded) {
+                searchResults.push({ uid: query, ...data });
+              }
+            }
+          } catch (error) {
+            // Ignore UID search errors
+          }
+        }
+        
+        return searchResults;
+      } catch (error) {
+        console.error('Error searching users:', error);
+        return [];
+      }
+    }
+
+    function renderUserSearchResults(users) {
+      console.log('🔍 Rendering search results:', users);
+      const resultsContainer = document.getElementById('searchResults');
+      
+      if (users.length === 0) {
+        document.getElementById('noSearchResults').classList.remove('hidden');
+        resultsContainer.innerHTML = '';
+        return;
+      }
+      
+      document.getElementById('noSearchResults').classList.add('hidden');
+      
+      resultsContainer.innerHTML = users.map(user => {
+        // Check if already friends
+        let isAlreadyFriend = false;
+        if (currentUser) {
+          // We need to check the current user's friends list
+          const currentUserData = currentUser.userData || {};
+          isAlreadyFriend = currentUserData.friends && currentUserData.friends.includes(user.uid);
+        }
+        
+        console.log('👤 Rendering user:', user.displayName, 'Already friend:', isAlreadyFriend);
+        
+        // Sanitize user data to prevent XSS
+        const safeDisplayName = sanitizeText(user.displayName || 'Unknown User');
+        const safeUsername = sanitizeText(user.username || '');
+        const safeBio = sanitizeText(user.bio || '');
+        const safePhotoURL = user.photoURL || '/default-avatar.png';
+        const safeUid = sanitizeText(user.uid || '');
+        
+        return `
+          <div class="flex items-center gap-3 p-3 bg-rp-overlay rounded-lg">
+            <img src="${safePhotoURL}" 
+                 alt="${safeDisplayName}" 
+                 class="w-10 h-10 rounded-full">
+            <div class="flex-1 min-w-0">
+              <h4 class="font-medium text-rp-text truncate">${safeDisplayName}</h4>
+              <p class="text-xs text-rp-subtle">${safeUsername ? '@' + safeUsername : safeUid.substring(0, 8) + '...'}</p>
+              ${safeBio ? `<p class="text-xs text-rp-muted truncate">${safeBio}</p>` : ''}
+            </div>
+            <div class="flex gap-2">
+              ${isAlreadyFriend ? `
+                <span class="px-3 py-1 bg-rp-foam/20 text-rp-foam rounded text-xs">Friends</span>
+              ` : `
+                <button onclick="window.sendFriendRequest('${safeUid}')" 
+                        class="px-3 py-1 bg-rp-foam hover:bg-rp-foam/90 text-rp-base rounded text-xs transition-colors"
+                        data-uid="${safeUid}">
+                  Add Friend
+                </button>
+              `}
+              <button onclick="window.viewUserProfile('${safeUid}')" 
+                      class="px-3 py-1 bg-rp-iris/20 text-rp-iris rounded text-xs hover:bg-rp-iris/30 transition-colors">
+                View
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('');
+      
+      console.log('✅ Search results rendered');
+    }
+
+    // Friend requests handling
+    async function loadFriendRequests() {
+      console.log('🔄 Loading friend requests...');
+      
+      if (!currentUser) {
+        console.error('❌ No current user when loading friend requests');
+        return;
+      }
+      
+      try {
+        console.log('📥 Loading incoming requests...');
+        // Load incoming requests
+        const incomingSnapshot = await db.collection('friendRequests')
+          .where('to', '==', currentUser.uid)
+          .where('status', '==', 'pending')
+          .get(); // Remove orderBy for now to avoid index issues
+        
+        console.log(`📨 Found ${incomingSnapshot.docs.length} incoming requests`);
+        
+        const incomingRequests = [];
+        for (const doc of incomingSnapshot.docs) {
+          const data = doc.data();
+          console.log('📨 Processing incoming request:', doc.id, data);
+          
+          try {
+            const fromUserDoc = await db.collection('users').doc(data.from).get();
+            const fromUserData = fromUserDoc.exists ? fromUserDoc.data() : null;
+            
+            if (fromUserData) {
+              incomingRequests.push({
+                id: doc.id,
+                ...data,
+                fromUserData
+              });
+            } else {
+              console.warn('⚠️ From user not found:', data.from);
+            }
+          } catch (userError) {
+            console.error('❌ Error loading from user:', data.from, userError);
+          }
+        }
+        
+        console.log('📤 Loading outgoing requests...');
+        // Load outgoing requests
+        const outgoingSnapshot = await db.collection('friendRequests')
+          .where('from', '==', currentUser.uid)
+          .where('status', '==', 'pending')
+          .get(); // Remove orderBy for now to avoid index issues
+        
+        console.log(`📤 Found ${outgoingSnapshot.docs.length} outgoing requests`);
+        
+        const outgoingRequests = [];
+        for (const doc of outgoingSnapshot.docs) {
+          const data = doc.data();
+          console.log('📤 Processing outgoing request:', doc.id, data);
+          
+          try {
+            const toUserDoc = await db.collection('users').doc(data.to).get();
+            const toUserData = toUserDoc.exists ? toUserDoc.data() : null;
+            
+            if (toUserData) {
+              outgoingRequests.push({
+                id: doc.id,
+                ...data,
+                toUserData
+              });
+            } else {
+              console.warn('⚠️ To user not found:', data.to);
+            }
+          } catch (userError) {
+            console.error('❌ Error loading to user:', data.to, userError);
+          }
+        }
+        
+        console.log(`✅ Loaded ${incomingRequests.length} incoming and ${outgoingRequests.length} outgoing requests`);
+        renderFriendRequests(incomingRequests, outgoingRequests);
+        
+        // Update badge
+        const badge = document.getElementById('requestsBadge');
+        if (incomingRequests.length > 0) {
+          badge.textContent = incomingRequests.length;
+          badge.classList.remove('hidden');
+        } else {
+          badge.classList.add('hidden');
+        }
+        
+      } catch (error) {
+        console.error('❌ Error loading friend requests:', error);
+        showNotification('Error', `Failed to load friend requests: ${error.message}`, 'error');
+      }
+    }
+
+    function renderFriendRequests(incoming, outgoing) {
+      // Render incoming requests
+      const incomingContainer = document.getElementById('incomingRequests');
+      const noIncoming = document.getElementById('noIncomingRequests');
+      
+      if (incoming.length === 0) {
+        incomingContainer.innerHTML = '';
+        noIncoming.classList.remove('hidden');
+      } else {
+        noIncoming.classList.add('hidden');
+        incomingContainer.innerHTML = incoming.map(request => {
+          // Sanitize incoming request data to prevent XSS
+          const safeDisplayName = sanitizeText(request.fromUserData.displayName || 'Unknown User');
+          const safeUsername = sanitizeText(request.fromUserData.username || '');
+          const safePhotoURL = request.fromUserData.photoURL || '/default-avatar.png';
+          const safeRequestId = sanitizeText(request.id || '');
+          const safeFromUid = sanitizeText(request.from || '');
+          
+          return `
+            <div class="flex items-center gap-3 p-3 bg-rp-overlay rounded-lg">
+              <img src="${safePhotoURL}" 
+                   alt="${safeDisplayName}" 
+                   class="w-10 h-10 rounded-full">
+              <div class="flex-1 min-w-0">
+                <h4 class="font-medium text-rp-text">${safeDisplayName}</h4>
+                <p class="text-xs text-rp-subtle">${safeUsername ? '@' + safeUsername : ''}</p>
+              </div>
+              <div class="flex gap-2">
+                <button onclick="acceptFriendRequest('${safeRequestId}', '${safeFromUid}')" 
+                        class="px-3 py-1 bg-rp-foam hover:bg-rp-foam/90 text-rp-base rounded text-xs">
+                  Accept
+                </button>
+                <button onclick="declineFriendRequest('${safeRequestId}')" 
+                        class="px-3 py-1 bg-rp-love/20 hover:bg-rp-love/30 text-rp-love rounded text-xs">
+                  Decline
+                </button>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+      
+      // Render outgoing requests
+      const outgoingContainer = document.getElementById('outgoingRequests');
+      const noOutgoing = document.getElementById('noOutgoingRequests');
+      
+      if (outgoing.length === 0) {
+        outgoingContainer.innerHTML = '';
+        noOutgoing.classList.remove('hidden');
+      } else {
+        noOutgoing.classList.add('hidden');
+        outgoingContainer.innerHTML = outgoing.map(request => {
+          // Sanitize outgoing request data to prevent XSS
+          const safeDisplayName = sanitizeText(request.toUserData.displayName || 'Unknown User');
+          const safePhotoURL = request.toUserData.photoURL || '/default-avatar.png';
+          const safeRequestId = sanitizeText(request.id || '');
+          
+          return `
+            <div class="flex items-center gap-3 p-3 bg-rp-overlay rounded-lg">
+              <img src="${safePhotoURL}" 
+                   alt="${safeDisplayName}" 
+                   class="w-10 h-10 rounded-full">
+              <div class="flex-1 min-w-0">
+                <h4 class="font-medium text-rp-text">${safeDisplayName}</h4>
+                <p class="text-xs text-rp-subtle">Request sent</p>
+              </div>
+              <div>
+                <button onclick="cancelFriendRequest('${safeRequestId}')" 
+                        class="px-3 py-1 bg-rp-subtle/20 hover:bg-rp-subtle/30 text-rp-subtle rounded text-xs">
+                  Cancel
+                </button>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+    }
+
+    async function cancelFriendRequest(requestId) {
+      try {
+        await db.collection('friendRequests').doc(requestId).delete();
+        showNotification('Request Cancelled', 'Friend request cancelled', 'info');
+        await loadFriendRequests();
+      } catch (error) {
+        console.error('Error cancelling friend request:', error);
+      }
+    }
+
+    // Activity Feed Functions - only load if element exists
+    async function loadActivityFeed() {
+      const activityContainer = document.getElementById('activityFeed');
+      const activityLoader = document.getElementById('activityLoader');
+      const noActivity = document.getElementById('noActivity');
+      
+      // If activity feed elements don't exist, don't try to load
+      if (!activityContainer) {
+        console.log('Activity feed elements not found, skipping activity feed load');
+        return;
+      }
+      
+      if (!currentUser) return;
+      
+      try {
+        if (activityLoader) activityLoader.classList.remove('hidden');
+        if (noActivity) noActivity.classList.add('hidden');
+        
+        // Get current user's friends
+        const userDoc = await db.collection('users').doc(currentUser.uid).get();
+        const userData = userDoc.data();
+        const friendUids = userData.friends || [];
+        
+        // Include current user in activity
+        const allUids = [currentUser.uid, ...friendUids];
+        
+        // Load recent activity from friends and self
+        const activityQuery = await db.collection('activity')
+          .where('userId', 'in', allUids.slice(0, 10)) // Firestore 'in' limit is 10
+          .orderBy('timestamp', 'desc')
+          .limit(20)
+          .get();
+        
+        const activities = [];
+        activityQuery.forEach(doc => {
+          activities.push({ id: doc.id, ...doc.data() });
+        });
+        
+        if (activityLoader) activityLoader.classList.add('hidden');
+        
+        if (activities.length === 0) {
+          if (noActivity) noActivity.classList.remove('hidden');
+          activityContainer.innerHTML = '';
+          return;
+        }
+        
+        renderActivityFeed(activities);
+        
+      } catch (error) {
+        console.error('Error loading activity feed:', error);
+        if (activityLoader) activityLoader.classList.add('hidden');
+        if (noActivity) noActivity.classList.remove('hidden');
+      }
+    }
+
+    function renderActivityFeed(activities) {
+      const activityContainer = document.getElementById('activityFeed');
+      if (!activityContainer) return;
+      
+      activityContainer.innerHTML = activities.map(activity => {
+        const timeAgo = getTimeAgo(activity.timestamp?.toDate());
+        const isCurrentUser = activity.userId === currentUser.uid;
+        const userName = isCurrentUser ? 'You' : sanitizeText(activity.userName);
+        const actionText = activity.action === 'started' ? 'started playing' : 'played';
+        
+        return `
+          <div class="flex items-center gap-3 p-3 bg-rp-overlay rounded-lg hover:bg-rp-highlight-med transition-colors">
+            <div class="w-8 h-8 rounded-full bg-rp-foam/20 flex items-center justify-center flex-shrink-0">
+              <i class='bx bx-game text-rp-foam text-sm'></i>
+            </div>
+            <div class="flex-1 min-w-0">
+              <p class="text-sm text-rp-text">
+                <span class="font-medium ${isCurrentUser ? 'text-rp-foam' : 'text-rp-text'}">${userName}</span>
+                ${actionText}
+                <span class="font-medium text-rp-gold">${sanitizeText(activity.gameTitle)}</span>
+              </p>
+              <p class="text-xs text-rp-subtle">${timeAgo}</p>
+            </div>
+            <img src="${activity.gameImage || '/default-game.png'}" 
+                 alt="${activity.gameTitle}" 
+                 class="w-8 h-8 rounded object-cover">
+          </div>
+        `;
+      }).join('');
+    }
+
+    function getTimeAgo(date) {
+      if (!date) return 'recently';
+      
+      const now = new Date();
+      const diff = now - date;
+      const minutes = Math.floor(diff / 60000);
+      const hours = Math.floor(diff / 3600000);
+      const days = Math.floor(diff / 86400000);
+      
+      if (minutes < 1) return 'just now';
+      if (minutes < 60) return `${minutes} minute${minutes === 1 ? '' : 's'} ago`;
+      if (hours < 24) return `${hours} hour${hours === 1 ? '' : 's'} ago`;
+      if (days < 30) return `${days} day${days === 1 ? '' : 's'} ago`;
+      return date.toLocaleDateString();
+    }
+
+    // Profile bio editing
+    async function loadUserProfile() {
+      if (!currentUser) return;
+      
+      try {
+        const userDoc = await db.collection('users').doc(currentUser.uid).get();
+        const userData = userDoc.data();
+        
+        // Update user avatar and name in status section
+        document.getElementById('userAvatar').src = currentUser.photoURL || '/default-avatar.png';
+        document.getElementById('userDisplayName').textContent = sanitizeText(currentUser.displayName || 'Anonymous');
+        
+        // Set status selector and indicator
+        const statusSelector = document.getElementById('statusSelector');
+        const currentStatus = userData.status || 'online';
+        statusSelector.value = currentStatus;
+        updateStatusIndicator(currentStatus);
+        console.log('Loaded user status from Firebase:', currentStatus);
+        
+        // Show current game if playing
+        if (userData.currentGame && userData.status === 'ingame') {
+          const game = gamesData.find(g => String(g.id) === String(userData.currentGame));
+          if (game) {
+            document.getElementById('currentGameDisplay').classList.remove('hidden');
+            document.getElementById('currentGameName').textContent = sanitizeText(game.title);
+          }
+        }
+        
+        // Sanitize and display current profile info
+        const safeUsername = sanitizeText(userData.username || 'Not set');
+        const safeBio = sanitizeText(userData.bio || 'No bio set');
+        
+        document.getElementById('displayUsername').textContent = safeUsername;
+        document.getElementById('displayBio').textContent = safeBio;
+        document.getElementById('displayPrivacy').textContent = 
+          userData.privacy === 'public' ? 'Public Profile' :
+          userData.privacy === 'friends' ? 'Friends Only' : 'Private Profile';
+        
+        // Show last played game
+        if (userData.lastPlayedGame) {
+          const lastGame = gamesData.find(g => String(g.id) === String(userData.lastPlayedGame));
+          if (lastGame) {
+            document.getElementById('lastGameImage').src = lastGame.image || '/default-game.png';
+            document.getElementById('lastGameTitle').textContent = sanitizeText(lastGame.title);
+            if (userData.lastPlayedTime) {
+              document.getElementById('lastGameTime').textContent = getTimeAgo(userData.lastPlayedTime.toDate());
+            }
+          }
+        }
+        
+        // Show favorite games
+        const favoriteGamesContainer = document.getElementById('displayFavoriteGames');
+        if (userData.favoriteGames && userData.favoriteGames.length > 0) {
+          favoriteGamesContainer.innerHTML = userData.favoriteGames.slice(0, 3).map(gameId => {
+            const game = gamesData.find(g => String(g.id) === String(gameId));
+            if (game) {
+              const safeGameTitle = sanitizeText(game.title);
+              return `<span class="px-2 py-1 bg-rp-foam/20 text-rp-foam rounded text-xs">${safeGameTitle}</span>`;
+            }
+            return '';
+          }).join('');
+        } else {
+          favoriteGamesContainer.innerHTML = '<span class="text-rp-subtle text-xs">None selected</span>';
+        }
+        
+      } catch (error) {
+        console.error('Error loading user profile:', error);
+      }
+    }
+
+    function editBio() {
+      const displaySection = document.getElementById('bioDisplay');
+      const editorSection = document.getElementById('bioEditor');
+      
+      // Populate editor with current values
+      const currentUsername = document.getElementById('displayUsername').textContent;
+      const currentBio = document.getElementById('displayBio').textContent;
+      const currentPrivacy = document.getElementById('displayPrivacy').textContent;
+      
+      document.getElementById('editUsername').value = currentUsername === 'Not set' ? '' : currentUsername;
+      document.getElementById('editBio').value = currentBio === 'No bio set' ? '' : currentBio;
+      document.getElementById('editPrivacy').value = 
+        currentPrivacy === 'Public Profile' ? 'public' :
+        currentPrivacy === 'Friends Only' ? 'friends' : 'private';
+      
+      displaySection.classList.add('hidden');
+      editorSection.classList.remove('hidden');
+      
+      // Setup character counter
+      const bioTextarea = document.getElementById('editBio');
+      const charCount = document.getElementById('bioCharCount');
+      
+      function updateCharCount() {
+        charCount.textContent = bioTextarea.value.length;
+      }
+      
+      updateCharCount();
+      bioTextarea.addEventListener('input', updateCharCount);
+    }
+
+    async function saveBio() {
+      const username = document.getElementById('editUsername').value.trim();
+      const bio = document.getElementById('editBio').value.trim();
+      const privacy = document.getElementById('editPrivacy').value;
+      
+      // Sanitize inputs to prevent XSS
+      const safeUsername = sanitizeText(username);
+      const safeBio = sanitizeText(bio);
+      const safePrivacy = ['public', 'friends', 'private'].includes(privacy) ? privacy : 'public';
+      
+      // Validate username
+      if (safeUsername && !/^[a-zA-Z0-9_]+$/.test(safeUsername)) {
+        showNotification('Invalid Username', 'Username can only contain letters, numbers, and underscores', 'error');
+        return;
+      }
+      
+      if (safeUsername && safeUsername.length < 3) {
+        showNotification('Invalid Username', 'Username must be at least 3 characters', 'error');
+        return;
+      }
+      
+      // Validate bio length
+      if (safeBio.length > 200) {
+        showNotification('Bio Too Long', 'Bio must be 200 characters or less', 'error');
+        return;
+      }
+      
+      try {
+        // Check if username is already taken
+        if (safeUsername) {
+          const usernameQuery = await db.collection('users')
+            .where('username', '==', safeUsername.toLowerCase())
+            .get();
+          
+          if (!usernameQuery.empty && usernameQuery.docs[0].id !== currentUser.uid) {
+            showNotification('Username Taken', 'This username is already taken', 'error');
+            return;
+          }
+        }
+        
+        // Update user profile with sanitized data
+        await db.collection('users').doc(currentUser.uid).update({
+          username: safeUsername.toLowerCase(),
+          bio: safeBio,
+          privacy: safePrivacy
+        });
+        
+        showNotification('Profile Updated', 'Your profile has been updated successfully', 'success');
+        await loadUserProfile();
+        cancelBioEdit();
+        
+      } catch (error) {
+        console.error('Error saving profile:', error);
+        showNotification('Error', 'Failed to update profile', 'error');
+      }
+    }
+
+    function cancelBioEdit() {
+      document.getElementById('bioDisplay').classList.remove('hidden');
+      document.getElementById('bioEditor').classList.add('hidden');
+    }
+
+    // Online friends tracking
+    async function updateOnlineFriendsList() {
+      if (!currentUser) return;
+      
+      try {
+        const userDoc = await db.collection('users').doc(currentUser.uid).get();
+        const friendUids = userDoc.data().friends || [];
+        
+        if (friendUids.length === 0) {
+          document.getElementById('onlineFriendsList').innerHTML = '';
+          document.getElementById('noOnlineFriends').classList.remove('hidden');
+          return;
+        }
+        
+        const onlineFriendsData = [];
+        for (const uid of friendUids) {
+          const friendDoc = await db.collection('users').doc(uid).get();
+          if (friendDoc.exists) {
+            const friendData = friendDoc.data();
+            if (friendData.status && friendData.status !== 'offline') {
+              onlineFriendsData.push({ uid, ...friendData });
+            }
+          }
+        }
+        
+        const onlineContainer = document.getElementById('onlineFriendsList');
+        const noOnlineEl = document.getElementById('noOnlineFriends');
+        
+        if (onlineFriendsData.length === 0) {
+          onlineContainer.innerHTML = '';
+          noOnlineEl.classList.remove('hidden');
+        } else {
+          noOnlineEl.classList.add('hidden');
+          onlineContainer.innerHTML = onlineFriendsData.map(friend => {
+            const statusColor = statusColors[friend.status] || statusColors.online;
+            const statusText = getStatusText(friend.status);
+            const gameText = friend.currentGame && friend.status === 'ingame' 
+              ? getGameTitle(friend.currentGame) : '';
+            
+            // Sanitize friend data to prevent XSS
+            const safeDisplayName = sanitizeText(friend.displayName || 'Unknown User');
+            const safePhotoURL = friend.photoURL || '/default-avatar.png';
+            const safeUid = sanitizeText(friend.uid || '');
+            const safeGameText = sanitizeText(gameText || '');
+            
+            const clickAction = friend.status !== 'dnd' ? 
+              `onclick="startChat('${safeUid}', '${safeDisplayName}')"` : '';
+            
+            return `
+              <div class="flex items-center gap-3 p-3 bg-rp-overlay rounded-lg hover:bg-rp-highlight-med transition-colors ${friend.status !== 'dnd' ? 'cursor-pointer' : ''}"
+                   ${clickAction}>
+                <div class="relative">
+                  <img src="${safePhotoURL}" 
+                       alt="${safeDisplayName}" 
+                       class="w-10 h-10 rounded-full ring-2 ring-rp-overlay">
+                  <div class="${statusColor} w-3 h-3 rounded-full absolute -bottom-0.5 -right-0.5 border-2 border-rp-surface"></div>
+                </div>
+                <div class="flex-1 min-w-0">
+                  <p class="text-sm font-medium text-rp-text truncate">${safeDisplayName}</p>
+                  <p class="text-xs text-rp-foam font-medium">${statusText}</p>
+                  ${safeGameText ? `<p class="text-xs text-rp-gold truncate">${safeGameText}</p>` : ''}
+                </div>
+                ${friend.status === 'ingame' && friend.currentGame ? `
+                  <button onclick="event.stopPropagation(); playGame('${sanitizeText(friend.currentGame)}')" 
+                          class="px-2 py-1 bg-rp-gold/20 hover:bg-rp-gold/30 text-rp-gold rounded text-xs transition-colors">
+                    <i class='bx bx-play'></i>
+                  </button>
+                ` : ''}
+              </div>
+            `;
+          }).join('');
+        }
+        
+      } catch (error) {
+        console.error('Error updating online friends:', error);
+      }
+    }
+
+    // Game invitations
+    async function inviteToGame(friendUid, gameId) {
+      if (!currentUser) return;
+      
+      try {
+        const game = gamesData.find(g => String(g.id) === String(gameId));
+        if (!game) return;
+        
+        const inviteData = {
+          from: currentUser.uid,
+          to: friendUid,
+          fromName: currentUser.displayName,
+          gameId: gameId,
+          gameTitle: game.title,
+          timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+          status: 'pending'
+        };
+        
+        await db.collection('gameInvites').add(inviteData);
+        showNotification('Invite Sent', `Game invitation sent!`, 'success');
+        
+      } catch (error) {
+        console.error('Error sending game invite:', error);
+        showNotification('Error', 'Failed to send game invitation', 'error');
+      }
+    }
+
+    function viewUserProfile(uid) {
+      // Open user's public profile in new tab
+      window.open(`/profile.html?uid=${uid}`, '_blank');
+    }
+
+    // Notification system
+    function showNotification(title, message, type = 'info') {
+      const toast = document.getElementById('notificationToast');
+      const titleEl = document.getElementById('notificationTitle');
+      const messageEl = document.getElementById('notificationMessage');
+      const iconEl = document.getElementById('notificationIcon');
+      
+      titleEl.textContent = title;
+      messageEl.textContent = message;
+      
+      // Update icon based on type
+      let iconClass = 'bx-bell';
+      let iconBg = 'bg-rp-foam';
+      
+      switch (type) {
+        case 'success':
+          iconClass = 'bx-check';
+          iconBg = 'bg-green-500';
+          break;
+        case 'error':
+          iconClass = 'bx-x';
+          iconBg = 'bg-red-500';
+          break;
+        case 'warning':
+          iconClass = 'bx-warning';
+          iconBg = 'bg-yellow-500';
+          break;
+      }
+      
+      iconEl.className = `w-8 h-8 rounded-full ${iconBg} flex items-center justify-center`;
+      iconEl.innerHTML = `<i class='bx ${iconClass} text-white'></i>`;
+      
+      // Show notification
+      toast.classList.remove('translate-x-full');
+      
+      // Auto hide after 4 seconds
+      setTimeout(() => {
+        toast.classList.add('translate-x-full');
+      }, 4000);
+    }
+
+    // Initialize friend system event listeners
+    function initializeFriendSystemEvents() {
+      // Search users modal
+      document.getElementById('searchUsersBtn').addEventListener('click', () => {
+        document.getElementById('userSearchModal').classList.remove('hidden');
+        document.getElementById('userSearchInput').focus();
+      });
+      
+      document.getElementById('closeSearchModal').addEventListener('click', () => {
+        document.getElementById('userSearchModal').classList.add('hidden');
+        document.getElementById('userSearchInput').value = '';
+        document.getElementById('searchResults').innerHTML = '';
+        document.getElementById('noSearchResults').classList.add('hidden');
+      });
+      
+      // User search input
+      let searchTimeout;
+      document.getElementById('userSearchInput').addEventListener('input', (e) => {
+        clearTimeout(searchTimeout);
+        const query = e.target.value.trim();
+        
+        if (!query) {
+          document.getElementById('searchResults').innerHTML = '';
+          document.getElementById('noSearchResults').classList.add('hidden');
+          return;
+        }
+        
+        document.getElementById('searchLoading').classList.remove('hidden');
+        document.getElementById('noSearchResults').classList.add('hidden');
+        
+        searchTimeout = setTimeout(async () => {
+          const results = await searchUsers(query);
+          document.getElementById('searchLoading').classList.add('hidden');
+          renderUserSearchResults(results);
+        }, 500);
+      });
+      
+      // Friend requests modal
+      document.getElementById('friendRequestsBtn').addEventListener('click', () => {
+        document.getElementById('friendRequestsModal').classList.remove('hidden');
+        loadFriendRequests();
+      });
+      
+      document.getElementById('closeRequestsModal').addEventListener('click', () => {
+        document.getElementById('friendRequestsModal').classList.add('hidden');
+      });
+      
+      // Bio editing
+      document.getElementById('editBioBtn').addEventListener('click', editBio);
+      document.getElementById('saveBioBtn').addEventListener('click', saveBio);
+      document.getElementById('cancelBioBtn').addEventListener('click', cancelBioEdit);
+      
+      // Status selector
+      document.getElementById('statusSelector').addEventListener('change', async (e) => {
+        const newStatus = e.target.value;
+        console.log('Status selector changed to:', newStatus);
+        
+        // Update status in Firebase and UI
+        await updateUserStatus(newStatus);
+        
+        // Hide current game display if not in game
+        if (newStatus !== 'ingame') {
+          document.getElementById('currentGameDisplay').classList.add('hidden');
+        }
+        
+        // Force update status indicator
+        updateStatusIndicator(newStatus);
+      });
+      
+      // Chat system
+      document.getElementById('closeChatBtn').addEventListener('click', () => {
+        document.getElementById('quickChatSection').classList.add('hidden');
+        if (chatListener) {
+          chatListener();
+          chatListener = null;
+        }
+        activeChatUser = null;
+      });
+      
+      document.getElementById('sendMessageBtn').addEventListener('click', sendMessage);
+      
+      document.getElementById('chatInput').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault();
+          sendMessage();
+        }
+      });
+      
+      // Notification close
+      document.getElementById('closeNotification').addEventListener('click', () => {
+        document.getElementById('notificationToast').classList.add('translate-x-full');
+      });
+      
+      // Modal click outside to close
+      document.getElementById('userSearchModal').addEventListener('click', (e) => {
+        if (e.target === e.currentTarget) {
+          document.getElementById('closeSearchModal').click();
+        }
+      });
+      
+      document.getElementById('friendRequestsModal').addEventListener('click', (e) => {
+        if (e.target === e.currentTarget) {
+          document.getElementById('closeRequestsModal').click();
+        }
+      });
+      
+      document.getElementById('gameInviteModal').addEventListener('click', (e) => {
+        if (e.target === e.currentTarget) {
+          document.getElementById('closeInviteModal').click();
+        }
+      });
+      
+      // Periodic updates
+      setInterval(updateOnlineFriendsList, 15000); // Update every 15 seconds
+      setInterval(loadActivityFeed, 30000); // Update activity feed every 30 seconds
+    }
+
+    // Test function to verify friend system is working
+    window.testFriendSystem = function() {
+      console.log('🧪 Testing friend system...');
+      console.log('Current user:', currentUser);
+      console.log('Functions available:');
+      console.log('- sendFriendRequest:', typeof sendFriendRequest);
+      console.log('- acceptFriendRequest:', typeof acceptFriendRequest);
+      console.log('- declineFriendRequest:', typeof declineFriendRequest);
+      console.log('- loadFriendRequests:', typeof loadFriendRequests);
+      console.log('- searchUsers:', typeof searchUsers);
+      
+      if (currentUser) {
+        console.log('✅ User is authenticated');
+        loadFriendRequests();
+      } else {
+        console.log('❌ User not authenticated');
+      }
+    };
+
+    // Make functions globally available - direct assignment to avoid recursion
+    window.sendFriendRequest = sendFriendRequest;
+    window.acceptFriendRequest = acceptFriendRequest;
+    window.declineFriendRequest = declineFriendRequest;
+    window.cancelFriendRequest = cancelFriendRequest;
+    window.removeFriend = removeFriend;
+    window.startChat = startChat;
+    window.inviteToGame = inviteToGame;
+    window.viewUserProfile = viewUserProfile;
+
+    async function clearRecentGames() {
+      const user = auth.currentUser;
+      if (!user) return;
+
+      if (confirm('Are you sure you want to clear your entire game history? This action cannot be undone.')) {
+        try {
+          const userRef = db.collection('users').doc(user.uid);
+          await userRef.update({
+            history: []
+          });
+          
+          // Refresh the recent games list
+          renderGamesList('recentGamesList', [], 'recent games');
+          
+          // Show success message
+          showTemporaryMessage('Game history cleared successfully!', 'success');
+        } catch (error) {
+          console.error('Error clearing game history:', error);
+          showTemporaryMessage('Failed to clear game history. Please try again.', 'error');
+        }
+      }
+    }
+
+    function showTemporaryMessage(message, type = 'info') {
+      const messageEl = document.createElement('div');
+      messageEl.className = `fixed top-4 right-4 px-6 py-3 rounded-lg font-medium shadow-lg z-50 transition-all duration-300 transform translate-x-full`;
+      
+      if (type === 'success') {
+        messageEl.className += ' bg-green-500 text-white';
+      } else if (type === 'error') {
+        messageEl.className += ' bg-red-500 text-white';
+      } else {
+        messageEl.className += ' bg-rp-foam text-rp-base';
+      }
+      
+      messageEl.textContent = message;
+      document.body.appendChild(messageEl);
+      
+      // Animate in
+      setTimeout(() => {
+        messageEl.classList.remove('translate-x-full');
+      }, 100);
+      
+      // Animate out and remove
+      setTimeout(() => {
+        messageEl.classList.add('translate-x-full');
+        setTimeout(() => {
+          if (messageEl.parentNode) {
+            document.body.removeChild(messageEl);
+          }
+        }, 300);
+      }, 3000);
     }
 
     function renderUserSection(user) {
@@ -662,6 +2436,13 @@
 
     function renderActivityFeed(activities, feedId) {
       const feed = document.getElementById(feedId);
+      
+      // If feed element doesn't exist, don't try to render
+      if (!feed) {
+        console.log('Activity feed element not found for feedId:', feedId, ', skipping render');
+        return;
+      }
+      
       const loader = document.getElementById(feedId === 'activityFeed' ? 'activityLoader' : 'publicActivityLoader');
       const noActivity = document.getElementById(feedId === 'activityFeed' ? 'noActivity' : 'publicNoActivity');
 
@@ -691,7 +2472,7 @@
       }).filter(item => item).join('');
     }
 
-    async function loadActivityFeed(uid, feedId) {
+    async function loadPublicActivityFeed(uid, feedId) {
       const loader = document.getElementById(feedId === 'activityFeed' ? 'activityLoader' : 'publicActivityLoader');
       const noActivity = document.getElementById(feedId === 'activityFeed' ? 'noActivity' : 'publicNoActivity');
       if (loader) loader.classList.remove('hidden');
@@ -736,7 +2517,12 @@
       renderGamesList('publicRecentGamesList', (userProfile.history || []).slice().reverse(), 'recent games');
       renderGamesList('publicFavoriteGamesList', userProfile.favoriteGames, 'favorite games');
       renderGamesList('publicLikedGamesList', userProfile.likedGames, 'liked games');
-      await loadActivityFeed(uid, 'publicActivityFeed');
+      await loadPublicActivityFeed(uid, 'publicActivityFeed');
+      
+      // Setup friend actions if user is logged in
+      if (currentUser && currentUser.uid !== uid) {
+        await setupPublicProfileFriendActions(uid, userProfile);
+      }
       
       const url = `${window.location.origin}${window.location.pathname}?uid=${encodeURIComponent(uid)}`;
       const urlInput = document.getElementById('publicProfileUrl');
@@ -752,6 +2538,106 @@
         });
       };
     }
+
+    async function setupPublicProfileFriendActions(uid, userProfile) {
+      const actionsContainer = document.getElementById('publicProfileActions');
+      const addBtn = document.getElementById('addFriendBtn');
+      const removeBtn = document.getElementById('removeFriendBtn');
+      const chatBtn = document.getElementById('chatWithUserBtn');
+      const statusEl = document.getElementById('friendshipStatus');
+      
+      actionsContainer.classList.remove('hidden');
+      
+      try {
+        // Check current friendship status
+        const currentUserDoc = await db.collection('users').doc(currentUser.uid).get();
+        const currentUserData = currentUserDoc.data();
+        const isFriend = currentUserData.friends && currentUserData.friends.includes(uid);
+        
+        // Check for pending requests
+        const pendingOutgoing = await db.collection('friendRequests')
+          .where('from', '==', currentUser.uid)
+          .where('to', '==', uid)
+          .where('status', '==', 'pending')
+          .get();
+        
+        const pendingIncoming = await db.collection('friendRequests')
+          .where('from', '==', uid)
+          .where('to', '==', currentUser.uid)
+          .where('status', '==', 'pending')
+          .get();
+        
+        // Update UI based on status
+        if (isFriend) {
+          addBtn.classList.add('hidden');
+          removeBtn.classList.remove('hidden');
+          chatBtn.classList.remove('hidden');
+          statusEl.textContent = 'You are friends';
+          statusEl.className = 'text-center text-sm text-rp-foam mt-2';
+          
+          removeBtn.onclick = () => removeFriend(uid);
+          chatBtn.onclick = () => startChat(uid, userProfile.displayName);
+        } else if (!pendingOutgoing.empty) {
+          addBtn.textContent = 'Request Sent';
+          addBtn.disabled = true;
+          addBtn.className = 'flex-1 px-4 py-2 bg-rp-subtle/20 text-rp-subtle rounded-lg text-sm flex items-center justify-center gap-2 cursor-not-allowed';
+          statusEl.textContent = 'Friend request sent';
+          statusEl.className = 'text-center text-sm text-rp-gold mt-2';
+        } else if (!pendingIncoming.empty) {
+          addBtn.textContent = 'Accept Request';
+          addBtn.innerHTML = '<i class="bx bx-check"></i> Accept Request';
+          statusEl.textContent = 'Has sent you a friend request';
+          statusEl.className = 'text-center text-sm text-rp-iris mt-2';
+          
+          addBtn.onclick = () => acceptFriendRequest(pendingIncoming.docs[0].id, uid);
+        } else {
+          addBtn.onclick = () => sendFriendRequest(uid);
+        }
+        
+      } catch (error) {
+        console.error('Error setting up friend actions:', error);
+        actionsContainer.classList.add('hidden');
+      }
+    }
+
+    // Game tracking integration - call this when user starts playing a game
+    async function trackGameStart(gameId) {
+      if (!currentUser) return;
+      
+      try {
+        await updateUserStatus('ingame', gameId);
+        
+        // Also track in activity
+        const activityRef = db.collection('user-activity').doc(currentUser.uid);
+        const activityData = {
+          activities: firebase.firestore.FieldValue.arrayUnion({
+            action: 'play',
+            data: { gameId: gameId },
+            timestamp: firebase.firestore.FieldValue.serverTimestamp()
+          })
+        };
+        
+        await activityRef.set(activityData, { merge: true });
+        
+      } catch (error) {
+        console.error('Error tracking game start:', error);
+      }
+    }
+
+    // Call this when user stops playing a game
+    async function trackGameEnd() {
+      if (!currentUser) return;
+      
+      try {
+        await updateUserStatus('online', null);
+      } catch (error) {
+        console.error('Error tracking game end:', error);
+      }
+    }
+
+    // Make game tracking functions globally available
+    window.trackGameStart = trackGameStart;
+    window.trackGameEnd = trackGameEnd;
 
     document.addEventListener('DOMContentLoaded', async () => {
       const publicUid = getUidFromUrl();
@@ -782,6 +2668,37 @@
         document.getElementById('profileName').textContent = user.displayName;
         document.getElementById('profileEmail').textContent = user.email;
         
+        // Initialize friend system
+        currentUser = user;
+        
+        // Load current user's full data including friends list
+        try {
+          const userDoc = await db.collection('users').doc(user.uid).get();
+          if (userDoc.exists) {
+            currentUser.userData = userDoc.data();
+            console.log('✅ Loaded current user data:', currentUser.userData);
+          }
+        } catch (error) {
+          console.error('❌ Error loading current user data:', error);
+        }
+        
+        await setUserOnline();
+        await loadFriends();
+        await loadFriendRequests();
+        await loadUserProfile();
+        await updateOnlineFriendsList();
+        // Only load activity feed if elements exist
+        if (document.getElementById('activityFeed')) {
+          try {
+            await loadActivityFeed();
+          } catch (error) {
+            console.log('Activity feed load failed, skipping:', error.message);
+          }
+        }
+        initializeFriendSystemEvents();
+        
+        console.log('🎉 Friend system initialized successfully!');
+        
         // Load background settings from Firebase
         await loadBackgroundFromFirebase(user.uid);
         
@@ -789,7 +2706,12 @@
         renderGamesList('recentGamesList', (lists.history || []).slice().reverse(), 'recent games');
         renderGamesList('favoriteGamesList', lists.favoriteGames, 'favorite games');
         renderGamesList('likedGamesList', lists.likedGames, 'liked games');
-        await loadActivityFeed(user.uid, 'activityFeed');
+        
+        // Set up clear recent games button
+        const clearBtn = document.getElementById('clearRecentGamesBtn');
+        if (clearBtn) {
+          clearBtn.onclick = clearRecentGames;
+        }
         
         const url = `${window.location.origin}${window.location.pathname}?uid=${encodeURIComponent(user.uid)}`;
         const linkInput = document.getElementById('publicProfileLink');
@@ -1134,6 +3056,34 @@
         updateBackgroundUI();
       }
     });
+
+    // Debug instructions for testing friend requests
+    console.log(`
+    🔧 FRIEND SYSTEM DEBUG INSTRUCTIONS:
+    
+    1. Open browser console (F12)
+    2. Make sure you're signed in with Google
+    3. Run: window.testFriendSystem()
+    4. To test friend requests:
+       - Click "Find Friends" button
+       - Search for another user
+       - Click "Add Friend" button
+       - Check console for debug messages
+    
+    5. To check Firebase data:
+       - Run: console.log('Current user:', currentUser)
+       - Check friendRequests collection in Firebase console
+    
+    6. Common issues:
+       - Make sure Firebase has proper permissions
+       - Check that both users exist in the users collection
+       - Verify the friendRequests collection is created
+    
+    💡 If friend requests aren't working, check:
+    - Browser console for error messages
+    - Firebase console for data
+    - Network tab for failed requests
+    `);
   </script>
 </body>
 </html>
