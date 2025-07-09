@@ -2460,34 +2460,199 @@
       showTemporaryNotification('🔇 Mute toggle (depends on game support)');
     }
 
-    // Inactivity Detection System
+    /*
+     * Enhanced User Status Management System
+     * 
+     * This system fixes several issues with user status persistence:
+     * 1. Status now persists on page refresh and is restored properly
+     * 2. Users are marked offline after 2 minutes of inactivity (was only showing overlay before)
+     * 3. Page visibility changes are tracked - users go offline when they tab away for 30+ seconds
+     * 4. Proper status restoration when page loads - always starts as "online"
+     * 5. Activity detection brings users back from offline status
+     * 
+     * Status types: 'online', 'ingame', 'offline'
+     * Storage: Uses both localStorage and Firebase for persistence
+     */
+    let userStatusManager = {
+      lastActivity: Date.now(),
+      isUserActive: true,
+      statusTimer: null,
+      offlineTimer: null,
+      visibilityTimer: null,
+      
+      // Status types
+      STATUS_TYPES: {
+        ONLINE: 'online',
+        INGAME: 'ingame', 
+        OFFLINE: 'offline'
+      },
+      
+      // Initialize status management
+      init() {
+        this.restoreUserStatus();
+        this.setupActivityTracking();
+        this.setupVisibilityTracking();
+        this.resetActivityTimer();
+      },
+      
+      // Restore user status from localStorage and set to online
+      async restoreUserStatus() {
+        const currentUser = auth.currentUser;
+        if (!currentUser) return;
+        
+        try {
+          // Always set to online when page loads
+          await this.updateUserStatus(this.STATUS_TYPES.ONLINE);
+          localStorage.setItem('carbon-user-status', this.STATUS_TYPES.ONLINE);
+          localStorage.setItem('carbon-last-activity', Date.now().toString());
+        } catch (error) {
+          console.error('Error restoring user status:', error);
+        }
+      },
+      
+      // Setup activity tracking
+      setupActivityTracking() {
+        const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click', 'keydown'];
+        
+        events.forEach(event => {
+          document.addEventListener(event, () => this.onUserActivity(), true);
+        });
+      },
+      
+      // Setup page visibility tracking
+      setupVisibilityTracking() {
+        document.addEventListener('visibilitychange', () => {
+          if (document.hidden) {
+            this.onPageHidden();
+          } else {
+            this.onPageVisible();
+          }
+        });
+        
+        window.addEventListener('focus', () => this.onPageVisible());
+        window.addEventListener('blur', () => this.onPageHidden());
+      },
+      
+      // Handle user activity
+      onUserActivity() {
+        this.lastActivity = Date.now();
+        this.isUserActive = true;
+        localStorage.setItem('carbon-last-activity', this.lastActivity.toString());
+        
+        // If user was offline, bring them back online
+        const currentStatus = localStorage.getItem('carbon-user-status');
+        if (currentStatus === this.STATUS_TYPES.OFFLINE) {
+          this.updateUserStatus(this.STATUS_TYPES.ONLINE);
+        }
+        
+        // Hide inactivity overlay if showing
+        if (gameState.isInactive) {
+          hideInactivityOverlay();
+        }
+        
+        this.resetActivityTimer();
+      },
+      
+      // Handle page becoming hidden
+      onPageHidden() {
+        // Set a timer to mark user as offline after 30 seconds of being away
+        this.visibilityTimer = setTimeout(async () => {
+          await this.updateUserStatus(this.STATUS_TYPES.OFFLINE);
+        }, 30000);
+      },
+      
+      // Handle page becoming visible
+      onPageVisible() {
+        // Clear the offline timer
+        if (this.visibilityTimer) {
+          clearTimeout(this.visibilityTimer);
+          this.visibilityTimer = null;
+        }
+        
+        // Mark user as active and update status
+        this.onUserActivity();
+      },
+      
+      // Reset activity timer
+      resetActivityTimer() {
+        // Clear existing timers
+        if (this.statusTimer) clearTimeout(this.statusTimer);
+        if (this.offlineTimer) clearTimeout(this.offlineTimer);
+        
+        // Set timer for 20 seconds to show inactivity overlay
+        this.statusTimer = setTimeout(() => {
+          if (!document.hidden) {
+            showInactivityOverlay();
+          }
+        }, 20000);
+        
+        // Set timer for 2 minutes (120 seconds) to mark user as offline
+        this.offlineTimer = setTimeout(async () => {
+          if (!document.hidden) { // Only if page is still visible
+            this.isUserActive = false;
+            await this.updateUserStatus(this.STATUS_TYPES.OFFLINE);
+          }
+        }, 120000);
+      },
+      
+      // Update user status in Firebase and localStorage
+      async updateUserStatus(status, gameId = null) {
+        const currentUser = auth.currentUser;
+        if (!currentUser) return;
+        
+        try {
+          const updateData = {
+            status: status,
+            lastSeen: firebase.firestore.FieldValue.serverTimestamp()
+          };
+          
+          if (status === this.STATUS_TYPES.INGAME && gameId) {
+            updateData.currentGame = gameId;
+          } else if (status === this.STATUS_TYPES.ONLINE || status === this.STATUS_TYPES.OFFLINE) {
+            updateData.currentGame = null;
+          }
+          
+          await db.collection('users').doc(currentUser.uid).update(updateData);
+          localStorage.setItem('carbon-user-status', status);
+          
+          console.log(`User status updated to: ${status}`);
+        } catch (error) {
+          console.error('Error updating user status:', error);
+        }
+      },
+      
+      // Set user status to in-game
+      async setInGame(gameId) {
+        await this.updateUserStatus(this.STATUS_TYPES.INGAME, gameId);
+        this.resetActivityTimer();
+      },
+      
+      // Set user status to online
+      async setOnline() {
+        await this.updateUserStatus(this.STATUS_TYPES.ONLINE);
+        this.resetActivityTimer();
+      },
+      
+      // Set user status to offline
+      async setOffline() {
+        await this.updateUserStatus(this.STATUS_TYPES.OFFLINE);
+      },
+      
+      // Cleanup timers
+      cleanup() {
+        if (this.statusTimer) clearTimeout(this.statusTimer);
+        if (this.offlineTimer) clearTimeout(this.offlineTimer);
+        if (this.visibilityTimer) clearTimeout(this.visibilityTimer);
+      }
+    };
+
+    // Legacy inactivity functions (kept for compatibility)
     function initializeInactivityDetection() {
-      const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'];
-      
-      events.forEach(event => {
-        document.addEventListener(event, resetInactivityTimer, true);
-      });
-      
-      resetInactivityTimer();
+      userStatusManager.init();
     }
 
     function resetInactivityTimer() {
-      gameState.lastActivity = Date.now();
-      
-      // Hide inactivity overlay if it's showing
-      if (gameState.isInactive) {
-        hideInactivityOverlay();
-      }
-      
-      // Clear existing timer
-      if (gameState.activityTimer) {
-        clearTimeout(gameState.activityTimer);
-      }
-      
-      // Set new timer for 20 seconds
-      gameState.activityTimer = setTimeout(() => {
-        showInactivityOverlay();
-      }, 20000);
+      userStatusManager.onUserActivity();
     }
 
     function showInactivityOverlay() {
@@ -2573,6 +2738,7 @@
     function cleanupGameFrameFeatures() {
       if (gameState.playTimer) clearInterval(gameState.playTimer);
       if (gameState.activityTimer) clearTimeout(gameState.activityTimer);
+      userStatusManager.cleanup();
       document.removeEventListener('keydown', handleKeyboardShortcut);
       document.removeEventListener('keyup', handleKeyboardShortcut);
     }
@@ -2830,25 +2996,29 @@
       if (window.trackGameEnd) {
         await window.trackGameEnd();
       } else {
-        // Fallback: update user status directly
-        try {
-          await db.collection('users').doc(currentUser.uid).update({
-            status: 'online',
-            currentGame: null,
-            lastSeen: firebase.firestore.FieldValue.serverTimestamp()
-          });
-        } catch (error) {
-          console.error('Error updating user status to online:', error);
-        }
+        // Use the new status manager
+        await userStatusManager.setOnline();
       }
     }
 
-    // Track when user leaves the game
-    window.addEventListener('beforeunload', updateUserStatusToOnline);
-    window.addEventListener('pagehide', updateUserStatusToOnline);
+    // Track when user leaves the game or site
+    window.addEventListener('beforeunload', async () => {
+      // Set user offline when they close the browser/tab
+      await userStatusManager.setOffline();
+      // Clean up timers
+      userStatusManager.cleanup();
+    });
+    
+    window.addEventListener('pagehide', async () => {
+      await userStatusManager.setOffline();
+      userStatusManager.cleanup();
+    });
     
     // Track when user navigates away
-    window.addEventListener('unload', updateUserStatusToOnline);
+    window.addEventListener('unload', async () => {
+      await userStatusManager.setOffline();
+      userStatusManager.cleanup();
+    });
 
     // Re-initialize the main document loading logic
     document.addEventListener('DOMContentLoaded', async () => {
@@ -2860,12 +3030,17 @@
       auth.onAuthStateChanged(async (user) => {
         renderUserSection(user);
         if (!user) {
+          // Cleanup status manager if user logs out
+          userStatusManager.cleanup();
           hidePreloader();
           document.getElementById('loginScreen').classList.remove('hidden');
           document.getElementById('gameFrameContainer').classList.add('hidden');
           document.getElementById('gameInfoHolder').classList.add('hidden');
           return;
         }
+        
+        // Initialize status manager for logged in user
+        userStatusManager.init();
         
         await loadGamesData();
         
@@ -2917,17 +3092,13 @@
           if (window.trackGameStart) {
             await window.trackGameStart(currentGameId);
           } else {
-            // Fallback: update user status directly if profile.html functions not available
-            try {
-              await db.collection('users').doc(user.uid).update({
-                status: 'ingame',
-                currentGame: currentGameId,
-                lastSeen: firebase.firestore.FieldValue.serverTimestamp()
-              });
-              
-              // Track activity for activity feed
-              const game = gamesData.find(g => String(g.id) === String(currentGameId));
-              if (game) {
+            // Use the new status manager
+            await userStatusManager.setInGame(currentGameId);
+            
+            // Track activity for activity feed
+            const game = gamesData.find(g => String(g.id) === String(currentGameId));
+            if (game) {
+              try {
                 await db.collection('activity').add({
                   userId: user.uid,
                   userName: user.displayName || 'Anonymous',
@@ -2938,9 +3109,9 @@
                   action: 'played',
                   timestamp: firebase.firestore.FieldValue.serverTimestamp()
                 });
+              } catch (error) {
+                console.error('Error tracking activity:', error);
               }
-            } catch (error) {
-              console.error('Error updating game status:', error);
             }
           }
           
