@@ -2473,12 +2473,13 @@
      * Status types: 'online', 'ingame', 'offline'
      * Storage: Uses both localStorage and Firebase for persistence
      */
-    let userStatusManager = {
-      lastActivity: Date.now(),
-      isUserActive: true,
-      statusTimer: null,
-      offlineTimer: null,
-      visibilityTimer: null,
+         let userStatusManager = {
+       lastActivity: Date.now(),
+       isUserActive: true,
+       statusTimer: null,
+       offlineTimer: null,
+       visibilityTimer: null,
+       heartbeatInterval: null,
       
       // Status types
       STATUS_TYPES: {
@@ -2490,10 +2491,33 @@
              // Initialize status management
        init() {
          this.initializeUserDocument();
+         this.checkPendingOfflineStatus();
          this.restoreUserStatus();
          this.setupActivityTracking();
          this.setupVisibilityTracking();
+         this.setupHeartbeat();
          this.resetActivityTimer();
+       },
+       
+       // Check for pending offline status from previous session
+       async checkPendingOfflineStatus() {
+         const currentUser = auth.currentUser;
+         if (!currentUser) return;
+         
+         const pendingOffline = localStorage.getItem('carbon-offline-pending');
+         if (pendingOffline === 'true') {
+           console.log('Play page: Found pending offline status, applying now');
+           try {
+             await db.collection('users').doc(currentUser.uid).update({
+               status: 'offline',
+               lastSeen: firebase.firestore.FieldValue.serverTimestamp()
+             });
+             localStorage.removeItem('carbon-offline-pending');
+             console.log('Play page: Successfully applied pending offline status');
+           } catch (error) {
+             console.error('Play page: Failed to apply pending offline status:', error);
+           }
+         }
        },
        
        // Ensure user document has all required fields for profile
@@ -2586,19 +2610,45 @@
         });
       },
       
-      // Setup page visibility tracking
-      setupVisibilityTracking() {
-        document.addEventListener('visibilitychange', () => {
-          if (document.hidden) {
-            this.onPageHidden();
-          } else {
-            this.onPageVisible();
-          }
-        });
-        
-        window.addEventListener('focus', () => this.onPageVisible());
-        window.addEventListener('blur', () => this.onPageHidden());
-      },
+             // Setup page visibility tracking
+       setupVisibilityTracking() {
+         document.addEventListener('visibilitychange', () => {
+           if (document.hidden) {
+             this.onPageHidden();
+           } else {
+             this.onPageVisible();
+           }
+         });
+         
+         window.addEventListener('focus', () => this.onPageVisible());
+         window.addEventListener('blur', () => this.onPageHidden());
+       },
+       
+       // Setup heartbeat system to detect inactive users
+       setupHeartbeat() {
+         // Send heartbeat every 15 seconds
+         this.heartbeatInterval = setInterval(() => {
+           if (!document.hidden && auth.currentUser) {
+             this.sendHeartbeat();
+           }
+         }, 15000);
+       },
+       
+       // Send heartbeat to show user is still active
+       async sendHeartbeat() {
+         const currentUser = auth.currentUser;
+         if (!currentUser) return;
+         
+         try {
+           await db.collection('users').doc(currentUser.uid).update({
+             lastSeen: firebase.firestore.FieldValue.serverTimestamp(),
+             heartbeat: Date.now()
+           });
+           localStorage.setItem('carbon-last-heartbeat', Date.now().toString());
+         } catch (error) {
+           console.error('Heartbeat failed:', error);
+         }
+       },
       
       // Handle user activity
       onUserActivity() {
@@ -2732,12 +2782,13 @@
         await this.updateUserStatus(this.STATUS_TYPES.OFFLINE);
       },
       
-      // Cleanup timers
-      cleanup() {
-        if (this.statusTimer) clearTimeout(this.statusTimer);
-        if (this.offlineTimer) clearTimeout(this.offlineTimer);
-        if (this.visibilityTimer) clearTimeout(this.visibilityTimer);
-      }
+             // Cleanup timers
+       cleanup() {
+         if (this.statusTimer) clearTimeout(this.statusTimer);
+         if (this.offlineTimer) clearTimeout(this.offlineTimer);
+         if (this.visibilityTimer) clearTimeout(this.visibilityTimer);
+         if (this.heartbeatInterval) clearInterval(this.heartbeatInterval);
+       }
     };
 
     // Update visual status display
@@ -3128,23 +3179,75 @@
       }
     }
 
-    // Track when user leaves the game or site
-    window.addEventListener('beforeunload', async () => {
-      // Set user offline when they close the browser/tab
-      await userStatusManager.setOffline();
-      // Clean up timers
-      userStatusManager.cleanup();
-    });
+    // Enhanced offline detection for play.html
+    function setupPlayPageOfflineDetection() {
+      if (!auth.currentUser) return;
+      
+      const setOfflineViaBeacon = () => {
+        if (auth.currentUser) {
+          console.log('Play page: Setting user offline via beacon');
+          
+          // Use synchronous localStorage update
+          localStorage.setItem('carbon-user-status', 'offline');
+          localStorage.setItem('carbon-user-status-timestamp', Date.now().toString());
+          localStorage.setItem('carbon-offline-pending', 'true');
+          
+          // Try immediate update with timeout
+          const updatePromise = userStatusManager.setOffline();
+          const timeoutPromise = new Promise((resolve) => {
+            setTimeout(() => resolve('timeout'), 800);
+          });
+          
+          Promise.race([updatePromise, timeoutPromise]).then((result) => {
+            if (result === 'timeout') {
+              console.log('Play page offline update timed out');
+            }
+          });
+        }
+      };
+      
+      // Multiple unload detection methods
+      window.addEventListener('beforeunload', (e) => {
+        setOfflineViaBeacon();
+        userStatusManager.cleanup();
+      });
+      
+      window.addEventListener('pagehide', (e) => {
+        setOfflineViaBeacon();
+        userStatusManager.cleanup();
+      });
+      
+      window.addEventListener('unload', (e) => {
+        setOfflineViaBeacon();
+        userStatusManager.cleanup();
+      });
+      
+      // Page visibility detection
+      document.addEventListener('visibilitychange', () => {
+        if (document.hidden) {
+          setTimeout(() => {
+            if (document.hidden) {
+              setOfflineViaBeacon();
+            }
+          }, 30000); // 30 seconds
+        }
+      });
+      
+      // Window focus/blur detection
+      window.addEventListener('blur', () => {
+        setTimeout(() => {
+          if (document.hidden || !document.hasFocus()) {
+            setOfflineViaBeacon();
+          }
+        }, 60000); // 1 minute
+      });
+    }
     
-    window.addEventListener('pagehide', async () => {
-      await userStatusManager.setOffline();
-      userStatusManager.cleanup();
-    });
-    
-    // Track when user navigates away
-    window.addEventListener('unload', async () => {
-      await userStatusManager.setOffline();
-      userStatusManager.cleanup();
+    // Set up offline detection when auth state changes
+    auth.onAuthStateChanged((user) => {
+      if (user) {
+        setupPlayPageOfflineDetection();
+      }
     });
 
     // Re-initialize the main document loading logic
