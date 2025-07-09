@@ -855,9 +855,43 @@
 
     // Friend management functions
     async function sendFriendRequest(targetUid) {
-      if (!currentUser || targetUid === currentUser.uid) return;
+      console.log('🔄 Attempting to send friend request to:', targetUid);
+      
+      if (!currentUser) {
+        console.error('❌ No current user');
+        showNotification('Error', 'Please sign in first', 'error');
+        return;
+      }
+      
+      if (targetUid === currentUser.uid) {
+        console.error('❌ Cannot send friend request to self');
+        showNotification('Error', 'Cannot send friend request to yourself', 'error');
+        return;
+      }
       
       try {
+        // Check if request already exists
+        const existingRequest = await db.collection('friendRequests')
+          .where('from', '==', currentUser.uid)
+          .where('to', '==', targetUid)
+          .where('status', '==', 'pending')
+          .get();
+        
+        if (!existingRequest.empty) {
+          console.log('⚠️ Friend request already exists');
+          showNotification('Already Sent', 'Friend request already sent', 'warning');
+          return;
+        }
+        
+        // Check if already friends
+        const currentUserDoc = await db.collection('users').doc(currentUser.uid).get();
+        const userData = currentUserDoc.data();
+        if (userData.friends && userData.friends.includes(targetUid)) {
+          console.log('⚠️ Already friends');
+          showNotification('Already Friends', 'You are already friends with this user', 'info');
+          return;
+        }
+        
         const requestData = {
           from: currentUser.uid,
           to: targetUid,
@@ -867,18 +901,36 @@
           status: 'pending'
         };
         
+        console.log('📤 Sending friend request with data:', requestData);
         await db.collection('friendRequests').add(requestData);
+        console.log('✅ Friend request sent successfully');
+        
         showNotification('Friend Request Sent', `Request sent successfully`, 'success');
+        
+        // Close search modal if open
+        const searchModal = document.getElementById('userSearchModal');
+        if (!searchModal.classList.contains('hidden')) {
+          document.getElementById('closeSearchModal').click();
+        }
+        
       } catch (error) {
-        console.error('Error sending friend request:', error);
-        showNotification('Error', 'Failed to send friend request', 'error');
+        console.error('❌ Error sending friend request:', error);
+        showNotification('Error', `Failed to send friend request: ${error.message}`, 'error');
       }
     }
 
     async function acceptFriendRequest(requestId, fromUid) {
-      if (!currentUser) return;
+      console.log('🔄 Attempting to accept friend request:', requestId, 'from:', fromUid);
+      
+      if (!currentUser) {
+        console.error('❌ No current user');
+        showNotification('Error', 'Please sign in first', 'error');
+        return;
+      }
       
       try {
+        console.log('📝 Creating batch operation...');
+        
         // Add to both users' friends lists
         const batch = db.batch();
         
@@ -896,27 +948,40 @@
         
         batch.update(requestRef, { status: 'accepted' });
         
+        console.log('💾 Committing batch operation...');
         await batch.commit();
+        console.log('✅ Friend request accepted successfully');
         
         showNotification('Friend Added', 'Friend request accepted!', 'success');
         await loadFriends();
         await loadFriendRequests();
       } catch (error) {
-        console.error('Error accepting friend request:', error);
-        showNotification('Error', 'Failed to accept request', 'error');
+        console.error('❌ Error accepting friend request:', error);
+        showNotification('Error', `Failed to accept request: ${error.message}`, 'error');
       }
     }
 
     async function declineFriendRequest(requestId) {
+      console.log('🔄 Attempting to decline friend request:', requestId);
+      
+      if (!currentUser) {
+        console.error('❌ No current user');
+        showNotification('Error', 'Please sign in first', 'error');
+        return;
+      }
+      
       try {
+        console.log('📝 Updating request status to declined...');
         await db.collection('friendRequests').doc(requestId).update({
           status: 'declined'
         });
+        console.log('✅ Friend request declined successfully');
         
         showNotification('Request Declined', 'Friend request declined', 'info');
         await loadFriendRequests();
       } catch (error) {
-        console.error('Error declining friend request:', error);
+        console.error('❌ Error declining friend request:', error);
+        showNotification('Error', `Failed to decline request: ${error.message}`, 'error');
       }
     }
 
@@ -1197,6 +1262,7 @@
     }
 
     function renderUserSearchResults(users) {
+      console.log('🔍 Rendering search results:', users);
       const resultsContainer = document.getElementById('searchResults');
       
       if (users.length === 0) {
@@ -1208,7 +1274,15 @@
       document.getElementById('noSearchResults').classList.add('hidden');
       
       resultsContainer.innerHTML = users.map(user => {
-        const isAlreadyFriend = currentUser?.friends?.includes(user.uid);
+        // Check if already friends
+        let isAlreadyFriend = false;
+        if (currentUser) {
+          // We need to check the current user's friends list
+          const currentUserData = currentUser.userData || {};
+          isAlreadyFriend = currentUserData.friends && currentUserData.friends.includes(user.uid);
+        }
+        
+        console.log('👤 Rendering user:', user.displayName, 'Already friend:', isAlreadyFriend);
         
         return `
           <div class="flex items-center gap-3 p-3 bg-rp-overlay rounded-lg">
@@ -1217,73 +1291,106 @@
                  class="w-10 h-10 rounded-full">
             <div class="flex-1 min-w-0">
               <h4 class="font-medium text-rp-text truncate">${user.displayName}</h4>
-              <p class="text-xs text-rp-subtle">${user.username ? '@' + user.username : user.uid}</p>
+              <p class="text-xs text-rp-subtle">${user.username ? '@' + user.username : user.uid.substring(0, 8) + '...'}</p>
               ${user.bio ? `<p class="text-xs text-rp-muted truncate">${user.bio}</p>` : ''}
             </div>
             <div class="flex gap-2">
               ${isAlreadyFriend ? `
                 <span class="px-3 py-1 bg-rp-foam/20 text-rp-foam rounded text-xs">Friends</span>
               ` : `
-                <button onclick="sendFriendRequest('${user.uid}')" 
-                        class="px-3 py-1 bg-rp-foam hover:bg-rp-foam/90 text-rp-base rounded text-xs">
+                <button onclick="window.sendFriendRequest('${user.uid}')" 
+                        class="px-3 py-1 bg-rp-foam hover:bg-rp-foam/90 text-rp-base rounded text-xs transition-colors"
+                        data-uid="${user.uid}">
                   Add Friend
                 </button>
               `}
-              <button onclick="viewUserProfile('${user.uid}')" 
-                      class="px-3 py-1 bg-rp-iris/20 text-rp-iris rounded text-xs">
+              <button onclick="window.viewUserProfile('${user.uid}')" 
+                      class="px-3 py-1 bg-rp-iris/20 text-rp-iris rounded text-xs hover:bg-rp-iris/30 transition-colors">
                 View
               </button>
             </div>
           </div>
         `;
       }).join('');
+      
+      console.log('✅ Search results rendered');
     }
 
     // Friend requests handling
     async function loadFriendRequests() {
-      if (!currentUser) return;
+      console.log('🔄 Loading friend requests...');
+      
+      if (!currentUser) {
+        console.error('❌ No current user when loading friend requests');
+        return;
+      }
       
       try {
+        console.log('📥 Loading incoming requests...');
         // Load incoming requests
         const incomingSnapshot = await db.collection('friendRequests')
           .where('to', '==', currentUser.uid)
           .where('status', '==', 'pending')
-          .orderBy('timestamp', 'desc')
-          .get();
+          .get(); // Remove orderBy for now to avoid index issues
+        
+        console.log(`📨 Found ${incomingSnapshot.docs.length} incoming requests`);
         
         const incomingRequests = [];
         for (const doc of incomingSnapshot.docs) {
           const data = doc.data();
-          const fromUserDoc = await db.collection('users').doc(data.from).get();
-          const fromUserData = fromUserDoc.data();
+          console.log('📨 Processing incoming request:', doc.id, data);
           
-          incomingRequests.push({
-            id: doc.id,
-            ...data,
-            fromUserData
-          });
+          try {
+            const fromUserDoc = await db.collection('users').doc(data.from).get();
+            const fromUserData = fromUserDoc.exists ? fromUserDoc.data() : null;
+            
+            if (fromUserData) {
+              incomingRequests.push({
+                id: doc.id,
+                ...data,
+                fromUserData
+              });
+            } else {
+              console.warn('⚠️ From user not found:', data.from);
+            }
+          } catch (userError) {
+            console.error('❌ Error loading from user:', data.from, userError);
+          }
         }
         
+        console.log('📤 Loading outgoing requests...');
         // Load outgoing requests
         const outgoingSnapshot = await db.collection('friendRequests')
           .where('from', '==', currentUser.uid)
           .where('status', '==', 'pending')
-          .orderBy('timestamp', 'desc')
-          .get();
+          .get(); // Remove orderBy for now to avoid index issues
+        
+        console.log(`📤 Found ${outgoingSnapshot.docs.length} outgoing requests`);
         
         const outgoingRequests = [];
         for (const doc of outgoingSnapshot.docs) {
           const data = doc.data();
-          const toUserDoc = await db.collection('users').doc(data.to).get();
-          const toUserData = toUserDoc.data();
+          console.log('📤 Processing outgoing request:', doc.id, data);
           
-          outgoingRequests.push({
-            id: doc.id,
-            ...data,
-            toUserData
-          });
+          try {
+            const toUserDoc = await db.collection('users').doc(data.to).get();
+            const toUserData = toUserDoc.exists ? toUserDoc.data() : null;
+            
+            if (toUserData) {
+              outgoingRequests.push({
+                id: doc.id,
+                ...data,
+                toUserData
+              });
+            } else {
+              console.warn('⚠️ To user not found:', data.to);
+            }
+          } catch (userError) {
+            console.error('❌ Error loading to user:', data.to, userError);
+          }
         }
         
+        console.log(`✅ Loaded ${incomingRequests.length} incoming and ${outgoingRequests.length} outgoing requests`);
         renderFriendRequests(incomingRequests, outgoingRequests);
         
         // Update badge
@@ -1296,7 +1403,8 @@
         }
         
       } catch (error) {
-        console.error('Error loading friend requests:', error);
+        console.error('❌ Error loading friend requests:', error);
+        showNotification('Error', `Failed to load friend requests: ${error.message}`, 'error');
       }
     }
 
@@ -1721,15 +1829,65 @@
       setInterval(updateOnlineFriendsList, 15000); // Update every 15 seconds
     }
 
-    // Make functions globally available
-    window.sendFriendRequest = sendFriendRequest;
-    window.acceptFriendRequest = acceptFriendRequest;
-    window.declineFriendRequest = declineFriendRequest;
-    window.cancelFriendRequest = cancelFriendRequest;
-    window.removeFriend = removeFriend;
-    window.startChat = startChat;
-    window.inviteToGame = inviteToGame;
-    window.viewUserProfile = viewUserProfile;
+    // Test function to verify friend system is working
+    window.testFriendSystem = function() {
+      console.log('🧪 Testing friend system...');
+      console.log('Current user:', currentUser);
+      console.log('Functions available:');
+      console.log('- sendFriendRequest:', typeof sendFriendRequest);
+      console.log('- acceptFriendRequest:', typeof acceptFriendRequest);
+      console.log('- declineFriendRequest:', typeof declineFriendRequest);
+      console.log('- loadFriendRequests:', typeof loadFriendRequests);
+      console.log('- searchUsers:', typeof searchUsers);
+      
+      if (currentUser) {
+        console.log('✅ User is authenticated');
+        loadFriendRequests();
+      } else {
+        console.log('❌ User not authenticated');
+      }
+    };
+
+    // Make functions globally available with error checking
+    window.sendFriendRequest = function(targetUid) {
+      console.log('🌍 Global sendFriendRequest called with:', targetUid);
+      return sendFriendRequest(targetUid);
+    };
+    
+    window.acceptFriendRequest = function(requestId, fromUid) {
+      console.log('🌍 Global acceptFriendRequest called with:', requestId, fromUid);
+      return acceptFriendRequest(requestId, fromUid);
+    };
+    
+    window.declineFriendRequest = function(requestId) {
+      console.log('🌍 Global declineFriendRequest called with:', requestId);
+      return declineFriendRequest(requestId);
+    };
+    
+    window.cancelFriendRequest = function(requestId) {
+      console.log('🌍 Global cancelFriendRequest called with:', requestId);
+      return cancelFriendRequest(requestId);
+    };
+    
+    window.removeFriend = function(friendUid) {
+      console.log('🌍 Global removeFriend called with:', friendUid);
+      return removeFriend(friendUid);
+    };
+    
+    window.startChat = function(friendUid, friendName) {
+      console.log('🌍 Global startChat called with:', friendUid, friendName);
+      return startChat(friendUid, friendName);
+    };
+    
+    window.inviteToGame = function(friendUid, gameId) {
+      console.log('🌍 Global inviteToGame called with:', friendUid, gameId);
+      return inviteToGame(friendUid, gameId);
+    };
+    
+    window.viewUserProfile = function(uid) {
+      console.log('🌍 Global viewUserProfile called with:', uid);
+      return viewUserProfile(uid);
+    };
 
     async function clearRecentGames() {
       const user = auth.currentUser;
@@ -2148,12 +2306,26 @@
         
         // Initialize friend system
         currentUser = user;
+        
+        // Load current user's full data including friends list
+        try {
+          const userDoc = await db.collection('users').doc(user.uid).get();
+          if (userDoc.exists) {
+            currentUser.userData = userDoc.data();
+            console.log('✅ Loaded current user data:', currentUser.userData);
+          }
+        } catch (error) {
+          console.error('❌ Error loading current user data:', error);
+        }
+        
         await setUserOnline();
         await loadFriends();
         await loadFriendRequests();
         await loadUserProfile();
         await updateOnlineFriendsList();
         initializeFriendSystemEvents();
+        
+        console.log('🎉 Friend system initialized successfully!');
         
         // Load background settings from Firebase
         await loadBackgroundFromFirebase(user.uid);
@@ -2513,6 +2685,34 @@
         updateBackgroundUI();
       }
     });
+
+    // Debug instructions for testing friend requests
+    console.log(`
+    🔧 FRIEND SYSTEM DEBUG INSTRUCTIONS:
+    
+    1. Open browser console (F12)
+    2. Make sure you're signed in with Google
+    3. Run: window.testFriendSystem()
+    4. To test friend requests:
+       - Click "Find Friends" button
+       - Search for another user
+       - Click "Add Friend" button
+       - Check console for debug messages
+    
+    5. To check Firebase data:
+       - Run: console.log('Current user:', currentUser)
+       - Check friendRequests collection in Firebase console
+    
+    6. Common issues:
+       - Make sure Firebase has proper permissions
+       - Check that both users exist in the users collection
+       - Verify the friendRequests collection is created
+    
+    💡 If friend requests aren't working, check:
+    - Browser console for error messages
+    - Firebase console for data
+    - Network tab for failed requests
+    `);
   </script>
 </body>
 </html>
