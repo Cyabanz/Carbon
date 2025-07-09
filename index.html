@@ -392,6 +392,15 @@
                   </div>
                 </div>
 
+                <!-- Redirect Button -->
+                <button
+                  id="redirect-btn"
+                  class="w-8 h-8 rounded-md bg-transparent hover:bg-highlight-med text-muted hover:text-text transition-all flex items-center justify-center"
+                  title="Redirect to Carbon Website"
+                >
+                  <i id="redirect-icon" class="bx bx-link-external text-lg"></i>
+                </button>
+
                 <!-- Proxy Toggle -->
                 <div class="relative">
                   <button
@@ -992,6 +1001,58 @@
           e.preventDefault();
           toggleFullscreen();
         }
+      });
+
+      // --- Redirect Button Functionality ---
+      const redirectBtn = document.getElementById("redirect-btn");
+      
+      function redirectToCarbonWebsite() {
+        const tab = getActiveTab();
+        if (!tab) return;
+        
+        const currentUrl = tab.history[tab.pointer] || "";
+        
+        // Check if current URL is a carbon:// URL
+        if (currentUrl.startsWith("carbon://")) {
+          const carbonPath = currentUrl.replace("carbon://", "");
+          let redirectUrl = "https://carbon-orcin.vercel.app/";
+          
+          // Map carbon:// paths to actual website URLs
+          switch (carbonPath) {
+            case "settings":
+              redirectUrl = "https://carbon-orcin.vercel.app/settings.html";
+              break;
+            case "games":
+              redirectUrl = "https://carbon-orcin.vercel.app/games.html";
+              break;
+            case "ai":
+              redirectUrl = "https://carbon-orcin.vercel.app/ai.html";
+              break;
+            case "account":
+              redirectUrl = "https://carbon-orcin.vercel.app/profile.html";
+              break;
+            case "history":
+              redirectUrl = "https://carbon-orcin.vercel.app/history.html";
+              break;
+            case "newtab":
+            default:
+              redirectUrl = "https://carbon-orcin.vercel.app/index.html";
+              break;
+          }
+          
+                     // Navigate to the redirect URL in a new tab
+           const newTab = createTab(redirectUrl);
+           setActiveTab(newTab.id);
+         } else {
+           // If not a carbon:// URL, just go to the main website
+           const newTab = createTab("https://carbon-orcin.vercel.app/");
+           setActiveTab(newTab.id);
+         }
+      }
+      
+      redirectBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        redirectToCarbonWebsite();
       });
 
       // --- Proxy Setup ---
