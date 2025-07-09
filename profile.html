@@ -1849,44 +1849,54 @@
     };
 
     // Make functions globally available with error checking
+    // Capture references to original functions before overwriting
+    const _sendFriendRequest = sendFriendRequest;
+    const _acceptFriendRequest = acceptFriendRequest;
+    const _declineFriendRequest = declineFriendRequest;
+    const _cancelFriendRequest = cancelFriendRequest;
+    const _removeFriend = removeFriend;
+    const _startChat = startChat;
+    const _inviteToGame = inviteToGame;
+    const _viewUserProfile = viewUserProfile;
+    
     window.sendFriendRequest = function(targetUid) {
       console.log('🌍 Global sendFriendRequest called with:', targetUid);
-      return sendFriendRequest(targetUid);
+      return _sendFriendRequest(targetUid);
     };
     
     window.acceptFriendRequest = function(requestId, fromUid) {
       console.log('🌍 Global acceptFriendRequest called with:', requestId, fromUid);
-      return acceptFriendRequest(requestId, fromUid);
+      return _acceptFriendRequest(requestId, fromUid);
     };
     
     window.declineFriendRequest = function(requestId) {
       console.log('🌍 Global declineFriendRequest called with:', requestId);
-      return declineFriendRequest(requestId);
+      return _declineFriendRequest(requestId);
     };
     
     window.cancelFriendRequest = function(requestId) {
       console.log('🌍 Global cancelFriendRequest called with:', requestId);
-      return cancelFriendRequest(requestId);
+      return _cancelFriendRequest(requestId);
     };
     
     window.removeFriend = function(friendUid) {
       console.log('🌍 Global removeFriend called with:', friendUid);
-      return removeFriend(friendUid);
+      return _removeFriend(friendUid);
     };
     
     window.startChat = function(friendUid, friendName) {
       console.log('🌍 Global startChat called with:', friendUid, friendName);
-      return startChat(friendUid, friendName);
+      return _startChat(friendUid, friendName);
     };
     
     window.inviteToGame = function(friendUid, gameId) {
       console.log('🌍 Global inviteToGame called with:', friendUid, gameId);
-      return inviteToGame(friendUid, gameId);
+      return _inviteToGame(friendUid, gameId);
     };
     
     window.viewUserProfile = function(uid) {
       console.log('🌍 Global viewUserProfile called with:', uid);
-      return viewUserProfile(uid);
+      return _viewUserProfile(uid);
     };
 
     async function clearRecentGames() {
