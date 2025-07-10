@@ -1929,174 +1929,369 @@
     }
 
     async function setChatBackground(background) {
-      if (!activeChatRoomId || !currentUser) return;
+      console.log('🎨 Setting chat background to:', background);
+      console.log('🔗 Active chat room ID:', activeChatRoomId);
+      console.log('👤 Current user:', currentUser?.uid);
+      
+      // Validation
+      if (!background) {
+        console.error('❌ No background specified');
+        showNotification('Error', 'No background type specified', 'error');
+        return;
+      }
+      
+      if (!activeChatRoomId) {
+        console.error('❌ No active chat room');
+        showNotification('Error', 'No active chat session', 'error');
+        return;
+      }
+      
+      if (!currentUser || !currentUser.uid) {
+        console.error('❌ User not authenticated');
+        showNotification('Error', 'Please log in to change chat background', 'error');
+        return;
+      }
+      
+      if (!db) {
+        console.error('❌ Database not initialized');
+        showNotification('Error', 'Database connection not available', 'error');
+        return;
+      }
+      
+      const validBackgrounds = ['default', 'gradient', 'solid', 'particles'];
+      if (!validBackgrounds.includes(background)) {
+        console.error('❌ Invalid background type:', background);
+        showNotification('Error', 'Invalid background type', 'error');
+        return;
+      }
       
       try {
-        await db.collection('chatSettings').doc(activeChatRoomId).set({
+        console.log('💾 Saving to Firebase...');
+        
+        const chatSettingsData = {
           background: background,
           updatedBy: currentUser.uid,
           updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-        }, { merge: true });
+        };
         
+        console.log('📝 Chat settings data:', chatSettingsData);
+        
+        await db.collection('chatSettings').doc(activeChatRoomId).set(chatSettingsData, { merge: true });
+        
+        console.log('✅ Successfully saved to Firebase');
+        
+        // Update local state
         currentChatBackground = background;
-        applyChatBackground(background);
-        updateChatBackgroundUI();
+        
+        // Apply the background
+        try {
+          applyChatBackground(background);
+          console.log('✅ Background applied successfully');
+        } catch (applyError) {
+          console.error('❌ Error applying background:', applyError);
+          // Continue anyway, the background was saved
+        }
+        
+        // Update UI
+        try {
+          updateChatBackgroundUI();
+          console.log('✅ UI updated successfully');
+        } catch (uiError) {
+          console.error('❌ Error updating UI:', uiError);
+          // Continue anyway
+        }
         
         showNotification('Background Changed', `Chat background set to ${background}`, 'success');
+        
       } catch (error) {
-        console.error('Error setting chat background:', error);
-        showNotification('Error', 'Failed to change chat background', 'error');
+        console.error('❌ Error setting chat background:', error);
+        console.error('❌ Error details:', {
+          message: error.message,
+          code: error.code,
+          stack: error.stack
+        });
+        
+        let errorMessage = 'Failed to change chat background';
+        if (error.message) {
+          errorMessage += ': ' + error.message;
+        }
+        showNotification('Error', errorMessage, 'error');
       }
     }
 
     function applyChatBackground(background) {
+      console.log('🎨 Applying chat background:', background);
+      
       const chatMessages = document.getElementById('chatMessages');
       const chatParticlesCanvas = document.getElementById('chatParticlesCanvas');
       const chatContainer = document.getElementById('chatMessagesContainer');
       
-      if (!chatMessages || !chatParticlesCanvas || !chatContainer) return;
+      console.log('📍 Chat elements found:', {
+        chatMessages: !!chatMessages,
+        chatParticlesCanvas: !!chatParticlesCanvas,
+        chatContainer: !!chatContainer
+      });
       
-      // Stop any existing particles animation
-      if (chatParticlesAnimation) {
-        chatParticlesAnimation.stop();
-        chatParticlesAnimation = null;
+      if (!chatMessages) {
+        console.warn('⚠️ Chat messages element not found');
+        return;
       }
       
-      // Hide particles canvas by default
-      chatParticlesCanvas.classList.add('hidden');
+      if (!chatParticlesCanvas) {
+        console.warn('⚠️ Chat particles canvas not found');
+        return;
+      }
       
-      // Reset chat messages background
-      chatMessages.style.background = '';
-      chatMessages.classList.remove('bg-transparent');
+      if (!chatContainer) {
+        console.warn('⚠️ Chat container not found');
+        return;
+      }
       
-      switch (background) {
-        case 'gradient':
-          chatMessages.style.background = 'linear-gradient(135deg, rgba(156, 207, 216, 0.1) 0%, rgba(196, 167, 231, 0.1) 100%)';
-          chatMessages.classList.add('bg-transparent');
-          chatContainer.style.background = 'linear-gradient(135deg, #9ccfd8 0%, #c4a7e7 100%)';
-          break;
-          
-        case 'solid':
-          chatMessages.style.background = 'rgba(49, 116, 143, 0.2)';
-          chatMessages.classList.add('bg-transparent');
-          chatContainer.style.background = 'var(--rp-pine)';
-          break;
-          
-        case 'particles':
-          chatMessages.style.background = 'rgba(25, 23, 36, 0.3)';
-          chatMessages.classList.add('bg-transparent');
-          chatContainer.style.background = 'var(--rp-base)';
-          chatParticlesCanvas.classList.remove('hidden');
-          initChatParticles();
-          break;
-          
-        case 'default':
-        default:
+      try {
+        // Stop any existing particles animation
+        if (chatParticlesAnimation && typeof chatParticlesAnimation.stop === 'function') {
+          console.log('🛑 Stopping existing particles animation');
+          chatParticlesAnimation.stop();
+          chatParticlesAnimation = null;
+        }
+        
+        // Hide particles canvas by default
+        chatParticlesCanvas.classList.add('hidden');
+        
+        // Reset chat messages background
+        chatMessages.style.background = '';
+        chatMessages.classList.remove('bg-transparent');
+        chatContainer.style.background = '';
+        
+        console.log('🔄 Applying background type:', background);
+        
+        switch (background) {
+          case 'gradient':
+            chatMessages.style.background = 'linear-gradient(135deg, rgba(156, 207, 216, 0.1) 0%, rgba(196, 167, 231, 0.1) 100%)';
+            chatMessages.classList.add('bg-transparent');
+            chatContainer.style.background = 'linear-gradient(135deg, #9ccfd8 0%, #c4a7e7 100%)';
+            console.log('✅ Gradient background applied');
+            break;
+            
+          case 'solid':
+            chatMessages.style.background = 'rgba(49, 116, 143, 0.2)';
+            chatMessages.classList.add('bg-transparent');
+            chatContainer.style.background = '#31748f'; // Use hex instead of CSS variable for reliability
+            console.log('✅ Solid background applied');
+            break;
+            
+          case 'particles':
+            chatMessages.style.background = 'rgba(25, 23, 36, 0.3)';
+            chatMessages.classList.add('bg-transparent');
+            chatContainer.style.background = '#191724'; // Use hex instead of CSS variable
+            chatParticlesCanvas.classList.remove('hidden');
+            
+            try {
+              initChatParticles();
+              console.log('✅ Particles background applied');
+            } catch (particlesError) {
+              console.error('❌ Error initializing particles:', particlesError);
+              // Fallback to solid background
+              chatContainer.style.background = '#191724';
+              chatParticlesCanvas.classList.add('hidden');
+            }
+            break;
+            
+          case 'default':
+          default:
+            chatMessages.classList.remove('bg-transparent');
+            chatMessages.style.background = '';
+            chatContainer.style.background = '';
+            console.log('✅ Default background applied');
+            break;
+        }
+        
+        console.log('✅ Chat background applied successfully');
+        
+      } catch (error) {
+        console.error('❌ Error in applyChatBackground:', error);
+        // Fallback to default
+        try {
           chatMessages.classList.remove('bg-transparent');
           chatMessages.style.background = '';
           chatContainer.style.background = '';
-          break;
+          chatParticlesCanvas.classList.add('hidden');
+          console.log('🔄 Fallback to default background');
+        } catch (fallbackError) {
+          console.error('❌ Even fallback failed:', fallbackError);
+        }
       }
     }
 
     function updateChatBackgroundUI() {
-      // Update active state of background options
-      document.querySelectorAll('.chat-bg-option').forEach(option => {
-        option.classList.remove('border-rp-foam');
-        option.classList.add('border-transparent');
-      });
+      console.log('🔄 Updating chat background UI for:', currentChatBackground);
       
-      const activeOption = document.querySelector(`[data-bg="${currentChatBackground}"]`);
-      if (activeOption) {
-        activeOption.classList.remove('border-transparent');
-        activeOption.classList.add('border-rp-foam');
+      try {
+        // Update active state of background options
+        const backgroundOptions = document.querySelectorAll('.chat-bg-option');
+        console.log('📍 Found background options:', backgroundOptions.length);
+        
+        backgroundOptions.forEach(option => {
+          if (option && option.classList) {
+            option.classList.remove('border-rp-foam');
+            option.classList.add('border-transparent');
+          }
+        });
+        
+        const activeOption = document.querySelector(`[data-bg="${currentChatBackground}"]`);
+        console.log('📍 Active option found:', !!activeOption);
+        
+        if (activeOption && activeOption.classList) {
+          activeOption.classList.remove('border-transparent');
+          activeOption.classList.add('border-rp-foam');
+          console.log('✅ Active option updated');
+        } else {
+          console.warn('⚠️ Active option not found for background:', currentChatBackground);
+        }
+        
+        console.log('✅ Chat background UI updated successfully');
+        
+      } catch (error) {
+        console.error('❌ Error updating chat background UI:', error);
       }
     }
 
     function initChatParticles() {
+      console.log('✨ Initializing chat particles');
+      
       const canvas = document.getElementById('chatParticlesCanvas');
-      if (!canvas) return;
+      if (!canvas) {
+        console.error('❌ Chat particles canvas not found');
+        return;
+      }
       
-      const ctx = canvas.getContext('2d');
       const container = document.getElementById('chatMessagesContainer');
-      
-      // Set canvas size to match container
-      const rect = container.getBoundingClientRect();
-      canvas.width = container.offsetWidth;
-      canvas.height = container.offsetHeight;
-      
-      const particlesArray = [];
-      const particleCount = 15; // Fewer particles for chat area
-      
-      class ChatParticle {
-        constructor() {
-          this.x = Math.random() * canvas.width;
-          this.y = Math.random() * canvas.height;
-          this.vx = (Math.random() - 0.5) * 1;
-          this.vy = (Math.random() - 0.5) * 1;
-          this.radius = Math.random() * 2 + 1;
-          this.opacity = Math.random() * 0.3 + 0.1;
-          this.color = this.getRandomColor();
-        }
-        
-        getRandomColor() {
-          const colors = [
-            'rgba(156, 207, 216, ', // foam
-            'rgba(196, 167, 231, ', // iris
-            'rgba(246, 193, 119, ', // gold
-            'rgba(235, 188, 186, '  // love
-          ];
-          return colors[Math.floor(Math.random() * colors.length)];
-        }
-        
-        update() {
-          this.x += this.vx;
-          this.y += this.vy;
-          
-          if (this.x < 0 || this.x > canvas.width) this.vx *= -1;
-          if (this.y < 0 || this.y > canvas.height) this.vy *= -1;
-        }
-        
-        draw() {
-          ctx.beginPath();
-          ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
-          ctx.fillStyle = this.color + this.opacity + ')';
-          ctx.fill();
-        }
+      if (!container) {
+        console.error('❌ Chat messages container not found');
+        return;
       }
       
-      function createChatParticles() {
-        particlesArray.length = 0;
-        for (let i = 0; i < particleCount; i++) {
-          particlesArray.push(new ChatParticle());
+      try {
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          console.error('❌ Could not get 2D context');
+          return;
         }
-      }
-      
-      function animateChatParticles() {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
         
-        particlesArray.forEach(particle => {
-          particle.update();
-          particle.draw();
-        });
+        // Set canvas size to match container
+        const rect = container.getBoundingClientRect();
+        canvas.width = container.offsetWidth || 300;
+        canvas.height = container.offsetHeight || 200;
         
-        if (!canvas.classList.contains('hidden') && currentChatBackground === 'particles') {
-          chatParticlesAnimation = requestAnimationFrame(animateChatParticles);
-        }
-      }
-      
-      createChatParticles();
-      animateChatParticles();
-      
-      // Store animation reference for cleanup
-      chatParticlesAnimation = {
-        stop: () => {
-          if (chatParticlesAnimation && typeof chatParticlesAnimation === 'number') {
-            cancelAnimationFrame(chatParticlesAnimation);
+        console.log('📐 Canvas size:', canvas.width + 'x' + canvas.height);
+        
+        const particlesArray = [];
+        const particleCount = 15; // Fewer particles for chat area
+        
+        class ChatParticle {
+          constructor() {
+            this.x = Math.random() * canvas.width;
+            this.y = Math.random() * canvas.height;
+            this.vx = (Math.random() - 0.5) * 1;
+            this.vy = (Math.random() - 0.5) * 1;
+            this.radius = Math.random() * 2 + 1;
+            this.opacity = Math.random() * 0.3 + 0.1;
+            this.color = this.getRandomColor();
           }
-          chatParticlesAnimation = null;
+          
+          getRandomColor() {
+            const colors = [
+              'rgba(156, 207, 216, ', // foam
+              'rgba(196, 167, 231, ', // iris
+              'rgba(246, 193, 119, ', // gold
+              'rgba(235, 188, 186, '  // love
+            ];
+            return colors[Math.floor(Math.random() * colors.length)];
+          }
+          
+          update() {
+            this.x += this.vx;
+            this.y += this.vy;
+            
+            if (this.x < 0 || this.x > canvas.width) this.vx *= -1;
+            if (this.y < 0 || this.y > canvas.height) this.vy *= -1;
+          }
+          
+          draw() {
+            try {
+              ctx.beginPath();
+              ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+              ctx.fillStyle = this.color + this.opacity + ')';
+              ctx.fill();
+            } catch (drawError) {
+              console.warn('⚠️ Error drawing particle:', drawError);
+            }
+          }
         }
-      };
+        
+        function createChatParticles() {
+          particlesArray.length = 0;
+          for (let i = 0; i < particleCount; i++) {
+            particlesArray.push(new ChatParticle());
+          }
+          console.log('🎨 Created', particleCount, 'particles');
+        }
+        
+        function animateChatParticles() {
+          try {
+            if (!canvas || canvas.classList.contains('hidden') || currentChatBackground !== 'particles') {
+              console.log('🛑 Stopping particles animation - conditions not met');
+              return;
+            }
+            
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            particlesArray.forEach(particle => {
+              particle.update();
+              particle.draw();
+            });
+            
+            chatParticlesAnimation = requestAnimationFrame(animateChatParticles);
+            
+          } catch (animError) {
+            console.error('❌ Error in particles animation:', animError);
+            // Stop animation on error
+            if (chatParticlesAnimation && typeof chatParticlesAnimation === 'number') {
+              cancelAnimationFrame(chatParticlesAnimation);
+            }
+            chatParticlesAnimation = null;
+          }
+        }
+        
+        createChatParticles();
+        animateChatParticles();
+        
+        // Store animation reference for cleanup with better error handling
+        const animationId = chatParticlesAnimation;
+        chatParticlesAnimation = {
+          stop: () => {
+            try {
+              if (animationId && typeof animationId === 'number') {
+                cancelAnimationFrame(animationId);
+                console.log('🛑 Particles animation stopped');
+              }
+              if (chatParticlesAnimation && typeof chatParticlesAnimation === 'number') {
+                cancelAnimationFrame(chatParticlesAnimation);
+              }
+              chatParticlesAnimation = null;
+            } catch (stopError) {
+              console.error('❌ Error stopping particles:', stopError);
+              chatParticlesAnimation = null;
+            }
+          }
+        };
+        
+        console.log('✅ Chat particles initialized successfully');
+        
+      } catch (error) {
+        console.error('❌ Error initializing chat particles:', error);
+        chatParticlesAnimation = null;
+      }
     }
 
     function renderChatMessages(messages) {
