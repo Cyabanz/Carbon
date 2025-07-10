@@ -875,17 +875,27 @@
                 gameListener();
             }
             
+            console.log('🎧 Starting to listen to room:', roomId);
+            
             gameListener = db.collection('game-rooms').doc(roomId).onSnapshot(doc => {
                 if (!doc.exists) {
+                    console.log('❌ Room no longer exists');
                     showNotification('Game Ended', 'The game room was closed', 'info');
                     backToSelection();
                     return;
                 }
                 
                 const roomData = doc.data();
+                console.log('📡 Room update received:', {
+                    status: roomData.status,
+                    host: roomData.hostName,
+                    guest: roomData.guestName,
+                    hasGameState: !!roomData.gameState
+                });
+                
                 updateGameUI(roomData, roomId);
             }, error => {
-                console.error('Error listening to room:', error);
+                console.error('❌ Error listening to room:', error);
                 showNotification('Connection Error', 'Lost connection to game room', 'error');
             });
         }
@@ -909,7 +919,20 @@
             // Update current game data for real-time sync
             if (currentGameData) {
                 const previousStatus = currentGameData.status;
+                const previousGuestId = currentGameData.guestId;
                 currentGameData = roomData;
+                
+                // Handle transition from waiting to playing - BOTH players need to see this
+                if (roomData.status === 'playing' && previousStatus === 'waiting') {
+                    console.log('🚀 Game starting transition for:', currentUser.uid === roomData.hostId ? 'Host' : 'Guest');
+                    initializeGameInLobby(roomData, roomId);
+                }
+                
+                // Handle when second player joins while first is in lobby  
+                if (roomData.status === 'waiting' && roomData.guestId && !previousGuestId) {
+                    console.log('👥 Second player joined:', roomData.guestName);
+                    updateLobbyWithGuest(roomData);
+                }
                 
                 // Sync guest prediction with server data every few updates
                 if (roomData.gameType === 'pong' && roomData.hostId !== currentUser.uid) {
@@ -927,12 +950,6 @@
                             lastServerSync = Date.now();
                         }
                     }
-                }
-                
-                // Handle game starting - BOTH players need to initialize
-                if (roomData.status === 'playing' && previousStatus === 'waiting') {
-                    console.log('🎮 Game starting for player:', currentUser.uid === roomData.hostId ? 'Host' : 'Guest');
-                    initializeGameInLobby(roomData, roomId);
                 }
                 
                 // Handle game completion for all players
@@ -978,11 +995,19 @@
                     setTimeout(() => showWinnerScreen(roomData), 1000);
                 }
             } else {
-                // First time receiving room data
+                // First time receiving room data - set currentGameData
+                console.log('📥 First time receiving room data:', {
+                    status: roomData.status,
+                    hasHost: !!roomData.hostId,
+                    hasGuest: !!roomData.guestId,
+                    playerRole: currentUser.uid === roomData.hostId ? 'Host' : 'Guest'
+                });
+                
                 currentGameData = roomData;
                 
                 if (roomData.status === 'playing') {
-                    console.log('🎮 Joining game in progress');
+                    // Initialize game for the first time - BOTH players will see this
+                    console.log('🎮 Initializing game for:', currentUser.uid === roomData.hostId ? 'Host' : 'Guest');
                     initializeGameInLobby(roomData, roomId);
                 } else if (roomData.status === 'waiting' && roomData.guestId) {
                     updateLobbyWithGuest(roomData);
@@ -991,21 +1016,33 @@
         }
         
         function initializeGameInLobby(roomData, roomId) {
-            console.log('Initializing game in lobby:', roomData.gameType);
+            console.log('🎮 Initializing game in lobby:', roomData.gameType, 'for player:', currentUser.uid === roomData.hostId ? 'Host' : 'Guest');
+            
+            // Ensure currentGameData is set
+            currentGameData = roomData;
             
             // Update lobby content to show game is starting
             const lobbyContent = document.getElementById('lobby-content');
             if (!lobbyContent) {
-                console.error('Lobby content element not found!');
+                console.error('❌ Lobby content element not found!');
                 return;
             }
             
-            console.log('Creating game container...');
+            // Update game status to show game starting
+            const gameStatus = document.getElementById('game-status');
+            if (gameStatus) {
+                gameStatus.innerHTML = '<span class="text-foam">Game starting...</span>';
+            }
+            
+            console.log('✅ Creating game container...');
             lobbyContent.innerHTML = `
                 <div id="game-container" class="w-full h-full flex flex-col items-center justify-center">
                     <div class="text-center mb-4">
                         <h3 class="text-2xl font-bold text-foam mb-2">Game Started!</h3>
                         <p class="text-muted">${getGameDisplayName(roomData.gameType)} is now in progress</p>
+                        <p class="text-xs text-muted mt-2">
+                            Host: ${roomData.hostName} vs Guest: ${roomData.guestName}
+                        </p>
                     </div>
                     <div id="game-area-content" class="w-full flex-1 flex items-center justify-center min-h-[400px]">
                         <div class="flex items-center justify-center">
@@ -1020,15 +1057,20 @@
             setTimeout(() => {
                 const gameAreaContent = document.getElementById('game-area-content');
                 if (!gameAreaContent) {
-                    console.error('Game area content element not found after creation!');
+                    console.error('❌ Game area content element not found after creation!');
                     return;
                 }
-                console.log('Game area content found, starting game:', roomData.gameType);
+                console.log('✅ Game area content found, starting game:', roomData.gameType);
                 startGame(roomData, roomId);
             }, 100);
         }
 
         function updateLobbyWithGuest(roomData) {
+            console.log('🎯 Updating lobby with guest:', roomData.guestName, 'Host:', roomData.hostName);
+            
+            // Ensure currentGameData is set for both players
+            currentGameData = roomData;
+            
             const guestSlot = document.getElementById('guest-slot');
             if (guestSlot && roomData.guestName) {
                 guestSlot.innerHTML = `
@@ -1048,19 +1090,27 @@
                 guestSlot.classList.remove('border-dashed', 'border-highlight-med');
                 guestSlot.classList.add('border-solid', 'border-iris');
                 
-                // Start game automatically when both players are ready
-                setTimeout(() => {
-                    if (roomData.hostId === currentUser.uid) {
-                        console.log('Starting game automatically - both players joined');
+                // Update game status to show both players found
+                const gameStatus = document.getElementById('game-status');
+                if (gameStatus) {
+                    gameStatus.innerHTML = '<span class="text-foam">Both players connected!</span>';
+                }
+                
+                // Start game automatically when both players are ready (only host triggers)
+                if (roomData.hostId === currentUser.uid && roomData.guestId && roomData.status === 'waiting') {
+                    console.log('🚀 Host starting game automatically - both players ready');
+                    setTimeout(() => {
                         db.collection('game-rooms').doc(currentRoom).update({
-                            status: 'playing'
+                            status: 'playing',
+                            gameStartedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                            lastActivity: firebase.firestore.FieldValue.serverTimestamp()
                         }).then(() => {
-                            console.log('Game status updated to playing');
+                            console.log('✅ Game status updated to playing');
                         }).catch(error => {
-                            console.error('Error starting game:', error);
+                            console.error('❌ Error starting game:', error);
                         });
-                    }
-                }, 2000);
+                    }, 1500); // Reduced delay for faster start
+                }
             }
         }
 
