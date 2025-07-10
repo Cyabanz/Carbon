@@ -3599,6 +3599,33 @@
         }
       }
       
+      // Clean up game rooms when page unloads
+      window.addEventListener('beforeunload', () => {
+        if (currentGameRoom && currentUser) {
+          // Try to clean up the room immediately
+          db.collection('game-rooms').doc(currentGameRoom).get().then(doc => {
+            if (doc.exists) {
+              const gameRoom = doc.data();
+              if (gameRoom.hostId === currentUser.uid && gameRoom.status === 'waiting') {
+                // Delete waiting room
+                db.collection('game-rooms').doc(currentGameRoom).delete();
+              } else if (gameRoom.status === 'playing') {
+                // Mark as completed with disconnection
+                db.collection('game-rooms').doc(currentGameRoom).update({
+                  status: 'completed',
+                  winner: gameRoom.hostId === currentUser.uid ? 
+                    (gameRoom.gameType === 'tictactoe' ? 'O' : 'blue') : 
+                    (gameRoom.gameType === 'tictactoe' ? 'X' : 'red'),
+                  disconnectedPlayer: currentUser.uid
+                });
+              }
+            }
+          }).catch(error => {
+            console.error('Error cleaning up room on page unload:', error);
+          });
+        }
+      });
+      
 
       
       // Update user profile display
@@ -4530,6 +4557,28 @@
       }
       
       function openCarbonShop() {
+        // Clean up any old waiting rooms when opening shop (helps with database hygiene)
+        if (currentUser) {
+          db.collection('game-rooms')
+            .where('hostId', '==', currentUser.uid)
+            .where('status', '==', 'waiting')
+            .get()
+            .then(snapshot => {
+              snapshot.docs.forEach(doc => {
+                const room = doc.data();
+                const roomAge = Date.now() - (room.createdAt?.toDate?.()?.getTime() || 0);
+                // Delete rooms older than 5 minutes
+                if (roomAge > 5 * 60 * 1000) {
+                  console.log('Cleaning up old waiting room:', doc.id);
+                  doc.ref.delete();
+                }
+              });
+            })
+            .catch(error => {
+              console.error('Error cleaning up old rooms:', error);
+            });
+        }
+        
         const shopModal = document.createElement('div');
         shopModal.className = 'fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[9999]';
         shopModal.innerHTML = `
@@ -5012,6 +5061,36 @@
       }
       
       window.closeShop = function() {
+        // Clean up any waiting game rooms when closing the shop
+        if (currentGameRoom) {
+          db.collection('game-rooms').doc(currentGameRoom).get().then(doc => {
+            if (doc.exists) {
+              const gameRoom = doc.data();
+              // Only clean up if we're the host and the game is still waiting
+              if (gameRoom.hostId === currentUser.uid && gameRoom.status === 'waiting') {
+                console.log('Cleaning up waiting room on shop close:', currentGameRoom);
+                db.collection('game-rooms').doc(currentGameRoom).delete();
+              }
+            }
+          }).catch(error => {
+            console.error('Error cleaning up room on shop close:', error);
+          });
+          
+          // Clear listeners
+          if (gameListener) {
+            gameListener();
+            gameListener = null;
+          }
+          
+          currentGameRoom = null;
+        }
+        
+        // Close any open game modals
+        if (window.currentGameModal) {
+          window.currentGameModal.remove();
+          window.currentGameModal = null;
+        }
+        
         if (window.currentShopModal) {
           window.currentShopModal.remove();
           window.currentShopModal = null;
@@ -6024,7 +6103,27 @@
               gameStatus.innerHTML = '<span class="text-muted">Opponent\'s turn</span>';
             }
                      } else if (gameRoom.status === 'completed') {
-             if (gameRoom.winner === 'draw') {
+             // Check if someone disconnected
+             if (gameRoom.disconnectedPlayer) {
+               const disconnectedPlayerName = gameRoom.disconnectedPlayer === gameRoom.hostId ? 
+                 (gameRoom.hostName || 'Host') : 
+                 (gameRoom.guestName || 'Guest');
+               
+               if (gameRoom.disconnectedPlayer === currentUser.uid) {
+                 // Current user disconnected (shouldn't normally see this, but just in case)
+                 gameStatus.innerHTML = '<span class="text-muted">You left the game</span>';
+               } else {
+                 // Opponent disconnected
+                 gameStatus.innerHTML = '<span class="text-love">Opponent disconnected</span>';
+                 showNotification('Game Ended', `${disconnectedPlayerName} left the game`, 'info');
+                 
+                 // Automatically close the game after a short delay
+                 setTimeout(() => {
+                   leaveGame();
+                 }, 2000);
+                 return; // Don't show winner screen for disconnections
+               }
+             } else if (gameRoom.winner === 'draw') {
                gameStatus.innerHTML = '<span class="text-gold">Draw!</span>';
              } else {
                const didIWin = (
@@ -6037,8 +6136,10 @@
                  '<span class="text-love">You lost 😢</span>';
              }
              
-             // Show winner screen
-             setTimeout(() => showWinnerScreen(gameRoom), 1000);
+             // Show winner screen only for normal game completions (not disconnections)
+             if (!gameRoom.disconnectedPlayer) {
+               setTimeout(() => showWinnerScreen(gameRoom), 1000);
+             }
            }
         }
         
@@ -6128,12 +6229,30 @@
             .where('gameType', '==', gameType)
             .where('status', '==', 'waiting')
             .where('hostId', '!=', currentUser.uid)
-            .limit(1)
+            .limit(5) // Get more rooms to check for validity
             .get();
           
           if (!waitingRooms.empty) {
-            const roomDoc = waitingRooms.docs[0];
-            await joinGame(roomDoc.id);
+            // Try to join the first valid room
+            for (const roomDoc of waitingRooms.docs) {
+              try {
+                // Double-check the room is still valid before joining
+                const freshRoomDoc = await db.collection('game-rooms').doc(roomDoc.id).get();
+                if (freshRoomDoc.exists && freshRoomDoc.data().status === 'waiting') {
+                  await joinGame(roomDoc.id);
+                  return; // Successfully joined
+                } else {
+                  // Room is stale, skip to next one
+                  console.log('Skipping stale room:', roomDoc.id);
+                  continue;
+                }
+              } catch (joinError) {
+                console.error('Error joining room:', roomDoc.id, joinError);
+                continue; // Try next room
+              }
+            }
+            // If we get here, no valid rooms were found
+            showNotification('No Players Found', 'No waiting games found. Your room is now public for others to join!', 'info');
           } else {
             showNotification('No Players Found', 'No waiting games found. Your room is now public for others to join!', 'info');
           }
