@@ -3728,6 +3728,8 @@
       // === CARBON SHOP SYSTEM ===
       let userCurrency = parseInt(localStorage.getItem('carbon-currency') || '0');
       let userFrames = JSON.parse(localStorage.getItem('carbon-frames') || '[]');
+      let userPets = JSON.parse(localStorage.getItem('carbon-pets') || '[]');
+      let userProfileFrames = JSON.parse(localStorage.getItem('carbon-profile-frames') || '[]');
       
       const gameFrames = [
         { id: 'neon', name: 'Neon Glow', price: 500, color: '#00ffff', description: 'Electric neon border with pulsing glow effect' },
@@ -3797,10 +3799,32 @@
         }
       ];
       
+      const pets = [
+        { id: 'dragon', name: 'Cyber Dragon', price: 800, description: 'A glowing digital companion that follows you around', emoji: '🐉', rarity: 'epic' },
+        { id: 'cat', name: 'Pixel Cat', price: 300, description: 'A cute 8-bit feline friend', emoji: '🐱', rarity: 'common' },
+        { id: 'robot', name: 'Nano Bot', price: 600, description: 'A helpful AI assistant', emoji: '🤖', rarity: 'rare' },
+        { id: 'phoenix', name: 'Fire Phoenix', price: 1200, description: 'Legendary creature with flame effects', emoji: '🔥', rarity: 'legendary' },
+        { id: 'unicorn', name: 'Rainbow Unicorn', price: 1500, description: 'Magical unicorn with rainbow trail', emoji: '🦄', rarity: 'legendary' },
+        { id: 'ghost', name: 'Friendly Ghost', price: 400, description: 'A spooky but harmless companion', emoji: '👻', rarity: 'rare' }
+      ];
+
+      const profileFrames = [
+        { id: 'red', name: 'Red Frame', price: 200, color: '#ff4444', description: 'Classic red border for your profile' },
+        { id: 'blue', name: 'Blue Frame', price: 200, color: '#4444ff', description: 'Cool blue border for your profile' },
+        { id: 'orange', name: 'Orange Frame', price: 200, color: '#ff8844', description: 'Vibrant orange border for your profile' },
+        { id: 'green', name: 'Green Frame', price: 200, color: '#44ff44', description: 'Nature green border for your profile' },
+        { id: 'purple', name: 'Purple Frame', price: 200, color: '#8844ff', description: 'Royal purple border for your profile' },
+        { id: 'gold', name: 'Gold Frame', price: 500, color: '#ffd700', description: 'Premium gold border for your profile' },
+        { id: 'silver', name: 'Silver Frame', price: 300, color: '#c0c0c0', description: 'Elegant silver border for your profile' },
+        { id: 'rainbow', name: 'Rainbow Frame', price: 800, color: 'linear-gradient(45deg, #ff0000, #ff8000, #ffff00, #00ff00, #0080ff, #8000ff)', description: 'Animated rainbow border' }
+      ];
+
       const miniGames = [
         { id: 'clicker', name: 'Carbon Clicker', reward: 50, description: 'Click as fast as you can!' },
         { id: 'memory', name: 'Memory Match', reward: 100, description: 'Match the carbon molecules' },
-        { id: 'reaction', name: 'Reaction Test', reward: 75, description: 'Test your reaction speed' }
+        { id: 'reaction', name: 'Reaction Test', reward: 75, description: 'Test your reaction speed' },
+        { id: 'blackjack', name: 'Blackjack', reward: 200, description: 'Classic card game - beat the dealer!' },
+        { id: 'roulette', name: 'Roulette', reward: 300, description: 'Spin the wheel and win big!' }
       ];
 
       // Mini-game implementations
@@ -4041,6 +4065,354 @@
           window.currentGameModal = null;
         }
       };
+
+      function playBlackjackGame() {
+        let playerCards = [];
+        let dealerCards = [];
+        let gameEnded = false;
+        let bet = 50; // Fixed bet for simplicity
+        
+        const gameModal = createGameModal('Blackjack', `
+          <div class="text-center">
+            <div class="mb-4">
+              <div class="text-lg font-semibold text-foam mb-2">Bet: <span class="text-gold">${bet}</span> coins</div>
+              <div class="text-sm text-muted">Beat the dealer to 21!</div>
+            </div>
+            
+            <div class="mb-6">
+              <div class="mb-4">
+                <h4 class="text-md font-semibold text-text mb-2">Dealer Cards</h4>
+                <div id="dealer-cards" class="flex justify-center gap-2 mb-2"></div>
+                <div id="dealer-total" class="text-sm text-muted"></div>
+              </div>
+              
+              <div>
+                <h4 class="text-md font-semibold text-text mb-2">Your Cards</h4>
+                <div id="player-cards" class="flex justify-center gap-2 mb-2"></div>
+                <div id="player-total" class="text-sm text-foam font-semibold"></div>
+              </div>
+            </div>
+            
+            <div id="game-controls" class="flex gap-3 justify-center">
+              <button id="hit-btn" class="px-4 py-2 bg-foam hover:bg-foam/80 text-base rounded-lg font-medium">Hit</button>
+              <button id="stand-btn" class="px-4 py-2 bg-gold hover:bg-gold/80 text-base rounded-lg font-medium">Stand</button>
+            </div>
+            
+            <div id="game-result" class="hidden mt-4"></div>
+          </div>
+        `);
+        
+        function createCard() {
+          const suits = ['♠', '♥', '♦', '♣'];
+          const values = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
+          return {
+            suit: suits[Math.floor(Math.random() * suits.length)],
+            value: values[Math.floor(Math.random() * values.length)]
+          };
+        }
+        
+        function calculateTotal(cards) {
+          let total = 0;
+          let aces = 0;
+          
+          for (let card of cards) {
+            if (card.value === 'A') {
+              aces++;
+              total += 11;
+            } else if (['J', 'Q', 'K'].includes(card.value)) {
+              total += 10;
+            } else {
+              total += parseInt(card.value);
+            }
+          }
+          
+          // Adjust for aces
+          while (total > 21 && aces > 0) {
+            total -= 10;
+            aces--;
+          }
+          
+          return total;
+        }
+        
+        function renderCards(cards, containerId, hideFirst = false) {
+          const container = gameModal.querySelector(`#${containerId}`);
+          container.innerHTML = '';
+          
+          cards.forEach((card, index) => {
+            const cardEl = document.createElement('div');
+            cardEl.className = 'w-12 h-16 bg-white text-black rounded border-2 border-gray-300 flex flex-col items-center justify-center text-xs font-bold';
+            
+            if (hideFirst && index === 0) {
+              cardEl.innerHTML = '<div class="text-lg">?</div>';
+              cardEl.className += ' bg-blue-900 text-white';
+            } else {
+              cardEl.innerHTML = `<div>${card.value}</div><div class="${card.suit === '♥' || card.suit === '♦' ? 'text-red-500' : 'text-black'}">${card.suit}</div>`;
+            }
+            
+            container.appendChild(cardEl);
+          });
+        }
+        
+        function updateDisplay() {
+          renderCards(dealerCards, 'dealer-cards', !gameEnded);
+          renderCards(playerCards, 'player-cards');
+          
+          const playerTotal = calculateTotal(playerCards);
+          const dealerTotal = gameEnded ? calculateTotal(dealerCards) : '?';
+          
+          gameModal.querySelector('#player-total').textContent = `Total: ${playerTotal}`;
+          gameModal.querySelector('#dealer-total').textContent = gameEnded ? `Total: ${dealerTotal}` : '';
+        }
+        
+        function endGame(result, message) {
+          gameEnded = true;
+          updateDisplay();
+          
+          let reward = 0;
+          if (result === 'win') {
+            reward = bet * 2;
+            userCurrency += reward;
+          } else if (result === 'push') {
+            reward = bet;
+            userCurrency += reward;
+          }
+          
+          updateCurrencyDisplay();
+          saveCurrencyToStorage();
+          
+          gameModal.querySelector('#game-controls').classList.add('hidden');
+          gameModal.querySelector('#game-result').classList.remove('hidden');
+          gameModal.querySelector('#game-result').innerHTML = `
+            <div class="text-center">
+              <h3 class="text-xl font-bold mb-2 ${result === 'win' ? 'text-pine' : result === 'lose' ? 'text-love' : 'text-gold'}">${message}</h3>
+              <p class="text-foam mb-4">Earned: <span class="text-gold">${reward}</span> Carbon Coins</p>
+              <button onclick="closeGameModal()" class="px-6 py-3 bg-foam hover:bg-foam/80 text-base rounded-lg font-medium">
+                Continue
+              </button>
+            </div>
+          `;
+        }
+        
+        // Initialize game
+        if (userCurrency < bet) {
+          endGame('lose', 'Insufficient funds!');
+          return;
+        }
+        
+        userCurrency -= bet;
+        updateCurrencyDisplay();
+        saveCurrencyToStorage();
+        
+        // Deal initial cards
+        playerCards = [createCard(), createCard()];
+        dealerCards = [createCard(), createCard()];
+        
+        updateDisplay();
+        
+        // Check for blackjack
+        const playerTotal = calculateTotal(playerCards);
+        const dealerTotal = calculateTotal(dealerCards);
+        
+        if (playerTotal === 21) {
+          if (dealerTotal === 21) {
+            endGame('push', 'Push! Both have Blackjack');
+          } else {
+            endGame('win', 'Blackjack! You Win!');
+          }
+          return;
+        }
+        
+        // Game controls
+        gameModal.querySelector('#hit-btn').addEventListener('click', () => {
+          if (gameEnded) return;
+          
+          playerCards.push(createCard());
+          const total = calculateTotal(playerCards);
+          updateDisplay();
+          
+          if (total > 21) {
+            endGame('lose', 'Bust! You went over 21');
+          } else if (total === 21) {
+            // Auto-stand on 21
+            stand();
+          }
+        });
+        
+        gameModal.querySelector('#stand-btn').addEventListener('click', stand);
+        
+        function stand() {
+          if (gameEnded) return;
+          
+          // Dealer plays
+          while (calculateTotal(dealerCards) < 17) {
+            dealerCards.push(createCard());
+          }
+          
+          const playerTotal = calculateTotal(playerCards);
+          const dealerTotal = calculateTotal(dealerCards);
+          
+          if (dealerTotal > 21) {
+            endGame('win', 'Dealer Bust! You Win!');
+          } else if (playerTotal > dealerTotal) {
+            endGame('win', 'You Win!');
+          } else if (playerTotal < dealerTotal) {
+            endGame('lose', 'Dealer Wins!');
+          } else {
+            endGame('push', 'Push! It\'s a tie');
+          }
+        }
+      }
+
+      function playRouletteGame() {
+        let bet = 25;
+        let selectedBet = null;
+        
+        const gameModal = createGameModal('Roulette', `
+          <div class="text-center">
+            <div class="mb-4">
+              <div class="text-lg font-semibold text-foam mb-2">Bet: <span class="text-gold">${bet}</span> coins</div>
+              <div class="text-sm text-muted">Choose your bet and spin the wheel!</div>
+            </div>
+            
+            <div class="mb-6">
+              <div class="w-32 h-32 mx-auto mb-4 relative">
+                <div id="roulette-wheel" class="w-full h-full rounded-full border-8 border-gold bg-gradient-to-r from-red-600 to-black relative overflow-hidden transition-transform duration-3000">
+                  <div class="absolute inset-2 rounded-full bg-gradient-to-r from-red-500 via-black to-red-500"></div>
+                  <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-4 h-4 bg-white rounded-full z-10"></div>
+                  <div class="absolute top-2 left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-b-8 border-transparent border-b-foam z-20"></div>
+                </div>
+              </div>
+              
+              <div class="text-xl font-bold text-foam" id="winning-number">0</div>
+            </div>
+            
+            <div class="mb-6">
+              <h4 class="text-md font-semibold text-text mb-3">Place Your Bet</h4>
+              <div class="grid grid-cols-3 gap-2 max-w-xs mx-auto">
+                <button class="bet-btn px-3 py-2 bg-love hover:bg-love/80 text-white rounded text-sm" data-bet="red">Red (2x)</button>
+                <button class="bet-btn px-3 py-2 bg-surface hover:bg-surface/80 text-white rounded text-sm" data-bet="black">Black (2x)</button>
+                <button class="bet-btn px-3 py-2 bg-pine hover:bg-pine/80 text-white rounded text-sm" data-bet="green">Green (14x)</button>
+                <button class="bet-btn px-3 py-2 bg-foam hover:bg-foam/80 text-base rounded text-sm" data-bet="odd">Odd (2x)</button>
+                <button class="bet-btn px-3 py-2 bg-foam hover:bg-foam/80 text-base rounded text-sm" data-bet="even">Even (2x)</button>
+                <button class="bet-btn px-3 py-2 bg-gold hover:bg-gold/80 text-base rounded text-sm" data-bet="lucky">Lucky 7 (10x)</button>
+              </div>
+              
+              <div class="mt-3 text-sm text-muted" id="selected-bet">Select a bet to continue</div>
+            </div>
+            
+            <div id="game-controls">
+              <button id="spin-btn" class="px-6 py-3 bg-foam hover:bg-foam/80 text-base rounded-lg font-medium opacity-50" disabled>
+                Spin Wheel
+              </button>
+            </div>
+            
+            <div id="game-result" class="hidden mt-4"></div>
+          </div>
+        `);
+        
+        const numbers = [0, 32, 15, 19, 4, 21, 2, 25, 17, 34, 6, 27, 13, 36, 11, 30, 8, 23, 10, 5, 24, 16, 33, 1, 20, 14, 31, 9, 22, 18, 29, 7, 28, 12, 35, 3, 26];
+        const redNumbers = [1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36];
+        const blackNumbers = [2, 4, 6, 8, 10, 11, 13, 15, 17, 20, 22, 24, 26, 28, 29, 31, 33, 35];
+        
+        if (userCurrency < bet) {
+          gameModal.querySelector('#game-result').classList.remove('hidden');
+          gameModal.querySelector('#game-result').innerHTML = `
+            <div class="text-center">
+              <h3 class="text-xl font-bold text-love mb-2">Insufficient Funds!</h3>
+              <button onclick="closeGameModal()" class="px-6 py-3 bg-foam hover:bg-foam/80 text-base rounded-lg font-medium">
+                Continue
+              </button>
+            </div>
+          `;
+          return;
+        }
+        
+        // Bet selection
+        gameModal.querySelectorAll('.bet-btn').forEach(btn => {
+          btn.addEventListener('click', () => {
+            gameModal.querySelectorAll('.bet-btn').forEach(b => b.classList.remove('ring-2', 'ring-foam'));
+            btn.classList.add('ring-2', 'ring-foam');
+            selectedBet = btn.dataset.bet;
+            gameModal.querySelector('#selected-bet').textContent = `Selected: ${btn.textContent}`;
+            gameModal.querySelector('#spin-btn').disabled = false;
+            gameModal.querySelector('#spin-btn').classList.remove('opacity-50');
+          });
+        });
+        
+        gameModal.querySelector('#spin-btn').addEventListener('click', () => {
+          if (!selectedBet) return;
+          
+          userCurrency -= bet;
+          updateCurrencyDisplay();
+          saveCurrencyToStorage();
+          
+          gameModal.querySelector('#game-controls').style.display = 'none';
+          
+          // Spin animation
+          const wheel = gameModal.querySelector('#roulette-wheel');
+          const spins = 5 + Math.random() * 5;
+          const finalRotation = spins * 360;
+          wheel.style.transform = `rotate(${finalRotation}deg)`;
+          
+          setTimeout(() => {
+            const winningNumber = numbers[Math.floor(Math.random() * numbers.length)];
+            gameModal.querySelector('#winning-number').textContent = winningNumber;
+            
+            let isWin = false;
+            let multiplier = 0;
+            
+            switch (selectedBet) {
+              case 'red':
+                isWin = redNumbers.includes(winningNumber);
+                multiplier = 2;
+                break;
+              case 'black':
+                isWin = blackNumbers.includes(winningNumber);
+                multiplier = 2;
+                break;
+              case 'green':
+                isWin = winningNumber === 0;
+                multiplier = 14;
+                break;
+              case 'odd':
+                isWin = winningNumber > 0 && winningNumber % 2 === 1;
+                multiplier = 2;
+                break;
+              case 'even':
+                isWin = winningNumber > 0 && winningNumber % 2 === 0;
+                multiplier = 2;
+                break;
+              case 'lucky':
+                isWin = winningNumber === 7;
+                multiplier = 10;
+                break;
+            }
+            
+            let reward = 0;
+            if (isWin) {
+              reward = bet * multiplier;
+              userCurrency += reward;
+              updateCurrencyDisplay();
+              saveCurrencyToStorage();
+            }
+            
+            gameModal.querySelector('#game-result').classList.remove('hidden');
+            gameModal.querySelector('#game-result').innerHTML = `
+              <div class="text-center">
+                <h3 class="text-xl font-bold mb-2 ${isWin ? 'text-pine' : 'text-love'}">
+                  ${isWin ? 'You Win!' : 'You Lose!'}
+                </h3>
+                <p class="text-muted mb-2">Winning Number: <span class="font-bold ${redNumbers.includes(winningNumber) ? 'text-love' : winningNumber === 0 ? 'text-pine' : 'text-text'}">${winningNumber}</span></p>
+                <p class="text-foam mb-4">Earned: <span class="text-gold">${reward}</span> Carbon Coins</p>
+                <button onclick="closeGameModal()" class="px-6 py-3 bg-foam hover:bg-foam/80 text-base rounded-lg font-medium">
+                  Continue
+                </button>
+              </div>
+            `;
+          }, 3000);
+        });
+      }
       
       function openCarbonShop() {
         const shopModal = document.createElement('div');
@@ -4071,6 +4443,12 @@
                  </button>
                  <button onclick="showShopSection('selector')" class="shop-nav-btn w-full text-left px-3 py-2 rounded-lg hover:bg-highlight-med text-text">
                    <i class="bx bx-palette mr-2"></i>Frame Selector
+                 </button>
+                 <button onclick="showShopSection('pets')" class="shop-nav-btn w-full text-left px-3 py-2 rounded-lg hover:bg-highlight-med text-text">
+                   <i class="bx bx-heart mr-2"></i>Pets
+                 </button>
+                 <button onclick="showShopSection('profileframes')" class="shop-nav-btn w-full text-left px-3 py-2 rounded-lg hover:bg-highlight-med text-text">
+                   <i class="bx bx-user mr-2"></i>Profile Frames
                  </button>
                  <button onclick="showShopSection('lootboxes')" class="shop-nav-btn w-full text-left px-3 py-2 rounded-lg hover:bg-highlight-med text-text">
                    <i class="bx bx-package mr-2"></i>Loot Boxes
@@ -4152,6 +4530,55 @@
                  ` : ''}
                </div>
                
+               <div id="shop-pets" class="shop-section hidden">
+                 <h3 class="text-2xl font-bold text-text mb-6">Digital Pets</h3>
+                 <p class="text-muted mb-6">Adopt adorable digital companions to keep you company!</p>
+                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                   ${pets.map(pet => `
+                     <div class="bg-highlight-med rounded-xl p-6 border border-overlay">
+                       <div class="w-full h-32 rounded-lg mb-4 flex items-center justify-center relative overflow-hidden bg-gradient-to-br from-foam/10 to-iris/10">
+                         <div class="text-6xl animate-bounce">${pet.emoji}</div>
+                         <div class="absolute top-2 right-2 px-2 py-1 rounded-full text-xs font-bold ${pet.rarity === 'legendary' ? 'bg-gold/20 text-gold' : pet.rarity === 'epic' ? 'bg-iris/20 text-iris' : pet.rarity === 'rare' ? 'bg-foam/20 text-foam' : 'bg-muted/20 text-muted'}">${pet.rarity}</div>
+                       </div>
+                       <h4 class="text-lg font-semibold text-text mb-2">${pet.name}</h4>
+                       <p class="text-sm text-muted mb-4">${pet.description}</p>
+                       <div class="flex items-center justify-between">
+                         <div class="text-gold font-bold">${pet.price} coins</div>
+                         <button onclick="purchasePet('${pet.id}')" 
+                                 class="px-4 py-2 rounded-lg transition-colors ${userPets.includes(pet.id) ? 'bg-pine/20 text-pine' : userCurrency >= pet.price ? 'bg-foam hover:bg-foam/80 text-base' : 'bg-muted/20 text-muted cursor-not-allowed'}">
+                           ${userPets.includes(pet.id) ? 'Adopted' : userCurrency >= pet.price ? 'Adopt' : 'Insufficient Funds'}
+                         </button>
+                       </div>
+                     </div>
+                   `).join('')}
+                 </div>
+               </div>
+               
+               <div id="shop-profileframes" class="shop-section hidden">
+                 <h3 class="text-2xl font-bold text-text mb-6">Profile Frames</h3>
+                 <p class="text-muted mb-6">Customize your profile with colorful borders!</p>
+                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                   ${profileFrames.map(frame => `
+                     <div class="bg-highlight-med rounded-xl p-6 border border-overlay">
+                       <div class="w-full h-32 rounded-lg mb-4 border-4 flex items-center justify-center relative overflow-hidden" 
+                            style="border-color: ${frame.color}; background: ${frame.color}15;">
+                         <div class="w-16 h-16 rounded-full border-4" style="border-color: ${frame.color}; background: var(--theme-surface);"></div>
+                         ${frame.id === 'rainbow' ? '<div class="absolute inset-0 bg-gradient-to-r from-red-500/20 via-yellow-500/20 to-blue-500/20 animate-pulse"></div>' : ''}
+                       </div>
+                       <h4 class="text-lg font-semibold text-text mb-2">${frame.name}</h4>
+                       <p class="text-sm text-muted mb-4">${frame.description}</p>
+                       <div class="flex items-center justify-between">
+                         <div class="text-gold font-bold">${frame.price} coins</div>
+                         <button onclick="purchaseProfileFrame('${frame.id}')" 
+                                 class="px-4 py-2 rounded-lg transition-colors ${userProfileFrames.includes(frame.id) ? 'bg-pine/20 text-pine' : userCurrency >= frame.price ? 'bg-foam hover:bg-foam/80 text-base' : 'bg-muted/20 text-muted cursor-not-allowed'}">
+                           ${userProfileFrames.includes(frame.id) ? 'Owned' : userCurrency >= frame.price ? 'Purchase' : 'Insufficient Funds'}
+                         </button>
+                       </div>
+                     </div>
+                   `).join('')}
+                 </div>
+               </div>
+               
                <div id="shop-lootboxes" class="shop-section hidden">
                  <h3 class="text-2xl font-bold text-text mb-6">Loot Boxes</h3>
                  <p class="text-muted mb-6">Open loot boxes to discover frames, currency, and special rewards!</p>
@@ -4192,7 +4619,7 @@
                   ${miniGames.map(game => `
                     <div class="bg-highlight-med rounded-xl p-6 border border-overlay">
                       <div class="w-full h-32 bg-gradient-to-br from-foam/20 to-iris/20 rounded-lg mb-4 flex items-center justify-center">
-                        <i class="bx bx-${game.id === 'clicker' ? 'mouse' : game.id === 'memory' ? 'brain' : 'time'} text-4xl text-foam"></i>
+                        <i class="bx bx-${game.id === 'clicker' ? 'mouse' : game.id === 'memory' ? 'brain' : game.id === 'reaction' ? 'time' : game.id === 'blackjack' ? 'card' : game.id === 'roulette' ? 'circle' : 'game'} text-4xl text-foam"></i>
                       </div>
                       <h4 class="text-lg font-semibold text-text mb-2">${game.name}</h4>
                       <p class="text-sm text-muted mb-4">${game.description}</p>
@@ -4250,6 +4677,44 @@
         // Show success notification
         showNotification('Purchase Successful!', `You've unlocked the ${frame.name} frame!`, 'success');
       };
+
+      window.purchasePet = function(petId) {
+        const pet = pets.find(p => p.id === petId);
+        if (!pet || userPets.includes(petId) || userCurrency < pet.price) return;
+        
+        userCurrency -= pet.price;
+        userPets.push(petId);
+        
+        updateCurrencyDisplay();
+        saveCurrencyToStorage();
+        savePetsToStorage();
+        
+        // Refresh shop display
+        closeShop();
+        openCarbonShop();
+        
+        // Show success notification
+        showNotification('Pet Adopted!', `You've adopted ${pet.name} ${pet.emoji}!`, 'success');
+      };
+
+      window.purchaseProfileFrame = function(frameId) {
+        const frame = profileFrames.find(f => f.id === frameId);
+        if (!frame || userProfileFrames.includes(frameId) || userCurrency < frame.price) return;
+        
+        userCurrency -= frame.price;
+        userProfileFrames.push(frameId);
+        
+        updateCurrencyDisplay();
+        saveCurrencyToStorage();
+        saveProfileFramesToStorage();
+        
+        // Refresh shop display
+        closeShop();
+        openCarbonShop();
+        
+        // Show success notification
+        showNotification('Frame Unlocked!', `You've unlocked the ${frame.name}!`, 'success');
+      };
       
              window.playMiniGame = function(gameId) {
          closeShop();
@@ -4264,23 +4729,27 @@
            case 'reaction':
              playReactionGame();
              break;
+           case 'blackjack':
+             playBlackjackGame();
+             break;
+           case 'roulette':
+             playRouletteGame();
+             break;
          }
        };
        
        window.selectFrame = function(frameId) {
          window.carbonFrames.setActiveFrame(frameId);
          
-         // Apply frame to iframe container instead of sending messages to play.html
-         const iframeContainer = document.getElementById('iframe-container');
-         if (iframeContainer) {
-           // Remove all existing frame classes
-           iframeContainer.classList.remove('frame-neon', 'frame-fire', 'frame-galaxy', 'frame-diamond', 'frame-rainbow', 'frame-shadow');
-           
-           // Apply new frame class
-           if (frameId !== 'default') {
-             iframeContainer.classList.add(`frame-${frameId}`);
-           }
-         }
+         // Send frame update to play.html iframe
+         const gameIframes = document.querySelectorAll('iframe[src*="play.html"]');
+         gameIframes.forEach(iframe => {
+           iframe.contentWindow.postMessage({
+             type: 'carbon-frame-update',
+             frameId: frameId,
+             frameData: frameId === 'default' ? null : gameFrames.find(f => f.id === frameId)
+           }, '*');
+         });
          
          showNotification('Frame Selected', `${frameId === 'default' ? 'Default' : gameFrames.find(f => f.id === frameId)?.name} frame is now active!`, 'success');
          
@@ -4443,6 +4912,14 @@
       
       function saveFramesToStorage() {
         localStorage.setItem('carbon-frames', JSON.stringify(userFrames));
+      }
+
+      function savePetsToStorage() {
+        localStorage.setItem('carbon-pets', JSON.stringify(userPets));
+      }
+
+      function saveProfileFramesToStorage() {
+        localStorage.setItem('carbon-profile-frames', JSON.stringify(userProfileFrames));
       }
       
       // === PRIVATE BROWSING SYSTEM ===
@@ -4949,16 +5426,16 @@
           },
           applyActiveFrame: function() {
             const activeFrame = this.getActiveFrame();
-            const iframeContainer = document.getElementById('iframe-container');
-            if (iframeContainer) {
-              // Remove all existing frame classes
-              iframeContainer.classList.remove('frame-neon', 'frame-fire', 'frame-galaxy', 'frame-diamond', 'frame-rainbow', 'frame-shadow');
-              
-              // Apply active frame class
-              if (activeFrame !== 'default') {
-                iframeContainer.classList.add(`frame-${activeFrame}`);
-              }
-            }
+            
+            // Send frame update to all play.html iframes
+            const gameIframes = document.querySelectorAll('iframe[src*="play.html"]');
+            gameIframes.forEach(iframe => {
+              iframe.contentWindow.postMessage({
+                type: 'carbon-frame-update',
+                frameId: activeFrame,
+                frameData: activeFrame === 'default' ? null : gameFrames.find(f => f.id === activeFrame)
+              }, '*');
+            });
           }
         };
 

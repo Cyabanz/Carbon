@@ -484,20 +484,103 @@
       text-shadow: 0 0 20px rgba(156, 207, 216, 0.5);
     }
     
-    .pause-buttons {
-      display: flex;
-      gap: 1rem;
-      margin-top: 2rem;
-    }
-    
-    .pause-btn {
-      padding: 12px 24px;
-      border-radius: 8px;
-      font-weight: 600;
-      transition: all 0.3s ease;
-      cursor: pointer;
-      border: none;
-      font-size: 1rem;
+          .pause-buttons {
+        display: flex;
+        gap: 1rem;
+        margin-top: 2rem;
+      }
+      
+      .pause-btn {
+        padding: 12px 24px;
+        border-radius: 8px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        cursor: pointer;
+        border: none;
+        font-size: 1rem;
+      }
+
+      /* Game Frame Styles */
+      .frame-neon {
+        border: 4px solid #00ffff !important;
+        box-shadow: 0 0 20px #00ffff50, inset 0 0 20px #00ffff20 !important;
+        border-radius: 12px !important;
+        animation: neonPulse 2s infinite !important;
+      }
+
+      @keyframes neonPulse {
+        0%, 100% { box-shadow: 0 0 20px #00ffff50, inset 0 0 20px #00ffff20 !important; }
+        50% { box-shadow: 0 0 30px #00ffff80, inset 0 0 30px #00ffff30 !important; }
+      }
+
+      .frame-fire {
+        border: 4px solid #ff4500 !important;
+        box-shadow: 0 0 25px #ff450080, inset 0 0 25px #ff450030 !important;
+        border-radius: 12px !important;
+        position: relative !important;
+        animation: fireFlicker 1.5s infinite !important;
+      }
+
+      @keyframes fireFlicker {
+        0%, 100% { box-shadow: 0 0 25px #ff450080, inset 0 0 25px #ff450030 !important; }
+        25% { box-shadow: 0 0 35px #ff6500a0, inset 0 0 35px #ff650040 !important; }
+        75% { box-shadow: 0 0 20px #ff2500a0, inset 0 0 20px #ff250040 !important; }
+      }
+
+      .frame-galaxy {
+        border: 4px solid #9400d3 !important;
+        background: linear-gradient(45deg, #9400d3, #4b0082, #0000ff, #9400d3) !important;
+        background-size: 400% 400% !important;
+        box-shadow: 0 0 30px #9400d380, inset 0 0 30px #9400d320 !important;
+        border-radius: 12px !important;
+        animation: galaxyRotate 4s infinite !important;
+      }
+
+      @keyframes galaxyRotate {
+        0% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
+      }
+
+      .frame-diamond {
+        border: 4px solid #b9f2ff !important;
+        box-shadow: 0 0 25px #b9f2ff80, inset 0 0 25px #b9f2ff30 !important;
+        border-radius: 12px !important;
+        position: relative !important;
+        animation: diamondSparkle 3s infinite !important;
+      }
+
+      @keyframes diamondSparkle {
+        0%, 100% { box-shadow: 0 0 25px #b9f2ff80, inset 0 0 25px #b9f2ff30 !important; }
+        33% { box-shadow: 0 0 35px #ffffff80, inset 0 0 35px #ffffff30 !important; }
+        66% { box-shadow: 0 0 30px #b9f2ff80, inset 0 0 30px #b9f2ff30 !important; }
+      }
+
+      .frame-rainbow {
+        border: 4px solid !important;
+        border-image: linear-gradient(45deg, #ff0000, #ff8000, #ffff00, #00ff00, #0080ff, #8000ff) 1 !important;
+        box-shadow: 0 0 30px rgba(255, 255, 255, 0.5) !important;
+        border-radius: 12px !important;
+        animation: rainbowShift 2s infinite !important;
+      }
+
+      @keyframes rainbowShift {
+        0% { filter: hue-rotate(0deg); }
+        100% { filter: hue-rotate(360deg); }
+      }
+
+      .frame-shadow {
+        border: 4px solid #2d1b69 !important;
+        box-shadow: 0 0 30px #2d1b6980, inset 0 0 30px #2d1b6930, 0 0 50px #000000a0 !important;
+        border-radius: 12px !important;
+        position: relative !important;
+        animation: shadowPulse 3s infinite !important;
+      }
+
+      @keyframes shadowPulse {
+        0%, 100% { box-shadow: 0 0 30px #2d1b6980, inset 0 0 30px #2d1b6930, 0 0 50px #000000a0 !important; }
+        50% { box-shadow: 0 0 40px #2d1b69a0, inset 0 0 40px #2d1b6940, 0 0 70px #000000c0 !important; }
+      }
     }
     
     .pause-btn.primary {
@@ -4402,6 +4485,34 @@
     // Simple theme initialization - let carbon-theme.js handle everything automatically
     // The CarbonTheme system will automatically load and apply saved themes
 
+    // Listen for frame updates from parent window
+    window.addEventListener('message', (event) => {
+      if (event.data && event.data.type === 'carbon-frame-update') {
+        const gameFrameContainer = document.getElementById('gameFrameContainer');
+        if (gameFrameContainer) {
+          // Remove all existing frame classes
+          gameFrameContainer.classList.remove('frame-neon', 'frame-fire', 'frame-galaxy', 'frame-diamond', 'frame-rainbow', 'frame-shadow');
+          
+          // Apply new frame class if not default
+          if (event.data.frameId && event.data.frameId !== 'default') {
+            gameFrameContainer.classList.add(`frame-${event.data.frameId}`);
+          }
+          
+          console.log('Frame updated:', event.data.frameId);
+        }
+      }
+    });
+
+    // Apply active frame on page load
+    setTimeout(() => {
+      const savedFrame = localStorage.getItem('carbon-selected-frame');
+      if (savedFrame && savedFrame !== 'default') {
+        const gameFrameContainer = document.getElementById('gameFrameContainer');
+        if (gameFrameContainer) {
+          gameFrameContainer.classList.add(`frame-${savedFrame}`);
+        }
+      }
+    }, 1000);
     
   </script>
 
