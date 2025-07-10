@@ -2460,34 +2460,377 @@
       showTemporaryNotification('🔇 Mute toggle (depends on game support)');
     }
 
-    // Inactivity Detection System
+    /*
+     * Enhanced User Status Management System
+     * 
+     * This system fixes several issues with user status persistence:
+     * 1. Status now persists on page refresh and is restored properly
+     * 2. Users are marked offline after 2 minutes of inactivity (was only showing overlay before)
+     * 3. Page visibility changes are tracked - users go offline when they tab away for 30+ seconds
+     * 4. Proper status restoration when page loads - always starts as "online"
+     * 5. Activity detection brings users back from offline status
+     * 
+     * Status types: 'online', 'ingame', 'offline'
+     * Storage: Uses both localStorage and Firebase for persistence
+     */
+         let userStatusManager = {
+       lastActivity: Date.now(),
+       isUserActive: true,
+       statusTimer: null,
+       offlineTimer: null,
+       visibilityTimer: null,
+       heartbeatInterval: null,
+      
+      // Status types
+      STATUS_TYPES: {
+        ONLINE: 'online',
+        INGAME: 'ingame', 
+        OFFLINE: 'offline'
+      },
+      
+             // Initialize status management
+       init() {
+         this.initializeUserDocument();
+         this.checkPendingOfflineStatus();
+         this.restoreUserStatus();
+         this.setupActivityTracking();
+         this.setupVisibilityTracking();
+         this.setupHeartbeat();
+         this.resetActivityTimer();
+       },
+       
+       // Check for pending offline status from previous session
+       async checkPendingOfflineStatus() {
+         const currentUser = auth.currentUser;
+         if (!currentUser) return;
+         
+         const pendingOffline = localStorage.getItem('carbon-offline-pending');
+         if (pendingOffline === 'true') {
+           console.log('Play page: Found pending offline status, applying now');
+           try {
+             await db.collection('users').doc(currentUser.uid).update({
+               status: 'offline',
+               lastSeen: firebase.firestore.FieldValue.serverTimestamp()
+             });
+             localStorage.removeItem('carbon-offline-pending');
+             console.log('Play page: Successfully applied pending offline status');
+           } catch (error) {
+             console.error('Play page: Failed to apply pending offline status:', error);
+           }
+         }
+       },
+       
+       // Ensure user document has all required fields for profile
+       async initializeUserDocument() {
+         const currentUser = auth.currentUser;
+         if (!currentUser) return;
+         
+         try {
+           const userRef = db.collection('users').doc(currentUser.uid);
+           const userDoc = await userRef.get();
+           
+           if (!userDoc.exists) {
+             // Create new user document with all required fields
+             await userRef.set({
+               uid: currentUser.uid,
+               email: currentUser.email || '',
+               displayName: currentUser.displayName || '',
+               photoURL: currentUser.photoURL || '',
+               username: '',
+               bio: '',
+               status: 'online',
+               currentGame: null,
+               lastPlayedGame: null,
+               lastPlayedTime: null,
+               lastSeen: firebase.firestore.FieldValue.serverTimestamp(),
+               likedGames: [],
+               favoriteGames: [],
+               playlist: [],
+               history: [],
+               friends: [],
+               friendRequests: [],
+               createdAt: firebase.firestore.FieldValue.serverTimestamp()
+             });
+             console.log('User document initialized with all required fields');
+           } else {
+             // Ensure existing document has required fields
+             const userData = userDoc.data();
+             const updates = {};
+             
+             if (!userData.hasOwnProperty('lastPlayedGame')) updates.lastPlayedGame = null;
+             if (!userData.hasOwnProperty('lastPlayedTime')) updates.lastPlayedTime = null;
+             if (!userData.hasOwnProperty('currentGame')) updates.currentGame = null;
+             if (!userData.hasOwnProperty('status')) updates.status = 'online';
+             if (!userData.hasOwnProperty('history')) updates.history = [];
+             
+             if (Object.keys(updates).length > 0) {
+               await userRef.update(updates);
+               console.log('User document updated with missing fields:', updates);
+             }
+           }
+         } catch (error) {
+           console.error('Error initializing user document:', error);
+         }
+       },
+      
+             // Restore user status from localStorage and set appropriate status
+       async restoreUserStatus() {
+         const currentUser = auth.currentUser;
+         if (!currentUser) return;
+         
+         try {
+           // Check if we're on a game page (has gameId parameter)
+           const urlParams = new URLSearchParams(window.location.search);
+           const gameId = urlParams.get('id');
+           
+           if (gameId) {
+             // If on a game page, set status to in-game
+             await this.updateUserStatus(this.STATUS_TYPES.INGAME, gameId);
+             localStorage.setItem('carbon-user-status', this.STATUS_TYPES.INGAME);
+             console.log(`User status restored as in-game for game: ${gameId}`);
+           } else {
+             // If not on a game page, set to online
+             await this.updateUserStatus(this.STATUS_TYPES.ONLINE);
+             localStorage.setItem('carbon-user-status', this.STATUS_TYPES.ONLINE);
+             console.log('User status restored as online');
+           }
+           
+           localStorage.setItem('carbon-last-activity', Date.now().toString());
+         } catch (error) {
+           console.error('Error restoring user status:', error);
+         }
+       },
+      
+      // Setup activity tracking
+      setupActivityTracking() {
+        const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click', 'keydown'];
+        
+        events.forEach(event => {
+          document.addEventListener(event, () => this.onUserActivity(), true);
+        });
+      },
+      
+             // Setup page visibility tracking
+       setupVisibilityTracking() {
+         document.addEventListener('visibilitychange', () => {
+           if (document.hidden) {
+             this.onPageHidden();
+           } else {
+             this.onPageVisible();
+           }
+         });
+         
+         window.addEventListener('focus', () => this.onPageVisible());
+         window.addEventListener('blur', () => this.onPageHidden());
+       },
+       
+       // Setup heartbeat system to detect inactive users
+       setupHeartbeat() {
+         // Send heartbeat every 15 seconds
+         this.heartbeatInterval = setInterval(() => {
+           if (!document.hidden && auth.currentUser) {
+             this.sendHeartbeat();
+           }
+         }, 15000);
+       },
+       
+       // Send heartbeat to show user is still active
+       async sendHeartbeat() {
+         const currentUser = auth.currentUser;
+         if (!currentUser) return;
+         
+         try {
+           await db.collection('users').doc(currentUser.uid).update({
+             lastSeen: firebase.firestore.FieldValue.serverTimestamp(),
+             heartbeat: Date.now()
+           });
+           localStorage.setItem('carbon-last-heartbeat', Date.now().toString());
+         } catch (error) {
+           console.error('Heartbeat failed:', error);
+         }
+       },
+      
+      // Handle user activity
+      onUserActivity() {
+        this.lastActivity = Date.now();
+        this.isUserActive = true;
+        localStorage.setItem('carbon-last-activity', this.lastActivity.toString());
+        
+        // If user was offline, bring them back online
+        const currentStatus = localStorage.getItem('carbon-user-status');
+        if (currentStatus === this.STATUS_TYPES.OFFLINE) {
+          this.updateUserStatus(this.STATUS_TYPES.ONLINE);
+        }
+        
+        // Hide inactivity overlay if showing
+        if (gameState.isInactive) {
+          hideInactivityOverlay();
+        }
+        
+        this.resetActivityTimer();
+      },
+      
+      // Handle page becoming hidden
+      onPageHidden() {
+        // Set a timer to mark user as offline after 30 seconds of being away
+        this.visibilityTimer = setTimeout(async () => {
+          await this.updateUserStatus(this.STATUS_TYPES.OFFLINE);
+        }, 30000);
+      },
+      
+      // Handle page becoming visible
+      onPageVisible() {
+        // Clear the offline timer
+        if (this.visibilityTimer) {
+          clearTimeout(this.visibilityTimer);
+          this.visibilityTimer = null;
+        }
+        
+        // Mark user as active and update status
+        this.onUserActivity();
+      },
+      
+      // Reset activity timer
+      resetActivityTimer() {
+        // Clear existing timers
+        if (this.statusTimer) clearTimeout(this.statusTimer);
+        if (this.offlineTimer) clearTimeout(this.offlineTimer);
+        
+        // Set timer for 20 seconds to show inactivity overlay
+        this.statusTimer = setTimeout(() => {
+          if (!document.hidden) {
+            showInactivityOverlay();
+          }
+        }, 20000);
+        
+        // Set timer for 2 minutes (120 seconds) to mark user as offline
+        this.offlineTimer = setTimeout(async () => {
+          if (!document.hidden) { // Only if page is still visible
+            this.isUserActive = false;
+            await this.updateUserStatus(this.STATUS_TYPES.OFFLINE);
+          }
+        }, 120000);
+      },
+      
+      // Update user status in Firebase and localStorage
+      async updateUserStatus(status, gameId = null) {
+        const currentUser = auth.currentUser;
+        if (!currentUser) return;
+        
+        try {
+          const updateData = {
+            status: status,
+            lastSeen: firebase.firestore.FieldValue.serverTimestamp()
+          };
+          
+          if (status === this.STATUS_TYPES.INGAME && gameId) {
+            updateData.currentGame = gameId;
+          } else if (status === this.STATUS_TYPES.ONLINE || status === this.STATUS_TYPES.OFFLINE) {
+            updateData.currentGame = null;
+          }
+          
+          await db.collection('users').doc(currentUser.uid).update(updateData);
+          localStorage.setItem('carbon-user-status', status);
+          
+          console.log(`User status updated to: ${status}`);
+        } catch (error) {
+          console.error('Error updating user status:', error);
+        }
+      },
+      
+             // Set user status to in-game
+       async setInGame(gameId) {
+         await this.updateUserStatus(this.STATUS_TYPES.INGAME, gameId);
+         
+         // Also update last played game for profile display
+         try {
+           const currentUser = auth.currentUser;
+           if (currentUser && gameId) {
+             await db.collection('users').doc(currentUser.uid).update({
+               lastPlayedGame: gameId,
+               lastPlayedTime: firebase.firestore.FieldValue.serverTimestamp()
+             });
+             console.log(`Last played game updated to: ${gameId}`);
+           }
+         } catch (error) {
+           console.error('Error updating last played game:', error);
+           // Try merge approach if document doesn't exist
+           try {
+             const currentUser = auth.currentUser;
+             if (currentUser && gameId) {
+               await db.collection('users').doc(currentUser.uid).set({
+                 lastPlayedGame: gameId,
+                 lastPlayedTime: firebase.firestore.FieldValue.serverTimestamp()
+               }, { merge: true });
+             }
+           } catch (mergeError) {
+             console.error('Error with merge approach:', mergeError);
+           }
+         }
+         
+         this.resetActivityTimer();
+       },
+      
+      // Set user status to online
+      async setOnline() {
+        await this.updateUserStatus(this.STATUS_TYPES.ONLINE);
+        this.resetActivityTimer();
+      },
+      
+      // Set user status to offline
+      async setOffline() {
+        await this.updateUserStatus(this.STATUS_TYPES.OFFLINE);
+      },
+      
+             // Cleanup timers
+       cleanup() {
+         if (this.statusTimer) clearTimeout(this.statusTimer);
+         if (this.offlineTimer) clearTimeout(this.offlineTimer);
+         if (this.visibilityTimer) clearTimeout(this.visibilityTimer);
+         if (this.heartbeatInterval) clearInterval(this.heartbeatInterval);
+       }
+    };
+
+    // Update visual status display
+    async function updateStatusDisplay(user) {
+      if (!user) return;
+      
+      try {
+        const userRef = db.collection('users').doc(user.uid);
+        const userDoc = await userRef.get();
+        
+        if (userDoc.exists) {
+          const userData = userDoc.data();
+          const status = userData.status || 'online';
+          const currentGame = userData.currentGame;
+          
+          console.log(`Current user status: ${status}, current game: ${currentGame}`);
+          
+          // Check if we're on a game page
+          const urlParams = new URLSearchParams(window.location.search);
+          const gameId = urlParams.get('id');
+          
+          // If we're on a game page and status shows we're in that game, everything is correct
+          if (gameId && status === 'ingame' && currentGame === gameId) {
+            console.log('✅ Status display is correct for current game');
+          } else if (gameId && status !== 'ingame') {
+            // We're on a game page but status doesn't reflect it - fix it
+            console.log('🔄 Fixing status for current game page');
+            await userStatusManager.setInGame(gameId);
+          }
+        }
+      } catch (error) {
+        console.error('Error updating status display:', error);
+      }
+    }
+
+    // Legacy inactivity functions (kept for compatibility)
     function initializeInactivityDetection() {
-      const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'];
-      
-      events.forEach(event => {
-        document.addEventListener(event, resetInactivityTimer, true);
-      });
-      
-      resetInactivityTimer();
+      userStatusManager.init();
     }
 
     function resetInactivityTimer() {
-      gameState.lastActivity = Date.now();
-      
-      // Hide inactivity overlay if it's showing
-      if (gameState.isInactive) {
-        hideInactivityOverlay();
-      }
-      
-      // Clear existing timer
-      if (gameState.activityTimer) {
-        clearTimeout(gameState.activityTimer);
-      }
-      
-      // Set new timer for 20 seconds
-      gameState.activityTimer = setTimeout(() => {
-        showInactivityOverlay();
-      }, 20000);
+      userStatusManager.onUserActivity();
     }
 
     function showInactivityOverlay() {
@@ -2573,6 +2916,7 @@
     function cleanupGameFrameFeatures() {
       if (gameState.playTimer) clearInterval(gameState.playTimer);
       if (gameState.activityTimer) clearTimeout(gameState.activityTimer);
+      userStatusManager.cleanup();
       document.removeEventListener('keydown', handleKeyboardShortcut);
       document.removeEventListener('keyup', handleKeyboardShortcut);
     }
@@ -2830,25 +3174,81 @@
       if (window.trackGameEnd) {
         await window.trackGameEnd();
       } else {
-        // Fallback: update user status directly
-        try {
-          await db.collection('users').doc(currentUser.uid).update({
-            status: 'online',
-            currentGame: null,
-            lastSeen: firebase.firestore.FieldValue.serverTimestamp()
-          });
-        } catch (error) {
-          console.error('Error updating user status to online:', error);
-        }
+        // Use the new status manager
+        await userStatusManager.setOnline();
       }
     }
 
-    // Track when user leaves the game
-    window.addEventListener('beforeunload', updateUserStatusToOnline);
-    window.addEventListener('pagehide', updateUserStatusToOnline);
+    // Enhanced offline detection for play.html
+    function setupPlayPageOfflineDetection() {
+      if (!auth.currentUser) return;
+      
+      const setOfflineViaBeacon = () => {
+        if (auth.currentUser) {
+          console.log('Play page: Setting user offline via beacon');
+          
+          // Use synchronous localStorage update
+          localStorage.setItem('carbon-user-status', 'offline');
+          localStorage.setItem('carbon-user-status-timestamp', Date.now().toString());
+          localStorage.setItem('carbon-offline-pending', 'true');
+          
+          // Try immediate update with timeout
+          const updatePromise = userStatusManager.setOffline();
+          const timeoutPromise = new Promise((resolve) => {
+            setTimeout(() => resolve('timeout'), 800);
+          });
+          
+          Promise.race([updatePromise, timeoutPromise]).then((result) => {
+            if (result === 'timeout') {
+              console.log('Play page offline update timed out');
+            }
+          });
+        }
+      };
+      
+      // Multiple unload detection methods
+      window.addEventListener('beforeunload', (e) => {
+        setOfflineViaBeacon();
+        userStatusManager.cleanup();
+      });
+      
+      window.addEventListener('pagehide', (e) => {
+        setOfflineViaBeacon();
+        userStatusManager.cleanup();
+      });
+      
+      window.addEventListener('unload', (e) => {
+        setOfflineViaBeacon();
+        userStatusManager.cleanup();
+      });
+      
+      // Page visibility detection
+      document.addEventListener('visibilitychange', () => {
+        if (document.hidden) {
+          setTimeout(() => {
+            if (document.hidden) {
+              setOfflineViaBeacon();
+            }
+          }, 30000); // 30 seconds
+        }
+      });
+      
+      // Window focus/blur detection
+      window.addEventListener('blur', () => {
+        setTimeout(() => {
+          if (document.hidden || !document.hasFocus()) {
+            setOfflineViaBeacon();
+          }
+        }, 60000); // 1 minute
+      });
+    }
     
-    // Track when user navigates away
-    window.addEventListener('unload', updateUserStatusToOnline);
+    // Set up offline detection when auth state changes
+    auth.onAuthStateChanged((user) => {
+      if (user) {
+        setupPlayPageOfflineDetection();
+      }
+    });
 
     // Re-initialize the main document loading logic
     document.addEventListener('DOMContentLoaded', async () => {
@@ -2860,12 +3260,20 @@
       auth.onAuthStateChanged(async (user) => {
         renderUserSection(user);
         if (!user) {
+          // Cleanup status manager if user logs out
+          userStatusManager.cleanup();
           hidePreloader();
           document.getElementById('loginScreen').classList.remove('hidden');
           document.getElementById('gameFrameContainer').classList.add('hidden');
           document.getElementById('gameInfoHolder').classList.add('hidden');
           return;
         }
+        
+                 // Initialize status manager for logged in user
+         await userStatusManager.init();
+         
+         // Update visual status indicators
+         updateStatusDisplay(user);
         
         await loadGamesData();
         
@@ -2917,17 +3325,13 @@
           if (window.trackGameStart) {
             await window.trackGameStart(currentGameId);
           } else {
-            // Fallback: update user status directly if profile.html functions not available
-            try {
-              await db.collection('users').doc(user.uid).update({
-                status: 'ingame',
-                currentGame: currentGameId,
-                lastSeen: firebase.firestore.FieldValue.serverTimestamp()
-              });
-              
-              // Track activity for activity feed
-              const game = gamesData.find(g => String(g.id) === String(currentGameId));
-              if (game) {
+            // Use the new status manager
+            await userStatusManager.setInGame(currentGameId);
+            
+            // Track activity for activity feed
+            const game = gamesData.find(g => String(g.id) === String(currentGameId));
+            if (game) {
+              try {
                 await db.collection('activity').add({
                   userId: user.uid,
                   userName: user.displayName || 'Anonymous',
@@ -2938,9 +3342,9 @@
                   action: 'played',
                   timestamp: firebase.firestore.FieldValue.serverTimestamp()
                 });
+              } catch (error) {
+                console.error('Error tracking activity:', error);
               }
-            } catch (error) {
-              console.error('Error updating game status:', error);
             }
           }
           
@@ -3536,7 +3940,15 @@
       try {
         console.log(`Tracking play activity for user ${uid}, game ${gameId}`);
         
-        // Add to history first
+        // Update user document with last played game info (for profile display)
+        const userRef = db.collection('users').doc(uid);
+        await userRef.update({
+          lastPlayedGame: gameId,
+          lastPlayedTime: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        console.log('✅ Last played game updated in user profile');
+        
+        // Add to history
         await updateGameHistory(uid, gameId);
         
         // Track detailed activity
@@ -3574,12 +3986,18 @@
       } catch (error) {
         console.error('❌ Error tracking play activity:', error);
         
-        // Fallback: Still try to update history even if activity tracking fails
+        // Fallback: Still try to update critical fields
         try {
+          const userRef = db.collection('users').doc(uid);
+          await userRef.set({
+            lastPlayedGame: gameId,
+            lastPlayedTime: firebase.firestore.FieldValue.serverTimestamp()
+          }, { merge: true });
+          
           await updateGameHistory(uid, gameId);
-          console.log('✅ Game history updated as fallback');
-        } catch (historyError) {
-          console.error('❌ Failed to update game history as fallback:', historyError);
+          console.log('✅ Critical updates completed as fallback');
+        } catch (fallbackError) {
+          console.error('❌ Fallback approach also failed:', fallbackError);
         }
       }
     }

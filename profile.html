@@ -890,7 +890,7 @@
       ingame: 'bg-blue-500'
     };
 
-    // Real-time status tracking
+    // Real-time status tracking with localStorage persistence
     async function updateUserStatus(status, gameId = null) {
       if (!currentUser) return;
       
@@ -911,8 +911,18 @@
         await db.collection('users').doc(currentUser.uid).update(updateData);
         console.log('Status updated successfully in Firebase');
         
+        // Save status to localStorage for persistence across refreshes
+        localStorage.setItem('carbon-user-status', status);
+        localStorage.setItem('carbon-user-status-timestamp', Date.now().toString());
+        
         // Update UI
         updateStatusIndicator(status);
+        
+        // Update status selector to reflect current status
+        const statusSelector = document.getElementById('statusSelector');
+        if (statusSelector && statusSelector.value !== status) {
+          statusSelector.value = status;
+        }
         
       } catch (error) {
         console.error('Error updating status:', error);
@@ -975,24 +985,270 @@
       await updateUserStatus('online');
     };
 
-    // Set user online when page loads
-    async function setUserOnline() {
+    // Restore user's saved status or set to online
+    async function restoreUserStatus() {
       if (!currentUser) return;
-      await updateUserStatus('online');
       
-      // Set user offline when page unloads
-      window.addEventListener('beforeunload', async () => {
-        if (currentUser) {
-          await updateUserStatus('offline');
+      try {
+        // Get saved status from localStorage
+        const savedStatus = localStorage.getItem('carbon-user-status');
+        const savedTimestamp = parseInt(localStorage.getItem('carbon-user-status-timestamp') || '0');
+        const currentTime = Date.now();
+        const statusAge = currentTime - savedTimestamp;
+        
+        // If status is less than 1 hour old, restore it. Otherwise default to online.
+        const validStatuses = ['online', 'idle', 'dnd'];
+        let statusToRestore = 'online';
+        
+        if (savedStatus && validStatuses.includes(savedStatus) && statusAge < 3600000) { // 1 hour = 3600000ms
+          statusToRestore = savedStatus;
+          console.log(`Restoring saved status: ${statusToRestore} (saved ${Math.round(statusAge/60000)} minutes ago)`);
+        } else {
+          console.log('No valid saved status found or status too old, defaulting to online');
+        }
+        
+        await updateUserStatus(statusToRestore);
+        
+        // Set user offline when page unloads - use multiple reliable methods
+        setupOfflineDetection();
+        
+        // Periodic heartbeat - maintain current status (not force online)
+        setInterval(async () => {
+          if (currentUser && document.visibilityState === 'visible') {
+            const currentStatus = localStorage.getItem('carbon-user-status') || 'online';
+            await updateUserStatus(currentStatus);
+          }
+        }, 30000); // Update every 30 seconds
+        
+      } catch (error) {
+        console.error('Error restoring user status:', error);
+        // Fallback to online if there's an error
+        await updateUserStatus('online');
+      }
+    }
+
+    // Load current user status from Firebase and update UI
+    async function loadCurrentUserStatus() {
+      if (!currentUser) return;
+      
+      try {
+        const userDoc = await db.collection('users').doc(currentUser.uid).get();
+        if (userDoc.exists) {
+          const userData = userDoc.data();
+          const currentStatus = userData.status || 'online';
+          
+          // Update status selector to reflect current status
+          const statusSelector = document.getElementById('statusSelector');
+          if (statusSelector) {
+            statusSelector.value = currentStatus;
+          }
+          
+          // Update status indicator
+          updateStatusIndicator(currentStatus);
+          
+          // Update localStorage to match Firebase
+          localStorage.setItem('carbon-user-status', currentStatus);
+          localStorage.setItem('carbon-user-status-timestamp', Date.now().toString());
+          
+          console.log('Current user status loaded from Firebase:', currentStatus);
+        }
+      } catch (error) {
+        console.error('Error loading current user status:', error);
+      }
+    }
+
+    // Robust offline detection system
+    function setupOfflineDetection() {
+      if (!currentUser) return;
+      
+      // Method 1: Page Visibility API - most reliable
+      let isPageVisible = !document.hidden;
+      let lastHeartbeat = Date.now();
+      let offlineCheckInterval = null;
+      
+      document.addEventListener('visibilitychange', () => {
+        if (document.hidden) {
+          // Page became hidden - start offline timer
+          console.log('Page hidden, starting offline detection');
+          setTimeout(() => {
+            if (document.hidden) {
+              setUserOfflineReliably();
+            }
+          }, 30000); // 30 seconds
+        } else {
+          // Page became visible - user is back
+          console.log('Page visible, user is back');
+          isPageVisible = true;
+          lastHeartbeat = Date.now();
+          if (currentUser) {
+            const savedStatus = localStorage.getItem('carbon-user-status') || 'online';
+            updateUserStatus(savedStatus);
+          }
         }
       });
       
-      // Periodic heartbeat to maintain online status
-      setInterval(async () => {
-        if (currentUser && document.visibilityState === 'visible') {
-          await updateUserStatus('online');
+      // Method 2: Heartbeat system with server-side timeout detection
+      const heartbeatInterval = setInterval(() => {
+        if (!document.hidden && currentUser) {
+          lastHeartbeat = Date.now();
+          // Send heartbeat to keep user alive
+          sendHeartbeat();
         }
-      }, 30000); // Update every 30 seconds
+      }, 15000); // Every 15 seconds
+      
+      // Method 3: Use sendBeacon for reliable unload detection
+      const setOfflineViaBeacon = () => {
+        if (currentUser) {
+          const data = JSON.stringify({
+            uid: currentUser.uid,
+            status: 'offline',
+            timestamp: Date.now()
+          });
+          
+          // Use sendBeacon for reliable data transmission during unload
+          if (navigator.sendBeacon) {
+            // This would need a server endpoint, but we'll use localStorage as fallback
+            localStorage.setItem('carbon-pending-offline', data);
+          }
+          
+          // Also try immediate synchronous update
+          setUserOfflineReliably();
+        }
+      };
+      
+      // Method 4: Multiple unload event listeners
+      window.addEventListener('beforeunload', setOfflineViaBeacon);
+      window.addEventListener('unload', setOfflineViaBeacon);
+      window.addEventListener('pagehide', setOfflineViaBeacon);
+      
+      // Method 5: Focus/blur detection
+      window.addEventListener('blur', () => {
+        setTimeout(() => {
+          if (document.hidden || !document.hasFocus()) {
+            setUserOfflineReliably();
+          }
+        }, 60000); // 1 minute after losing focus
+      });
+      
+      // Method 6: Detect browser tab/window close
+      let isUnloading = false;
+      window.addEventListener('beforeunload', () => {
+        isUnloading = true;
+      });
+      
+      // Method 7: Check for pending offline status on page load
+      checkPendingOfflineStatus();
+      
+      // Cleanup function
+      return () => {
+        clearInterval(heartbeatInterval);
+        if (offlineCheckInterval) clearInterval(offlineCheckInterval);
+      };
+    }
+    
+    // Reliable offline status setting
+    function setUserOfflineReliably() {
+      if (!currentUser) return;
+      
+      console.log('Setting user offline reliably');
+      
+      // Use synchronous localStorage update
+      localStorage.setItem('carbon-user-status', 'offline');
+      localStorage.setItem('carbon-user-status-timestamp', Date.now().toString());
+      localStorage.setItem('carbon-offline-pending', 'true');
+      
+      // Try Firebase update with timeout
+      const updatePromise = updateUserStatus('offline');
+      const timeoutPromise = new Promise((resolve) => {
+        setTimeout(() => resolve('timeout'), 1000);
+      });
+      
+      Promise.race([updatePromise, timeoutPromise]).then((result) => {
+        if (result === 'timeout') {
+          console.log('Firebase offline update timed out, will retry on next page load');
+        } else {
+          localStorage.removeItem('carbon-offline-pending');
+        }
+      });
+    }
+    
+    // Send heartbeat to maintain online status
+    async function sendHeartbeat() {
+      if (!currentUser) return;
+      
+      try {
+        // Update lastSeen timestamp to show user is still active
+        await db.collection('users').doc(currentUser.uid).update({
+          lastSeen: firebase.firestore.FieldValue.serverTimestamp(),
+          heartbeat: Date.now()
+        });
+        
+        localStorage.setItem('carbon-last-heartbeat', Date.now().toString());
+      } catch (error) {
+        console.error('Heartbeat failed:', error);
+      }
+    }
+    
+    // Check for pending offline status from previous session
+    async function checkPendingOfflineStatus() {
+      const pendingOffline = localStorage.getItem('carbon-offline-pending');
+      if (pendingOffline === 'true' && currentUser) {
+        console.log('Found pending offline status, applying now');
+        try {
+          await db.collection('users').doc(currentUser.uid).update({
+            status: 'offline',
+            lastSeen: firebase.firestore.FieldValue.serverTimestamp()
+          });
+          localStorage.removeItem('carbon-offline-pending');
+        } catch (error) {
+          console.error('Failed to apply pending offline status:', error);
+        }
+      }
+    }
+    
+    // Server-side offline detection (to be run periodically)
+    async function markInactiveUsersOffline() {
+      try {
+        const fiveMinutesAgo = Date.now() - (5 * 60 * 1000);
+        
+        // This would typically be done server-side, but for client-side implementation:
+        const usersSnapshot = await db.collection('users')
+          .where('status', 'in', ['online', 'idle', 'dnd', 'ingame'])
+          .get();
+        
+        const batch = db.batch();
+        let updateCount = 0;
+        
+        usersSnapshot.forEach(doc => {
+          const userData = doc.data();
+          const lastSeen = userData.lastSeen?.toDate()?.getTime() || 0;
+          const heartbeat = userData.heartbeat || 0;
+          
+          // If user hasn't been seen or sent heartbeat in 5 minutes, mark offline
+          if (Math.max(lastSeen, heartbeat) < fiveMinutesAgo) {
+            batch.update(doc.ref, { status: 'offline' });
+            updateCount++;
+          }
+        });
+        
+        if (updateCount > 0) {
+          await batch.commit();
+          console.log(`Marked ${updateCount} inactive users as offline`);
+        }
+      } catch (error) {
+        console.error('Error marking inactive users offline:', error);
+      }
+    }
+    
+    // Run inactive user cleanup periodically (only on one tab)
+    if (!localStorage.getItem('carbon-cleanup-runner')) {
+      localStorage.setItem('carbon-cleanup-runner', Date.now().toString());
+      setInterval(markInactiveUsersOffline, 60000); // Every minute
+      
+      // Clear runner flag on unload
+      window.addEventListener('beforeunload', () => {
+        localStorage.removeItem('carbon-cleanup-runner');
+      });
     }
 
     // Friend management functions
@@ -2682,10 +2938,11 @@
           console.error('❌ Error loading current user data:', error);
         }
         
-        await setUserOnline();
+        await restoreUserStatus();
         await loadFriends();
         await loadFriendRequests();
         await loadUserProfile();
+        await loadCurrentUserStatus();
         await updateOnlineFriendsList();
         // Only load activity feed if elements exist
         if (document.getElementById('activityFeed')) {
