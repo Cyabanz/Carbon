@@ -1086,12 +1086,20 @@
             // Initialize game
             setTimeout(() => initPongGame(roomId), 100);
             
-            // No UI update function - just update scores when needed
+            // Update scores function
             window.updatePongScores = function() {
                 const p1Score = document.getElementById('player1-score');
                 const p2Score = document.getElementById('player2-score');
                 if (p1Score && currentGameData) p1Score.textContent = currentGameData.gameState.player1.score || 0;
                 if (p2Score && currentGameData) p2Score.textContent = currentGameData.gameState.player2.score || 0;
+                
+                // The render loop will automatically pick up the updated currentGameData for ball position
+                console.log('Pong scores updated:', {
+                    p1Score: currentGameData.gameState.player1.score,
+                    p2Score: currentGameData.gameState.player2.score,
+                    ballX: currentGameData.gameState.ball.x,
+                    ballY: currentGameData.gameState.ball.y
+                });
             };
         }
 
@@ -1162,9 +1170,16 @@
                 
                 // Game physics loop (host only) - 60 FPS for smooth gameplay
                 if (isPlayer1) {
-                    console.log('Starting Pong physics loop for host');
+                    console.log('🎮 Starting Pong physics loop for host');
+                    let physicsCounter = 0;
                     pongInterval = setInterval(() => {
                         updatePongPhysics(roomId);
+                        
+                        // Log every 60 frames (once per second)
+                        if (physicsCounter % 60 === 0) {
+                            console.log('⚡ Physics running - ball at:', currentGameData.gameState.ball);
+                        }
+                        physicsCounter++;
                     }, 16.67); // ~60 FPS
                 }
                 
@@ -1234,9 +1249,12 @@
             ctx.fillRect(780, gameState.player2.y || 175, 10, 50);
             
             // Draw ball
+            const ballX = gameState.ball.x || 400;
+            const ballY = gameState.ball.y || 200;
+            
             ctx.fillStyle = '#eb6f92';
             ctx.beginPath();
-            ctx.arc(gameState.ball.x || 400, gameState.ball.y || 200, 8, 0, Math.PI * 2);
+            ctx.arc(ballX, ballY, 8, 0, Math.PI * 2);
             ctx.fill();
             
             // Draw scores
@@ -1267,13 +1285,15 @@
 
         async function updatePongPhysics(roomId) {
             try {
-                const doc = await db.collection('game-rooms').doc(roomId).get();
-                if (!doc.exists || doc.data().status !== 'playing') return;
+                // Use current game data instead of re-fetching from Firebase
+                if (!currentGameData || !currentGameData.gameState || currentGameData.status !== 'playing') {
+                    console.log('Stopping physics - game not active');
+                    return;
+                }
                 
-                const roomData = doc.data();
-                const ball = { ...roomData.gameState.ball };
-                const player1 = { ...roomData.gameState.player1 };
-                const player2 = { ...roomData.gameState.player2 };
+                const ball = { ...currentGameData.gameState.ball };
+                const player1 = { ...currentGameData.gameState.player1 };
+                const player2 = { ...currentGameData.gameState.player2 };
                 
                 // Update ball position
                 ball.x += ball.dx;
@@ -1287,15 +1307,15 @@
                 // Ball collision with left paddle
                 if (ball.x <= 28 && ball.x >= 18 && 
                     ball.y >= player1.y && ball.y <= player1.y + 50) {
-                    ball.dx = Math.abs(ball.dx) + 0.2; // Increase speed slightly
-                    ball.dy += (ball.y - (player1.y + 25)) * 0.1; // Add spin based on hit position
+                    ball.dx = Math.abs(ball.dx) + 0.1;
+                    ball.dy += (ball.y - (player1.y + 25)) * 0.05;
                 }
                 
                 // Ball collision with right paddle
                 if (ball.x >= 772 && ball.x <= 782 && 
                     ball.y >= player2.y && ball.y <= player2.y + 50) {
-                    ball.dx = -Math.abs(ball.dx) - 0.2;
-                    ball.dy += (ball.y - (player2.y + 25)) * 0.1;
+                    ball.dx = -Math.abs(ball.dx) - 0.1;
+                    ball.dy += (ball.y - (player2.y + 25)) * 0.05;
                 }
                 
                 // Scoring
@@ -1310,6 +1330,7 @@
                 }
                 
                 if (scored) {
+                    console.log('🎯 GOAL!', { p1: player1.score, p2: player2.score });
                     // Reset ball
                     ball.x = 400;
                     ball.y = 200;
@@ -1317,7 +1338,7 @@
                     ball.dy = (Math.random() - 0.5) * 4;
                 }
                 
-                // Check for winner
+                // Update Firebase with new positions
                 const updateData = {
                     'gameState.ball': ball,
                     'gameState.player1': player1,
@@ -1328,12 +1349,18 @@
                 if (player1.score >= 5 || player2.score >= 5) {
                     updateData.status = 'completed';
                     updateData.winner = player1.score >= 5 ? 'player1' : 'player2';
+                    console.log('🏆 Game complete!', updateData.winner, 'wins!');
                 }
+                
+                // Update local data immediately for smooth rendering
+                currentGameData.gameState.ball = ball;
+                currentGameData.gameState.player1 = player1;
+                currentGameData.gameState.player2 = player2;
                 
                 await db.collection('game-rooms').doc(roomId).update(updateData);
                 
             } catch (error) {
-                console.error('Error updating pong physics:', error);
+                console.error('❌ Error updating pong physics:', error);
             }
         }
 
