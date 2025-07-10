@@ -1086,20 +1086,12 @@
             // Initialize game
             setTimeout(() => initPongGame(roomId), 100);
             
-            // Update scores function
+                            // Update scores function
             window.updatePongScores = function() {
                 const p1Score = document.getElementById('player1-score');
                 const p2Score = document.getElementById('player2-score');
                 if (p1Score && currentGameData) p1Score.textContent = currentGameData.gameState.player1.score || 0;
                 if (p2Score && currentGameData) p2Score.textContent = currentGameData.gameState.player2.score || 0;
-                
-                // The render loop will automatically pick up the updated currentGameData for ball position
-                console.log('Pong scores updated:', {
-                    p1Score: currentGameData.gameState.player1.score,
-                    p2Score: currentGameData.gameState.player2.score,
-                    ballX: currentGameData.gameState.ball.x,
-                    ballY: currentGameData.gameState.ball.y
-                });
             };
         }
 
@@ -1125,8 +1117,6 @@
                 }
                 
                 const isPlayer1 = currentGameData.hostId === currentUser.uid;
-                console.log('Initializing Pong game for', isPlayer1 ? 'Player 1 (Host)' : 'Player 2 (Guest)');
-                console.log('Current game state:', currentGameData.gameState);
                 
                 // Validate game state and show debug info
                 if (!currentGameData.gameState || !currentGameData.gameState.ball || !currentGameData.gameState.player1 || !currentGameData.gameState.player2) {
@@ -1153,8 +1143,8 @@
                     const mouseY = e.clientY - rect.top;
                     const paddleY = Math.max(0, Math.min(350, mouseY - 25));
                     
-                    // Throttle updates to prevent Firebase overload but keep responsive
-                    if (!canvas.lastUpdate || Date.now() - canvas.lastUpdate > 12) {
+                    // Throttle updates for smooth paddle movement
+                    if (!canvas.lastUpdate || Date.now() - canvas.lastUpdate > 50) {
                         const updateData = {};
                         updateData[`gameState.${isPlayer1 ? 'player1' : 'player2'}.y`] = paddleY;
                         updateData['lastActivity'] = firebase.firestore.FieldValue.serverTimestamp();
@@ -1171,15 +1161,8 @@
                 // Game physics loop (host only) - 60 FPS for smooth gameplay
                 if (isPlayer1) {
                     console.log('🎮 Starting Pong physics loop for host');
-                    let physicsCounter = 0;
                     pongInterval = setInterval(() => {
                         updatePongPhysics(roomId);
-                        
-                        // Log every 60 frames (once per second)
-                        if (physicsCounter % 60 === 0) {
-                            console.log('⚡ Physics running - ball at:', currentGameData.gameState.ball);
-                        }
-                        physicsCounter++;
                     }, 16.67); // ~60 FPS
                 }
                 
@@ -1223,7 +1206,6 @@
                     }
                 }
                 
-                console.log('Starting Pong render loop');
                 render();
             }, 150); // Wait a bit longer for DOM to be ready
         }
@@ -1287,7 +1269,6 @@
             try {
                 // Use current game data instead of re-fetching from Firebase
                 if (!currentGameData || !currentGameData.gameState || currentGameData.status !== 'playing') {
-                    console.log('Stopping physics - game not active');
                     return;
                 }
                 
@@ -1330,7 +1311,6 @@
                 }
                 
                 if (scored) {
-                    console.log('🎯 GOAL!', { p1: player1.score, p2: player2.score });
                     // Reset ball
                     ball.x = 400;
                     ball.y = 200;
@@ -1349,7 +1329,6 @@
                 if (player1.score >= 5 || player2.score >= 5) {
                     updateData.status = 'completed';
                     updateData.winner = player1.score >= 5 ? 'player1' : 'player2';
-                    console.log('🏆 Game complete!', updateData.winner, 'wins!');
                 }
                 
                 // Update local data immediately for smooth rendering
@@ -1572,16 +1551,13 @@
             setTimeout(() => {
                 const zone = document.getElementById('reaction-zone');
                 if (zone) {
-                    console.log('Attaching reaction click handler...');
                     zone.addEventListener('click', () => {
-                        console.log('Reaction zone clicked!', currentGameData.gameState.currentState);
                         handleReactionClick(roomId, isPlayer1);
                     });
                 }
                 
                 // Host controls game flow
                 if (isPlayer1) {
-                    console.log('Host starting reaction flow...');
                     handleReactionFlow(roomId, currentGameData.gameState);
                 }
             }, 100);
@@ -1698,41 +1674,26 @@
 
         function handleReactionClick(roomId, isPlayer1) {
             if (!currentGameData || !currentGameData.gameState) {
-                console.error('No game data available for reaction click');
                 return;
             }
             
             const gameState = currentGameData.gameState;
             const now = Date.now();
             
-            console.log('Reaction click handled:', {
-                currentState: gameState.currentState,
-                isPlayer1: isPlayer1,
-                changeTime: gameState.changeTime
-            });
-            
             if (gameState.currentState === 'waiting') {
                 // Too early
-                console.log('Too early click!');
                 const updateData = {};
                 updateData[`gameState.${isPlayer1 ? 'player1' : 'player2'}Time`] = -1;
                 updateData['gameState.currentState'] = 'early';
                 updateData['lastActivity'] = firebase.firestore.FieldValue.serverTimestamp();
-                db.collection('game-rooms').doc(roomId).update(updateData).then(() => {
-                    console.log('Early click update sent');
-                }).catch(console.error);
+                db.collection('game-rooms').doc(roomId).update(updateData).catch(console.error);
             } else if (gameState.currentState === 'go') {
                 // Valid reaction
                 const reactionTime = now - gameState.changeTime;
-                console.log(`Valid reaction! Time: ${reactionTime}ms`);
                 const updateData = {};
                 updateData[`gameState.${isPlayer1 ? 'player1' : 'player2'}Time`] = reactionTime;
                 updateData['lastActivity'] = firebase.firestore.FieldValue.serverTimestamp();
-                db.collection('game-rooms').doc(roomId).update(updateData).then(() => {
-                    console.log('Reaction time update sent:', reactionTime);
-                }).catch(console.error);
-            } else {
-                console.log('Click ignored - current state:', gameState.currentState);
+                db.collection('game-rooms').doc(roomId).update(updateData).catch(console.error);
             }
         }
 
@@ -1843,8 +1804,8 @@
                     </div>
                     <div id="racing-status" class="text-center mt-4 text-muted">
                         ${currentGameData.status === 'completed' ? 
-                            `🎉 ${(gameState.player1.laps || 0) >= gameState.maxLaps ? currentGameData.hostName : currentGameData.guestName} wins!` :
-                            'Use arrow keys to steer and avoid obstacles • First to 3 laps wins'
+                            `🏆 ${(gameState.player1.laps || 0) >= gameState.maxLaps ? currentGameData.hostName : currentGameData.guestName} wins the race!` :
+                            '🏎️ Use arrow keys to steer and avoid 📦 crates • First to 3 laps wins 🏁'
                         }
                     </div>
                 </div>
@@ -1867,9 +1828,9 @@
                 
                 if (status) {
                     if (newRoomData.status === 'completed') {
-                        status.textContent = `🎉 ${(newGameState.player1.laps || 0) >= newGameState.maxLaps ? newRoomData.hostName : newRoomData.guestName} wins!`;
+                        status.textContent = `🏆 ${(newGameState.player1.laps || 0) >= newGameState.maxLaps ? newRoomData.hostName : newRoomData.guestName} wins the race!`;
                     } else {
-                        status.textContent = 'Use arrow keys to steer and avoid obstacles • First to 3 laps wins';
+                        status.textContent = '🏎️ Use arrow keys to steer and avoid 📦 crates • First to 3 laps wins 🏁';
                     }
                 }
             };
@@ -1974,13 +1935,15 @@
                     player.finishLineCrossed = false;
                 }
                 
-                // Check collision with obstacles
+                // Check collision with obstacles (emoji cars vs emoji crates)
                 let collided = false;
                 for (const obstacle of gameState.obstacles) {
-                    if (player.x < obstacle.x + obstacle.width &&
-                        player.x + 20 > obstacle.x &&
-                        player.y < obstacle.y + obstacle.height &&
-                        player.y + 20 > obstacle.y) {
+                    const carSize = 20; // Size of emoji car
+                    const crateSize = 18; // Size of emoji crate
+                    if (player.x < obstacle.x + crateSize &&
+                        player.x + carSize > obstacle.x &&
+                        player.y < obstacle.y + crateSize &&
+                        player.y + carSize > obstacle.y) {
                         collided = true;
                         break;
                     }
@@ -2020,84 +1983,85 @@
             ctx.fillStyle = '#1f1d2e';
             ctx.fillRect(0, 0, 800, 400);
             
-            // Draw outer track boundary
-            ctx.strokeStyle = '#9ccfd8';
-            ctx.lineWidth = 3;
-            ctx.strokeRect(20, 20, 760, 360);
+            // Draw outer track boundary (grass texture)
+            ctx.fillStyle = '#2d5016';
+            ctx.fillRect(0, 0, 800, 400);
+            
+            // Draw track surface
+            ctx.fillStyle = '#404040';
+            ctx.fillRect(20, 20, 760, 360);
+            
+            // Draw track stripes
+            ctx.fillStyle = '#606060';
+            for (let i = 0; i < 800; i += 40) {
+                ctx.fillRect(i, 200, 20, 4);
+            }
             
             // Draw inner track boundary  
-            ctx.strokeStyle = '#6e6a86';
-            ctx.lineWidth = 2;
+            ctx.strokeStyle = '#ffff00';
+            ctx.lineWidth = 3;
             ctx.strokeRect(100, 100, 600, 200);
             
-            // Draw finish line
-            ctx.fillStyle = '#f6c177';
-            ctx.fillRect(740, 20, 15, 60);
-            ctx.fillStyle = '#191724';
+            // Draw finish line with checkered pattern
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(740, 20, 20, 60);
+            ctx.fillStyle = '#000000';
             for (let i = 0; i < 6; i++) {
-                ctx.fillRect(740 + (i % 2) * 7.5, 20 + i * 10, 7.5, 10);
+                for (let j = 0; j < 2; j++) {
+                    if ((i + j) % 2 === 0) {
+                        ctx.fillRect(740 + j * 10, 20 + i * 10, 10, 10);
+                    }
+                }
             }
             
             // Draw start positions
-            ctx.fillStyle = '#31748f';
-            ctx.fillRect(30, 190, 30, 20); // Player 1 start
-            ctx.fillRect(30, 240, 30, 20); // Player 2 start
+            ctx.fillStyle = '#ffff00';
+            ctx.fillRect(25, 185, 35, 8); // Player 1 start line
+            ctx.fillRect(25, 235, 35, 8); // Player 2 start line
             
             // Draw track direction arrows
-            ctx.fillStyle = '#6e6a86';
-            ctx.font = '20px Arial';
+            ctx.fillStyle = '#ffff00';
+            ctx.font = 'bold 24px Arial';
             ctx.fillText('→', 300, 50);
             ctx.fillText('↓', 760, 200);
             ctx.fillText('←', 400, 370);
             ctx.fillText('↑', 40, 200);
             
-            // Draw obstacles
-            ctx.fillStyle = '#eb6f92';
+            // Draw obstacles as crates 📦
+            ctx.font = '18px Arial';
             for (const obstacle of gameState.obstacles) {
-                ctx.fillRect(obstacle.x, obstacle.y, obstacle.width, obstacle.height);
-                // Add highlight
-                ctx.fillStyle = '#f6c177';
-                ctx.fillRect(obstacle.x + 2, obstacle.y + 2, obstacle.width - 4, obstacle.height - 4);
-                ctx.fillStyle = '#eb6f92';
+                ctx.fillText('📦', obstacle.x, obstacle.y + 18);
             }
             
-            // Draw players with directional indicators
+            // Draw players as cars 🏎️
             const player1 = gameState.player1;
             const player2 = gameState.player2;
             
-            // Player 1 (cyan)
-            ctx.fillStyle = '#9ccfd8';
-            ctx.fillRect(player1.x, player1.y, 20, 20);
-            ctx.fillStyle = '#191724';
-            ctx.fillRect(player1.x + 2, player1.y + 2, 16, 16);
-            ctx.fillStyle = '#9ccfd8';
-            ctx.fillRect(player1.x + 5, player1.y + 5, 10, 10);
+            // Player 1 car (blue car)
+            ctx.font = '24px Arial';
+            ctx.fillText('🏎️', player1.x - 2, player1.y + 18);
             
-            // Player 2 (purple)
-            ctx.fillStyle = '#c4a7e7';
-            ctx.fillRect(player2.x, player2.y, 20, 20);
-            ctx.fillStyle = '#191724';
-            ctx.fillRect(player2.x + 2, player2.y + 2, 16, 16);
-            ctx.fillStyle = '#c4a7e7';
-            ctx.fillRect(player2.x + 5, player2.y + 5, 10, 10);
+            // Player 2 car (red car) 
+            ctx.fillText('🚗', player2.x - 2, player2.y + 18);
             
             // Draw lap progress
             ctx.fillStyle = '#e0def4';
-            ctx.font = '14px Arial';
-            ctx.fillText(`${roomData.hostName}: ${player1.laps}/${gameState.maxLaps}`, 30, 390);
-            ctx.fillText(`${roomData.guestName}: ${player2.laps}/${gameState.maxLaps}`, 200, 390);
+            ctx.font = 'bold 16px Arial';
+            ctx.fillText(`🏎️ ${roomData.hostName}: ${player1.laps}/${gameState.maxLaps} laps`, 30, 390);
+            ctx.fillText(`🚗 ${roomData.guestName}: ${player2.laps}/${gameState.maxLaps} laps`, 300, 390);
             
             // Draw winner overlay
             if (roomData.status === 'completed') {
                 ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
                 ctx.fillRect(0, 0, 800, 400);
-                ctx.fillStyle = '#e0def4';
+                ctx.fillStyle = '#ffff00';
                 ctx.font = 'bold 48px Arial';
                 ctx.textAlign = 'center';
                 const winner = player1.laps >= gameState.maxLaps ? roomData.hostName : roomData.guestName;
-                ctx.fillText(`${winner} Wins!`, 400, 200);
-                ctx.font = '24px Arial';
-                ctx.fillText('🏁 Race Complete! 🏁', 400, 250);
+                const winnerCar = player1.laps >= gameState.maxLaps ? '🏎️' : '🚗';
+                ctx.fillText(`${winnerCar} ${winner} Wins! 🏆`, 400, 180);
+                ctx.font = '32px Arial';
+                ctx.fillText('🏁 Race Complete! 🏁', 400, 240);
                 ctx.textAlign = 'start';
             }
         }
