@@ -929,11 +929,17 @@
                     }
                 }
                 
-                // Handle game completion for guest players
+                // Handle game starting - BOTH players need to initialize
+                if (roomData.status === 'playing' && previousStatus === 'waiting') {
+                    console.log('🎮 Game starting for player:', currentUser.uid === roomData.hostId ? 'Host' : 'Guest');
+                    initializeGameInLobby(roomData, roomId);
+                }
+                
+                // Handle game completion for all players
                 if (roomData.status === 'completed' && previousStatus === 'playing') {
-                    console.log('🏁 Guest received game completion status');
+                    console.log('🏁 Game completed for player:', currentUser.uid === roomData.hostId ? 'Host' : 'Guest');
                     
-                    // Stop any running intervals for guest
+                    // Stop any running intervals
                     if (pongInterval) {
                         clearInterval(pongInterval);
                         pongInterval = null;
@@ -971,11 +977,16 @@
                 if (roomData.status === 'completed' && !roomData.disconnectedPlayer && !winnerScreenShown) {
                     setTimeout(() => showWinnerScreen(roomData), 1000);
                 }
-            } else if (roomData.status === 'playing') {
-                // Initialize game for the first time
-                initializeGameInLobby(roomData, roomId);
-            } else if (roomData.status === 'waiting' && roomData.guestId) {
-                updateLobbyWithGuest(roomData);
+            } else {
+                // First time receiving room data
+                currentGameData = roomData;
+                
+                if (roomData.status === 'playing') {
+                    console.log('🎮 Joining game in progress');
+                    initializeGameInLobby(roomData, roomId);
+                } else if (roomData.status === 'waiting' && roomData.guestId) {
+                    updateLobbyWithGuest(roomData);
+                }
             }
         }
         
