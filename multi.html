@@ -1,0 +1,964 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Carbon Multi - Multiplayer Games</title>
+    <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="firebase-config.js"></script>
+    <style>
+        :root {
+            --theme-base: #191724;
+            --theme-surface: #1f1d2e;
+            --theme-overlay: #26233a;
+            --theme-muted: #6e6a86;
+            --theme-subtle: #908caa;
+            --theme-text: #e0def4;
+            --theme-love: #eb6f92;
+            --theme-gold: #f6c177;
+            --theme-rose: #ebbcba;
+            --theme-pine: #31748f;
+            --theme-foam: #9ccfd8;
+            --theme-iris: #c4a7e7;
+            --theme-highlight-low: #21202e;
+            --theme-highlight-med: #403d52;
+            --theme-highlight-high: #524f67;
+        }
+        
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            background: var(--theme-base);
+            color: var(--theme-text);
+            font-family: 'Inter', sans-serif;
+            overflow-x: hidden;
+        }
+        
+        .game-canvas {
+            border: 2px solid var(--theme-highlight-med);
+            border-radius: 8px;
+            background: var(--theme-surface);
+        }
+        
+        .paddle {
+            background: var(--theme-foam);
+            border-radius: 4px;
+        }
+        
+        .ball {
+            background: var(--theme-love);
+            border-radius: 50%;
+        }
+        
+        .puck {
+            background: var(--theme-gold);
+            border-radius: 50%;
+            box-shadow: 0 0 10px var(--theme-gold);
+        }
+        
+        .race-car {
+            background: var(--theme-iris);
+            border-radius: 4px;
+            transition: transform 0.1s;
+        }
+        
+        .obstacle {
+            background: var(--theme-love);
+            border-radius: 2px;
+        }
+        
+        .typing-cursor {
+            border-right: 2px solid var(--theme-foam);
+            animation: blink 1s infinite;
+        }
+        
+        @keyframes blink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0; }
+        }
+        
+        .reaction-zone {
+            transition: all 0.3s ease;
+        }
+        
+        .bg-surface { background: var(--theme-surface); }
+        .bg-overlay { background: var(--theme-overlay); }
+        .bg-highlight-med { background: var(--theme-highlight-med); }
+        .bg-highlight-high { background: var(--theme-highlight-high); }
+        .text-text { color: var(--theme-text); }
+        .text-muted { color: var(--theme-muted); }
+        .text-love { color: var(--theme-love); }
+        .text-gold { color: var(--theme-gold); }
+        .text-foam { color: var(--theme-foam); }
+        .text-iris { color: var(--theme-iris); }
+        .text-pine { color: var(--theme-pine); }
+        .border-highlight-med { border-color: var(--theme-highlight-med); }
+    </style>
+</head>
+<body>
+    <div class="min-h-screen bg-base">
+        <!-- Header -->
+        <header class="bg-surface border-b border-highlight-med p-4">
+            <div class="max-w-6xl mx-auto flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <i class="bx bx-game text-3xl text-iris"></i>
+                    <h1 class="text-2xl font-bold text-text">Carbon Multi</h1>
+                    <span class="text-muted">Real-time Multiplayer Games</span>
+                </div>
+                <div id="user-info" class="flex items-center gap-3">
+                    <div id="user-display" class="text-text"></div>
+                    <button onclick="signOut()" class="px-4 py-2 bg-love hover:bg-love/80 text-white rounded-lg transition-colors">
+                        Sign Out
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="max-w-6xl mx-auto p-6">
+            <!-- Game Selection -->
+            <div id="game-selection" class="space-y-6">
+                <div class="text-center mb-8">
+                    <h2 class="text-3xl font-bold text-text mb-2">Choose Your Game</h2>
+                    <p class="text-muted">Select a multiplayer game to play with friends</p>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Ping Pong/Air Hockey -->
+                    <div class="bg-surface border border-highlight-med rounded-xl p-6 hover:border-foam transition-colors cursor-pointer" onclick="selectGame('pong')">
+                        <div class="flex items-center gap-4 mb-4">
+                            <div class="w-16 h-16 bg-foam/20 rounded-lg flex items-center justify-center">
+                                <i class="bx bx-tennis-ball text-3xl text-foam"></i>
+                            </div>
+                            <div>
+                                <h3 class="text-xl font-bold text-text">Ping Pong</h3>
+                                <p class="text-muted">Real-time paddle action</p>
+                            </div>
+                        </div>
+                        <p class="text-text mb-4">Control your paddle and hit the ball to score against your opponent. Real-time movement synchronization makes it feel like you're playing side by side!</p>
+                        <div class="flex items-center gap-2 text-foam">
+                            <i class="bx bx-group"></i>
+                            <span>2 Players</span>
+                        </div>
+                    </div>
+
+                    <!-- Typing Duel -->
+                    <div class="bg-surface border border-highlight-med rounded-xl p-6 hover:border-gold transition-colors cursor-pointer" onclick="selectGame('typing')">
+                        <div class="flex items-center gap-4 mb-4">
+                            <div class="w-16 h-16 bg-gold/20 rounded-lg flex items-center justify-center">
+                                <i class="bx bx-keyboard text-3xl text-gold"></i>
+                            </div>
+                            <div>
+                                <h3 class="text-xl font-bold text-text">Typing Duel</h3>
+                                <p class="text-muted">Speed typing challenge</p>
+                            </div>
+                        </div>
+                        <p class="text-text mb-4">Race to type the sentence correctly! Watch your opponent's progress in real-time as you both type. First to complete wins!</p>
+                        <div class="flex items-center gap-2 text-gold">
+                            <i class="bx bx-group"></i>
+                            <span>2 Players</span>
+                        </div>
+                    </div>
+
+                    <!-- Reaction Time Test -->
+                    <div class="bg-surface border border-highlight-med rounded-xl p-6 hover:border-love transition-colors cursor-pointer" onclick="selectGame('reaction')">
+                        <div class="flex items-center gap-4 mb-4">
+                            <div class="w-16 h-16 bg-love/20 rounded-lg flex items-center justify-center">
+                                <i class="bx bx-stopwatch text-3xl text-love"></i>
+                            </div>
+                            <div>
+                                <h3 class="text-xl font-bold text-text">Reaction Test</h3>
+                                <p class="text-muted">Lightning-fast reflexes</p>
+                            </div>
+                        </div>
+                        <p class="text-text mb-4">Test your reaction speed! When the screen changes color, tap as fast as possible. Best of 5 rounds wins the duel!</p>
+                        <div class="flex items-center gap-2 text-love">
+                            <i class="bx bx-group"></i>
+                            <span>2 Players</span>
+                        </div>
+                    </div>
+
+                    <!-- Mini Racing -->
+                    <div class="bg-surface border border-highlight-med rounded-xl p-6 hover:border-iris transition-colors cursor-pointer" onclick="selectGame('racing')">
+                        <div class="flex items-center gap-4 mb-4">
+                            <div class="w-16 h-16 bg-iris/20 rounded-lg flex items-center justify-center">
+                                <i class="bx bx-car text-3xl text-iris"></i>
+                            </div>
+                            <div>
+                                <h3 class="text-xl font-bold text-text">Mini Racing</h3>
+                                <p class="text-muted">High-speed track racing</p>
+                            </div>
+                        </div>
+                        <p class="text-text mb-4">Race on a looping track and avoid obstacles! Use arrow keys to steer and try to complete more laps than your opponent!</p>
+                        <div class="flex items-center gap-2 text-iris">
+                            <i class="bx bx-group"></i>
+                            <span>2 Players</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="text-center">
+                    <button onclick="findRandomGame()" class="px-8 py-3 bg-foam hover:bg-foam/80 text-black rounded-lg font-bold transition-colors">
+                        <i class="bx bx-shuffle mr-2"></i>
+                        Find Random Game
+                    </button>
+                </div>
+            </div>
+
+            <!-- Game Area -->
+            <div id="game-area" class="hidden">
+                <div class="text-center mb-6">
+                    <button onclick="backToSelection()" class="px-4 py-2 bg-muted hover:bg-muted/80 text-white rounded-lg transition-colors">
+                        <i class="bx bx-arrow-back mr-2"></i>Back
+                    </button>
+                </div>
+                <div id="game-content"></div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // Firebase initialization
+        let currentUser = null;
+        let currentRoom = null;
+        let gameListener = null;
+        let db = null;
+        let auth = null;
+
+        // Initialize Firebase
+        if (typeof firebase !== 'undefined' && window.firebaseConfig) {
+            const app = firebase.initializeApp(window.firebaseConfig);
+            db = firebase.firestore();
+            auth = firebase.auth();
+            
+            auth.onAuthStateChanged((user) => {
+                currentUser = user;
+                updateUserDisplay();
+                if (!user) {
+                    window.location.href = '/';
+                }
+            });
+        } else {
+            console.error('Firebase not properly configured');
+        }
+
+        function updateUserDisplay() {
+            const userDisplay = document.getElementById('user-display');
+            if (currentUser) {
+                userDisplay.textContent = currentUser.displayName || currentUser.email || 'Player';
+            }
+        }
+
+        function signOut() {
+            if (auth) {
+                auth.signOut().then(() => {
+                    window.location.href = '/';
+                });
+            }
+        }
+
+        function selectGame(gameType) {
+            createGameRoom(gameType);
+        }
+
+        function findRandomGame() {
+            const games = ['pong', 'typing', 'reaction', 'racing'];
+            const randomGame = games[Math.floor(Math.random() * games.length)];
+            selectGame(randomGame);
+        }
+
+        async function createGameRoom(gameType) {
+            if (!currentUser || !db) return;
+
+            try {
+                const roomData = {
+                    gameType: gameType,
+                    hostId: currentUser.uid,
+                    hostName: currentUser.displayName || 'Player 1',
+                    status: 'waiting',
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    gameState: getInitialGameState(gameType)
+                };
+
+                const docRef = await db.collection('multi-rooms').add(roomData);
+                currentRoom = docRef.id;
+                
+                showGameLobby(roomData, docRef.id);
+                listenToRoom(docRef.id);
+            } catch (error) {
+                console.error('Error creating room:', error);
+                alert('Failed to create game room');
+            }
+        }
+
+        function getInitialGameState(gameType) {
+            switch (gameType) {
+                case 'pong':
+                    return {
+                        ball: { x: 400, y: 200, dx: 3, dy: 2 },
+                        player1: { y: 175, score: 0 },
+                        player2: { y: 175, score: 0 }
+                    };
+                case 'typing':
+                    return {
+                        sentence: generateRandomSentence(),
+                        player1Progress: 0,
+                        player2Progress: 0,
+                        player1Text: '',
+                        player2Text: '',
+                        winner: null
+                    };
+                case 'reaction':
+                    return {
+                        round: 1,
+                        maxRounds: 5,
+                        player1Score: 0,
+                        player2Score: 0,
+                        currentState: 'waiting',
+                        changeTime: null,
+                        player1Time: null,
+                        player2Time: null
+                    };
+                case 'racing':
+                    return {
+                        player1: { x: 50, y: 200, laps: 0, obstacles: [] },
+                        player2: { x: 50, y: 250, laps: 0, obstacles: [] },
+                        maxLaps: 3,
+                        obstacles: generateObstacles()
+                    };
+                default:
+                    return {};
+            }
+        }
+
+        function generateRandomSentence() {
+            const sentences = [
+                "The quick brown fox jumps over the lazy dog",
+                "Pack my box with five dozen liquor jugs",
+                "How razorback jumping frogs can level six piqued gymnasts",
+                "The five boxing wizards jump quickly",
+                "Sphinx of black quartz judge my vow",
+                "Waltz bad nymph for quick jigs vex",
+                "Glib jocks quiz nymph to vex dwarf",
+                "Bright vixens jump dozy fowl quack"
+            ];
+            return sentences[Math.floor(Math.random() * sentences.length)];
+        }
+
+        function generateObstacles() {
+            const obstacles = [];
+            for (let i = 0; i < 10; i++) {
+                obstacles.push({
+                    x: Math.random() * 700 + 100,
+                    y: Math.random() * 300 + 150,
+                    width: 20,
+                    height: 20
+                });
+            }
+            return obstacles;
+        }
+
+        function showGameLobby(roomData, roomId) {
+            document.getElementById('game-selection').classList.add('hidden');
+            document.getElementById('game-area').classList.remove('hidden');
+            
+            const gameContent = document.getElementById('game-content');
+            gameContent.innerHTML = `
+                <div class="bg-surface border border-highlight-med rounded-xl p-6 max-w-2xl mx-auto">
+                    <h3 class="text-2xl font-bold text-text mb-4 text-center">Game Lobby</h3>
+                    <div class="text-center mb-6">
+                        <div class="text-lg text-muted mb-2">Game Type: <span class="text-foam">${getGameDisplayName(roomData.gameType)}</span></div>
+                        <div class="text-sm text-muted mb-4">Room ID: <span class="font-mono bg-overlay px-2 py-1 rounded">${roomId}</span></div>
+                    </div>
+                    
+                    <div class="space-y-4 mb-6">
+                        <div class="flex items-center gap-3 p-3 bg-overlay rounded-lg">
+                            <div class="w-10 h-10 bg-foam rounded-full flex items-center justify-center">
+                                <i class="bx bx-user text-black"></i>
+                            </div>
+                            <div>
+                                <div class="text-text font-medium">${roomData.hostName}</div>
+                                <div class="text-xs text-muted">Host</div>
+                            </div>
+                        </div>
+                        
+                        <div id="guest-slot" class="flex items-center gap-3 p-3 bg-overlay rounded-lg border-2 border-dashed border-highlight-med">
+                            <div class="w-10 h-10 bg-muted/30 rounded-full flex items-center justify-center">
+                                <i class="bx bx-user-plus text-muted"></i>
+                            </div>
+                            <div class="text-muted">Waiting for player...</div>
+                        </div>
+                    </div>
+                    
+                    <div class="text-center">
+                        <button onclick="leaveRoom()" class="px-6 py-2 bg-love hover:bg-love/80 text-white rounded-lg transition-colors">
+                            Leave Room
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+        function getGameDisplayName(gameType) {
+            const names = {
+                'pong': 'Ping Pong',
+                'typing': 'Typing Duel',
+                'reaction': 'Reaction Test',
+                'racing': 'Mini Racing'
+            };
+            return names[gameType] || gameType;
+        }
+
+        async function listenToRoom(roomId) {
+            if (!db) return;
+            
+            if (gameListener) {
+                gameListener();
+            }
+            
+            gameListener = db.collection('multi-rooms').doc(roomId).onSnapshot(doc => {
+                if (!doc.exists) {
+                    alert('Game room was closed');
+                    backToSelection();
+                    return;
+                }
+                
+                const roomData = doc.data();
+                updateGameUI(roomData, roomId);
+            });
+        }
+
+        function updateGameUI(roomData, roomId) {
+            if (roomData.status === 'playing') {
+                startGame(roomData, roomId);
+            } else if (roomData.status === 'waiting' && roomData.guestId) {
+                updateLobbyWithGuest(roomData);
+            }
+        }
+
+        function updateLobbyWithGuest(roomData) {
+            const guestSlot = document.getElementById('guest-slot');
+            if (guestSlot && roomData.guestName) {
+                guestSlot.innerHTML = `
+                    <div class="w-10 h-10 bg-iris rounded-full flex items-center justify-center">
+                        <i class="bx bx-user text-white"></i>
+                    </div>
+                    <div>
+                        <div class="text-text font-medium">${roomData.guestName}</div>
+                        <div class="text-xs text-muted">Guest</div>
+                    </div>
+                `;
+                guestSlot.classList.remove('border-dashed', 'border-highlight-med');
+                guestSlot.classList.add('border-solid', 'border-iris');
+                
+                // Start game automatically when both players are ready
+                setTimeout(() => {
+                    if (roomData.hostId === currentUser.uid) {
+                        db.collection('multi-rooms').doc(currentRoom).update({
+                            status: 'playing'
+                        });
+                    }
+                }, 2000);
+            }
+        }
+
+        function startGame(roomData, roomId) {
+            const gameContent = document.getElementById('game-content');
+            
+            switch (roomData.gameType) {
+                case 'pong':
+                    startPongGame(roomData, roomId);
+                    break;
+                case 'typing':
+                    startTypingGame(roomData, roomId);
+                    break;
+                case 'reaction':
+                    startReactionGame(roomData, roomId);
+                    break;
+                case 'racing':
+                    startRacingGame(roomData, roomId);
+                    break;
+            }
+        }
+
+        // Pong Game Implementation
+        function startPongGame(roomData, roomId) {
+            const gameContent = document.getElementById('game-content');
+            gameContent.innerHTML = `
+                <div class="bg-surface border border-highlight-med rounded-xl p-6 max-w-4xl mx-auto">
+                    <div class="flex justify-between items-center mb-4">
+                        <div class="text-text">
+                            <span class="text-foam font-bold">${roomData.hostName}</span>
+                            <span class="text-2xl font-bold ml-2">${roomData.gameState.player1.score}</span>
+                        </div>
+                        <div class="text-xl font-bold text-text">Ping Pong</div>
+                        <div class="text-text">
+                            <span class="text-2xl font-bold mr-2">${roomData.gameState.player2.score}</span>
+                            <span class="text-iris font-bold">${roomData.guestName}</span>
+                        </div>
+                    </div>
+                    <canvas id="pong-canvas" class="game-canvas mx-auto" width="800" height="400"></canvas>
+                    <div class="text-center mt-4 text-muted">
+                        Use mouse to move your paddle
+                    </div>
+                </div>
+            `;
+            
+            initPongGame(roomData, roomId);
+        }
+
+        function initPongGame(roomData, roomId) {
+            const canvas = document.getElementById('pong-canvas');
+            const ctx = canvas.getContext('2d');
+            const isPlayer1 = roomData.hostId === currentUser.uid;
+            
+            let mouseY = 200;
+            
+            canvas.addEventListener('mousemove', (e) => {
+                const rect = canvas.getBoundingClientRect();
+                mouseY = e.clientY - rect.top;
+                
+                // Update player position in Firebase
+                const updateData = {};
+                updateData[`gameState.${isPlayer1 ? 'player1' : 'player2'}.y`] = Math.max(25, Math.min(375, mouseY - 25));
+                
+                db.collection('multi-rooms').doc(roomId).update(updateData);
+            });
+            
+            // Game loop for host only
+            if (isPlayer1) {
+                setInterval(() => {
+                    updatePongPhysics(roomId);
+                }, 16);
+            }
+            
+            function render() {
+                ctx.fillStyle = '#1f1d2e';
+                ctx.fillRect(0, 0, 800, 400);
+                
+                // Draw center line
+                ctx.strokeStyle = '#403d52';
+                ctx.setLineDash([5, 5]);
+                ctx.beginPath();
+                ctx.moveTo(400, 0);
+                ctx.lineTo(400, 400);
+                ctx.stroke();
+                ctx.setLineDash([]);
+                
+                // Draw paddles
+                ctx.fillStyle = '#9ccfd8';
+                ctx.fillRect(10, roomData.gameState.player1.y, 10, 50);
+                ctx.fillRect(780, roomData.gameState.player2.y, 10, 50);
+                
+                // Draw ball
+                ctx.fillStyle = '#eb6f92';
+                ctx.beginPath();
+                ctx.arc(roomData.gameState.ball.x, roomData.gameState.ball.y, 8, 0, Math.PI * 2);
+                ctx.fill();
+                
+                requestAnimationFrame(render);
+            }
+            
+            render();
+        }
+
+        async function updatePongPhysics(roomId) {
+            if (!db) return;
+            
+            const doc = await db.collection('multi-rooms').doc(roomId).get();
+            if (!doc.exists) return;
+            
+            const roomData = doc.data();
+            const ball = roomData.gameState.ball;
+            const player1 = roomData.gameState.player1;
+            const player2 = roomData.gameState.player2;
+            
+            // Update ball position
+            ball.x += ball.dx;
+            ball.y += ball.dy;
+            
+            // Ball collision with top/bottom
+            if (ball.y <= 8 || ball.y >= 392) {
+                ball.dy = -ball.dy;
+            }
+            
+            // Ball collision with paddles
+            if (ball.x <= 28 && ball.y >= player1.y && ball.y <= player1.y + 50) {
+                ball.dx = Math.abs(ball.dx);
+            }
+            if (ball.x >= 772 && ball.y >= player2.y && ball.y <= player2.y + 50) {
+                ball.dx = -Math.abs(ball.dx);
+            }
+            
+            // Scoring
+            if (ball.x < 0) {
+                player2.score++;
+                ball.x = 400;
+                ball.y = 200;
+                ball.dx = -3;
+                ball.dy = (Math.random() - 0.5) * 4;
+            }
+            if (ball.x > 800) {
+                player1.score++;
+                ball.x = 400;
+                ball.y = 200;
+                ball.dx = 3;
+                ball.dy = (Math.random() - 0.5) * 4;
+            }
+            
+            // Check for winner
+            if (player1.score >= 5 || player2.score >= 5) {
+                await db.collection('multi-rooms').doc(roomId).update({
+                    status: 'completed',
+                    winner: player1.score >= 5 ? 'player1' : 'player2'
+                });
+                return;
+            }
+            
+            await db.collection('multi-rooms').doc(roomId).update({
+                'gameState.ball': ball,
+                'gameState.player1': player1,
+                'gameState.player2': player2
+            });
+        }
+
+        // Typing Game Implementation
+        function startTypingGame(roomData, roomId) {
+            const gameContent = document.getElementById('game-content');
+            const isPlayer1 = roomData.hostId === currentUser.uid;
+            
+            gameContent.innerHTML = `
+                <div class="bg-surface border border-highlight-med rounded-xl p-6 max-w-4xl mx-auto">
+                    <h3 class="text-2xl font-bold text-text mb-6 text-center">Typing Duel</h3>
+                    
+                    <div class="bg-overlay rounded-lg p-4 mb-6">
+                        <div class="text-center text-lg text-text font-mono leading-relaxed">
+                            "${roomData.gameState.sentence}"
+                        </div>
+                    </div>
+                    
+                    <div class="space-y-4 mb-6">
+                        <div class="p-4 bg-highlight-med rounded-lg">
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="text-foam font-bold">${roomData.hostName}</span>
+                                <span class="text-muted">${Math.round((roomData.gameState.player1Progress / roomData.gameState.sentence.length) * 100)}%</span>
+                            </div>
+                            <div class="w-full bg-overlay rounded-full h-3">
+                                <div class="bg-foam h-3 rounded-full transition-all duration-300" style="width: ${(roomData.gameState.player1Progress / roomData.gameState.sentence.length) * 100}%"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="p-4 bg-highlight-med rounded-lg">
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="text-iris font-bold">${roomData.guestName}</span>
+                                <span class="text-muted">${Math.round((roomData.gameState.player2Progress / roomData.gameState.sentence.length) * 100)}%</span>
+                            </div>
+                            <div class="w-full bg-overlay rounded-full h-3">
+                                <div class="bg-iris h-3 rounded-full transition-all duration-300" style="width: ${(roomData.gameState.player2Progress / roomData.gameState.sentence.length) * 100}%"></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <input type="text" id="typing-input" class="w-full p-4 bg-overlay border border-highlight-med rounded-lg text-text font-mono text-lg focus:outline-none focus:border-foam" placeholder="Start typing..." autocomplete="off">
+                    </div>
+                    
+                    <div class="text-center text-muted">
+                        Type the sentence exactly as shown above
+                    </div>
+                </div>
+            `;
+            
+            const input = document.getElementById('typing-input');
+            input.addEventListener('input', (e) => {
+                const text = e.target.value;
+                const sentence = roomData.gameState.sentence;
+                
+                // Calculate progress
+                let progress = 0;
+                for (let i = 0; i < text.length && i < sentence.length; i++) {
+                    if (text[i] === sentence[i]) {
+                        progress = i + 1;
+                    } else {
+                        break;
+                    }
+                }
+                
+                // Check for winner
+                const isWinner = text === sentence;
+                
+                const updateData = {};
+                updateData[`gameState.${isPlayer1 ? 'player1' : 'player2'}Progress`] = progress;
+                updateData[`gameState.${isPlayer1 ? 'player1' : 'player2'}Text`] = text;
+                
+                if (isWinner) {
+                    updateData['gameState.winner'] = isPlayer1 ? 'player1' : 'player2';
+                    updateData['status'] = 'completed';
+                }
+                
+                db.collection('multi-rooms').doc(roomId).update(updateData);
+            });
+            
+            input.focus();
+        }
+
+        // Reaction Game Implementation
+        function startReactionGame(roomData, roomId) {
+            const gameContent = document.getElementById('game-content');
+            
+            gameContent.innerHTML = `
+                <div class="bg-surface border border-highlight-med rounded-xl p-6 max-w-2xl mx-auto">
+                    <div class="text-center mb-6">
+                        <h3 class="text-2xl font-bold text-text mb-2">Reaction Test</h3>
+                        <div class="text-muted">Round ${roomData.gameState.round} of ${roomData.gameState.maxRounds}</div>
+                    </div>
+                    
+                    <div class="flex justify-between mb-6">
+                        <div class="text-center">
+                            <div class="text-foam font-bold text-lg">${roomData.hostName}</div>
+                            <div class="text-2xl font-bold text-text">${roomData.gameState.player1Score}</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-iris font-bold text-lg">${roomData.guestName}</div>
+                            <div class="text-2xl font-bold text-text">${roomData.gameState.player2Score}</div>
+                        </div>
+                    </div>
+                    
+                    <div id="reaction-zone" class="reaction-zone w-full h-64 bg-overlay rounded-lg flex items-center justify-center cursor-pointer mb-4">
+                        <div id="reaction-text" class="text-xl font-bold text-text text-center">
+                            ${getReactionText(roomData.gameState.currentState)}
+                        </div>
+                    </div>
+                    
+                    <div class="text-center text-muted">
+                        Click/tap the area above when it turns green!
+                    </div>
+                </div>
+            `;
+            
+            initReactionGame(roomData, roomId);
+        }
+
+        function getReactionText(state) {
+            switch (state) {
+                case 'waiting': return 'Get Ready...';
+                case 'go': return 'TAP NOW!';
+                case 'early': return 'Too Early! Wait for green.';
+                case 'results': return 'Round Complete';
+                default: return 'Get Ready...';
+            }
+        }
+
+        function initReactionGame(roomData, roomId) {
+            const zone = document.getElementById('reaction-zone');
+            const isPlayer1 = roomData.hostId === currentUser.uid;
+            
+            zone.addEventListener('click', () => {
+                const now = Date.now();
+                
+                if (roomData.gameState.currentState === 'waiting') {
+                    // Too early
+                    const updateData = {};
+                    updateData[`gameState.${isPlayer1 ? 'player1' : 'player2'}Time`] = -1; // Indicates early click
+                    db.collection('multi-rooms').doc(roomId).update(updateData);
+                } else if (roomData.gameState.currentState === 'go') {
+                    // Valid reaction
+                    const reactionTime = now - roomData.gameState.changeTime;
+                    const updateData = {};
+                    updateData[`gameState.${isPlayer1 ? 'player1' : 'player2'}Time`] = reactionTime;
+                    db.collection('multi-rooms').doc(roomId).update(updateData);
+                }
+            });
+            
+            // Host controls the game flow
+            if (isPlayer1 && roomData.gameState.currentState === 'waiting') {
+                setTimeout(() => {
+                    const delay = Math.random() * 3000 + 2000; // 2-5 seconds
+                    setTimeout(() => {
+                        db.collection('multi-rooms').doc(roomId).update({
+                            'gameState.currentState': 'go',
+                            'gameState.changeTime': Date.now()
+                        });
+                    }, delay);
+                }, 1000);
+            }
+        }
+
+        // Racing Game Implementation
+        function startRacingGame(roomData, roomId) {
+            const gameContent = document.getElementById('game-content');
+            
+            gameContent.innerHTML = `
+                <div class="bg-surface border border-highlight-med rounded-xl p-6 max-w-4xl mx-auto">
+                    <div class="flex justify-between items-center mb-4">
+                        <div class="text-text">
+                            <span class="text-foam font-bold">${roomData.hostName}</span>
+                            <span class="ml-2">Laps: ${roomData.gameState.player1.laps}/${roomData.gameState.maxLaps}</span>
+                        </div>
+                        <div class="text-xl font-bold text-text">Mini Racing</div>
+                        <div class="text-text">
+                            <span class="mr-2">Laps: ${roomData.gameState.player2.laps}/${roomData.gameState.maxLaps}</span>
+                            <span class="text-iris font-bold">${roomData.guestName}</span>
+                        </div>
+                    </div>
+                    <canvas id="racing-canvas" class="game-canvas mx-auto" width="800" height="400"></canvas>
+                    <div class="text-center mt-4 text-muted">
+                        Use arrow keys to steer and avoid obstacles
+                    </div>
+                </div>
+            `;
+            
+            initRacingGame(roomData, roomId);
+        }
+
+        function initRacingGame(roomData, roomId) {
+            const canvas = document.getElementById('racing-canvas');
+            const ctx = canvas.getContext('2d');
+            const isPlayer1 = roomData.hostId === currentUser.uid;
+            
+            const keys = {
+                left: false,
+                right: false,
+                up: false,
+                down: false
+            };
+            
+            document.addEventListener('keydown', (e) => {
+                switch (e.key) {
+                    case 'ArrowLeft': keys.left = true; break;
+                    case 'ArrowRight': keys.right = true; break;
+                    case 'ArrowUp': keys.up = true; break;
+                    case 'ArrowDown': keys.down = true; break;
+                }
+            });
+            
+            document.addEventListener('keyup', (e) => {
+                switch (e.key) {
+                    case 'ArrowLeft': keys.left = false; break;
+                    case 'ArrowRight': keys.right = false; break;
+                    case 'ArrowUp': keys.up = false; break;
+                    case 'ArrowDown': keys.down = false; break;
+                }
+            });
+            
+            function gameLoop() {
+                updateRacingGame(roomData, roomId, keys, isPlayer1);
+                renderRacingGame(ctx, roomData);
+                requestAnimationFrame(gameLoop);
+            }
+            
+            gameLoop();
+        }
+
+        function updateRacingGame(roomData, roomId, keys, isPlayer1) {
+            if (!db) return;
+            
+            const player = isPlayer1 ? roomData.gameState.player1 : roomData.gameState.player2;
+            const speed = 3;
+            
+            // Update player position based on keys
+            if (keys.left) player.x = Math.max(0, player.x - speed);
+            if (keys.right) player.x = Math.min(780, player.x + speed);
+            if (keys.up) player.y = Math.max(0, player.y - speed);
+            if (keys.down) player.y = Math.min(380, player.y + speed);
+            
+            // Check lap completion (simple loop around screen)
+            if (player.x > 750 && player.y < 50) {
+                player.laps++;
+                player.x = 50;
+                player.y = isPlayer1 ? 200 : 250;
+            }
+            
+            // Check collision with obstacles
+            for (const obstacle of roomData.gameState.obstacles) {
+                if (player.x < obstacle.x + obstacle.width &&
+                    player.x + 20 > obstacle.x &&
+                    player.y < obstacle.y + obstacle.height &&
+                    player.y + 20 > obstacle.y) {
+                    // Collision - reset position
+                    player.x = 50;
+                    player.y = isPlayer1 ? 200 : 250;
+                    break;
+                }
+            }
+            
+            // Update Firebase
+            const updateData = {};
+            updateData[`gameState.${isPlayer1 ? 'player1' : 'player2'}`] = player;
+            
+            // Check for winner
+            if (player.laps >= roomData.gameState.maxLaps) {
+                updateData['status'] = 'completed';
+                updateData['winner'] = isPlayer1 ? 'player1' : 'player2';
+            }
+            
+            db.collection('multi-rooms').doc(roomId).update(updateData);
+        }
+
+        function renderRacingGame(ctx, roomData) {
+            // Clear canvas
+            ctx.fillStyle = '#1f1d2e';
+            ctx.fillRect(0, 0, 800, 400);
+            
+            // Draw track boundaries
+            ctx.strokeStyle = '#9ccfd8';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(20, 20, 760, 360);
+            
+            // Draw finish line
+            ctx.fillStyle = '#f6c177';
+            ctx.fillRect(750, 20, 10, 60);
+            
+            // Draw obstacles
+            ctx.fillStyle = '#eb6f92';
+            for (const obstacle of roomData.gameState.obstacles) {
+                ctx.fillRect(obstacle.x, obstacle.y, obstacle.width, obstacle.height);
+            }
+            
+            // Draw players
+            ctx.fillStyle = '#9ccfd8';
+            ctx.fillRect(roomData.gameState.player1.x, roomData.gameState.player1.y, 20, 20);
+            
+            ctx.fillStyle = '#c4a7e7';
+            ctx.fillRect(roomData.gameState.player2.x, roomData.gameState.player2.y, 20, 20);
+        }
+
+        function leaveRoom() {
+            if (gameListener) {
+                gameListener();
+                gameListener = null;
+            }
+            
+            if (currentRoom && db) {
+                db.collection('multi-rooms').doc(currentRoom).delete().catch(console.error);
+            }
+            
+            currentRoom = null;
+            backToSelection();
+        }
+
+        function backToSelection() {
+            document.getElementById('game-area').classList.add('hidden');
+            document.getElementById('game-selection').classList.remove('hidden');
+            
+            if (gameListener) {
+                gameListener();
+                gameListener = null;
+            }
+            
+            currentRoom = null;
+        }
+
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', () => {
+            if (currentRoom && db) {
+                db.collection('multi-rooms').doc(currentRoom).delete();
+            }
+        });
+    </script>
+</body>
+</html>
