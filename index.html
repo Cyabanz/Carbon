@@ -5761,9 +5761,10 @@
         }
       }
 
-      // Multiplayer games
-      let currentGameRoom = null;
-      let gameListener = null;
+             // Multiplayer games
+       let currentGameRoom = null;
+       let gameListener = null;
+       let winnerScreenShown = false;
       
       window.startMultiplayerGame = function(gameType) {
         if (!currentUser) {
@@ -5775,9 +5776,11 @@
         createGameLobby(gameType);
       };
 
-      async function createGameLobby(gameType) {
-        try {
-          // Create a new game room
+             async function createGameLobby(gameType) {
+         try {
+           winnerScreenShown = false;
+           
+           // Create a new game room
           const gameRoom = {
             gameType: gameType,
             hostId: currentUser.uid,
@@ -5991,20 +5994,23 @@
             } else {
               gameStatus.innerHTML = '<span class="text-muted">Opponent\'s turn</span>';
             }
-          } else if (gameRoom.status === 'completed') {
-            if (gameRoom.winner === 'draw') {
-              gameStatus.innerHTML = '<span class="text-gold">Draw!</span>';
-            } else {
-              const didIWin = (
-                (gameRoom.winner === 'X' || gameRoom.winner === 'red') && gameRoom.hostId === currentUser.uid
-              ) || (
-                (gameRoom.winner === 'O' || gameRoom.winner === 'blue') && gameRoom.guestId === currentUser.uid
-              );
-              gameStatus.innerHTML = didIWin ? 
-                '<span class="text-foam">You won! 🎉</span>' : 
-                '<span class="text-love">You lost 😢</span>';
-            }
-          }
+                     } else if (gameRoom.status === 'completed') {
+             if (gameRoom.winner === 'draw') {
+               gameStatus.innerHTML = '<span class="text-gold">Draw!</span>';
+             } else {
+               const didIWin = (
+                 (gameRoom.winner === 'X' || gameRoom.winner === 'red') && gameRoom.hostId === currentUser.uid
+               ) || (
+                 (gameRoom.winner === 'O' || gameRoom.winner === 'blue') && gameRoom.guestId === currentUser.uid
+               );
+               gameStatus.innerHTML = didIWin ? 
+                 '<span class="text-foam">You won! 🎉</span>' : 
+                 '<span class="text-love">You lost 😢</span>';
+             }
+             
+             // Show winner screen
+             setTimeout(() => showWinnerScreen(gameRoom), 1000);
+           }
         }
         
         // Update players panel
@@ -6038,13 +6044,15 @@
         });
       };
 
-      window.leaveGame = function() {
-        if (gameListener) {
-          gameListener();
-          gameListener = null;
-        }
-        
-        if (currentGameRoom) {
+             window.leaveGame = function() {
+         winnerScreenShown = false;
+         
+         if (gameListener) {
+           gameListener();
+           gameListener = null;
+         }
+         
+         if (currentGameRoom) {
           // Clean up the game room if host is leaving and no game in progress
           db.collection('game-rooms').doc(currentGameRoom).get().then(doc => {
             if (doc.exists) {
@@ -6376,10 +6384,170 @@
            }
          }
          
-         return null;
+                  return null;
        }
 
-               // Room joining via ID
+       // Winner Screen
+       function showWinnerScreen(gameRoom) {
+         // Don't show winner screen if already shown or modal doesn't exist
+         if (winnerScreenShown || document.getElementById('winnerModal') || !window.currentGameModal) return;
+         
+         winnerScreenShown = true;
+         
+         const didIWin = (
+           (gameRoom.winner === 'X' || gameRoom.winner === 'red') && gameRoom.hostId === currentUser.uid
+         ) || (
+           (gameRoom.winner === 'O' || gameRoom.winner === 'blue') && gameRoom.guestId === currentUser.uid
+         );
+         
+         const isDraw = gameRoom.winner === 'draw';
+         const gameTitle = gameRoom.gameType === 'tictactoe' ? 'Tic Tac Toe' : 'Connect Four';
+         
+         const winnerModal = document.createElement('div');
+         winnerModal.id = 'winnerModal';
+         winnerModal.className = 'fixed inset-0 bg-black/90 backdrop-blur-md flex items-center justify-center z-[10000]';
+         
+         let titleText, titleColor, bgGradient, icon;
+         
+         if (isDraw) {
+           titleText = "It's a Draw!";
+           titleColor = 'text-gold';
+           bgGradient = 'from-gold/20 to-gold/10';
+           icon = 'bx-medal';
+         } else if (didIWin) {
+           titleText = "You Won!";
+           titleColor = 'text-foam';
+           bgGradient = 'from-foam/20 to-foam/10';
+           icon = 'bx-trophy';
+         } else {
+           titleText = "You Lost";
+           titleColor = 'text-love';
+           bgGradient = 'from-love/20 to-love/10';
+           icon = 'bx-sad';
+         }
+         
+         winnerModal.innerHTML = `
+           <div class="bg-surface border border-highlight-med rounded-2xl shadow-2xl max-w-md w-[90vw] mx-4 overflow-hidden animate-[fadeInUp_0.5s_ease-out]">
+             <div class="bg-gradient-to-br ${bgGradient} p-8 text-center relative">
+               ${didIWin ? `
+                 <div class="absolute inset-0 overflow-hidden">
+                   <div class="confetti"></div>
+                   <div class="confetti"></div>
+                   <div class="confetti"></div>
+                   <div class="confetti"></div>
+                   <div class="confetti"></div>
+                   <div class="confetti"></div>
+                   <div class="confetti"></div>
+                   <div class="confetti"></div>
+                 </div>
+               ` : ''}
+               
+               <div class="relative z-10">
+                 <div class="w-20 h-20 mx-auto mb-4 bg-${isDraw ? 'gold' : didIWin ? 'foam' : 'love'}/20 rounded-full flex items-center justify-center animate-bounce">
+                   <i class="bx ${icon} text-4xl ${titleColor}"></i>
+                 </div>
+                 
+                 <h2 class="text-3xl font-bold ${titleColor} mb-2">${titleText}</h2>
+                 <p class="text-muted text-lg">${gameTitle} Complete</p>
+                 
+                 ${!isDraw ? `
+                   <div class="mt-4 flex items-center justify-center gap-4">
+                     <div class="flex items-center gap-2">
+                       <img src="${didIWin ? (gameRoom.hostId === currentUser.uid ? gameRoom.hostPhoto : gameRoom.guestPhoto) : (gameRoom.hostId === currentUser.uid ? gameRoom.guestPhoto : gameRoom.hostPhoto)}" 
+                            class="carbon-profile-avatar w-8 h-8 rounded-full border-2 border-${didIWin ? 'foam' : 'love'}">
+                       <span class="text-text font-semibold">${didIWin ? 'You' : (gameRoom.hostId === currentUser.uid ? gameRoom.guestName : gameRoom.hostName)}</span>
+                     </div>
+                     <span class="text-muted">won as</span>
+                     <span class="px-3 py-1 rounded-full bg-${gameRoom.winner === 'X' || gameRoom.winner === 'red' ? 'foam' : 'love'}/20 text-${gameRoom.winner === 'X' || gameRoom.winner === 'red' ? 'foam' : 'love'} font-bold">
+                       ${gameRoom.gameType === 'tictactoe' ? gameRoom.winner : gameRoom.winner.toUpperCase()}
+                     </span>
+                   </div>
+                 ` : ''}
+               </div>
+             </div>
+             
+             <div class="p-6 space-y-3">
+               <button onclick="startNewGame('${gameRoom.gameType}')" 
+                       class="w-full px-4 py-3 bg-foam hover:bg-foam/80 text-base rounded-lg transition-colors font-semibold">
+                 <i class="bx bx-refresh mr-2"></i>Play Again
+               </button>
+               
+               <button onclick="closeWinnerScreen()" 
+                       class="w-full px-4 py-3 bg-highlight-med hover:bg-highlight-high text-text rounded-lg transition-colors font-semibold">
+                 <i class="bx bx-home mr-2"></i>Back to Games
+               </button>
+             </div>
+           </div>
+           
+           <style>
+             .confetti {
+               position: absolute;
+               width: 10px;
+               height: 10px;
+               background: linear-gradient(45deg, #9ccfd8, #c4a7e7, #eb6f92, #f6c177);
+               animation: confetti-fall 3s linear infinite;
+             }
+             
+             .confetti:nth-child(1) { left: 10%; animation-delay: 0s; }
+             .confetti:nth-child(2) { left: 20%; animation-delay: 0.2s; }
+             .confetti:nth-child(3) { left: 30%; animation-delay: 0.4s; }
+             .confetti:nth-child(4) { left: 40%; animation-delay: 0.6s; }
+             .confetti:nth-child(5) { left: 60%; animation-delay: 0.8s; }
+             .confetti:nth-child(6) { left: 70%; animation-delay: 1s; }
+             .confetti:nth-child(7) { left: 80%; animation-delay: 1.2s; }
+             .confetti:nth-child(8) { left: 90%; animation-delay: 1.4s; }
+             
+             @keyframes confetti-fall {
+               0% {
+                 transform: translateY(-100vh) rotate(0deg);
+                 opacity: 1;
+               }
+               100% {
+                 transform: translateY(100vh) rotate(720deg);
+                 opacity: 0;
+               }
+             }
+           </style>
+         `;
+         
+         document.body.appendChild(winnerModal);
+         
+         // Apply profile frames
+         setTimeout(() => {
+           const selectedFrame = localStorage.getItem('carbon-selected-profile-frame');
+           const profileElements = winnerModal.querySelectorAll('.carbon-profile-avatar');
+           profileElements.forEach(element => {
+             // Remove all existing profile frame classes
+             ['red', 'blue', 'orange', 'green', 'purple', 'gold', 'silver', 'rainbow'].forEach(color => {
+               element.classList.remove(`profile-frame-${color}`);
+             });
+             // Apply active frame class
+             if (selectedFrame && selectedFrame !== 'default') {
+               element.classList.add(`profile-frame-${selectedFrame}`);
+             }
+           });
+         }, 100);
+       }
+
+       window.startNewGame = function(gameType) {
+         closeWinnerScreen();
+         leaveGame();
+         setTimeout(() => {
+           winnerScreenShown = false;
+           createGameLobby(gameType);
+         }, 500);
+       };
+
+       window.closeWinnerScreen = function() {
+         const winnerModal = document.getElementById('winnerModal');
+         if (winnerModal) {
+           winnerModal.remove();
+         }
+         winnerScreenShown = false;
+         leaveGame();
+       };
+
+       // Room joining via ID
         window.joinGameById = async function() {
           const roomId = prompt('Enter Room ID:');
           if (!roomId) return;
