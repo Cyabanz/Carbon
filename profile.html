@@ -445,6 +445,24 @@
                     Playing <span id="currentGameName" class="text-rp-gold font-medium"></span>
                   </div>
                 </div>
+                
+                <!-- 24-Hour Status Note -->
+                <div class="mt-3">
+                  <div id="currentStatusNote" class="hidden">
+                    <div class="flex items-center gap-2 p-2 bg-rp-overlay rounded-lg">
+                      <span class="text-rp-gold">💭</span>
+                      <span id="statusNoteText" class="text-sm text-rp-text flex-1"></span>
+                      <span id="statusNoteExpiry" class="text-xs text-rp-subtle"></span>
+                      <button id="clearStatusNote" class="text-rp-love hover:text-rp-love/80 transition-colors">
+                        <i class='bx bx-x'></i>
+                      </button>
+                    </div>
+                  </div>
+                  <button id="addStatusNote" class="w-full mt-2 px-3 py-2 bg-rp-highlight-med hover:bg-rp-highlight-high text-rp-text rounded-lg transition-colors text-sm flex items-center justify-center gap-2">
+                    <i class='bx bx-message-add'></i>
+                    Add 24h Status Note
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -797,6 +815,74 @@
       
       <div id="inviteContent" class="space-y-4">
         <!-- Invite content will be populated here -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Status Note Modal -->
+  <div id="statusNoteModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 hidden">
+    <div class="bg-rp-surface rounded-xl border border-rp-overlay p-6 w-full max-w-md mx-4">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg font-semibold text-rp-text">Add 24h Status Note</h3>
+        <button id="closeStatusNoteModal" class="text-rp-subtle hover:text-rp-love transition-colors">
+          <i class='bx bx-x text-xl'></i>
+        </button>
+      </div>
+      
+      <div class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-rp-text mb-2">Your Status Note</label>
+          <textarea id="statusNoteInput" maxlength="100" rows="3" placeholder="What's on your mind? (visible to friends for 24h)" class="w-full px-3 py-2 bg-rp-overlay border border-rp-highlight-med rounded-lg text-rp-text focus:outline-none focus:ring-2 focus:ring-rp-foam/50 resize-none"></textarea>
+          <p class="text-xs text-rp-muted mt-1"><span id="statusNoteCharCount">0</span>/100 characters</p>
+        </div>
+        
+        <div class="flex gap-2">
+          <button id="saveStatusNote" class="flex-1 px-4 py-2 bg-rp-foam hover:bg-rp-foam/90 text-rp-base rounded-lg transition-colors text-sm">
+            <i class='bx bx-check mr-2'></i>
+            Post Note
+          </button>
+          <button id="cancelStatusNote" class="px-4 py-2 bg-rp-highlight-med hover:bg-rp-highlight-high text-rp-text rounded-lg transition-colors text-sm">
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Friend Notes Modal -->
+  <div id="friendNotesModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 hidden">
+    <div class="bg-rp-surface rounded-xl border border-rp-overlay p-6 w-full max-w-lg mx-4">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg font-semibold text-rp-text">Private Notes</h3>
+        <button id="closeFriendNotesModal" class="text-rp-subtle hover:text-rp-love transition-colors">
+          <i class='bx bx-x text-xl'></i>
+        </button>
+      </div>
+      
+      <div class="space-y-4">
+        <div class="flex items-center gap-3 p-3 bg-rp-overlay rounded-lg">
+          <img id="friendNoteAvatar" src="" class="w-10 h-10 rounded-full" alt="">
+          <div>
+            <h4 id="friendNoteName" class="font-medium text-rp-text"></h4>
+            <p class="text-xs text-rp-subtle">Private notes are only visible to you</p>
+          </div>
+        </div>
+        
+        <div>
+          <label class="block text-sm font-medium text-rp-text mb-2">Your Notes</label>
+          <textarea id="friendNoteInput" maxlength="500" rows="5" placeholder="Write private notes about this friend..." class="w-full px-3 py-2 bg-rp-overlay border border-rp-highlight-med rounded-lg text-rp-text focus:outline-none focus:ring-2 focus:ring-rp-foam/50 resize-none"></textarea>
+          <p class="text-xs text-rp-muted mt-1"><span id="friendNoteCharCount">0</span>/500 characters</p>
+        </div>
+        
+        <div class="flex gap-2">
+          <button id="saveFriendNote" class="flex-1 px-4 py-2 bg-rp-foam hover:bg-rp-foam/90 text-rp-base rounded-lg transition-colors text-sm">
+            <i class='bx bx-save mr-2'></i>
+            Save Notes
+          </button>
+          <button id="cancelFriendNote" class="px-4 py-2 bg-rp-highlight-med hover:bg-rp-highlight-high text-rp-text rounded-lg transition-colors text-sm">
+            Cancel
+          </button>
+        </div>
       </div>
     </div>
   </div>
@@ -1523,7 +1609,8 @@
       
       const friendsWithStreaks = await Promise.all(friends.map(async (friend) => {
         const streak = await getFriendshipStreak(friend.uid);
-        return { ...friend, streak };
+        const statusNote = await getFriendStatusNote(friend.uid);
+        return { ...friend, streak, statusNote };
       }));
       
       friendsList.innerHTML = friendsWithStreaks.map(friend => {
@@ -1562,6 +1649,7 @@
                 ${currentGameText ? `<p class="text-xs text-rp-gold truncate">${currentGameText}</p>` : ''}
                 ${friend.lastPlayedGame ? `<p class="text-xs text-rp-subtle">Last: ${getGameTitle(friend.lastPlayedGame)}</p>` : ''}
                 ${streakDisplay ? `<p class="text-xs text-rp-gold font-semibold">🔥 Streak: ${streakDisplay}</p>` : ''}
+                ${friend.statusNote ? `<p class="text-xs text-rp-subtle bg-rp-overlay rounded px-2 py-1 mt-1">💭 ${sanitizeText(friend.statusNote)}</p>` : ''}
               </div>
             </div>
             
@@ -1574,21 +1662,26 @@
                 </button>
               ` : ''}
               ${friend.status !== 'dnd' ? `
-                <button onclick="startChat('${safeUid}', '${safeDisplayName}')" 
-                        class="flex-1 px-3 py-2 bg-rp-iris hover:bg-rp-iris/90 text-white rounded-lg text-xs transition-colors">
-                  <i class='bx bx-message mr-1'></i>
-                  Chat
-                </button>
-              ` : `
-                <span class="flex-1 px-3 py-2 bg-rp-subtle/20 text-rp-subtle rounded-lg text-xs text-center">
-                  <i class='bx bx-minus-circle mr-1'></i>
-                  Do Not Disturb
-                </span>
-              `}
-              <button onclick="removeFriend('${safeUid}')" 
-                      class="px-3 py-2 bg-rp-love/20 hover:bg-rp-love/30 text-rp-love rounded-lg text-xs transition-colors">
-                <i class='bx bx-user-minus'></i>
+                              <button onclick="startChat('${safeUid}', '${safeDisplayName}')" 
+                      class="flex-1 px-3 py-2 bg-rp-iris hover:bg-rp-iris/90 text-white rounded-lg text-xs transition-colors">
+                <i class='bx bx-message mr-1'></i>
+                Chat
               </button>
+            ` : `
+              <span class="flex-1 px-3 py-2 bg-rp-subtle/20 text-rp-subtle rounded-lg text-xs text-center">
+                <i class='bx bx-minus-circle mr-1'></i>
+                Do Not Disturb
+              </span>
+            `}
+            <button onclick="openFriendNotes('${safeUid}', '${safeDisplayName}', '${safePhotoURL}')" 
+                    class="px-3 py-2 bg-rp-gold hover:bg-rp-gold/90 text-rp-base rounded-lg text-xs transition-colors"
+                    title="Private Notes">
+              <i class='bx bx-note'></i>
+            </button>
+            <button onclick="removeFriend('${safeUid}')" 
+                    class="px-3 py-2 bg-rp-love/20 hover:bg-rp-love/30 text-rp-love rounded-lg text-xs transition-colors">
+              <i class='bx bx-user-minus'></i>
+            </button>
             </div>
           </div>
         `;
@@ -1906,6 +1999,26 @@
       } catch (error) {
         console.error('Error getting friendship streak:', error);
         return 0;
+      }
+    }
+
+    // Get friend's status note if they have one
+    async function getFriendStatusNote(friendUid) {
+      try {
+        const statusNoteDoc = await db.collection('statusNotes').doc(friendUid).get();
+        if (statusNoteDoc.exists) {
+          const noteData = statusNoteDoc.data();
+          const now = new Date();
+          const expiry = noteData.expiresAt.toDate();
+          
+          if (expiry > now) {
+            return noteData.text;
+          }
+        }
+        return '';
+      } catch (error) {
+        console.error('Error loading friend status note:', error);
+        return '';
       }
     }
 
@@ -2514,16 +2627,35 @@
         // Include current user in activity
         const allUids = [currentUser.uid, ...friendUids];
         
-        // Load recent activity from friends and self
-        const activityQuery = await db.collection('activity')
-          .where('userId', 'in', allUids.slice(0, 10)) // Firestore 'in' limit is 10
-          .orderBy('timestamp', 'desc')
-          .limit(20)
-          .get();
-        
+                // Load recent activity from friends and self (simplified to avoid index issues)
         const activities = [];
-        activityQuery.forEach(doc => {
-          activities.push({ id: doc.id, ...doc.data() });
+        
+        // Load activities for each user individually to avoid complex index requirements
+        const userBatches = [];
+        for (let i = 0; i < allUids.length; i += 10) {
+          userBatches.push(allUids.slice(i, i + 10));
+        }
+        
+        for (const batch of userBatches.slice(0, 1)) { // Limit to first 10 friends for now
+          try {
+            const activityQuery = await db.collection('activity')
+              .where('userId', 'in', batch)
+              .limit(5) // 5 activities per user batch
+              .get();
+              
+            activityQuery.forEach(doc => {
+              activities.push({ id: doc.id, ...doc.data() });
+            });
+          } catch (batchError) {
+            console.warn('Error loading activity batch:', batchError);
+          }
+        }
+        
+        // Sort activities by timestamp (client-side since we can't use orderBy with where)
+        activities.sort((a, b) => {
+          const aTime = a.timestamp?.toDate?.() || new Date(0);
+          const bTime = b.timestamp?.toDate?.() || new Date(0);
+          return bTime - aTime;
         });
         
         if (activityLoader) activityLoader.classList.add('hidden');
@@ -2903,8 +3035,254 @@
       }, 4000);
     }
 
+    // Status Notes Functions - 24 Hour Status Notes
+    let currentStatusNote = null;
+    let activeStatusNoteTimer = null;
+    let activeFriendForNote = null;
+
+    async function loadStatusNote() {
+      if (!currentUser) return;
+      
+      try {
+        const statusNoteDoc = await db.collection('statusNotes').doc(currentUser.uid).get();
+        if (statusNoteDoc.exists) {
+          const noteData = statusNoteDoc.data();
+          const now = new Date();
+          const expiry = noteData.expiresAt.toDate();
+          
+          if (expiry > now) {
+            currentStatusNote = noteData;
+            displayStatusNote(noteData);
+            scheduleStatusNoteExpiry(expiry);
+          } else {
+            // Note expired, remove it
+            await db.collection('statusNotes').doc(currentUser.uid).delete();
+          }
+        }
+      } catch (error) {
+        console.error('Error loading status note:', error);
+      }
+    }
+
+    function displayStatusNote(noteData) {
+      const noteContainer = document.getElementById('currentStatusNote');
+      const noteText = document.getElementById('statusNoteText');
+      const noteExpiry = document.getElementById('statusNoteExpiry');
+      
+      if (noteContainer && noteText && noteExpiry) {
+        noteText.textContent = noteData.text;
+        noteExpiry.textContent = getTimeUntilExpiry(noteData.expiresAt.toDate());
+        noteContainer.classList.remove('hidden');
+        
+        // Update expiry text every minute
+        if (activeStatusNoteTimer) clearInterval(activeStatusNoteTimer);
+        activeStatusNoteTimer = setInterval(() => {
+          const timeLeft = getTimeUntilExpiry(noteData.expiresAt.toDate());
+          if (timeLeft === 'Expired') {
+            clearStatusNote();
+          } else {
+            noteExpiry.textContent = timeLeft;
+          }
+        }, 60000);
+      }
+    }
+
+    function getTimeUntilExpiry(expiryDate) {
+      const now = new Date();
+      const diff = expiryDate - now;
+      
+      if (diff <= 0) return 'Expired';
+      
+      const hours = Math.floor(diff / (1000 * 60 * 60));
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      
+      if (hours > 0) {
+        return `${hours}h ${minutes}m left`;
+      } else {
+        return `${minutes}m left`;
+      }
+    }
+
+    function scheduleStatusNoteExpiry(expiryDate) {
+      const now = new Date();
+      const timeUntilExpiry = expiryDate - now;
+      
+      if (timeUntilExpiry > 0) {
+        setTimeout(() => {
+          clearStatusNote();
+        }, timeUntilExpiry);
+      }
+    }
+
+    async function clearStatusNote() {
+      try {
+        await db.collection('statusNotes').doc(currentUser.uid).delete();
+        currentStatusNote = null;
+        
+        const noteContainer = document.getElementById('currentStatusNote');
+        if (noteContainer) {
+          noteContainer.classList.add('hidden');
+        }
+        
+        if (activeStatusNoteTimer) {
+          clearInterval(activeStatusNoteTimer);
+          activeStatusNoteTimer = null;
+        }
+      } catch (error) {
+        console.error('Error clearing status note:', error);
+      }
+    }
+
+    async function saveStatusNote() {
+      const noteText = document.getElementById('statusNoteInput').value.trim();
+      if (!noteText || !currentUser) return;
+      
+      try {
+        const expiresAt = new Date();
+        expiresAt.setHours(expiresAt.getHours() + 24);
+        
+        const statusNoteData = {
+          userId: currentUser.uid,
+          text: noteText,
+          createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+          expiresAt: firebase.firestore.Timestamp.fromDate(expiresAt)
+        };
+        
+        await db.collection('statusNotes').doc(currentUser.uid).set(statusNoteData);
+        currentStatusNote = { ...statusNoteData, expiresAt };
+        
+        document.getElementById('statusNoteModal').classList.add('hidden');
+        document.getElementById('statusNoteInput').value = '';
+        
+        displayStatusNote(currentStatusNote);
+        showNotification('Status Note Posted', 'Your 24-hour status note is now visible to friends!', 'success');
+        
+      } catch (error) {
+        console.error('Error saving status note:', error);
+        showNotification('Error', 'Failed to save status note', 'error');
+      }
+    }
+
+    // Friend Notes Functions - Private Notes
+    async function openFriendNotes(friendUid, friendName, friendPhoto) {
+      activeFriendForNote = friendUid;
+      
+      // Set friend info in modal
+      document.getElementById('friendNoteAvatar').src = friendPhoto || '/default-avatar.png';
+      document.getElementById('friendNoteName').textContent = friendName;
+      
+      // Load existing notes
+      try {
+        const noteDoc = await db.collection('friendNotes').doc(`${currentUser.uid}_${friendUid}`).get();
+        if (noteDoc.exists) {
+          document.getElementById('friendNoteInput').value = noteDoc.data().note || '';
+        } else {
+          document.getElementById('friendNoteInput').value = '';
+        }
+        updateFriendNoteCharCount();
+      } catch (error) {
+        console.error('Error loading friend note:', error);
+      }
+      
+      document.getElementById('friendNotesModal').classList.remove('hidden');
+    }
+
+    async function saveFriendNote() {
+      const noteText = document.getElementById('friendNoteInput').value.trim();
+      if (!activeFriendForNote || !currentUser) return;
+      
+      try {
+        const noteData = {
+          userId: currentUser.uid,
+          friendId: activeFriendForNote,
+          note: noteText,
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        };
+        
+        if (noteText) {
+          await db.collection('friendNotes').doc(`${currentUser.uid}_${activeFriendForNote}`).set(noteData);
+          showNotification('Notes Saved', 'Your private notes have been saved', 'success');
+        } else {
+          // Delete note if empty
+          await db.collection('friendNotes').doc(`${currentUser.uid}_${activeFriendForNote}`).delete();
+          showNotification('Notes Cleared', 'Your private notes have been cleared', 'success');
+        }
+        
+        document.getElementById('friendNotesModal').classList.add('hidden');
+        activeFriendForNote = null;
+        
+      } catch (error) {
+        console.error('Error saving friend note:', error);
+        showNotification('Error', 'Failed to save notes', 'error');
+      }
+    }
+
+    function updateStatusNoteCharCount() {
+      const input = document.getElementById('statusNoteInput');
+      const counter = document.getElementById('statusNoteCharCount');
+      if (input && counter) {
+        counter.textContent = input.value.length;
+      }
+    }
+
+    function updateFriendNoteCharCount() {
+      const input = document.getElementById('friendNoteInput');
+      const counter = document.getElementById('friendNoteCharCount');
+      if (input && counter) {
+        counter.textContent = input.value.length;
+      }
+    }
+
+    // Load friend notes for display in friend cards
+    async function loadFriendNote(friendUid) {
+      if (!currentUser) return '';
+      
+      try {
+        const noteDoc = await db.collection('friendNotes').doc(`${currentUser.uid}_${friendUid}`).get();
+        return noteDoc.exists ? noteDoc.data().note || '' : '';
+      } catch (error) {
+        console.error('Error loading friend note:', error);
+        return '';
+      }
+    }
+
     // Initialize friend system event listeners
     function initializeFriendSystemEvents() {
+      // Status Notes Event Listeners
+      document.getElementById('addStatusNote').addEventListener('click', () => {
+        document.getElementById('statusNoteModal').classList.remove('hidden');
+        document.getElementById('statusNoteInput').focus();
+      });
+      
+      document.getElementById('closeStatusNoteModal').addEventListener('click', () => {
+        document.getElementById('statusNoteModal').classList.add('hidden');
+        document.getElementById('statusNoteInput').value = '';
+      });
+      
+      document.getElementById('saveStatusNote').addEventListener('click', saveStatusNote);
+      document.getElementById('cancelStatusNote').addEventListener('click', () => {
+        document.getElementById('statusNoteModal').classList.add('hidden');
+        document.getElementById('statusNoteInput').value = '';
+      });
+      
+      document.getElementById('statusNoteInput').addEventListener('input', updateStatusNoteCharCount);
+      
+      document.getElementById('clearStatusNote').addEventListener('click', clearStatusNote);
+      
+      // Friend Notes Event Listeners
+      document.getElementById('closeFriendNotesModal').addEventListener('click', () => {
+        document.getElementById('friendNotesModal').classList.add('hidden');
+        activeFriendForNote = null;
+      });
+      
+      document.getElementById('saveFriendNote').addEventListener('click', saveFriendNote);
+      document.getElementById('cancelFriendNote').addEventListener('click', () => {
+        document.getElementById('friendNotesModal').classList.add('hidden');
+        activeFriendForNote = null;
+      });
+      
+      document.getElementById('friendNoteInput').addEventListener('input', updateFriendNoteCharCount);
+      
       // Search users modal
       document.getElementById('searchUsersBtn').addEventListener('click', () => {
         document.getElementById('userSearchModal').classList.remove('hidden');
@@ -3507,6 +3885,7 @@
         await loadFriendshipStreaks();
         await loadGameStatistics();
         await loadFriendLeaderboard();
+        await loadStatusNote();
         
         // Set up periodic refresh of statistics (every 30 seconds)
         setInterval(async () => {
