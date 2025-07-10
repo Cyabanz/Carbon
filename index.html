@@ -5776,26 +5776,27 @@
         createGameLobby(gameType);
       };
 
-             async function createGameLobby(gameType) {
+                    async function createGameLobby(gameType) {
          try {
            winnerScreenShown = false;
            
            // Create a new game room
-          const gameRoom = {
-            gameType: gameType,
-            hostId: currentUser.uid,
-            hostName: currentUser.displayName || 'Anonymous',
-            hostPhoto: currentUser.photoURL || '',
-            guestId: null,
-            guestName: null,
-            guestPhoto: null,
-            status: 'waiting', // waiting, playing, completed
-            currentPlayer: null,
-            gameState: gameType === 'tictactoe' ? initTicTacToeState() : initConnect4State(),
-            winner: null,
-            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-            lastActivity: firebase.firestore.FieldValue.serverTimestamp()
-          };
+           const gameRoom = {
+             gameType: gameType,
+             hostId: currentUser.uid,
+             hostName: currentUser.displayName || 'Anonymous',
+             hostPhoto: currentUser.photoURL || '',
+             guestId: null,
+             guestName: null,
+             guestPhoto: null,
+             status: 'waiting', // waiting, playing, completed
+             gameState: gameType === 'tictactoe' ? initTicTacToeState() : initConnect4State(),
+             winner: null,
+             createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+             lastActivity: firebase.firestore.FieldValue.serverTimestamp()
+           };
+
+           console.log('Creating game room:', gameRoom);
 
           const docRef = await db.collection('game-rooms').add(gameRoom);
           currentGameRoom = docRef.id;
@@ -5963,20 +5964,32 @@
         });
       }
 
-      function updateGameUI(gameRoom, roomId) {
-        if (!window.currentGameModal) return;
-        
-        const gameArea = document.getElementById('gameArea');
-        const gameStatus = document.getElementById('gameStatus');
-        
-        if (gameRoom.status === 'playing' && gameArea) {
-          // Render the actual game
-          if (gameRoom.gameType === 'tictactoe') {
-            renderTicTacToe(gameRoom, roomId);
-          } else if (gameRoom.gameType === 'connect4') {
-            renderConnect4(gameRoom, roomId);
-          }
-        }
+             function updateGameUI(gameRoom, roomId) {
+         if (!window.currentGameModal) {
+           console.log('No current game modal');
+           return;
+         }
+         
+         console.log('Updating game UI:', gameRoom);
+         
+         const gameArea = document.getElementById('gameArea');
+         const gameStatus = document.getElementById('gameStatus');
+         
+         if (gameRoom.status === 'playing' && gameArea && gameRoom.gameState) {
+           console.log('Rendering game for:', gameRoom.gameType);
+           // Render the actual game
+           if (gameRoom.gameType === 'tictactoe') {
+             renderTicTacToe(gameRoom, roomId);
+           } else if (gameRoom.gameType === 'connect4') {
+             renderConnect4(gameRoom, roomId);
+           }
+         } else {
+           console.log('Not rendering game:', {
+             status: gameRoom.status,
+             hasGameArea: !!gameArea,
+             hasGameState: !!gameRoom.gameState
+           });
+         }
         
         // Update game status
         if (gameStatus) {
@@ -6111,13 +6124,13 @@
             const roomDoc = await db.collection('game-rooms').doc(roomId).get();
             const gameRoom = roomDoc.data();
             
-            await db.collection('game-rooms').doc(roomId).update({
-              guestId: currentUser.uid,
-              guestName: currentUser.displayName || 'Anonymous',
-              guestPhoto: currentUser.photoURL || '',
-              status: 'playing',
-              currentPlayer: gameRoom.gameType === 'tictactoe' ? 'X' : 'red' // Start with X (host) in tic-tac-toe, red in connect4
-            });
+                         await db.collection('game-rooms').doc(roomId).update({
+               guestId: currentUser.uid,
+               guestName: currentUser.displayName || 'Anonymous',
+               guestPhoto: currentUser.photoURL || '',
+               status: 'playing',
+               'gameState.currentPlayer': gameRoom.gameType === 'tictactoe' ? 'X' : 'red' // Start with X (host) in tic-tac-toe, red in connect4
+             });
           
           currentGameRoom = roomId;
           
@@ -6141,8 +6154,17 @@
 
        // === TIC TAC TOE GAME LOGIC ===
        function renderTicTacToe(gameRoom, roomId) {
+         console.log('Rendering Tic Tac Toe:', gameRoom);
          const gameArea = document.getElementById('gameArea');
-         if (!gameArea) return;
+         if (!gameArea) {
+           console.error('Game area not found');
+           return;
+         }
+         
+         if (!gameRoom.gameState || !gameRoom.gameState.board) {
+           console.error('Invalid game state for Tic Tac Toe:', gameRoom.gameState);
+           return;
+         }
          
          const isMyTurn = (
            (gameRoom.gameState.currentPlayer === 'X' && gameRoom.hostId === currentUser.uid) ||
@@ -6175,19 +6197,34 @@
        }
        
        window.makeTicTacToeMove = async function(index) {
-         if (!currentGameRoom) return;
+         if (!currentGameRoom) {
+           console.error('No current game room');
+           return;
+         }
+         
+         console.log('Making Tic Tac Toe move at index:', index);
          
          try {
            const gameDoc = await db.collection('game-rooms').doc(currentGameRoom).get();
-           if (!gameDoc.exists) return;
+           if (!gameDoc.exists) {
+             console.error('Game room does not exist');
+             return;
+           }
            
            const gameRoom = gameDoc.data();
+           console.log('Current game state:', gameRoom);
            const isMyTurn = (
              (gameRoom.gameState.currentPlayer === 'X' && gameRoom.hostId === currentUser.uid) ||
              (gameRoom.gameState.currentPlayer === 'O' && gameRoom.guestId === currentUser.uid)
            );
            
            if (!isMyTurn || gameRoom.gameState.board[index] || gameRoom.status !== 'playing') {
+             console.log('Move blocked:', {
+               isMyTurn,
+               cellOccupied: gameRoom.gameState.board[index],
+               gameStatus: gameRoom.status,
+               currentPlayer: gameRoom.gameState.currentPlayer
+             });
              return;
            }
            
@@ -6238,8 +6275,17 @@
 
        // === CONNECT 4 GAME LOGIC ===
        function renderConnect4(gameRoom, roomId) {
+         console.log('Rendering Connect 4:', gameRoom);
          const gameArea = document.getElementById('gameArea');
-         if (!gameArea) return;
+         if (!gameArea) {
+           console.error('Game area not found');
+           return;
+         }
+         
+         if (!gameRoom.gameState || !gameRoom.gameState.board) {
+           console.error('Invalid game state for Connect 4:', gameRoom.gameState);
+           return;
+         }
          
          const isMyTurn = (
            (gameRoom.gameState.currentPlayer === 'red' && gameRoom.hostId === currentUser.uid) ||
@@ -6266,7 +6312,7 @@
                    class="w-16 h-8 bg-highlight-med hover:bg-highlight-high rounded-t-lg transition-colors ${!isMyTurn || gameRoom.status === 'completed' ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}"
                    ${!isMyTurn || gameRoom.status === 'completed' ? 'disabled' : ''}
                  >
-                   <i class="bx bx-down-arrow text-${gameRoom.gameState.currentPlayer === 'red' ? 'love' : 'iris'}"></i>
+                   <i class="bx bx-down-arrow ${gameRoom.gameState.currentPlayer === 'red' ? 'text-love' : 'text-iris'}"></i>
                  </button>
                `).join('')}
              </div>
@@ -6276,7 +6322,7 @@
                ${gameRoom.gameState.board.map((row, rowIndex) => 
                  row.map((cell, colIndex) => `
                    <div class="w-16 h-16 bg-highlight-med rounded-full flex items-center justify-center border-2 border-overlay">
-                     ${cell ? `<div class="w-12 h-12 rounded-full bg-${cell === 'red' ? 'love' : 'iris'} animate-bounce"></div>` : ''}
+                     ${cell ? `<div class="w-12 h-12 rounded-full ${cell === 'red' ? 'bg-love' : 'bg-iris'} animate-bounce"></div>` : ''}
                    </div>
                  `).join('')
                ).join('')}
@@ -6286,19 +6332,36 @@
        }
        
        window.makeConnect4Move = async function(column) {
-         if (!currentGameRoom) return;
+         if (!currentGameRoom) {
+           console.error('No current game room');
+           return;
+         }
+         
+         console.log('Making Connect 4 move in column:', column);
          
          try {
            const gameDoc = await db.collection('game-rooms').doc(currentGameRoom).get();
-           if (!gameDoc.exists) return;
+           if (!gameDoc.exists) {
+             console.error('Game room does not exist');
+             return;
+           }
            
            const gameRoom = gameDoc.data();
+           console.log('Current Connect 4 game state:', gameRoom);
            const isMyTurn = (
              (gameRoom.gameState.currentPlayer === 'red' && gameRoom.hostId === currentUser.uid) ||
              (gameRoom.gameState.currentPlayer === 'blue' && gameRoom.guestId === currentUser.uid)
            );
            
            if (!isMyTurn || gameRoom.status !== 'playing') {
+             console.log('Connect 4 move blocked:', {
+               isMyTurn,
+               gameStatus: gameRoom.status,
+               currentPlayer: gameRoom.gameState.currentPlayer,
+               hostId: gameRoom.hostId,
+               guestId: gameRoom.guestId,
+               currentUserId: currentUser.uid
+             });
              return;
            }
            
@@ -6443,7 +6506,7 @@
                ` : ''}
                
                <div class="relative z-10">
-                 <div class="w-20 h-20 mx-auto mb-4 bg-${isDraw ? 'gold' : didIWin ? 'foam' : 'love'}/20 rounded-full flex items-center justify-center animate-bounce">
+                 <div class="w-20 h-20 mx-auto mb-4 ${isDraw ? 'bg-gold/20' : didIWin ? 'bg-foam/20' : 'bg-love/20'} rounded-full flex items-center justify-center animate-bounce">
                    <i class="bx ${icon} text-4xl ${titleColor}"></i>
                  </div>
                  
@@ -6454,11 +6517,11 @@
                    <div class="mt-4 flex items-center justify-center gap-4">
                      <div class="flex items-center gap-2">
                        <img src="${didIWin ? (gameRoom.hostId === currentUser.uid ? gameRoom.hostPhoto : gameRoom.guestPhoto) : (gameRoom.hostId === currentUser.uid ? gameRoom.guestPhoto : gameRoom.hostPhoto)}" 
-                            class="carbon-profile-avatar w-8 h-8 rounded-full border-2 border-${didIWin ? 'foam' : 'love'}">
+                            class="carbon-profile-avatar w-8 h-8 rounded-full border-2 ${didIWin ? 'border-foam' : 'border-love'}">
                        <span class="text-text font-semibold">${didIWin ? 'You' : (gameRoom.hostId === currentUser.uid ? gameRoom.guestName : gameRoom.hostName)}</span>
                      </div>
                      <span class="text-muted">won as</span>
-                     <span class="px-3 py-1 rounded-full bg-${gameRoom.winner === 'X' || gameRoom.winner === 'red' ? 'foam' : 'love'}/20 text-${gameRoom.winner === 'X' || gameRoom.winner === 'red' ? 'foam' : 'love'} font-bold">
+                     <span class="px-3 py-1 rounded-full ${gameRoom.winner === 'X' || gameRoom.winner === 'red' ? 'bg-foam/20 text-foam' : 'bg-love/20 text-love'} font-bold">
                        ${gameRoom.gameType === 'tictactoe' ? gameRoom.winner : gameRoom.winner.toUpperCase()}
                      </span>
                    </div>
