@@ -179,6 +179,88 @@
       #vertical-tabs-list::-webkit-scrollbar-thumb:hover {
         background: #524f67;
       }
+
+      /* Game Frame Styles */
+      .frame-neon {
+        border: 4px solid #00ffff;
+        box-shadow: 0 0 20px #00ffff50, inset 0 0 20px #00ffff20;
+        border-radius: 12px;
+        animation: neonPulse 2s infinite;
+      }
+
+      @keyframes neonPulse {
+        0%, 100% { box-shadow: 0 0 20px #00ffff50, inset 0 0 20px #00ffff20; }
+        50% { box-shadow: 0 0 30px #00ffff80, inset 0 0 30px #00ffff30; }
+      }
+
+      .frame-fire {
+        border: 4px solid #ff4500;
+        box-shadow: 0 0 25px #ff450080, inset 0 0 25px #ff450030;
+        border-radius: 12px;
+        position: relative;
+        animation: fireFlicker 1.5s infinite;
+      }
+
+      @keyframes fireFlicker {
+        0%, 100% { box-shadow: 0 0 25px #ff450080, inset 0 0 25px #ff450030; }
+        25% { box-shadow: 0 0 35px #ff6500a0, inset 0 0 35px #ff650040; }
+        75% { box-shadow: 0 0 20px #ff2500a0, inset 0 0 20px #ff250040; }
+      }
+
+      .frame-galaxy {
+        border: 4px solid #9400d3;
+        background: linear-gradient(45deg, #9400d3, #4b0082, #0000ff, #9400d3);
+        background-size: 400% 400%;
+        box-shadow: 0 0 30px #9400d380, inset 0 0 30px #9400d320;
+        border-radius: 12px;
+        animation: galaxyRotate 4s infinite;
+      }
+
+      @keyframes galaxyRotate {
+        0% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
+      }
+
+      .frame-diamond {
+        border: 4px solid #b9f2ff;
+        box-shadow: 0 0 25px #b9f2ff80, inset 0 0 25px #b9f2ff30;
+        border-radius: 12px;
+        position: relative;
+        animation: diamondSparkle 3s infinite;
+      }
+
+      @keyframes diamondSparkle {
+        0%, 100% { box-shadow: 0 0 25px #b9f2ff80, inset 0 0 25px #b9f2ff30; }
+        33% { box-shadow: 0 0 35px #ffffff80, inset 0 0 35px #ffffff30; }
+        66% { box-shadow: 0 0 30px #b9f2ff80, inset 0 0 30px #b9f2ff30; }
+      }
+
+      .frame-rainbow {
+        border: 4px solid;
+        border-image: linear-gradient(45deg, #ff0000, #ff8000, #ffff00, #00ff00, #0080ff, #8000ff) 1;
+        box-shadow: 0 0 30px rgba(255, 255, 255, 0.5);
+        border-radius: 12px;
+        animation: rainbowShift 2s infinite;
+      }
+
+      @keyframes rainbowShift {
+        0% { filter: hue-rotate(0deg); }
+        100% { filter: hue-rotate(360deg); }
+      }
+
+      .frame-shadow {
+        border: 4px solid #2d1b69;
+        box-shadow: 0 0 30px #2d1b6980, inset 0 0 30px #2d1b6930, 0 0 50px #000000a0;
+        border-radius: 12px;
+        position: relative;
+        animation: shadowPulse 3s infinite;
+      }
+
+      @keyframes shadowPulse {
+        0%, 100% { box-shadow: 0 0 30px #2d1b6980, inset 0 0 30px #2d1b6930, 0 0 50px #000000a0; }
+        50% { box-shadow: 0 0 40px #2d1b69a0, inset 0 0 40px #2d1b6940, 0 0 70px #000000c0; }
+      }
     </style>
   </head>
   <body class="font-inter bg-gradient-to-br from-base via-surface to-overlay min-h-screen text-text overflow-hidden">
@@ -3656,6 +3738,65 @@
         { id: 'shadow', name: 'Shadow Realm', price: 1200, color: '#2d1b69', description: 'Dark mystical border with shadow effects' }
       ];
       
+      const lootBoxes = [
+        {
+          id: 'basic',
+          name: 'Basic Crate',
+          price: 200,
+          rarity: 'common',
+          borderColor: '#6b7280',
+          gradient: 'linear-gradient(135deg, #6b7280, #9ca3af)',
+          description: 'A simple crate with basic rewards',
+          rewards: {
+            frames: 0,
+            currency: { min: 50, max: 150 },
+            special: 5
+          }
+        },
+        {
+          id: 'advanced',
+          name: 'Advanced Box',
+          price: 500,
+          rarity: 'rare',
+          borderColor: '#3b82f6',
+          gradient: 'linear-gradient(135deg, #3b82f6, #60a5fa)',
+          description: 'Better rewards with a chance for frames',
+          rewards: {
+            frames: 1,
+            currency: { min: 200, max: 400 },
+            special: 15
+          }
+        },
+        {
+          id: 'elite',
+          name: 'Elite Container',
+          price: 1000,
+          rarity: 'epic',
+          borderColor: '#a855f7',
+          gradient: 'linear-gradient(135deg, #a855f7, #c084fc)',
+          description: 'Premium container with guaranteed frames',
+          rewards: {
+            frames: 2,
+            currency: { min: 500, max: 800 },
+            special: 30
+          }
+        },
+        {
+          id: 'legendary',
+          name: 'Legendary Vault',
+          price: 2000,
+          rarity: 'legendary',
+          borderColor: '#f59e0b',
+          gradient: 'linear-gradient(135deg, #f59e0b, #fbbf24)',
+          description: 'The ultimate reward vault with exclusive frames',
+          rewards: {
+            frames: 3,
+            currency: { min: 1000, max: 1500 },
+            special: 50
+          }
+        }
+      ];
+      
       const miniGames = [
         { id: 'clicker', name: 'Carbon Clicker', reward: 50, description: 'Click as fast as you can!' },
         { id: 'memory', name: 'Memory Match', reward: 100, description: 'Match the carbon molecules' },
@@ -3931,6 +4072,9 @@
                  <button onclick="showShopSection('selector')" class="shop-nav-btn w-full text-left px-3 py-2 rounded-lg hover:bg-highlight-med text-text">
                    <i class="bx bx-palette mr-2"></i>Frame Selector
                  </button>
+                 <button onclick="showShopSection('lootboxes')" class="shop-nav-btn w-full text-left px-3 py-2 rounded-lg hover:bg-highlight-med text-text">
+                   <i class="bx bx-package mr-2"></i>Loot Boxes
+                 </button>
                  <button onclick="showShopSection('minigames')" class="shop-nav-btn w-full text-left px-3 py-2 rounded-lg hover:bg-highlight-med text-text">
                    <i class="bx bx-game mr-2"></i>Mini Games
                  </button>
@@ -4006,6 +4150,40 @@
                      </button>
                    </div>
                  ` : ''}
+               </div>
+               
+               <div id="shop-lootboxes" class="shop-section hidden">
+                 <h3 class="text-2xl font-bold text-text mb-6">Loot Boxes</h3>
+                 <p class="text-muted mb-6">Open loot boxes to discover frames, currency, and special rewards!</p>
+                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                   ${lootBoxes.map(box => `
+                     <div class="bg-highlight-med rounded-xl p-6 border-2" style="border-color: ${box.borderColor};">
+                       <div class="w-full h-32 rounded-lg mb-4 flex items-center justify-center relative overflow-hidden" 
+                            style="background: ${box.gradient};">
+                         <div class="relative">
+                           <i class="bx bx-package text-6xl text-white drop-shadow-lg"></i>
+                           <div class="absolute inset-0 bg-gradient-to-t from-transparent to-white/20 rounded-lg"></div>
+                         </div>
+                         ${box.rarity === 'legendary' ? '<div class="absolute inset-0 bg-gradient-to-r from-yellow-500/30 to-orange-500/30 animate-pulse"></div>' : ''}
+                         ${box.rarity === 'epic' ? '<div class="absolute inset-0 bg-gradient-to-r from-purple-500/30 to-pink-500/30"></div>' : ''}
+                       </div>
+                       <h4 class="text-lg font-semibold text-text mb-2">${box.name}</h4>
+                       <p class="text-sm text-muted mb-3">${box.description}</p>
+                       <div class="text-xs text-muted mb-4">
+                         <div class="mb-1">🎁 ${box.rewards.frames > 0 ? box.rewards.frames + ' frames guaranteed' : 'No frames'}</div>
+                         <div class="mb-1">💰 ${box.rewards.currency.min}-${box.rewards.currency.max} coins</div>
+                         <div>✨ ${box.rewards.special}% special item chance</div>
+                       </div>
+                       <div class="flex items-center justify-between">
+                         <div class="text-gold font-bold">${box.price} coins</div>
+                         <button onclick="openLootBox('${box.id}')" 
+                                 class="px-4 py-2 rounded-lg transition-colors ${userCurrency >= box.price ? 'bg-foam hover:bg-foam/80 text-base' : 'bg-muted/20 text-muted cursor-not-allowed'}">
+                           ${userCurrency >= box.price ? 'Open Box' : 'Insufficient Funds'}
+                         </button>
+                       </div>
+                     </div>
+                   `).join('')}
+                 </div>
                </div>
                
                <div id="shop-minigames" class="shop-section hidden">
@@ -4092,21 +4270,166 @@
        window.selectFrame = function(frameId) {
          window.carbonFrames.setActiveFrame(frameId);
          
-         // Notify all open play.html instances
-         const gameIframes = document.querySelectorAll('iframe[src*="play.html"]');
-         gameIframes.forEach(iframe => {
-           iframe.contentWindow.postMessage({
-             type: 'carbon-frame-update',
-             frameId: frameId,
-             frameData: frameId === 'default' ? null : gameFrames.find(f => f.id === frameId)
-           }, '*');
-         });
+         // Apply frame to iframe container instead of sending messages to play.html
+         const iframeContainer = document.getElementById('iframe-container');
+         if (iframeContainer) {
+           // Remove all existing frame classes
+           iframeContainer.classList.remove('frame-neon', 'frame-fire', 'frame-galaxy', 'frame-diamond', 'frame-rainbow', 'frame-shadow');
+           
+           // Apply new frame class
+           if (frameId !== 'default') {
+             iframeContainer.classList.add(`frame-${frameId}`);
+           }
+         }
          
          showNotification('Frame Selected', `${frameId === 'default' ? 'Default' : gameFrames.find(f => f.id === frameId)?.name} frame is now active!`, 'success');
          
          // Refresh shop to show selection
          closeShop();
          setTimeout(() => openCarbonShop(), 100);
+       };
+
+       window.openLootBox = function(boxId) {
+         const box = lootBoxes.find(b => b.id === boxId);
+         if (!box || userCurrency < box.price) return;
+         
+         // Deduct cost
+         userCurrency -= box.price;
+         saveCurrencyToStorage();
+         
+         // Generate rewards
+         const rewards = generateLootBoxRewards(box);
+         
+         // Add rewards to user
+         userCurrency += rewards.currency;
+         rewards.frames.forEach(frameId => {
+           if (!userFrames.includes(frameId)) {
+             userFrames.push(frameId);
+           }
+         });
+         
+         saveCurrencyToStorage();
+         saveFramesToStorage();
+         updateCurrencyDisplay();
+         
+         // Show rewards modal
+         showLootBoxRewards(box, rewards);
+         
+         // Close shop and reopen to refresh
+         closeShop();
+         setTimeout(() => openCarbonShop(), 2000);
+       };
+       
+       function generateLootBoxRewards(box) {
+         const rewards = {
+           currency: Math.floor(Math.random() * (box.rewards.currency.max - box.rewards.currency.min + 1)) + box.rewards.currency.min,
+           frames: [],
+           special: null
+         };
+         
+         // Generate frames based on box type
+         const availableFrames = gameFrames.filter(f => !userFrames.includes(f.id));
+         
+         if (box.rewards.frames > 0 && availableFrames.length > 0) {
+           const frameCount = Math.min(box.rewards.frames, availableFrames.length);
+           
+           for (let i = 0; i < frameCount; i++) {
+             let selectedFrame;
+             
+             if (box.rarity === 'legendary') {
+               // Legendary boxes can give any frame, prefer expensive ones
+               selectedFrame = availableFrames.sort((a, b) => b.price - a.price)[Math.floor(Math.random() * Math.min(3, availableFrames.length))];
+             } else if (box.rarity === 'epic') {
+               // Epic boxes prefer mid-tier frames
+               const midTierFrames = availableFrames.filter(f => f.price >= 750);
+               selectedFrame = midTierFrames.length > 0 ? 
+                 midTierFrames[Math.floor(Math.random() * midTierFrames.length)] :
+                 availableFrames[Math.floor(Math.random() * availableFrames.length)];
+             } else if (box.rarity === 'rare') {
+               // Rare boxes give lower-tier frames
+               const lowerTierFrames = availableFrames.filter(f => f.price <= 1000);
+               selectedFrame = lowerTierFrames.length > 0 ?
+                 lowerTierFrames[Math.floor(Math.random() * lowerTierFrames.length)] :
+                 availableFrames[Math.floor(Math.random() * availableFrames.length)];
+             }
+             
+             if (selectedFrame) {
+               rewards.frames.push(selectedFrame.id);
+               availableFrames.splice(availableFrames.indexOf(selectedFrame), 1);
+             }
+           }
+         }
+         
+         // Special item chance
+         if (Math.random() * 100 < box.rewards.special) {
+           const bonusCurrency = Math.floor(rewards.currency * 0.5);
+           rewards.currency += bonusCurrency;
+           rewards.special = `Bonus ${bonusCurrency} coins!`;
+         }
+         
+         return rewards;
+       }
+       
+       function showLootBoxRewards(box, rewards) {
+         const modal = document.createElement('div');
+         modal.className = 'fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[9999]';
+         
+         const frameNames = rewards.frames.map(frameId => {
+           const frame = gameFrames.find(f => f.id === frameId);
+           return frame ? frame.name : frameId;
+         });
+         
+         modal.innerHTML = `
+           <div class="bg-surface border-2 rounded-xl shadow-2xl max-w-md w-[90vw] p-6 text-center" style="border-color: ${box.borderColor};">
+             <div class="mb-6">
+               <div class="w-24 h-24 mx-auto mb-4 rounded-lg flex items-center justify-center" style="background: ${box.gradient};">
+                 <i class="bx bx-package-open text-4xl text-white"></i>
+               </div>
+               <h2 class="text-2xl font-bold text-text mb-2">${box.name} Opened!</h2>
+               <p class="text-muted">Here's what you found:</p>
+             </div>
+             
+             <div class="space-y-3 mb-6">
+               <div class="bg-highlight-med rounded-lg p-3">
+                 <div class="flex items-center justify-center gap-2">
+                   <i class="bx bx-coin text-gold text-xl"></i>
+                   <span class="text-lg font-semibold text-gold">${rewards.currency} Carbon Coins</span>
+                 </div>
+               </div>
+               
+               ${rewards.frames.length > 0 ? `
+                 <div class="bg-highlight-med rounded-lg p-3">
+                   <div class="flex items-center justify-center gap-2 mb-2">
+                     <i class="bx bx-image text-foam text-xl"></i>
+                     <span class="text-lg font-semibold text-text">New Frames!</span>
+                   </div>
+                   <div class="text-sm text-foam">${frameNames.join(', ')}</div>
+                 </div>
+               ` : ''}
+               
+               ${rewards.special ? `
+                 <div class="bg-highlight-med rounded-lg p-3">
+                   <div class="flex items-center justify-center gap-2">
+                     <i class="bx bx-star text-gold text-xl"></i>
+                     <span class="text-lg font-semibold text-gold">${rewards.special}</span>
+                   </div>
+                 </div>
+               ` : ''}
+             </div>
+             
+             <button onclick="this.parentElement.parentElement.remove()" 
+                     class="w-full px-6 py-3 bg-foam hover:bg-foam/80 text-base rounded-lg font-medium transition-colors">
+               Awesome!
+             </button>
+           </div>
+         `;
+         
+         document.body.appendChild(modal);
+         
+         // Auto-remove after 10 seconds
+         setTimeout(() => {
+           if (modal.parentNode) modal.remove();
+         }, 10000);
        };
       
       function updateCurrencyDisplay() {
@@ -4610,7 +4933,7 @@
               // Initialize background system
         initializeBackgroundSystem();
         
-        // Export frame data for play.html integration
+        // Export frame data for iframe container integration
         window.carbonFrames = {
           userFrames: userFrames,
           gameFrames: gameFrames,
@@ -4621,26 +4944,35 @@
           setActiveFrame: function(frameId) {
             if (userFrames.includes(frameId) || frameId === 'default') {
               localStorage.setItem('carbon-selected-frame', frameId);
+              this.applyActiveFrame();
+            }
+          },
+          applyActiveFrame: function() {
+            const activeFrame = this.getActiveFrame();
+            const iframeContainer = document.getElementById('iframe-container');
+            if (iframeContainer) {
+              // Remove all existing frame classes
+              iframeContainer.classList.remove('frame-neon', 'frame-fire', 'frame-galaxy', 'frame-diamond', 'frame-rainbow', 'frame-shadow');
+              
+              // Apply active frame class
+              if (activeFrame !== 'default') {
+                iframeContainer.classList.add(`frame-${activeFrame}`);
+              }
             }
           }
         };
+
+        // Apply active frame on page load
+        setTimeout(() => {
+          window.carbonFrames.applyActiveFrame();
+        }, 500);
         
-        // Listen for frame selection changes and update play.html
-        window.addEventListener('message', (event) => {
-          if (event.data && event.data.type === 'carbon-frame-selected') {
-            window.carbonFrames.setActiveFrame(event.data.frameId);
-            
-            // Notify all game iframes about frame change
-            const gameIframes = document.querySelectorAll('iframe[src*="play.html"]');
-            gameIframes.forEach(iframe => {
-              iframe.contentWindow.postMessage({
-                type: 'carbon-frame-update',
-                frameId: event.data.frameId,
-                frameData: gameFrames.find(f => f.id === event.data.frameId)
-              }, '*');
-            });
-          }
-        });
+                 // Listen for frame selection changes
+         window.addEventListener('message', (event) => {
+           if (event.data && event.data.type === 'carbon-frame-selected') {
+             window.carbonFrames.setActiveFrame(event.data.frameId);
+           }
+         });
     </script>
   </body>
 </html>
