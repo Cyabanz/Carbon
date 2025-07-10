@@ -2435,6 +2435,11 @@
     }
 
     function exitGame() {
+      // Save session duration before exiting
+      if (gameState.sessionDuration > 0 && currentGameId && auth.currentUser) {
+        saveSessionDuration(auth.currentUser.uid, currentGameId, gameState.sessionDuration);
+      }
+      
       // Go back to game info screen
       document.getElementById('gameFrameContainer').classList.add('hidden');
       document.getElementById('gameInfoHolder').classList.remove('hidden');
@@ -4002,6 +4007,61 @@
       }
     }
 
+    // Save session duration when game ends
+    async function saveSessionDuration(uid, gameId, duration) {
+      if (!uid || !gameId || duration < 1000) return; // Don't save sessions under 1 second
+      
+      try {
+        console.log(`💾 Saving session duration: ${duration}ms for game ${gameId}`);
+        
+        // Update user's game statistics
+        const userRef = db.collection('users').doc(uid);
+        const gameStatsPath = `gameStats.${gameId}`;
+        
+        // Get current stats
+        const userDoc = await userRef.get();
+        const userData = userDoc.exists ? userDoc.data() : {};
+        const gameStats = userData.gameStats || {};
+        const currentGameStats = gameStats[gameId] || { totalPlayTime: 0, sessionsPlayed: 0 };
+        
+        // Update stats
+        const newTotalPlayTime = (currentGameStats.totalPlayTime || 0) + duration;
+        const newSessionsPlayed = (currentGameStats.sessionsPlayed || 0) + 1;
+        
+        await userRef.set({
+          gameStats: {
+            ...gameStats,
+            [gameId]: {
+              totalPlayTime: newTotalPlayTime,
+              sessionsPlayed: newSessionsPlayed,
+              lastPlayed: firebase.firestore.FieldValue.serverTimestamp(),
+              averageSessionTime: Math.round(newTotalPlayTime / newSessionsPlayed)
+            }
+          }
+        }, { merge: true });
+        
+        console.log(`✅ Session duration saved: ${formatDuration(duration)} (Total: ${formatDuration(newTotalPlayTime)})`);
+        
+      } catch (error) {
+        console.error('❌ Error saving session duration:', error);
+      }
+    }
+
+    // Format duration in milliseconds to readable string
+    function formatDuration(ms) {
+      const hours = Math.floor(ms / 3600000);
+      const minutes = Math.floor((ms % 3600000) / 60000);
+      const seconds = Math.floor((ms % 60000) / 1000);
+      
+      if (hours > 0) {
+        return `${hours}h ${minutes}m ${seconds}s`;
+      } else if (minutes > 0) {
+        return `${minutes}m ${seconds}s`;
+      } else {
+        return `${seconds}s`;
+      }
+    }
+
     // Initialize comment form event listeners after DOM is ready
     function setupCommentEventListeners() {
       // Comment form events
@@ -4085,6 +4145,11 @@
       // Game frame features initialization - removed duplicate, using the complete version above
 
       function cleanupGameFrameFeatures() {
+        // Save session duration before cleanup
+        if (gameState.sessionDuration > 0 && currentGameId && auth.currentUser) {
+          saveSessionDuration(auth.currentUser.uid, currentGameId, gameState.sessionDuration);
+        }
+        
         // Clear any timers
         if (gameState.playTimer) {
           clearInterval(gameState.playTimer);

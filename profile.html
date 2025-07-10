@@ -322,6 +322,40 @@
         </div>
       </div>
 
+      <!-- Game Statistics -->
+      <div id="gameStatsContainer" class="mb-8">
+        <h2 class="text-xl font-semibold text-rp-text mb-4 flex items-center gap-2">
+          <i class='bx bx-bar-chart text-rp-iris'></i>
+          Gaming Statistics
+        </h2>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <div class="bg-rp-surface rounded-xl border border-rp-overlay p-4 text-center">
+            <div class="text-2xl font-bold text-rp-foam" id="totalGamesPlayed">0</div>
+            <div class="text-sm text-rp-subtle">Games Played</div>
+          </div>
+          <div class="bg-rp-surface rounded-xl border border-rp-overlay p-4 text-center">
+            <div class="text-2xl font-bold text-rp-gold" id="totalPlayTime">0h 0m</div>
+            <div class="text-sm text-rp-subtle">Total Play Time</div>
+          </div>
+          <div class="bg-rp-surface rounded-xl border border-rp-overlay p-4 text-center">
+            <div class="text-2xl font-bold text-rp-iris" id="averageSessionTime">0m</div>
+            <div class="text-sm text-rp-subtle">Avg Session</div>
+          </div>
+        </div>
+        
+        <!-- Top Games by Play Time -->
+        <div class="bg-rp-surface rounded-xl border border-rp-overlay p-4">
+          <h3 class="text-lg font-semibold text-rp-text mb-3 flex items-center gap-2">
+            <i class='bx bx-game text-rp-pine'></i>
+            Most Played Games
+          </h3>
+          <div id="topGamesList" class="space-y-3">
+            <!-- Top games will be populated here -->
+          </div>
+          <div id="noGameStats" class="text-rp-subtle text-sm text-center py-4">Start playing games to see your statistics!</div>
+        </div>
+      </div>
+
       <!-- Recent Games -->
       <div id="recentGamesContainer" class="mb-8">
         <div class="flex items-center justify-between mb-4">
@@ -507,6 +541,25 @@
               <!-- Friend streaks will be populated here -->
             </div>
             <div id="noStreaks" class="text-rp-subtle text-sm text-center py-4">Start messaging friends to build streaks!</div>
+          </div>
+          
+          <!-- Friend Leaderboard -->
+          <div class="bg-rp-surface rounded-xl border border-rp-overlay p-4">
+            <h3 class="text-lg font-semibold text-rp-text mb-4 flex items-center gap-2">
+              <i class='bx bx-trophy text-rp-iris'></i>
+              Friend Leaderboard 🏆
+            </h3>
+            <div class="mb-3">
+              <select id="leaderboardType" class="w-full px-3 py-2 bg-rp-overlay border border-rp-highlight-med rounded-lg text-rp-text text-sm focus:outline-none focus:ring-2 focus:ring-rp-foam/50">
+                <option value="gamesPlayed">Most Games Played</option>
+                <option value="totalPlayTime">Most Play Time</option>
+                <option value="averageSession">Longest Avg Session</option>
+              </select>
+            </div>
+            <div id="friendLeaderboardList" class="space-y-2">
+              <!-- Friend leaderboard will be populated here -->
+            </div>
+            <div id="noLeaderboardData" class="text-rp-subtle text-sm text-center py-4">No gaming data available yet!</div>
           </div>
           
           <!-- Quick Chat -->
@@ -1850,6 +1903,255 @@
       }
     }
 
+    // ===== GAME STATISTICS SYSTEM =====
+    
+    // Format duration in milliseconds to readable string
+    function formatDuration(ms) {
+      const hours = Math.floor(ms / 3600000);
+      const minutes = Math.floor((ms % 3600000) / 60000);
+      const seconds = Math.floor((ms % 60000) / 1000);
+      
+      if (hours > 0) {
+        return `${hours}h ${minutes}m`;
+      } else if (minutes > 0) {
+        return `${minutes}m`;
+      } else {
+        return `${seconds}s`;
+      }
+    }
+
+    async function loadGameStatistics() {
+      if (!currentUser) return;
+      
+      try {
+        const userDoc = await db.collection('users').doc(currentUser.uid).get();
+        const userData = userDoc.exists ? userDoc.data() : {};
+        const gameStats = userData.gameStats || {};
+        
+        // Calculate overall statistics
+        let totalGamesPlayed = 0;
+        let totalPlayTime = 0;
+        let totalSessions = 0;
+        const gamesList = [];
+        
+        Object.entries(gameStats).forEach(([gameId, stats]) => {
+          if (stats && stats.sessionsPlayed > 0) {
+            totalGamesPlayed++;
+            totalPlayTime += stats.totalPlayTime || 0;
+            totalSessions += stats.sessionsPlayed || 0;
+            
+            // Find game info
+            const game = gamesData.find(g => String(g.id) === String(gameId));
+            if (game) {
+              gamesList.push({
+                ...game,
+                stats: stats
+              });
+            }
+          }
+        });
+        
+        // Update UI
+        document.getElementById('totalGamesPlayed').textContent = totalGamesPlayed;
+        document.getElementById('totalPlayTime').textContent = formatDuration(totalPlayTime);
+        document.getElementById('averageSessionTime').textContent = 
+          totalSessions > 0 ? formatDuration(Math.round(totalPlayTime / totalSessions)) : '0m';
+        
+        // Show top games by play time
+        renderTopGames(gamesList);
+        
+      } catch (error) {
+        console.error('Error loading game statistics:', error);
+      }
+    }
+
+    function renderTopGames(gamesList) {
+      const topGamesList = document.getElementById('topGamesList');
+      const noGameStats = document.getElementById('noGameStats');
+      
+      if (gamesList.length === 0) {
+        topGamesList.innerHTML = '';
+        noGameStats.classList.remove('hidden');
+        return;
+      }
+      
+      noGameStats.classList.add('hidden');
+      
+      // Sort by total play time and take top 5
+      const topGames = gamesList
+        .sort((a, b) => (b.stats.totalPlayTime || 0) - (a.stats.totalPlayTime || 0))
+        .slice(0, 5);
+      
+      topGamesList.innerHTML = topGames.map((game, index) => {
+        const stats = game.stats;
+        const playTime = formatDuration(stats.totalPlayTime || 0);
+        const sessions = stats.sessionsPlayed || 0;
+        const avgSession = formatDuration(stats.averageSessionTime || 0);
+        
+        // Medal emoji for top 3
+        const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `${index + 1}.`;
+        
+        return `
+          <div class="flex items-center gap-3 p-3 bg-rp-overlay rounded-lg">
+            <div class="text-lg font-bold text-rp-gold w-8">${medal}</div>
+            <img src="${game.image || '/default-game.png'}" class="w-12 h-12 rounded-lg object-cover" alt="${game.title}">
+            <div class="flex-1 min-w-0">
+              <h4 class="font-medium text-rp-text truncate">${sanitizeText(game.title)}</h4>
+              <div class="flex gap-4 text-xs text-rp-subtle">
+                <span>⏱️ ${playTime}</span>
+                <span>🎮 ${sessions} sessions</span>
+                <span>📊 ${avgSession} avg</span>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // ===== FRIEND LEADERBOARD SYSTEM =====
+    
+    async function loadFriendLeaderboard() {
+      if (!currentUser) return;
+      
+      try {
+        // Get current user's friends list
+        const userDoc = await db.collection('users').doc(currentUser.uid).get();
+        const userData = userDoc.data();
+        const friendUids = userData.friends || [];
+        
+        if (friendUids.length === 0) {
+          document.getElementById('noLeaderboardData').classList.remove('hidden');
+          document.getElementById('friendLeaderboardList').innerHTML = '';
+          return;
+        }
+        
+        // Load friends' data in batches (Firestore 'in' limit is 10)
+        const friendsData = [];
+        for (let i = 0; i < friendUids.length; i += 10) {
+          const batch = friendUids.slice(i, i + 10);
+          const friendsQuery = await db.collection('users')
+            .where(firebase.firestore.FieldPath.documentId(), 'in', batch)
+            .get();
+          
+          friendsQuery.forEach(doc => {
+            friendsData.push({ uid: doc.id, ...doc.data() });
+          });
+        }
+        
+        await renderFriendLeaderboard(friendsData);
+        
+      } catch (error) {
+        console.error('Error loading friend leaderboard:', error);
+      }
+    }
+
+    async function renderFriendLeaderboard(friendsData) {
+      const leaderboardList = document.getElementById('friendLeaderboardList');
+      const noLeaderboardData = document.getElementById('noLeaderboardData');
+      const leaderboardType = document.getElementById('leaderboardType').value;
+      
+      // Process friends' game statistics
+      const leaderboardData = friendsData.map(friend => {
+        const gameStats = friend.gameStats || {};
+        let totalGamesPlayed = 0;
+        let totalPlayTime = 0;
+        let totalSessions = 0;
+        
+        Object.values(gameStats).forEach(stats => {
+          if (stats && stats.sessionsPlayed > 0) {
+            totalGamesPlayed++;
+            totalPlayTime += stats.totalPlayTime || 0;
+            totalSessions += stats.sessionsPlayed || 0;
+          }
+        });
+        
+        return {
+          ...friend,
+          totalGamesPlayed,
+          totalPlayTime,
+          averageSessionTime: totalSessions > 0 ? Math.round(totalPlayTime / totalSessions) : 0
+        };
+      });
+      
+      // Sort based on selected leaderboard type
+      let sortedData;
+      switch (leaderboardType) {
+        case 'totalPlayTime':
+          sortedData = leaderboardData.sort((a, b) => b.totalPlayTime - a.totalPlayTime);
+          break;
+        case 'averageSession':
+          sortedData = leaderboardData.sort((a, b) => b.averageSessionTime - a.averageSessionTime);
+          break;
+        case 'gamesPlayed':
+        default:
+          sortedData = leaderboardData.sort((a, b) => b.totalGamesPlayed - a.totalGamesPlayed);
+          break;
+      }
+      
+      // Filter out friends with no gaming data
+      const filteredData = sortedData.filter(friend => {
+        return friend.totalGamesPlayed > 0 || friend.totalPlayTime > 0;
+      });
+      
+      if (filteredData.length === 0) {
+        leaderboardList.innerHTML = '';
+        noLeaderboardData.classList.remove('hidden');
+        return;
+      }
+      
+      noLeaderboardData.classList.add('hidden');
+      
+      leaderboardList.innerHTML = filteredData.slice(0, 10).map((friend, index) => {
+        const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `${index + 1}.`;
+        
+        let statValue;
+        let statLabel;
+        switch (leaderboardType) {
+          case 'totalPlayTime':
+            statValue = formatDuration(friend.totalPlayTime);
+            statLabel = 'Total Time';
+            break;
+          case 'averageSession':
+            statValue = formatDuration(friend.averageSessionTime);
+            statLabel = 'Avg Session';
+            break;
+          case 'gamesPlayed':
+          default:
+            statValue = friend.totalGamesPlayed;
+            statLabel = 'Games Played';
+            break;
+        }
+        
+        return `
+          <div class="flex items-center gap-3 p-3 bg-rp-overlay rounded-lg">
+            <div class="text-lg font-bold text-rp-gold w-8">${medal}</div>
+            <img src="${friend.photoURL || '/default-avatar.png'}" class="w-10 h-10 rounded-full" alt="${friend.displayName}">
+            <div class="flex-1 min-w-0">
+              <h4 class="font-medium text-rp-text truncate">${sanitizeText(friend.displayName || 'Unknown User')}</h4>
+              <div class="flex gap-4 text-xs text-rp-subtle">
+                <span>🎮 ${friend.totalGamesPlayed} games</span>
+                <span>⏱️ ${formatDuration(friend.totalPlayTime)}</span>
+              </div>
+            </div>
+            <div class="text-right">
+              <div class="text-lg font-bold text-rp-foam">${statValue}</div>
+              <div class="text-xs text-rp-subtle">${statLabel}</div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // Initialize game statistics events
+    function initializeGameStatsEvents() {
+      const leaderboardTypeSelect = document.getElementById('leaderboardType');
+      if (leaderboardTypeSelect) {
+        leaderboardTypeSelect.addEventListener('change', async () => {
+          await loadFriendLeaderboard();
+        });
+      }
+    }
+
     // User search functionality
     async function searchUsers(query) {
       if (!query.trim()) return [];
@@ -3153,6 +3455,8 @@
         await loadCurrentUserStatus();
         await updateOnlineFriendsList();
         await loadFriendshipStreaks();
+        await loadGameStatistics();
+        await loadFriendLeaderboard();
         // Only load activity feed if elements exist
         if (document.getElementById('activityFeed')) {
           try {
@@ -3162,6 +3466,7 @@
           }
         }
         initializeFriendSystemEvents();
+        initializeGameStatsEvents();
         
         console.log('🎉 Friend system initialized successfully!');
         
