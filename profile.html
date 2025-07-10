@@ -221,6 +221,117 @@
     .activity-item:hover {
       background: rgba(156, 207, 216, 0.05);
     }
+
+    /* Chat Background Styles */
+    #chatMessagesContainer {
+      border-radius: 0.5rem;
+      overflow: hidden;
+    }
+
+    #chatParticlesCanvas {
+      border-radius: 0.5rem;
+    }
+
+    .chat-bg-option {
+      transition: all 0.2s ease;
+    }
+
+    .chat-bg-option:hover {
+      transform: scale(1.05);
+    }
+
+    .chat-bg-option.border-rp-foam {
+      box-shadow: 0 0 0 2px var(--theme-foam);
+    }
+
+    /* Enhanced message bubbles for better visibility on custom backgrounds */
+    #chatMessages .max-w-xs {
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    /* Chat settings panel animation */
+    #chatBackgroundSettings {
+      animation: slideDown 0.3s ease-out;
+    }
+
+    @keyframes slideDown {
+      from {
+        opacity: 0;
+        transform: translateY(-10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* Profile Frame Styles */
+    .profile-frame-red {
+      border: 3px solid #ff4444 !important;
+      box-shadow: 0 0 15px #ff444450 !important;
+    }
+
+    .profile-frame-blue {
+      border: 3px solid #4444ff !important;
+      box-shadow: 0 0 15px #4444ff50 !important;
+    }
+
+    .profile-frame-orange {
+      border: 3px solid #ff8844 !important;
+      box-shadow: 0 0 15px #ff884450 !important;
+    }
+
+    .profile-frame-green {
+      border: 3px solid #44ff44 !important;
+      box-shadow: 0 0 15px #44ff4450 !important;
+    }
+
+    .profile-frame-purple {
+      border: 3px solid #8844ff !important;
+      box-shadow: 0 0 15px #8844ff50 !important;
+    }
+
+    .profile-frame-gold {
+      border: 3px solid #ffd700 !important;
+      box-shadow: 0 0 20px #ffd70080 !important;
+      animation: goldGlow 2s infinite;
+    }
+
+    @keyframes goldGlow {
+      0%, 100% { box-shadow: 0 0 20px #ffd70080 !important; }
+      50% { box-shadow: 0 0 30px #ffd700a0 !important; }
+    }
+
+    .profile-frame-silver {
+      border: 3px solid #c0c0c0 !important;
+      box-shadow: 0 0 15px #c0c0c080 !important;
+    }
+
+    .profile-frame-rainbow {
+      border: 3px solid !important;
+      border-image: linear-gradient(45deg, #ff0000, #ff8000, #ffff00, #00ff00, #0080ff, #8000ff) 1 !important;
+      box-shadow: 0 0 20px rgba(255, 255, 255, 0.5) !important;
+      animation: rainbowProfileShift 3s infinite !important;
+    }
+
+    @keyframes rainbowProfileShift {
+      0% { filter: hue-rotate(0deg); }
+      100% { filter: hue-rotate(360deg); }
+    }
+
+    /* Chat message container with custom backgrounds */
+    .chat-bg-gradient {
+      background: linear-gradient(135deg, rgba(156, 207, 216, 0.1) 0%, rgba(196, 167, 231, 0.1) 100%);
+    }
+
+    .chat-bg-solid {
+      background: rgba(49, 116, 143, 0.2);
+    }
+
+    .chat-bg-particles {
+      background: rgba(25, 23, 36, 0.3);
+    }
   </style>
 </head>
 <body class="bg-rp-base min-h-screen text-rp-text font-[Inter] antialiased">
@@ -257,7 +368,7 @@
       <!-- Profile Header -->
       <div class="bg-rp-surface rounded-xl p-6 mb-8 border border-rp-overlay">
         <div class="flex flex-col sm:flex-row items-center gap-6">
-          <img id="profilePhoto" class="w-16 h-16 rounded-full ring-2 ring-rp-foam/50" src="" alt="Profile Photo">
+          <img id="profilePhoto" class="carbon-profile-avatar w-16 h-16 rounded-full ring-2 ring-rp-foam/50" src="" alt="Profile Photo">
           <div class="flex-1 text-center sm:text-left">
             <h1 id="profileName" class="text-2xl font-bold text-rp-text mb-1"></h1>
             <p id="profileEmail" class="text-rp-subtle text-sm"></p>
@@ -319,6 +430,46 @@
               <button id="change-bg" class="px-3 py-1 bg-rp-foam text-rp-base rounded-lg text-sm hover:bg-rp-foam/80 transition-all duration-200">Change</button>
             </div>
           </div>
+        </div>
+      </div>
+
+      <!-- Game Statistics -->
+      <div id="gameStatsContainer" class="mb-8">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-xl font-semibold text-rp-text flex items-center gap-2">
+            <i class='bx bx-bar-chart text-rp-iris'></i>
+            Gaming Statistics
+          </h2>
+          <button id="refreshStatsBtn" class="px-3 py-2 bg-rp-foam hover:bg-rp-foam/90 text-rp-base rounded-lg transition-colors text-sm flex items-center gap-2">
+            <i class='bx bx-refresh'></i>
+            Refresh
+          </button>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <div class="bg-rp-surface rounded-xl border border-rp-overlay p-4 text-center">
+            <div class="text-2xl font-bold text-rp-foam" id="totalGamesPlayed">0</div>
+            <div class="text-sm text-rp-subtle">Games Played</div>
+          </div>
+          <div class="bg-rp-surface rounded-xl border border-rp-overlay p-4 text-center">
+            <div class="text-2xl font-bold text-rp-gold" id="totalPlayTime">0h 0m</div>
+            <div class="text-sm text-rp-subtle">Total Play Time</div>
+          </div>
+          <div class="bg-rp-surface rounded-xl border border-rp-overlay p-4 text-center">
+            <div class="text-2xl font-bold text-rp-iris" id="averageSessionTime">0m</div>
+            <div class="text-sm text-rp-subtle">Avg Session</div>
+          </div>
+        </div>
+        
+        <!-- Top Games by Play Time -->
+        <div class="bg-rp-surface rounded-xl border border-rp-overlay p-4">
+          <h3 class="text-lg font-semibold text-rp-text mb-3 flex items-center gap-2">
+            <i class='bx bx-game text-rp-pine'></i>
+            Most Played Games
+          </h3>
+          <div id="topGamesList" class="space-y-3">
+            <!-- Top games will be populated here -->
+          </div>
+          <div id="noGameStats" class="text-rp-subtle text-sm text-center py-4">Start playing games to see your statistics!</div>
         </div>
       </div>
 
@@ -389,7 +540,7 @@
           <div class="bg-rp-surface rounded-xl border border-rp-overlay p-4 mb-6">
             <div class="flex items-center gap-4">
               <div class="relative">
-                <img id="userAvatar" src="" alt="Your Avatar" class="w-14 h-14 rounded-full ring-2 ring-rp-foam/50">
+                <img id="userAvatar" src="" alt="Your Avatar" class="carbon-profile-avatar w-14 h-14 rounded-full ring-2 ring-rp-foam/50">
                 <div id="statusIndicator" class="absolute -bottom-1 -right-1 w-5 h-5 rounded-full border-2 border-rp-surface bg-green-500"></div>
               </div>
               <div class="flex-1">
@@ -404,6 +555,24 @@
                   <div id="currentGameDisplay" class="text-sm text-rp-subtle hidden">
                     Playing <span id="currentGameName" class="text-rp-gold font-medium"></span>
                   </div>
+                </div>
+                
+                <!-- 24-Hour Status Note -->
+                <div class="mt-3">
+                  <div id="currentStatusNote" class="hidden">
+                    <div class="flex items-center gap-2 p-2 bg-rp-overlay rounded-lg">
+                      <span class="text-rp-gold">💭</span>
+                      <span id="statusNoteText" class="text-sm text-rp-text flex-1"></span>
+                      <span id="statusNoteExpiry" class="text-xs text-rp-subtle"></span>
+                      <button id="clearStatusNote" class="text-rp-love hover:text-rp-love/80 transition-colors">
+                        <i class='bx bx-x'></i>
+                      </button>
+                    </div>
+                  </div>
+                  <button id="addStatusNote" class="w-full mt-2 px-3 py-2 bg-rp-highlight-med hover:bg-rp-highlight-high text-rp-text rounded-lg transition-colors text-sm flex items-center justify-center gap-2">
+                    <i class='bx bx-message-add'></i>
+                    Add 24h Status Note
+                  </button>
                 </div>
               </div>
             </div>
@@ -483,7 +652,7 @@
           </div>
         </div>
         
-        <!-- Chat & Online Friends -->
+                  <!-- Chat & Online Friends -->
         <div class="space-y-6">
           <!-- Online Friends -->
           <div class="bg-rp-surface rounded-xl border border-rp-overlay p-4">
@@ -497,6 +666,37 @@
             <div id="noOnlineFriends" class="text-rp-subtle text-sm text-center py-4">No friends online</div>
           </div>
           
+          <!-- Friend Streaks -->
+          <div class="bg-rp-surface rounded-xl border border-rp-overlay p-4">
+            <h3 class="text-lg font-semibold text-rp-text mb-4 flex items-center gap-2">
+              <i class='bx bx-trending-up text-rp-gold'></i>
+              Friend Streaks 🔥
+            </h3>
+            <div id="friendStreaksList" class="space-y-2">
+              <!-- Friend streaks will be populated here -->
+            </div>
+            <div id="noStreaks" class="text-rp-subtle text-sm text-center py-4">Start messaging friends to build streaks!</div>
+          </div>
+          
+          <!-- Friend Leaderboard -->
+          <div class="bg-rp-surface rounded-xl border border-rp-overlay p-4">
+            <h3 class="text-lg font-semibold text-rp-text mb-4 flex items-center gap-2">
+              <i class='bx bx-trophy text-rp-iris'></i>
+              Friend Leaderboard 🏆
+            </h3>
+            <div class="mb-3">
+              <select id="leaderboardType" class="w-full px-3 py-2 bg-rp-overlay border border-rp-highlight-med rounded-lg text-rp-text text-sm focus:outline-none focus:ring-2 focus:ring-rp-foam/50">
+                <option value="gamesPlayed">Most Games Played</option>
+                <option value="totalPlayTime">Most Play Time</option>
+                <option value="averageSession">Longest Avg Session</option>
+              </select>
+            </div>
+            <div id="friendLeaderboardList" class="space-y-2">
+              <!-- Friend leaderboard will be populated here -->
+            </div>
+            <div id="noLeaderboardData" class="text-rp-subtle text-sm text-center py-4">No gaming data available yet!</div>
+          </div>
+          
           <!-- Quick Chat -->
           <div id="quickChatSection" class="bg-rp-surface rounded-xl border border-rp-overlay p-4 hidden">
             <div class="flex items-center justify-between mb-4">
@@ -504,19 +704,62 @@
                 <i class='bx bx-message-dots text-rp-iris'></i>
                 Chat with <span id="chatFriendName">Friend</span>
               </h3>
-              <button id="closeChatBtn" class="text-rp-subtle hover:text-rp-love transition-colors">
-                <i class='bx bx-x text-xl'></i>
-              </button>
+              <div class="flex items-center gap-2">
+                <button id="chatSettingsBtn" class="text-rp-subtle hover:text-rp-foam transition-colors" title="Chat Settings">
+                  <i class='bx bx-palette text-lg'></i>
+                </button>
+                <button id="closeChatBtn" class="text-rp-subtle hover:text-rp-love transition-colors">
+                  <i class='bx bx-x text-xl'></i>
+                </button>
+              </div>
             </div>
             
-            <div id="chatMessages" class="h-48 overflow-y-auto bg-rp-overlay rounded-lg p-3 mb-3 space-y-2">
-              <!-- Chat messages will be populated here -->
+            <!-- Chat Background Settings -->
+            <div id="chatBackgroundSettings" class="mb-4 p-3 bg-rp-overlay rounded-lg hidden">
+              <h4 class="text-sm font-medium text-rp-text mb-3 flex items-center gap-2">
+                <i class='bx bx-palette'></i>
+                Chat Background
+              </h4>
+              <div class="grid grid-cols-4 gap-2">
+                <button class="chat-bg-option w-full h-12 rounded-lg border-2 border-transparent hover:border-rp-foam/50 transition-all relative" 
+                        data-bg="default" title="Default">
+                  <div class="w-full h-full bg-rp-overlay rounded-lg flex items-center justify-center">
+                    <i class='bx bx-square text-rp-text'></i>
+                  </div>
+                </button>
+                <button class="chat-bg-option w-full h-12 rounded-lg border-2 border-transparent hover:border-rp-foam/50 transition-all relative" 
+                        data-bg="gradient" title="Gradient">
+                  <div class="w-full h-full rounded-lg" style="background: linear-gradient(135deg, #9ccfd8 0%, #c4a7e7 100%)"></div>
+                </button>
+                <button class="chat-bg-option w-full h-12 rounded-lg border-2 border-transparent hover:border-rp-foam/50 transition-all relative" 
+                        data-bg="solid" title="Solid Color">
+                  <div class="w-full h-full bg-rp-pine rounded-lg"></div>
+                </button>
+                <button class="chat-bg-option w-full h-12 rounded-lg border-2 border-transparent hover:border-rp-foam/50 transition-all relative" 
+                        data-bg="particles" title="Particles">
+                  <div class="w-full h-full bg-rp-base rounded-lg flex items-center justify-center">
+                    <div class="w-2 h-2 bg-rp-foam rounded-full animate-pulse"></div>
+                    <div class="w-1 h-1 bg-rp-gold rounded-full ml-1 animate-bounce"></div>
+                    <div class="w-1.5 h-1.5 bg-rp-iris rounded-full ml-1 animate-pulse" style="animation-delay: 0.5s;"></div>
+                  </div>
+                </button>
+              </div>
+              <p class="text-xs text-rp-subtle mt-2">Background changes are visible to both you and your friend</p>
+            </div>
+            
+            <div id="chatMessagesContainer" class="relative">
+              <!-- Chat background canvas for particles -->
+              <canvas id="chatParticlesCanvas" class="absolute inset-0 rounded-lg hidden pointer-events-none"></canvas>
+              
+              <div id="chatMessages" class="h-48 overflow-y-auto bg-rp-overlay rounded-lg p-3 mb-3 space-y-2 relative z-10">
+                <!-- Chat messages will be populated here -->
+              </div>
             </div>
             
             <div class="flex gap-2">
               <input id="chatInput" type="text" maxlength="500" placeholder="Type a message..." class="flex-1 px-3 py-2 bg-rp-overlay border border-rp-highlight-med rounded-lg text-rp-text focus:outline-none focus:ring-2 focus:ring-rp-foam/50 text-sm">
-              <button id="sendMessageBtn" class="px-4 py-2 bg-rp-foam hover:bg-rp-foam/90 text-rp-base rounded-lg transition-colors">
-                <i class='bx bx-send'></i>
+              <button id="sendMessageBtn" class="flex-shrink-0 w-10 h-10 bg-rp-foam hover:bg-rp-foam/90 text-rp-base rounded-lg transition-colors flex items-center justify-center">
+                <i class='bx bx-send text-sm'></i>
               </button>
             </div>
           </div>
@@ -554,7 +797,7 @@
       <!-- Public Profile Header -->
       <div class="bg-rp-surface rounded-xl p-6 mb-8 border border-rp-overlay">
         <div class="flex flex-col sm:flex-row items-center gap-6">
-          <img id="publicProfilePhoto" class="w-16 h-16 rounded-full ring-2 ring-rp-foam/50" src="" alt="Profile Photo">
+          <img id="publicProfilePhoto" class="carbon-profile-avatar w-16 h-16 rounded-full ring-2 ring-rp-foam/50" src="" alt="Profile Photo">
           <div class="flex-1 text-center sm:text-left">
             <h1 id="publicProfileName" class="text-2xl font-bold text-rp-text mb-1"></h1>
             <p id="publicProfileUsername" class="text-rp-subtle text-sm"></p>
@@ -726,6 +969,74 @@
       
       <div id="inviteContent" class="space-y-4">
         <!-- Invite content will be populated here -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Status Note Modal -->
+  <div id="statusNoteModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 hidden">
+    <div class="bg-rp-surface rounded-xl border border-rp-overlay p-6 w-full max-w-md mx-4">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg font-semibold text-rp-text">Add 24h Status Note</h3>
+        <button id="closeStatusNoteModal" class="text-rp-subtle hover:text-rp-love transition-colors">
+          <i class='bx bx-x text-xl'></i>
+        </button>
+      </div>
+      
+      <div class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-rp-text mb-2">Your Status Note</label>
+          <textarea id="statusNoteInput" maxlength="100" rows="3" placeholder="What's on your mind? (visible to friends for 24h)" class="w-full px-3 py-2 bg-rp-overlay border border-rp-highlight-med rounded-lg text-rp-text focus:outline-none focus:ring-2 focus:ring-rp-foam/50 resize-none"></textarea>
+          <p class="text-xs text-rp-muted mt-1"><span id="statusNoteCharCount">0</span>/100 characters</p>
+        </div>
+        
+        <div class="flex gap-2">
+          <button id="saveStatusNote" class="flex-1 px-4 py-2 bg-rp-foam hover:bg-rp-foam/90 text-rp-base rounded-lg transition-colors text-sm">
+            <i class='bx bx-check mr-2'></i>
+            Post Note
+          </button>
+          <button id="cancelStatusNote" class="px-4 py-2 bg-rp-highlight-med hover:bg-rp-highlight-high text-rp-text rounded-lg transition-colors text-sm">
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Friend Notes Modal -->
+  <div id="friendNotesModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 hidden">
+    <div class="bg-rp-surface rounded-xl border border-rp-overlay p-6 w-full max-w-lg mx-4">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg font-semibold text-rp-text">Private Notes</h3>
+        <button id="closeFriendNotesModal" class="text-rp-subtle hover:text-rp-love transition-colors">
+          <i class='bx bx-x text-xl'></i>
+        </button>
+      </div>
+      
+      <div class="space-y-4">
+        <div class="flex items-center gap-3 p-3 bg-rp-overlay rounded-lg">
+          <img id="friendNoteAvatar" src="" class="w-10 h-10 rounded-full" alt="">
+          <div>
+            <h4 id="friendNoteName" class="font-medium text-rp-text"></h4>
+            <p class="text-xs text-rp-subtle">Private notes are only visible to you</p>
+          </div>
+        </div>
+        
+        <div>
+          <label class="block text-sm font-medium text-rp-text mb-2">Your Notes</label>
+          <textarea id="friendNoteInput" maxlength="500" rows="5" placeholder="Write private notes about this friend..." class="w-full px-3 py-2 bg-rp-overlay border border-rp-highlight-med rounded-lg text-rp-text focus:outline-none focus:ring-2 focus:ring-rp-foam/50 resize-none"></textarea>
+          <p class="text-xs text-rp-muted mt-1"><span id="friendNoteCharCount">0</span>/500 characters</p>
+        </div>
+        
+        <div class="flex gap-2">
+          <button id="saveFriendNote" class="flex-1 px-4 py-2 bg-rp-foam hover:bg-rp-foam/90 text-rp-base rounded-lg transition-colors text-sm">
+            <i class='bx bx-save mr-2'></i>
+            Save Notes
+          </button>
+          <button id="cancelFriendNote" class="px-4 py-2 bg-rp-highlight-med hover:bg-rp-highlight-high text-rp-text rounded-lg transition-colors text-sm">
+            Cancel
+          </button>
+        </div>
       </div>
     </div>
   </div>
@@ -1439,7 +1750,7 @@
           })
         );
         
-        renderFriendsList(friendsData);
+        await renderFriendsList(friendsData);
         setupFriendsStatusListeners(friendUids);
         
       } catch (error) {
@@ -1447,10 +1758,16 @@
       }
     }
 
-    function renderFriendsList(friends) {
+    async function renderFriendsList(friends) {
       const friendsList = document.getElementById('friendsList');
       
-      friendsList.innerHTML = friends.map(friend => {
+      const friendsWithStreaks = await Promise.all(friends.map(async (friend) => {
+        const streak = await getFriendshipStreak(friend.uid);
+        const statusNote = await getFriendStatusNote(friend.uid);
+        return { ...friend, streak, statusNote };
+      }));
+      
+      friendsList.innerHTML = friendsWithStreaks.map(friend => {
         const statusColor = statusColors[friend.status] || statusColors.offline;
         const statusText = getStatusText(friend.status);
         
@@ -1464,6 +1781,11 @@
         const safePhotoURL = friend.photoURL || '/default-avatar.png';
         const safeUid = sanitizeText(friend.uid || '');
         const safeCurrentGame = sanitizeText(friend.currentGame || '');
+        
+        // Get streak info
+        const streak = friend.streak || 0;
+        const streakEmoji = streak > 0 ? getStreakEmoji(streak) : '';
+        const streakDisplay = streak > 0 ? `${streakEmoji} ${streak} day${streak !== 1 ? 's' : ''}` : '';
         
         return `
           <div class="bg-rp-surface border border-rp-overlay rounded-xl p-4 hover:border-rp-foam/50 transition-all group">
@@ -1480,6 +1802,8 @@
                 <p class="text-xs text-rp-foam font-medium">${statusText}</p>
                 ${currentGameText ? `<p class="text-xs text-rp-gold truncate">${currentGameText}</p>` : ''}
                 ${friend.lastPlayedGame ? `<p class="text-xs text-rp-subtle">Last: ${getGameTitle(friend.lastPlayedGame)}</p>` : ''}
+                ${streakDisplay ? `<p class="text-xs text-rp-gold font-semibold">🔥 Streak: ${streakDisplay}</p>` : ''}
+                ${friend.statusNote ? `<p class="text-xs text-rp-subtle bg-rp-overlay rounded px-2 py-1 mt-1">💭 ${sanitizeText(friend.statusNote)}</p>` : ''}
               </div>
             </div>
             
@@ -1492,21 +1816,26 @@
                 </button>
               ` : ''}
               ${friend.status !== 'dnd' ? `
-                <button onclick="startChat('${safeUid}', '${safeDisplayName}')" 
-                        class="flex-1 px-3 py-2 bg-rp-iris hover:bg-rp-iris/90 text-white rounded-lg text-xs transition-colors">
-                  <i class='bx bx-message mr-1'></i>
-                  Chat
-                </button>
-              ` : `
-                <span class="flex-1 px-3 py-2 bg-rp-subtle/20 text-rp-subtle rounded-lg text-xs text-center">
-                  <i class='bx bx-minus-circle mr-1'></i>
-                  Do Not Disturb
-                </span>
-              `}
-              <button onclick="removeFriend('${safeUid}')" 
-                      class="px-3 py-2 bg-rp-love/20 hover:bg-rp-love/30 text-rp-love rounded-lg text-xs transition-colors">
-                <i class='bx bx-user-minus'></i>
+                              <button onclick="startChat('${safeUid}', '${safeDisplayName}')" 
+                      class="flex-1 px-3 py-2 bg-rp-iris hover:bg-rp-iris/90 text-white rounded-lg text-xs transition-colors">
+                <i class='bx bx-message mr-1'></i>
+                Chat
               </button>
+            ` : `
+              <span class="flex-1 px-3 py-2 bg-rp-subtle/20 text-rp-subtle rounded-lg text-xs text-center">
+                <i class='bx bx-minus-circle mr-1'></i>
+                Do Not Disturb
+              </span>
+            `}
+            <button onclick="openFriendNotes('${safeUid}', '${safeDisplayName}', '${safePhotoURL}')" 
+                    class="px-3 py-2 bg-rp-gold hover:bg-rp-gold/90 text-rp-base rounded-lg text-xs transition-colors"
+                    title="Private Notes">
+              <i class='bx bx-note'></i>
+            </button>
+            <button onclick="removeFriend('${safeUid}')" 
+                    class="px-3 py-2 bg-rp-love/20 hover:bg-rp-love/30 text-rp-love rounded-lg text-xs transition-colors">
+              <i class='bx bx-user-minus'></i>
+            </button>
             </div>
           </div>
         `;
@@ -1574,6 +1903,11 @@
       return game ? game.title : 'Unknown Game';
     }
 
+    // Chat background system
+    let currentChatBackground = 'default';
+    let chatParticlesAnimation = null;
+    let activeChatRoomId = null;
+
     // Chat system
     async function startChat(friendUid, friendName) {
       activeChatUser = { uid: friendUid, name: friendName };
@@ -1584,6 +1918,10 @@
       
       // Create chat room ID (sorted UIDs to ensure consistency)
       const chatRoomId = [currentUser.uid, friendUid].sort().join('_');
+      activeChatRoomId = chatRoomId;
+      
+      // Load chat background
+      await loadChatBackground(chatRoomId);
       
       // Set up real-time chat listener
       if (chatListener) chatListener();
@@ -1596,6 +1934,418 @@
           }));
           renderChatMessages(messages);
         });
+      
+      // Set up chat background listener
+      setupChatBackgroundListener(chatRoomId);
+      
+      // Update streak when chat is opened
+      await updateFriendshipStreak(friendUid);
+    }
+
+    async function loadChatBackground(chatRoomId) {
+      try {
+        const chatSettingsDoc = await db.collection('chatSettings').doc(chatRoomId).get();
+        if (chatSettingsDoc.exists) {
+          const settings = chatSettingsDoc.data();
+          currentChatBackground = settings.background || 'default';
+        } else {
+          currentChatBackground = 'default';
+        }
+        applyChatBackground(currentChatBackground);
+        updateChatBackgroundUI();
+      } catch (error) {
+        console.error('Error loading chat background:', error);
+        currentChatBackground = 'default';
+        applyChatBackground('default');
+      }
+    }
+
+    function setupChatBackgroundListener(chatRoomId) {
+      // Listen for background changes in real-time
+      const unsubscribe = db.collection('chatSettings').doc(chatRoomId)
+        .onSnapshot(doc => {
+          if (doc.exists) {
+            const settings = doc.data();
+            const newBackground = settings.background || 'default';
+            if (newBackground !== currentChatBackground) {
+              currentChatBackground = newBackground;
+              applyChatBackground(newBackground);
+              updateChatBackgroundUI();
+            }
+          }
+        });
+      
+      // Store unsubscribe function to clean up later
+      if (window.chatBackgroundListener) {
+        window.chatBackgroundListener();
+      }
+      window.chatBackgroundListener = unsubscribe;
+    }
+
+    async function setChatBackground(background) {
+      console.log('🎨 Setting chat background to:', background);
+      console.log('🔗 Active chat room ID:', activeChatRoomId);
+      console.log('👤 Current user:', currentUser?.uid);
+      
+      // Validation
+      if (!background) {
+        console.error('❌ No background specified');
+        showNotification('Error', 'No background type specified', 'error');
+        return;
+      }
+      
+      if (!activeChatRoomId) {
+        console.error('❌ No active chat room');
+        showNotification('Error', 'No active chat session', 'error');
+        return;
+      }
+      
+      if (!currentUser || !currentUser.uid) {
+        console.error('❌ User not authenticated');
+        showNotification('Error', 'Please log in to change chat background', 'error');
+        return;
+      }
+      
+      if (!db) {
+        console.error('❌ Database not initialized');
+        showNotification('Error', 'Database connection not available', 'error');
+        return;
+      }
+      
+      const validBackgrounds = ['default', 'gradient', 'solid', 'particles'];
+      if (!validBackgrounds.includes(background)) {
+        console.error('❌ Invalid background type:', background);
+        showNotification('Error', 'Invalid background type', 'error');
+        return;
+      }
+      
+      try {
+        console.log('💾 Saving to Firebase...');
+        
+        const chatSettingsData = {
+          background: background,
+          updatedBy: currentUser.uid,
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        };
+        
+        console.log('📝 Chat settings data:', chatSettingsData);
+        
+        await db.collection('chatSettings').doc(activeChatRoomId).set(chatSettingsData, { merge: true });
+        
+        console.log('✅ Successfully saved to Firebase');
+        
+        // Update local state
+        currentChatBackground = background;
+        
+        // Apply the background
+        try {
+          applyChatBackground(background);
+          console.log('✅ Background applied successfully');
+        } catch (applyError) {
+          console.error('❌ Error applying background:', applyError);
+          // Continue anyway, the background was saved
+        }
+        
+        // Update UI
+        try {
+          updateChatBackgroundUI();
+          console.log('✅ UI updated successfully');
+        } catch (uiError) {
+          console.error('❌ Error updating UI:', uiError);
+          // Continue anyway
+        }
+        
+        showNotification('Background Changed', `Chat background set to ${background}`, 'success');
+        
+      } catch (error) {
+        console.error('❌ Error setting chat background:', error);
+        console.error('❌ Error details:', {
+          message: error.message,
+          code: error.code,
+          stack: error.stack
+        });
+        
+        let errorMessage = 'Failed to change chat background';
+        if (error.message) {
+          errorMessage += ': ' + error.message;
+        }
+        showNotification('Error', errorMessage, 'error');
+      }
+    }
+
+    function applyChatBackground(background) {
+      console.log('🎨 Applying chat background:', background);
+      
+      const chatMessages = document.getElementById('chatMessages');
+      const chatParticlesCanvas = document.getElementById('chatParticlesCanvas');
+      const chatContainer = document.getElementById('chatMessagesContainer');
+      
+      console.log('📍 Chat elements found:', {
+        chatMessages: !!chatMessages,
+        chatParticlesCanvas: !!chatParticlesCanvas,
+        chatContainer: !!chatContainer
+      });
+      
+      if (!chatMessages) {
+        console.warn('⚠️ Chat messages element not found');
+        return;
+      }
+      
+      if (!chatParticlesCanvas) {
+        console.warn('⚠️ Chat particles canvas not found');
+        return;
+      }
+      
+      if (!chatContainer) {
+        console.warn('⚠️ Chat container not found');
+        return;
+      }
+      
+      try {
+        // Stop any existing particles animation
+        if (chatParticlesAnimation && typeof chatParticlesAnimation.stop === 'function') {
+          console.log('🛑 Stopping existing particles animation');
+          chatParticlesAnimation.stop();
+          chatParticlesAnimation = null;
+        }
+        
+        // Hide particles canvas by default
+        chatParticlesCanvas.classList.add('hidden');
+        
+        // Reset chat messages background
+        chatMessages.style.background = '';
+        chatMessages.classList.remove('bg-transparent');
+        chatContainer.style.background = '';
+        
+        console.log('🔄 Applying background type:', background);
+        
+        switch (background) {
+          case 'gradient':
+            chatMessages.style.background = 'linear-gradient(135deg, rgba(156, 207, 216, 0.1) 0%, rgba(196, 167, 231, 0.1) 100%)';
+            chatMessages.classList.add('bg-transparent');
+            chatContainer.style.background = 'linear-gradient(135deg, #9ccfd8 0%, #c4a7e7 100%)';
+            console.log('✅ Gradient background applied');
+            break;
+            
+          case 'solid':
+            chatMessages.style.background = 'rgba(49, 116, 143, 0.2)';
+            chatMessages.classList.add('bg-transparent');
+            chatContainer.style.background = '#31748f'; // Use hex instead of CSS variable for reliability
+            console.log('✅ Solid background applied');
+            break;
+            
+          case 'particles':
+            chatMessages.style.background = 'rgba(25, 23, 36, 0.3)';
+            chatMessages.classList.add('bg-transparent');
+            chatContainer.style.background = '#191724'; // Use hex instead of CSS variable
+            chatParticlesCanvas.classList.remove('hidden');
+            
+            try {
+              initChatParticles();
+              console.log('✅ Particles background applied');
+            } catch (particlesError) {
+              console.error('❌ Error initializing particles:', particlesError);
+              // Fallback to solid background
+              chatContainer.style.background = '#191724';
+              chatParticlesCanvas.classList.add('hidden');
+            }
+            break;
+            
+          case 'default':
+          default:
+            chatMessages.classList.remove('bg-transparent');
+            chatMessages.style.background = '';
+            chatContainer.style.background = '';
+            console.log('✅ Default background applied');
+            break;
+        }
+        
+        console.log('✅ Chat background applied successfully');
+        
+      } catch (error) {
+        console.error('❌ Error in applyChatBackground:', error);
+        // Fallback to default
+        try {
+          chatMessages.classList.remove('bg-transparent');
+          chatMessages.style.background = '';
+          chatContainer.style.background = '';
+          chatParticlesCanvas.classList.add('hidden');
+          console.log('🔄 Fallback to default background');
+        } catch (fallbackError) {
+          console.error('❌ Even fallback failed:', fallbackError);
+        }
+      }
+    }
+
+    function updateChatBackgroundUI() {
+      console.log('🔄 Updating chat background UI for:', currentChatBackground);
+      
+      try {
+        // Update active state of background options
+        const backgroundOptions = document.querySelectorAll('.chat-bg-option');
+        console.log('📍 Found background options:', backgroundOptions.length);
+        
+        backgroundOptions.forEach(option => {
+          if (option && option.classList) {
+            option.classList.remove('border-rp-foam');
+            option.classList.add('border-transparent');
+          }
+        });
+        
+        const activeOption = document.querySelector(`[data-bg="${currentChatBackground}"]`);
+        console.log('📍 Active option found:', !!activeOption);
+        
+        if (activeOption && activeOption.classList) {
+          activeOption.classList.remove('border-transparent');
+          activeOption.classList.add('border-rp-foam');
+          console.log('✅ Active option updated');
+        } else {
+          console.warn('⚠️ Active option not found for background:', currentChatBackground);
+        }
+        
+        console.log('✅ Chat background UI updated successfully');
+        
+      } catch (error) {
+        console.error('❌ Error updating chat background UI:', error);
+      }
+    }
+
+    function initChatParticles() {
+      console.log('✨ Initializing chat particles');
+      
+      const canvas = document.getElementById('chatParticlesCanvas');
+      if (!canvas) {
+        console.error('❌ Chat particles canvas not found');
+        return;
+      }
+      
+      const container = document.getElementById('chatMessagesContainer');
+      if (!container) {
+        console.error('❌ Chat messages container not found');
+        return;
+      }
+      
+      try {
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          console.error('❌ Could not get 2D context');
+          return;
+        }
+        
+        // Set canvas size to match container
+        const rect = container.getBoundingClientRect();
+        canvas.width = container.offsetWidth || 300;
+        canvas.height = container.offsetHeight || 200;
+        
+        console.log('📐 Canvas size:', canvas.width + 'x' + canvas.height);
+        
+        const particlesArray = [];
+        const particleCount = 15; // Fewer particles for chat area
+        
+        class ChatParticle {
+          constructor() {
+            this.x = Math.random() * canvas.width;
+            this.y = Math.random() * canvas.height;
+            this.vx = (Math.random() - 0.5) * 1;
+            this.vy = (Math.random() - 0.5) * 1;
+            this.radius = Math.random() * 2 + 1;
+            this.opacity = Math.random() * 0.3 + 0.1;
+            this.color = this.getRandomColor();
+          }
+          
+          getRandomColor() {
+            const colors = [
+              'rgba(156, 207, 216, ', // foam
+              'rgba(196, 167, 231, ', // iris
+              'rgba(246, 193, 119, ', // gold
+              'rgba(235, 188, 186, '  // love
+            ];
+            return colors[Math.floor(Math.random() * colors.length)];
+          }
+          
+          update() {
+            this.x += this.vx;
+            this.y += this.vy;
+            
+            if (this.x < 0 || this.x > canvas.width) this.vx *= -1;
+            if (this.y < 0 || this.y > canvas.height) this.vy *= -1;
+          }
+          
+          draw() {
+            try {
+              ctx.beginPath();
+              ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+              ctx.fillStyle = this.color + this.opacity + ')';
+              ctx.fill();
+            } catch (drawError) {
+              console.warn('⚠️ Error drawing particle:', drawError);
+            }
+          }
+        }
+        
+        function createChatParticles() {
+          particlesArray.length = 0;
+          for (let i = 0; i < particleCount; i++) {
+            particlesArray.push(new ChatParticle());
+          }
+          console.log('🎨 Created', particleCount, 'particles');
+        }
+        
+        function animateChatParticles() {
+          try {
+            if (!canvas || canvas.classList.contains('hidden') || currentChatBackground !== 'particles') {
+              console.log('🛑 Stopping particles animation - conditions not met');
+              return;
+            }
+            
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            particlesArray.forEach(particle => {
+              particle.update();
+              particle.draw();
+            });
+            
+            chatParticlesAnimation = requestAnimationFrame(animateChatParticles);
+            
+          } catch (animError) {
+            console.error('❌ Error in particles animation:', animError);
+            // Stop animation on error
+            if (chatParticlesAnimation && typeof chatParticlesAnimation === 'number') {
+              cancelAnimationFrame(chatParticlesAnimation);
+            }
+            chatParticlesAnimation = null;
+          }
+        }
+        
+        createChatParticles();
+        animateChatParticles();
+        
+        // Store animation reference for cleanup with better error handling
+        const animationId = chatParticlesAnimation;
+        chatParticlesAnimation = {
+          stop: () => {
+            try {
+              if (animationId && typeof animationId === 'number') {
+                cancelAnimationFrame(animationId);
+                console.log('🛑 Particles animation stopped');
+              }
+              if (chatParticlesAnimation && typeof chatParticlesAnimation === 'number') {
+                cancelAnimationFrame(chatParticlesAnimation);
+              }
+              chatParticlesAnimation = null;
+            } catch (stopError) {
+              console.error('❌ Error stopping particles:', stopError);
+              chatParticlesAnimation = null;
+            }
+          }
+        };
+        
+        console.log('✅ Chat particles initialized successfully');
+        
+      } catch (error) {
+        console.error('❌ Error initializing chat particles:', error);
+        chatParticlesAnimation = null;
+      }
     }
 
     function renderChatMessages(messages) {
@@ -1648,12 +2398,509 @@
           timestamp: firebase.firestore.FieldValue.serverTimestamp()
         });
         
+        // Update friendship streak when message is sent
+        await updateFriendshipStreak(activeChatUser.uid);
+        
         input.value = '';
       } catch (error) {
         console.error('Error sending message:', error);
         showNotification('Error', 'Failed to send message', 'error');
       }
     }
+
+    // ===== FRIENDSHIP STREAK SYSTEM =====
+    
+    async function updateFriendshipStreak(friendUid) {
+      if (!currentUser || !friendUid) return;
+      
+      try {
+        const streakId = [currentUser.uid, friendUid].sort().join('_');
+        const streakRef = db.collection('friendStreaks').doc(streakId);
+        const today = new Date().toDateString();
+        
+        const streakDoc = await streakRef.get();
+        
+        if (streakDoc.exists) {
+          const streakData = streakDoc.data();
+          const lastActivity = streakData.lastActivity;
+          const currentStreak = streakData.streak || 0;
+          
+          if (lastActivity === today) {
+            // Already updated today, don't change streak
+            return;
+          }
+          
+          const yesterday = new Date();
+          yesterday.setDate(yesterday.getDate() - 1);
+          const yesterdayStr = yesterday.toDateString();
+          
+          let newStreak;
+          if (lastActivity === yesterdayStr) {
+            // Consecutive day, increment streak
+            newStreak = currentStreak + 1;
+          } else {
+            // Streak broken, start new streak
+            newStreak = 1;
+          }
+          
+          await streakRef.update({
+            streak: newStreak,
+            lastActivity: today,
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+          });
+        } else {
+          // Create new streak
+          await streakRef.set({
+            users: [currentUser.uid, friendUid].sort(),
+            streak: 1,
+            lastActivity: today,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+          });
+        }
+        
+        // Reload streaks to update UI
+        await loadFriendshipStreaks();
+        
+      } catch (error) {
+        console.error('Error updating friendship streak:', error);
+      }
+    }
+
+    async function loadFriendshipStreaks() {
+      if (!currentUser) return;
+      
+      try {
+        const streaksQuery = await db.collection('friendStreaks')
+          .where('users', 'array-contains', currentUser.uid)
+          .orderBy('streak', 'desc')
+          .limit(10)
+          .get();
+        
+        const streaksList = document.getElementById('friendStreaksList');
+        const noStreaks = document.getElementById('noStreaks');
+        
+        if (streaksQuery.empty) {
+          streaksList.innerHTML = '';
+          noStreaks.classList.remove('hidden');
+          return;
+        }
+        
+        noStreaks.classList.add('hidden');
+        
+        const streaksHtml = await Promise.all(streaksQuery.docs.map(async (doc) => {
+          const streakData = doc.data();
+          const friendUid = streakData.users.find(uid => uid !== currentUser.uid);
+          
+          if (!friendUid) return '';
+          
+          // Get friend's info
+          const friendDoc = await db.collection('users').doc(friendUid).get();
+          const friendData = friendDoc.exists ? friendDoc.data() : null;
+          
+          if (!friendData) return '';
+          
+          const friendName = sanitizeText(friendData.displayName || 'Unknown User');
+          const friendPhoto = friendData.photoURL || '/default-avatar.png';
+          const streak = streakData.streak || 0;
+          
+          // Check if streak is still active (last activity was today or yesterday)
+          const today = new Date().toDateString();
+          const yesterday = new Date();
+          yesterday.setDate(yesterday.getDate() - 1);
+          const yesterdayStr = yesterday.toDateString();
+          
+          const isActive = streakData.lastActivity === today || streakData.lastActivity === yesterdayStr;
+          const streakEmoji = getStreakEmoji(streak);
+          
+          return `
+            <div class="flex items-center justify-between p-3 bg-rp-overlay rounded-lg ${isActive ? 'border border-rp-gold/30' : 'opacity-60'}">
+              <div class="flex items-center gap-3">
+                <img src="${sanitizeText(friendPhoto)}" class="w-10 h-10 rounded-full" alt="${friendName}">
+                <div>
+                  <p class="font-medium text-rp-text">${friendName}</p>
+                  <p class="text-sm text-rp-subtle">${isActive ? 'Active streak' : 'Streak ended'}</p>
+                </div>
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="text-lg">${streakEmoji}</span>
+                <span class="text-xl font-bold text-rp-gold">${streak}</span>
+                <span class="text-sm text-rp-subtle">day${streak !== 1 ? 's' : ''}</span>
+              </div>
+            </div>
+          `;
+        }));
+        
+        streaksList.innerHTML = streaksHtml.filter(html => html).join('');
+        
+      } catch (error) {
+        console.error('Error loading friendship streaks:', error);
+      }
+    }
+
+    function getStreakEmoji(streak) {
+      if (streak >= 365) return '👑'; // Year streak
+      if (streak >= 100) return '💎'; // 100+ days
+      if (streak >= 30) return '🚀';  // Month streak
+      if (streak >= 14) return '⭐';  // Two weeks
+      if (streak >= 7) return '🔥';   // Week streak
+      if (streak >= 3) return '✨';   // 3+ days
+      return '🌟'; // New streak
+    }
+
+    async function getFriendshipStreak(friendUid) {
+      if (!currentUser || !friendUid) return 0;
+      
+      try {
+        const streakId = [currentUser.uid, friendUid].sort().join('_');
+        const streakDoc = await db.collection('friendStreaks').doc(streakId).get();
+        
+        if (streakDoc.exists) {
+          const streakData = streakDoc.data();
+          const today = new Date().toDateString();
+          const yesterday = new Date();
+          yesterday.setDate(yesterday.getDate() - 1);
+          const yesterdayStr = yesterday.toDateString();
+          
+          // Check if streak is still active
+          const isActive = streakData.lastActivity === today || streakData.lastActivity === yesterdayStr;
+          return isActive ? (streakData.streak || 0) : 0;
+        }
+        
+        return 0;
+      } catch (error) {
+        console.error('Error getting friendship streak:', error);
+        return 0;
+      }
+    }
+
+    // Get friend's status note if they have one
+    async function getFriendStatusNote(friendUid) {
+      try {
+        const statusNoteDoc = await db.collection('statusNotes').doc(friendUid).get();
+        if (statusNoteDoc.exists) {
+          const noteData = statusNoteDoc.data();
+          const now = new Date();
+          
+          // Handle different date formats safely
+          let expiry;
+          if (noteData.expiresAt && typeof noteData.expiresAt.toDate === 'function') {
+            // Firestore timestamp
+            expiry = noteData.expiresAt.toDate();
+          } else if (noteData.expiresAt instanceof Date) {
+            // Regular Date object
+            expiry = noteData.expiresAt;
+          } else if (noteData.expiresAt && noteData.expiresAt.seconds) {
+            // Firestore timestamp in seconds format
+            expiry = new Date(noteData.expiresAt.seconds * 1000);
+          } else {
+            // Invalid date format, treat as expired
+            return '';
+          }
+          
+          if (expiry > now) {
+            return noteData.text || '';
+          }
+        }
+        return '';
+      } catch (error) {
+        console.error('Error loading friend status note:', error);
+        return '';
+      }
+    }
+
+    // ===== GAME STATISTICS SYSTEM =====
+    
+    // Format duration in milliseconds to readable string
+    function formatDuration(ms) {
+      const hours = Math.floor(ms / 3600000);
+      const minutes = Math.floor((ms % 3600000) / 60000);
+      const seconds = Math.floor((ms % 60000) / 1000);
+      
+      if (hours > 0) {
+        return `${hours}h ${minutes}m`;
+      } else if (minutes > 0) {
+        return `${minutes}m`;
+      } else {
+        return `${seconds}s`;
+      }
+    }
+
+    async function loadGameStatistics() {
+      if (!currentUser) return;
+      
+      try {
+        console.log('📊 Loading game statistics for user:', currentUser.uid);
+        const userDoc = await db.collection('users').doc(currentUser.uid).get();
+        const userData = userDoc.exists ? userDoc.data() : {};
+        const gameStats = userData.gameStats || {};
+        
+        console.log('📊 Raw gameStats data:', gameStats);
+        
+        // Calculate overall statistics
+        let totalGamesPlayed = 0;
+        let totalPlayTime = 0;
+        let totalSessions = 0;
+        const gamesList = [];
+        
+        Object.entries(gameStats).forEach(([gameId, stats]) => {
+          console.log(`📊 Processing game ${gameId}:`, stats);
+          if (stats && (stats.sessionsPlayed > 0 || stats.totalPlayTime > 0)) {
+            totalGamesPlayed++; // This counts unique games played
+            totalPlayTime += stats.totalPlayTime || 0;
+            totalSessions += stats.sessionsPlayed || 0;
+            
+            // Find game info
+            const game = gamesData.find(g => String(g.id) === String(gameId));
+            if (game) {
+              gamesList.push({
+                ...game,
+                stats: stats
+              });
+              console.log(`📊 Added game to list: ${game.title}`);
+            } else {
+              console.warn(`📊 Game not found in gamesData: ${gameId}`);
+            }
+          }
+        });
+        
+        console.log(`📊 Final stats - Games: ${totalGamesPlayed}, Time: ${totalPlayTime}ms, Sessions: ${totalSessions}`);
+        
+        // Update UI
+        document.getElementById('totalGamesPlayed').textContent = totalGamesPlayed;
+        document.getElementById('totalPlayTime').textContent = formatDuration(totalPlayTime);
+        document.getElementById('averageSessionTime').textContent = 
+          totalSessions > 0 ? formatDuration(Math.round(totalPlayTime / totalSessions)) : '0m';
+        
+        // Show top games by play time
+        renderTopGames(gamesList);
+        
+      } catch (error) {
+        console.error('❌ Error loading game statistics:', error);
+      }
+    }
+
+    function renderTopGames(gamesList) {
+      const topGamesList = document.getElementById('topGamesList');
+      const noGameStats = document.getElementById('noGameStats');
+      
+      if (gamesList.length === 0) {
+        topGamesList.innerHTML = '';
+        noGameStats.classList.remove('hidden');
+        return;
+      }
+      
+      noGameStats.classList.add('hidden');
+      
+      // Sort by total play time and take top 5
+      const topGames = gamesList
+        .sort((a, b) => (b.stats.totalPlayTime || 0) - (a.stats.totalPlayTime || 0))
+        .slice(0, 5);
+      
+      topGamesList.innerHTML = topGames.map((game, index) => {
+        const stats = game.stats;
+        const playTime = formatDuration(stats.totalPlayTime || 0);
+        const sessions = stats.sessionsPlayed || 0;
+        const avgSession = formatDuration(stats.averageSessionTime || 0);
+        
+        // Medal emoji for top 3
+        const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `${index + 1}.`;
+        
+        return `
+          <div class="flex items-center gap-3 p-3 bg-rp-overlay rounded-lg">
+            <div class="text-lg font-bold text-rp-gold w-8">${medal}</div>
+            <img src="${game.image || '/default-game.png'}" class="w-12 h-12 rounded-lg object-cover" alt="${game.title}">
+            <div class="flex-1 min-w-0">
+              <h4 class="font-medium text-rp-text truncate">${sanitizeText(game.title)}</h4>
+              <div class="flex gap-4 text-xs text-rp-subtle">
+                <span>⏱️ ${playTime}</span>
+                <span>🎮 ${sessions} sessions</span>
+                <span>📊 ${avgSession} avg</span>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // ===== FRIEND LEADERBOARD SYSTEM =====
+    
+    async function loadFriendLeaderboard() {
+      if (!currentUser) return;
+      
+      try {
+        // Get current user's friends list
+        const userDoc = await db.collection('users').doc(currentUser.uid).get();
+        const userData = userDoc.data();
+        const friendUids = userData.friends || [];
+        
+        if (friendUids.length === 0) {
+          document.getElementById('noLeaderboardData').classList.remove('hidden');
+          document.getElementById('friendLeaderboardList').innerHTML = '';
+          return;
+        }
+        
+        // Load friends' data in batches (Firestore 'in' limit is 10)
+        const friendsData = [];
+        for (let i = 0; i < friendUids.length; i += 10) {
+          const batch = friendUids.slice(i, i + 10);
+          const friendsQuery = await db.collection('users')
+            .where(firebase.firestore.FieldPath.documentId(), 'in', batch)
+            .get();
+          
+          friendsQuery.forEach(doc => {
+            friendsData.push({ uid: doc.id, ...doc.data() });
+          });
+        }
+        
+        await renderFriendLeaderboard(friendsData);
+        
+      } catch (error) {
+        console.error('Error loading friend leaderboard:', error);
+      }
+    }
+
+    async function renderFriendLeaderboard(friendsData) {
+      const leaderboardList = document.getElementById('friendLeaderboardList');
+      const noLeaderboardData = document.getElementById('noLeaderboardData');
+      const leaderboardType = document.getElementById('leaderboardType').value;
+      
+      // Process friends' game statistics
+      const leaderboardData = friendsData.map(friend => {
+        const gameStats = friend.gameStats || {};
+        let totalGamesPlayed = 0;
+        let totalPlayTime = 0;
+        let totalSessions = 0;
+        
+        Object.values(gameStats).forEach(stats => {
+          if (stats && stats.sessionsPlayed > 0) {
+            totalGamesPlayed++;
+            totalPlayTime += stats.totalPlayTime || 0;
+            totalSessions += stats.sessionsPlayed || 0;
+          }
+        });
+        
+        return {
+          ...friend,
+          totalGamesPlayed,
+          totalPlayTime,
+          averageSessionTime: totalSessions > 0 ? Math.round(totalPlayTime / totalSessions) : 0
+        };
+      });
+      
+      // Sort based on selected leaderboard type
+      let sortedData;
+      switch (leaderboardType) {
+        case 'totalPlayTime':
+          sortedData = leaderboardData.sort((a, b) => b.totalPlayTime - a.totalPlayTime);
+          break;
+        case 'averageSession':
+          sortedData = leaderboardData.sort((a, b) => b.averageSessionTime - a.averageSessionTime);
+          break;
+        case 'gamesPlayed':
+        default:
+          sortedData = leaderboardData.sort((a, b) => b.totalGamesPlayed - a.totalGamesPlayed);
+          break;
+      }
+      
+      // Filter out friends with no gaming data
+      const filteredData = sortedData.filter(friend => {
+        return friend.totalGamesPlayed > 0 || friend.totalPlayTime > 0;
+      });
+      
+      if (filteredData.length === 0) {
+        leaderboardList.innerHTML = '';
+        noLeaderboardData.classList.remove('hidden');
+        return;
+      }
+      
+      noLeaderboardData.classList.add('hidden');
+      
+      leaderboardList.innerHTML = filteredData.slice(0, 10).map((friend, index) => {
+        const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `${index + 1}.`;
+        
+        let statValue;
+        let statLabel;
+        switch (leaderboardType) {
+          case 'totalPlayTime':
+            statValue = formatDuration(friend.totalPlayTime);
+            statLabel = 'Total Time';
+            break;
+          case 'averageSession':
+            statValue = formatDuration(friend.averageSessionTime);
+            statLabel = 'Avg Session';
+            break;
+          case 'gamesPlayed':
+          default:
+            statValue = friend.totalGamesPlayed;
+            statLabel = 'Games Played';
+            break;
+        }
+        
+        return `
+          <div class="flex items-center gap-3 p-3 bg-rp-overlay rounded-lg">
+            <div class="text-lg font-bold text-rp-gold w-8">${medal}</div>
+            <img src="${friend.photoURL || '/default-avatar.png'}" class="w-10 h-10 rounded-full" alt="${friend.displayName}">
+            <div class="flex-1 min-w-0">
+              <h4 class="font-medium text-rp-text truncate">${sanitizeText(friend.displayName || 'Unknown User')}</h4>
+              <div class="flex gap-4 text-xs text-rp-subtle">
+                <span>🎮 ${friend.totalGamesPlayed} games</span>
+                <span>⏱️ ${formatDuration(friend.totalPlayTime)}</span>
+              </div>
+            </div>
+            <div class="text-right">
+              <div class="text-lg font-bold text-rp-foam">${statValue}</div>
+              <div class="text-xs text-rp-subtle">${statLabel}</div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // Initialize game statistics events
+    function initializeGameStatsEvents() {
+      const leaderboardTypeSelect = document.getElementById('leaderboardType');
+      if (leaderboardTypeSelect) {
+        leaderboardTypeSelect.addEventListener('change', async () => {
+          await loadFriendLeaderboard();
+        });
+      }
+      
+      const refreshStatsBtn = document.getElementById('refreshStatsBtn');
+      if (refreshStatsBtn) {
+        refreshStatsBtn.addEventListener('click', async () => {
+          console.log('🔄 Manual refresh triggered');
+          await loadGameStatistics();
+          await loadFriendLeaderboard();
+          showNotification('Statistics Updated', 'Your gaming statistics have been refreshed!', 'info');
+        });
+      }
+    }
+
+    // Debug function for checking game statistics (call from console)
+    window.debugGameStats = async function() {
+      if (!currentUser) {
+        console.log('❌ No user logged in');
+        return;
+      }
+      
+      try {
+        const userDoc = await db.collection('users').doc(currentUser.uid).get();
+        const userData = userDoc.exists ? userDoc.data() : {};
+        console.log('🔍 Full user data:', userData);
+        console.log('🔍 Game stats:', userData.gameStats);
+        
+        if (userData.gameStats) {
+          Object.entries(userData.gameStats).forEach(([gameId, stats]) => {
+            console.log(`🎮 Game ${gameId}:`, stats);
+          });
+        } else {
+          console.log('⚠️ No gameStats found - have you played any games yet?');
+        }
+      } catch (error) {
+        console.error('❌ Error fetching debug data:', error);
+      }
+    };
 
     // User search functionality
     async function searchUsers(query) {
@@ -1967,16 +3214,35 @@
         // Include current user in activity
         const allUids = [currentUser.uid, ...friendUids];
         
-        // Load recent activity from friends and self
-        const activityQuery = await db.collection('activity')
-          .where('userId', 'in', allUids.slice(0, 10)) // Firestore 'in' limit is 10
-          .orderBy('timestamp', 'desc')
-          .limit(20)
-          .get();
-        
+                // Load recent activity from friends and self (simplified to avoid index issues)
         const activities = [];
-        activityQuery.forEach(doc => {
-          activities.push({ id: doc.id, ...doc.data() });
+        
+        // Load activities for each user individually to avoid complex index requirements
+        const userBatches = [];
+        for (let i = 0; i < allUids.length; i += 10) {
+          userBatches.push(allUids.slice(i, i + 10));
+        }
+        
+        for (const batch of userBatches.slice(0, 1)) { // Limit to first 10 friends for now
+          try {
+            const activityQuery = await db.collection('activity')
+              .where('userId', 'in', batch)
+              .limit(5) // 5 activities per user batch
+              .get();
+              
+            activityQuery.forEach(doc => {
+              activities.push({ id: doc.id, ...doc.data() });
+            });
+          } catch (batchError) {
+            console.warn('Error loading activity batch:', batchError);
+          }
+        }
+        
+        // Sort activities by timestamp (client-side since we can't use orderBy with where)
+        activities.sort((a, b) => {
+          const aTime = a.timestamp?.toDate?.() || new Date(0);
+          const bTime = b.timestamp?.toDate?.() || new Date(0);
+          return bTime - aTime;
         });
         
         if (activityLoader) activityLoader.classList.add('hidden');
@@ -2356,8 +3622,332 @@
       }, 4000);
     }
 
+    // Status Notes Functions - 24 Hour Status Notes
+    let currentStatusNote = null;
+    let activeStatusNoteTimer = null;
+    let activeFriendForNote = null;
+
+    async function loadStatusNote() {
+      if (!currentUser) return;
+      
+      try {
+        const statusNoteDoc = await db.collection('statusNotes').doc(currentUser.uid).get();
+        if (statusNoteDoc.exists) {
+          const noteData = statusNoteDoc.data();
+          const now = new Date();
+          
+          // Handle different date formats (Firestore timestamp or regular Date)
+          let expiry;
+          if (noteData.expiresAt && typeof noteData.expiresAt.toDate === 'function') {
+            // Firestore timestamp
+            expiry = noteData.expiresAt.toDate();
+          } else if (noteData.expiresAt instanceof Date) {
+            // Regular Date object
+            expiry = noteData.expiresAt;
+          } else if (noteData.expiresAt && noteData.expiresAt.seconds) {
+            // Firestore timestamp in seconds format
+            expiry = new Date(noteData.expiresAt.seconds * 1000);
+          } else {
+            console.warn('Unable to parse expiry date:', noteData.expiresAt);
+            return;
+          }
+          
+          if (expiry > now) {
+            currentStatusNote = noteData;
+            displayStatusNote(noteData);
+            scheduleStatusNoteExpiry(expiry);
+          } else {
+            // Note expired, remove it
+            await db.collection('statusNotes').doc(currentUser.uid).delete();
+          }
+        }
+      } catch (error) {
+        console.error('Error loading status note:', error);
+      }
+    }
+
+    function displayStatusNote(noteData) {
+      const noteContainer = document.getElementById('currentStatusNote');
+      const noteText = document.getElementById('statusNoteText');
+      const noteExpiry = document.getElementById('statusNoteExpiry');
+      
+      if (noteContainer && noteText && noteExpiry) {
+        // Parse expiry date safely
+        let expiryDate;
+        if (noteData.expiresAt && typeof noteData.expiresAt.toDate === 'function') {
+          // Firestore timestamp
+          expiryDate = noteData.expiresAt.toDate();
+        } else if (noteData.expiresAt instanceof Date) {
+          // Regular Date object
+          expiryDate = noteData.expiresAt;
+        } else if (noteData.expiresAt && noteData.expiresAt.seconds) {
+          // Firestore timestamp in seconds format
+          expiryDate = new Date(noteData.expiresAt.seconds * 1000);
+        } else {
+          console.warn('Unable to display status note - invalid expiry date:', noteData.expiresAt);
+          return;
+        }
+        
+        noteText.textContent = noteData.text || '';
+        noteExpiry.textContent = getTimeUntilExpiry(expiryDate);
+        noteContainer.classList.remove('hidden');
+        
+        // Update expiry text every minute
+        if (activeStatusNoteTimer) clearInterval(activeStatusNoteTimer);
+        activeStatusNoteTimer = setInterval(() => {
+          const timeLeft = getTimeUntilExpiry(expiryDate);
+          if (timeLeft === 'Expired') {
+            clearStatusNote();
+          } else {
+            noteExpiry.textContent = timeLeft;
+          }
+        }, 60000);
+      }
+    }
+
+    function getTimeUntilExpiry(expiryDate) {
+      const now = new Date();
+      const diff = expiryDate - now;
+      
+      if (diff <= 0) return 'Expired';
+      
+      const hours = Math.floor(diff / (1000 * 60 * 60));
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      
+      if (hours > 0) {
+        return `${hours}h ${minutes}m left`;
+      } else {
+        return `${minutes}m left`;
+      }
+    }
+
+    function scheduleStatusNoteExpiry(expiryDate) {
+      const now = new Date();
+      const timeUntilExpiry = expiryDate - now;
+      
+      if (timeUntilExpiry > 0) {
+        setTimeout(() => {
+          clearStatusNote();
+        }, timeUntilExpiry);
+      }
+    }
+
+    async function clearStatusNote() {
+      try {
+        await db.collection('statusNotes').doc(currentUser.uid).delete();
+        currentStatusNote = null;
+        
+        const noteContainer = document.getElementById('currentStatusNote');
+        if (noteContainer) {
+          noteContainer.classList.add('hidden');
+        }
+        
+        if (activeStatusNoteTimer) {
+          clearInterval(activeStatusNoteTimer);
+          activeStatusNoteTimer = null;
+        }
+      } catch (error) {
+        console.error('Error clearing status note:', error);
+      }
+    }
+
+    async function saveStatusNote() {
+      const noteInput = document.getElementById('statusNoteInput');
+      if (!noteInput) {
+        console.error('Status note input element not found');
+        return;
+      }
+      
+      const noteText = noteInput.value.trim();
+      
+      // Validation
+      if (!noteText) {
+        showNotification('Empty Note', 'Please enter a status note before saving', 'warning');
+        return;
+      }
+      
+      if (!currentUser) {
+        showNotification('Not Logged In', 'Please log in to save status notes', 'error');
+        return;
+      }
+      
+      if (noteText.length > 100) {
+        showNotification('Note Too Long', 'Status notes must be 100 characters or less', 'error');
+        return;
+      }
+      
+      try {
+        // Sanitize the note text
+        const safeNoteText = sanitizeText(noteText);
+        
+        if (!safeNoteText) {
+          showNotification('Invalid Text', 'Please enter valid text for your status note', 'error');
+          return;
+        }
+        
+        const expiresAt = new Date();
+        expiresAt.setHours(expiresAt.getHours() + 24);
+        
+        const statusNoteData = {
+          userId: currentUser.uid,
+          text: safeNoteText,
+          createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+          expiresAt: expiresAt // Use regular Date object - Firestore will handle conversion
+        };
+        
+        console.log('📝 Saving status note:', statusNoteData);
+        
+        await db.collection('statusNotes').doc(currentUser.uid).set(statusNoteData);
+        
+        // Create a properly formatted object for display
+        currentStatusNote = { 
+          ...statusNoteData, 
+          expiresAt: expiresAt // Use the actual date for consistent handling
+        };
+        
+        // Close modal and clear input
+        const modal = document.getElementById('statusNoteModal');
+        if (modal) modal.classList.add('hidden');
+        noteInput.value = '';
+        
+        // Update character count
+        updateStatusNoteCharCount();
+        
+        displayStatusNote(currentStatusNote);
+        showNotification('Status Note Posted', 'Your 24-hour status note is now visible to friends!', 'success');
+        
+      } catch (error) {
+        console.error('Error saving status note:', error);
+        console.error('Error details:', error.message || error);
+        
+        let errorMessage = 'Failed to save status note';
+        if (error.message) {
+          errorMessage += ': ' + error.message;
+        }
+        showNotification('Error', errorMessage, 'error');
+      }
+    }
+
+    // Friend Notes Functions - Private Notes
+    async function openFriendNotes(friendUid, friendName, friendPhoto) {
+      activeFriendForNote = friendUid;
+      
+      // Set friend info in modal
+      document.getElementById('friendNoteAvatar').src = friendPhoto || '/default-avatar.png';
+      document.getElementById('friendNoteName').textContent = friendName;
+      
+      // Load existing notes
+      try {
+        const noteDoc = await db.collection('friendNotes').doc(`${currentUser.uid}_${friendUid}`).get();
+        if (noteDoc.exists) {
+          document.getElementById('friendNoteInput').value = noteDoc.data().note || '';
+        } else {
+          document.getElementById('friendNoteInput').value = '';
+        }
+        updateFriendNoteCharCount();
+      } catch (error) {
+        console.error('Error loading friend note:', error);
+      }
+      
+      document.getElementById('friendNotesModal').classList.remove('hidden');
+    }
+
+    async function saveFriendNote() {
+      const noteText = document.getElementById('friendNoteInput').value.trim();
+      if (!activeFriendForNote || !currentUser) return;
+      
+      try {
+        const noteData = {
+          userId: currentUser.uid,
+          friendId: activeFriendForNote,
+          note: noteText,
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        };
+        
+        if (noteText) {
+          await db.collection('friendNotes').doc(`${currentUser.uid}_${activeFriendForNote}`).set(noteData);
+          showNotification('Notes Saved', 'Your private notes have been saved', 'success');
+        } else {
+          // Delete note if empty
+          await db.collection('friendNotes').doc(`${currentUser.uid}_${activeFriendForNote}`).delete();
+          showNotification('Notes Cleared', 'Your private notes have been cleared', 'success');
+        }
+        
+        document.getElementById('friendNotesModal').classList.add('hidden');
+        activeFriendForNote = null;
+        
+      } catch (error) {
+        console.error('Error saving friend note:', error);
+        showNotification('Error', 'Failed to save notes', 'error');
+      }
+    }
+
+    function updateStatusNoteCharCount() {
+      const input = document.getElementById('statusNoteInput');
+      const counter = document.getElementById('statusNoteCharCount');
+      if (input && counter) {
+        counter.textContent = input.value.length;
+      }
+    }
+
+    function updateFriendNoteCharCount() {
+      const input = document.getElementById('friendNoteInput');
+      const counter = document.getElementById('friendNoteCharCount');
+      if (input && counter) {
+        counter.textContent = input.value.length;
+      }
+    }
+
+    // Load friend notes for display in friend cards
+    async function loadFriendNote(friendUid) {
+      if (!currentUser) return '';
+      
+      try {
+        const noteDoc = await db.collection('friendNotes').doc(`${currentUser.uid}_${friendUid}`).get();
+        return noteDoc.exists ? noteDoc.data().note || '' : '';
+      } catch (error) {
+        console.error('Error loading friend note:', error);
+        return '';
+      }
+    }
+
     // Initialize friend system event listeners
     function initializeFriendSystemEvents() {
+      // Status Notes Event Listeners
+      document.getElementById('addStatusNote').addEventListener('click', () => {
+        document.getElementById('statusNoteModal').classList.remove('hidden');
+        document.getElementById('statusNoteInput').focus();
+      });
+      
+      document.getElementById('closeStatusNoteModal').addEventListener('click', () => {
+        document.getElementById('statusNoteModal').classList.add('hidden');
+        document.getElementById('statusNoteInput').value = '';
+      });
+      
+      document.getElementById('saveStatusNote').addEventListener('click', saveStatusNote);
+      document.getElementById('cancelStatusNote').addEventListener('click', () => {
+        document.getElementById('statusNoteModal').classList.add('hidden');
+        document.getElementById('statusNoteInput').value = '';
+      });
+      
+      document.getElementById('statusNoteInput').addEventListener('input', updateStatusNoteCharCount);
+      
+      document.getElementById('clearStatusNote').addEventListener('click', clearStatusNote);
+      
+      // Friend Notes Event Listeners
+      document.getElementById('closeFriendNotesModal').addEventListener('click', () => {
+        document.getElementById('friendNotesModal').classList.add('hidden');
+        activeFriendForNote = null;
+      });
+      
+      document.getElementById('saveFriendNote').addEventListener('click', saveFriendNote);
+      document.getElementById('cancelFriendNote').addEventListener('click', () => {
+        document.getElementById('friendNotesModal').classList.add('hidden');
+        activeFriendForNote = null;
+      });
+      
+      document.getElementById('friendNoteInput').addEventListener('input', updateFriendNoteCharCount);
+      
       // Search users modal
       document.getElementById('searchUsersBtn').addEventListener('click', () => {
         document.getElementById('userSearchModal').classList.remove('hidden');
@@ -2428,11 +4018,44 @@
       // Chat system
       document.getElementById('closeChatBtn').addEventListener('click', () => {
         document.getElementById('quickChatSection').classList.add('hidden');
+        
+        // Clean up chat listeners
         if (chatListener) {
           chatListener();
           chatListener = null;
         }
+        
+        if (window.chatBackgroundListener) {
+          window.chatBackgroundListener();
+          window.chatBackgroundListener = null;
+        }
+        
+        // Stop particles animation
+        if (chatParticlesAnimation && chatParticlesAnimation.stop) {
+          chatParticlesAnimation.stop();
+        }
+        
         activeChatUser = null;
+        activeChatRoomId = null;
+        currentChatBackground = 'default';
+      });
+      
+      // Chat settings toggle
+      document.getElementById('chatSettingsBtn').addEventListener('click', () => {
+        const settingsPanel = document.getElementById('chatBackgroundSettings');
+        if (settingsPanel) {
+          settingsPanel.classList.toggle('hidden');
+        }
+      });
+      
+      // Chat background options
+      document.querySelectorAll('.chat-bg-option').forEach(option => {
+        option.addEventListener('click', () => {
+          const background = option.dataset.bg;
+          if (background) {
+            setChatBackground(background);
+          }
+        });
       });
       
       document.getElementById('sendMessageBtn').addEventListener('click', sendMessage);
@@ -2778,6 +4401,19 @@
       // Setup friend actions if user is logged in
       if (currentUser && currentUser.uid !== uid) {
         await setupPublicProfileFriendActions(uid, userProfile);
+      } else if (!currentUser) {
+        // Show login prompt for non-logged in users
+        const actionsContainer = document.getElementById('publicProfileActions');
+        actionsContainer.innerHTML = `
+          <div class="text-center p-4 bg-rp-overlay rounded-lg">
+            <p class="text-rp-subtle mb-3">Sign in to add friends and message users</p>
+            <button onclick="googleSignIn()" class="px-4 py-2 bg-rp-foam hover:bg-rp-foam/90 text-rp-base rounded-lg transition-colors">
+              <i class='bx bxl-google mr-2'></i>
+              Sign In with Google
+            </button>
+          </div>
+        `;
+        actionsContainer.classList.remove('hidden');
       }
       
       const url = `${window.location.origin}${window.location.pathname}?uid=${encodeURIComponent(uid)}`;
@@ -2944,6 +4580,23 @@
         await loadUserProfile();
         await loadCurrentUserStatus();
         await updateOnlineFriendsList();
+        await loadFriendshipStreaks();
+        await loadGameStatistics();
+        await loadFriendLeaderboard();
+        await loadStatusNote();
+        
+        // Set up periodic refresh of statistics (every 30 seconds)
+        setInterval(async () => {
+          await loadGameStatistics();
+          await loadFriendLeaderboard();
+        }, 30000);
+        
+        // Refresh statistics when page regains focus (user returns from playing)
+        window.addEventListener('focus', async () => {
+          console.log('🔄 Page regained focus, refreshing statistics');
+          await loadGameStatistics();
+          await loadFriendLeaderboard();
+        });
         // Only load activity feed if elements exist
         if (document.getElementById('activityFeed')) {
           try {
@@ -2953,6 +4606,7 @@
           }
         }
         initializeFriendSystemEvents();
+        initializeGameStatsEvents();
         
         console.log('🎉 Friend system initialized successfully!');
         
@@ -3313,6 +4967,37 @@
         updateBackgroundUI();
       }
     });
+
+    // Profile Frame Update System
+    function applyProfileFrame() {
+      const selectedFrame = localStorage.getItem('carbon-selected-profile-frame');
+      const profileElements = document.querySelectorAll('.carbon-profile-avatar, .user-avatar, .profile-avatar, [data-profile-avatar]');
+      
+      profileElements.forEach(element => {
+        // Remove all existing profile frame classes
+        ['red', 'blue', 'orange', 'green', 'purple', 'gold', 'silver', 'rainbow'].forEach(color => {
+          element.classList.remove(`profile-frame-${color}`);
+        });
+        
+        // Apply active frame class
+        if (selectedFrame && selectedFrame !== 'default') {
+          element.classList.add(`profile-frame-${selectedFrame}`);
+        }
+      });
+    }
+
+    // Listen for profile frame updates from parent window
+    window.addEventListener('message', (event) => {
+      if (event.data && event.data.type === 'carbon-profile-frame-update') {
+        localStorage.setItem('carbon-selected-profile-frame', event.data.frameId);
+        applyProfileFrame();
+      }
+    });
+
+    // Apply active profile frame on page load
+    setTimeout(() => {
+      applyProfileFrame();
+    }, 1000);
 
     // Debug instructions for testing friend requests
     console.log(`
