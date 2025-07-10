@@ -221,6 +221,63 @@
     .activity-item:hover {
       background: rgba(156, 207, 216, 0.05);
     }
+
+    /* Chat Background Styles */
+    #chatMessagesContainer {
+      border-radius: 0.5rem;
+      overflow: hidden;
+    }
+
+    #chatParticlesCanvas {
+      border-radius: 0.5rem;
+    }
+
+    .chat-bg-option {
+      transition: all 0.2s ease;
+    }
+
+    .chat-bg-option:hover {
+      transform: scale(1.05);
+    }
+
+    .chat-bg-option.border-rp-foam {
+      box-shadow: 0 0 0 2px var(--theme-foam);
+    }
+
+    /* Enhanced message bubbles for better visibility on custom backgrounds */
+    #chatMessages .max-w-xs {
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    /* Chat settings panel animation */
+    #chatBackgroundSettings {
+      animation: slideDown 0.3s ease-out;
+    }
+
+    @keyframes slideDown {
+      from {
+        opacity: 0;
+        transform: translateY(-10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* Chat message container with custom backgrounds */
+    .chat-bg-gradient {
+      background: linear-gradient(135deg, rgba(156, 207, 216, 0.1) 0%, rgba(196, 167, 231, 0.1) 100%);
+    }
+
+    .chat-bg-solid {
+      background: rgba(49, 116, 143, 0.2);
+    }
+
+    .chat-bg-particles {
+      background: rgba(25, 23, 36, 0.3);
+    }
   </style>
 </head>
 <body class="bg-rp-base min-h-screen text-rp-text font-[Inter] antialiased">
@@ -593,13 +650,56 @@
                 <i class='bx bx-message-dots text-rp-iris'></i>
                 Chat with <span id="chatFriendName">Friend</span>
               </h3>
-              <button id="closeChatBtn" class="text-rp-subtle hover:text-rp-love transition-colors">
-                <i class='bx bx-x text-xl'></i>
-              </button>
+              <div class="flex items-center gap-2">
+                <button id="chatSettingsBtn" class="text-rp-subtle hover:text-rp-foam transition-colors" title="Chat Settings">
+                  <i class='bx bx-palette text-lg'></i>
+                </button>
+                <button id="closeChatBtn" class="text-rp-subtle hover:text-rp-love transition-colors">
+                  <i class='bx bx-x text-xl'></i>
+                </button>
+              </div>
             </div>
             
-            <div id="chatMessages" class="h-48 overflow-y-auto bg-rp-overlay rounded-lg p-3 mb-3 space-y-2">
-              <!-- Chat messages will be populated here -->
+            <!-- Chat Background Settings -->
+            <div id="chatBackgroundSettings" class="mb-4 p-3 bg-rp-overlay rounded-lg hidden">
+              <h4 class="text-sm font-medium text-rp-text mb-3 flex items-center gap-2">
+                <i class='bx bx-palette'></i>
+                Chat Background
+              </h4>
+              <div class="grid grid-cols-4 gap-2">
+                <button class="chat-bg-option w-full h-12 rounded-lg border-2 border-transparent hover:border-rp-foam/50 transition-all relative" 
+                        data-bg="default" title="Default">
+                  <div class="w-full h-full bg-rp-overlay rounded-lg flex items-center justify-center">
+                    <i class='bx bx-square text-rp-text'></i>
+                  </div>
+                </button>
+                <button class="chat-bg-option w-full h-12 rounded-lg border-2 border-transparent hover:border-rp-foam/50 transition-all relative" 
+                        data-bg="gradient" title="Gradient">
+                  <div class="w-full h-full rounded-lg" style="background: linear-gradient(135deg, #9ccfd8 0%, #c4a7e7 100%)"></div>
+                </button>
+                <button class="chat-bg-option w-full h-12 rounded-lg border-2 border-transparent hover:border-rp-foam/50 transition-all relative" 
+                        data-bg="solid" title="Solid Color">
+                  <div class="w-full h-full bg-rp-pine rounded-lg"></div>
+                </button>
+                <button class="chat-bg-option w-full h-12 rounded-lg border-2 border-transparent hover:border-rp-foam/50 transition-all relative" 
+                        data-bg="particles" title="Particles">
+                  <div class="w-full h-full bg-rp-base rounded-lg flex items-center justify-center">
+                    <div class="w-2 h-2 bg-rp-foam rounded-full animate-pulse"></div>
+                    <div class="w-1 h-1 bg-rp-gold rounded-full ml-1 animate-bounce"></div>
+                    <div class="w-1.5 h-1.5 bg-rp-iris rounded-full ml-1 animate-pulse" style="animation-delay: 0.5s;"></div>
+                  </div>
+                </button>
+              </div>
+              <p class="text-xs text-rp-subtle mt-2">Background changes are visible to both you and your friend</p>
+            </div>
+            
+            <div id="chatMessagesContainer" class="relative">
+              <!-- Chat background canvas for particles -->
+              <canvas id="chatParticlesCanvas" class="absolute inset-0 rounded-lg hidden pointer-events-none"></canvas>
+              
+              <div id="chatMessages" class="h-48 overflow-y-auto bg-rp-overlay rounded-lg p-3 mb-3 space-y-2 relative z-10">
+                <!-- Chat messages will be populated here -->
+              </div>
             </div>
             
             <div class="flex gap-2">
@@ -1749,6 +1849,11 @@
       return game ? game.title : 'Unknown Game';
     }
 
+    // Chat background system
+    let currentChatBackground = 'default';
+    let chatParticlesAnimation = null;
+    let activeChatRoomId = null;
+
     // Chat system
     async function startChat(friendUid, friendName) {
       activeChatUser = { uid: friendUid, name: friendName };
@@ -1759,6 +1864,10 @@
       
       // Create chat room ID (sorted UIDs to ensure consistency)
       const chatRoomId = [currentUser.uid, friendUid].sort().join('_');
+      activeChatRoomId = chatRoomId;
+      
+      // Load chat background
+      await loadChatBackground(chatRoomId);
       
       // Set up real-time chat listener
       if (chatListener) chatListener();
@@ -1772,8 +1881,222 @@
           renderChatMessages(messages);
         });
       
+      // Set up chat background listener
+      setupChatBackgroundListener(chatRoomId);
+      
       // Update streak when chat is opened
       await updateFriendshipStreak(friendUid);
+    }
+
+    async function loadChatBackground(chatRoomId) {
+      try {
+        const chatSettingsDoc = await db.collection('chatSettings').doc(chatRoomId).get();
+        if (chatSettingsDoc.exists) {
+          const settings = chatSettingsDoc.data();
+          currentChatBackground = settings.background || 'default';
+        } else {
+          currentChatBackground = 'default';
+        }
+        applyChatBackground(currentChatBackground);
+        updateChatBackgroundUI();
+      } catch (error) {
+        console.error('Error loading chat background:', error);
+        currentChatBackground = 'default';
+        applyChatBackground('default');
+      }
+    }
+
+    function setupChatBackgroundListener(chatRoomId) {
+      // Listen for background changes in real-time
+      const unsubscribe = db.collection('chatSettings').doc(chatRoomId)
+        .onSnapshot(doc => {
+          if (doc.exists) {
+            const settings = doc.data();
+            const newBackground = settings.background || 'default';
+            if (newBackground !== currentChatBackground) {
+              currentChatBackground = newBackground;
+              applyChatBackground(newBackground);
+              updateChatBackgroundUI();
+            }
+          }
+        });
+      
+      // Store unsubscribe function to clean up later
+      if (window.chatBackgroundListener) {
+        window.chatBackgroundListener();
+      }
+      window.chatBackgroundListener = unsubscribe;
+    }
+
+    async function setChatBackground(background) {
+      if (!activeChatRoomId || !currentUser) return;
+      
+      try {
+        await db.collection('chatSettings').doc(activeChatRoomId).set({
+          background: background,
+          updatedBy: currentUser.uid,
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        }, { merge: true });
+        
+        currentChatBackground = background;
+        applyChatBackground(background);
+        updateChatBackgroundUI();
+        
+        showNotification('Background Changed', `Chat background set to ${background}`, 'success');
+      } catch (error) {
+        console.error('Error setting chat background:', error);
+        showNotification('Error', 'Failed to change chat background', 'error');
+      }
+    }
+
+    function applyChatBackground(background) {
+      const chatMessages = document.getElementById('chatMessages');
+      const chatParticlesCanvas = document.getElementById('chatParticlesCanvas');
+      const chatContainer = document.getElementById('chatMessagesContainer');
+      
+      if (!chatMessages || !chatParticlesCanvas || !chatContainer) return;
+      
+      // Stop any existing particles animation
+      if (chatParticlesAnimation) {
+        chatParticlesAnimation.stop();
+        chatParticlesAnimation = null;
+      }
+      
+      // Hide particles canvas by default
+      chatParticlesCanvas.classList.add('hidden');
+      
+      // Reset chat messages background
+      chatMessages.style.background = '';
+      chatMessages.classList.remove('bg-transparent');
+      
+      switch (background) {
+        case 'gradient':
+          chatMessages.style.background = 'linear-gradient(135deg, rgba(156, 207, 216, 0.1) 0%, rgba(196, 167, 231, 0.1) 100%)';
+          chatMessages.classList.add('bg-transparent');
+          chatContainer.style.background = 'linear-gradient(135deg, #9ccfd8 0%, #c4a7e7 100%)';
+          break;
+          
+        case 'solid':
+          chatMessages.style.background = 'rgba(49, 116, 143, 0.2)';
+          chatMessages.classList.add('bg-transparent');
+          chatContainer.style.background = 'var(--rp-pine)';
+          break;
+          
+        case 'particles':
+          chatMessages.style.background = 'rgba(25, 23, 36, 0.3)';
+          chatMessages.classList.add('bg-transparent');
+          chatContainer.style.background = 'var(--rp-base)';
+          chatParticlesCanvas.classList.remove('hidden');
+          initChatParticles();
+          break;
+          
+        case 'default':
+        default:
+          chatMessages.classList.remove('bg-transparent');
+          chatMessages.style.background = '';
+          chatContainer.style.background = '';
+          break;
+      }
+    }
+
+    function updateChatBackgroundUI() {
+      // Update active state of background options
+      document.querySelectorAll('.chat-bg-option').forEach(option => {
+        option.classList.remove('border-rp-foam');
+        option.classList.add('border-transparent');
+      });
+      
+      const activeOption = document.querySelector(`[data-bg="${currentChatBackground}"]`);
+      if (activeOption) {
+        activeOption.classList.remove('border-transparent');
+        activeOption.classList.add('border-rp-foam');
+      }
+    }
+
+    function initChatParticles() {
+      const canvas = document.getElementById('chatParticlesCanvas');
+      if (!canvas) return;
+      
+      const ctx = canvas.getContext('2d');
+      const container = document.getElementById('chatMessagesContainer');
+      
+      // Set canvas size to match container
+      const rect = container.getBoundingClientRect();
+      canvas.width = container.offsetWidth;
+      canvas.height = container.offsetHeight;
+      
+      const particlesArray = [];
+      const particleCount = 15; // Fewer particles for chat area
+      
+      class ChatParticle {
+        constructor() {
+          this.x = Math.random() * canvas.width;
+          this.y = Math.random() * canvas.height;
+          this.vx = (Math.random() - 0.5) * 1;
+          this.vy = (Math.random() - 0.5) * 1;
+          this.radius = Math.random() * 2 + 1;
+          this.opacity = Math.random() * 0.3 + 0.1;
+          this.color = this.getRandomColor();
+        }
+        
+        getRandomColor() {
+          const colors = [
+            'rgba(156, 207, 216, ', // foam
+            'rgba(196, 167, 231, ', // iris
+            'rgba(246, 193, 119, ', // gold
+            'rgba(235, 188, 186, '  // love
+          ];
+          return colors[Math.floor(Math.random() * colors.length)];
+        }
+        
+        update() {
+          this.x += this.vx;
+          this.y += this.vy;
+          
+          if (this.x < 0 || this.x > canvas.width) this.vx *= -1;
+          if (this.y < 0 || this.y > canvas.height) this.vy *= -1;
+        }
+        
+        draw() {
+          ctx.beginPath();
+          ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+          ctx.fillStyle = this.color + this.opacity + ')';
+          ctx.fill();
+        }
+      }
+      
+      function createChatParticles() {
+        particlesArray.length = 0;
+        for (let i = 0; i < particleCount; i++) {
+          particlesArray.push(new ChatParticle());
+        }
+      }
+      
+      function animateChatParticles() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        particlesArray.forEach(particle => {
+          particle.update();
+          particle.draw();
+        });
+        
+        if (!canvas.classList.contains('hidden') && currentChatBackground === 'particles') {
+          chatParticlesAnimation = requestAnimationFrame(animateChatParticles);
+        }
+      }
+      
+      createChatParticles();
+      animateChatParticles();
+      
+      // Store animation reference for cleanup
+      chatParticlesAnimation = {
+        stop: () => {
+          if (chatParticlesAnimation && typeof chatParticlesAnimation === 'number') {
+            cancelAnimationFrame(chatParticlesAnimation);
+          }
+          chatParticlesAnimation = null;
+        }
+      };
     }
 
     function renderChatMessages(messages) {
@@ -3446,11 +3769,44 @@
       // Chat system
       document.getElementById('closeChatBtn').addEventListener('click', () => {
         document.getElementById('quickChatSection').classList.add('hidden');
+        
+        // Clean up chat listeners
         if (chatListener) {
           chatListener();
           chatListener = null;
         }
+        
+        if (window.chatBackgroundListener) {
+          window.chatBackgroundListener();
+          window.chatBackgroundListener = null;
+        }
+        
+        // Stop particles animation
+        if (chatParticlesAnimation && chatParticlesAnimation.stop) {
+          chatParticlesAnimation.stop();
+        }
+        
         activeChatUser = null;
+        activeChatRoomId = null;
+        currentChatBackground = 'default';
+      });
+      
+      // Chat settings toggle
+      document.getElementById('chatSettingsBtn').addEventListener('click', () => {
+        const settingsPanel = document.getElementById('chatBackgroundSettings');
+        if (settingsPanel) {
+          settingsPanel.classList.toggle('hidden');
+        }
+      });
+      
+      // Chat background options
+      document.querySelectorAll('.chat-bg-option').forEach(option => {
+        option.addEventListener('click', () => {
+          const background = option.dataset.bg;
+          if (background) {
+            setChatBackground(background);
+          }
+        });
       });
       
       document.getElementById('sendMessageBtn').addEventListener('click', sendMessage);
