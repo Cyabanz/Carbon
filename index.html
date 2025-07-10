@@ -5766,15 +5766,17 @@
        let gameListener = null;
        let winnerScreenShown = false;
       
-      window.startMultiplayerGame = function(gameType) {
-        if (!currentUser) {
-          showNotification('Sign In Required', 'Please sign in to play multiplayer games!', 'error');
-          return;
-        }
-        
-        closeShop();
-        createGameLobby(gameType);
-      };
+             window.startMultiplayerGame = function(gameType) {
+         if (!currentUser) {
+           showNotification('Sign In Required', 'Please sign in to play multiplayer games!', 'error');
+           return;
+         }
+         
+         console.log('Starting multiplayer game:', gameType, 'for user:', currentUser.uid);
+         
+         closeShop();
+         createGameLobby(gameType);
+       };
 
                     async function createGameLobby(gameType) {
          try {
@@ -5798,11 +5800,13 @@
 
            console.log('Creating game room:', gameRoom);
 
-          const docRef = await db.collection('game-rooms').add(gameRoom);
-          currentGameRoom = docRef.id;
-          
-          showGameLobby(gameRoom, docRef.id, true);
-          listenToGameRoom(docRef.id);
+                     const docRef = await db.collection('game-rooms').add(gameRoom);
+           currentGameRoom = docRef.id;
+           
+           console.log('Game room created successfully with ID:', docRef.id);
+           
+           showGameLobby(gameRoom, docRef.id, true);
+           listenToGameRoom(docRef.id);
           
         } catch (error) {
           console.error('Error creating game room:', error);
@@ -5884,7 +5888,7 @@
                       <div class="font-semibold text-text">${gameRoom.hostName}</div>
                       <div class="text-xs text-foam">Host ${gameRoom.gameType === 'tictactoe' ? '(X)' : '(Red)'}</div>
                     </div>
-                    ${gameRoom.currentPlayer === (gameRoom.gameType === 'tictactoe' ? 'X' : 'red') && gameRoom.status === 'playing' ? 
+                    ${gameRoom.gameState && gameRoom.gameState.currentPlayer === (gameRoom.gameType === 'tictactoe' ? 'X' : 'red') && gameRoom.status === 'playing' ? 
                       '<div class="w-3 h-3 bg-foam rounded-full animate-pulse"></div>' : ''}
                   </div>
                 </div>
@@ -5899,7 +5903,7 @@
                         <div class="font-semibold text-text">${gameRoom.guestName}</div>
                         <div class="text-xs text-love">Guest ${gameRoom.gameType === 'tictactoe' ? '(O)' : '(Blue)'}</div>
                       </div>
-                      ${gameRoom.currentPlayer === (gameRoom.gameType === 'tictactoe' ? 'O' : 'blue') && gameRoom.status === 'playing' ? 
+                      ${gameRoom.gameState && gameRoom.gameState.currentPlayer === (gameRoom.gameType === 'tictactoe' ? 'O' : 'blue') && gameRoom.status === 'playing' ? 
                         '<div class="w-3 h-3 bg-love rounded-full animate-pulse"></div>' : ''}
                     </div>
                   ` : `
@@ -5994,9 +5998,9 @@
         // Update game status
         if (gameStatus) {
           const isMyTurn = (
-            (gameRoom.currentPlayer === 'X' || gameRoom.currentPlayer === 'red') && gameRoom.hostId === currentUser.uid
+            (gameRoom.gameState && (gameRoom.gameState.currentPlayer === 'X' || gameRoom.gameState.currentPlayer === 'red')) && gameRoom.hostId === currentUser.uid
           ) || (
-            (gameRoom.currentPlayer === 'O' || gameRoom.currentPlayer === 'blue') && gameRoom.guestId === currentUser.uid
+            (gameRoom.gameState && (gameRoom.gameState.currentPlayer === 'O' || gameRoom.gameState.currentPlayer === 'blue')) && gameRoom.guestId === currentUser.uid
           );
           
           if (gameRoom.status === 'waiting') {
@@ -6030,26 +6034,35 @@
         updatePlayersPanel(gameRoom);
       }
 
-      function updatePlayersPanel(gameRoom) {
-        // Re-render the entire modal to update players
-        if (window.currentGameModal) {
-          const gameArea = document.getElementById('gameArea');
-          const gameAreaHTML = gameArea ? gameArea.innerHTML : '';
-          
-          window.currentGameModal.remove();
-          showGameLobby(gameRoom, currentGameRoom, gameRoom.hostId === currentUser.uid);
-          
-          // Restore game area if it was rendered
-          const newGameArea = document.getElementById('gameArea');
-          if (newGameArea && gameAreaHTML && gameRoom.status === 'playing') {
-            if (gameRoom.gameType === 'tictactoe') {
-              renderTicTacToe(gameRoom, currentGameRoom);
-            } else {
-              renderConnect4(gameRoom, currentGameRoom);
-            }
-          }
-        }
-      }
+             function updatePlayersPanel(gameRoom) {
+         // Only update player panel without re-rendering the entire modal
+         console.log('Updating players panel for game room:', gameRoom);
+         
+         // Skip re-rendering the entire modal during active gameplay
+         if (gameRoom.status === 'playing') {
+           console.log('Skipping full modal re-render during active game');
+           return;
+         }
+         
+         // Only re-render modal for significant changes (like player joining)
+         if (window.currentGameModal) {
+           const gameArea = document.getElementById('gameArea');
+           const gameAreaHTML = gameArea ? gameArea.innerHTML : '';
+           
+           window.currentGameModal.remove();
+           showGameLobby(gameRoom, currentGameRoom, gameRoom.hostId === currentUser.uid);
+           
+           // Restore game area if it was rendered
+           const newGameArea = document.getElementById('gameArea');
+           if (newGameArea && gameAreaHTML && gameRoom.status === 'playing') {
+             if (gameRoom.gameType === 'tictactoe') {
+               renderTicTacToe(gameRoom, currentGameRoom);
+             } else {
+               renderConnect4(gameRoom, currentGameRoom);
+             }
+           }
+         }
+       }
 
       window.copyRoomId = function(roomId) {
         navigator.clipboard.writeText(roomId).then(() => {
@@ -6196,37 +6209,51 @@
          `;
        }
        
-       window.makeTicTacToeMove = async function(index) {
-         if (!currentGameRoom) {
-           console.error('No current game room');
-           return;
-         }
-         
-         console.log('Making Tic Tac Toe move at index:', index);
-         
-         try {
-           const gameDoc = await db.collection('game-rooms').doc(currentGameRoom).get();
-           if (!gameDoc.exists) {
-             console.error('Game room does not exist');
+                window.makeTicTacToeMove = async function(index) {
+           if (!currentGameRoom) {
+             console.error('No current game room');
              return;
            }
            
-           const gameRoom = gameDoc.data();
-           console.log('Current game state:', gameRoom);
-           const isMyTurn = (
-             (gameRoom.gameState.currentPlayer === 'X' && gameRoom.hostId === currentUser.uid) ||
-             (gameRoom.gameState.currentPlayer === 'O' && gameRoom.guestId === currentUser.uid)
-           );
+           console.log('Making Tic Tac Toe move at index:', index);
            
-           if (!isMyTurn || gameRoom.gameState.board[index] || gameRoom.status !== 'playing') {
-             console.log('Move blocked:', {
-               isMyTurn,
-               cellOccupied: gameRoom.gameState.board[index],
-               gameStatus: gameRoom.status,
-               currentPlayer: gameRoom.gameState.currentPlayer
+           try {
+             const gameDoc = await db.collection('game-rooms').doc(currentGameRoom).get();
+             if (!gameDoc.exists) {
+               console.error('Game room does not exist');
+               return;
+             }
+             
+             const gameRoom = gameDoc.data();
+             console.log('Current game state:', gameRoom);
+             
+             if (!gameRoom.gameState) {
+               console.error('No game state found');
+               return;
+             }
+             
+             const isMyTurn = (
+               (gameRoom.gameState.currentPlayer === 'X' && gameRoom.hostId === currentUser.uid) ||
+               (gameRoom.gameState.currentPlayer === 'O' && gameRoom.guestId === currentUser.uid)
+             );
+             
+             console.log('Turn validation:', {
+               currentPlayer: gameRoom.gameState.currentPlayer,
+               hostId: gameRoom.hostId,
+               guestId: gameRoom.guestId,
+               currentUserId: currentUser.uid,
+               isMyTurn: isMyTurn
              });
-             return;
-           }
+             
+             if (!isMyTurn || gameRoom.gameState.board[index] || gameRoom.status !== 'playing') {
+               console.log('Move blocked:', {
+                 isMyTurn,
+                 cellOccupied: gameRoom.gameState.board[index],
+                 gameStatus: gameRoom.status,
+                 currentPlayer: gameRoom.gameState.currentPlayer
+               });
+               return;
+             }
            
            // Make the move
            const newBoard = [...gameRoom.gameState.board];
@@ -6318,11 +6345,11 @@
              </div>
              
              <!-- Game board -->
-             <div class="grid grid-cols-7 gap-1 bg-surface p-3 rounded-lg border-2 border-highlight-med">
+             <div class="grid grid-cols-7 grid-rows-6 gap-1 bg-surface p-3 rounded-lg border-2 border-highlight-med">
                ${gameRoom.gameState.board.map((row, rowIndex) => 
                  row.map((cell, colIndex) => `
-                   <div class="w-16 h-16 bg-highlight-med rounded-full flex items-center justify-center border-2 border-overlay">
-                     ${cell ? `<div class="w-12 h-12 rounded-full ${cell === 'red' ? 'bg-love' : 'bg-iris'} animate-bounce"></div>` : ''}
+                   <div class="w-16 h-16 bg-highlight-med rounded-full flex items-center justify-center border-2 border-overlay" style="grid-row: ${rowIndex + 1}; grid-column: ${colIndex + 1};">
+                     ${cell ? `<div class="w-12 h-12 rounded-full ${cell === 'red' ? 'bg-love' : 'bg-iris'}"></div>` : ''}
                    </div>
                  `).join('')
                ).join('')}
@@ -6331,39 +6358,53 @@
          `;
        }
        
-       window.makeConnect4Move = async function(column) {
-         if (!currentGameRoom) {
-           console.error('No current game room');
-           return;
-         }
-         
-         console.log('Making Connect 4 move in column:', column);
-         
-         try {
-           const gameDoc = await db.collection('game-rooms').doc(currentGameRoom).get();
-           if (!gameDoc.exists) {
-             console.error('Game room does not exist');
+                window.makeConnect4Move = async function(column) {
+           if (!currentGameRoom) {
+             console.error('No current game room');
              return;
            }
            
-           const gameRoom = gameDoc.data();
-           console.log('Current Connect 4 game state:', gameRoom);
-           const isMyTurn = (
-             (gameRoom.gameState.currentPlayer === 'red' && gameRoom.hostId === currentUser.uid) ||
-             (gameRoom.gameState.currentPlayer === 'blue' && gameRoom.guestId === currentUser.uid)
-           );
+           console.log('Making Connect 4 move in column:', column);
            
-           if (!isMyTurn || gameRoom.status !== 'playing') {
-             console.log('Connect 4 move blocked:', {
-               isMyTurn,
-               gameStatus: gameRoom.status,
+           try {
+             const gameDoc = await db.collection('game-rooms').doc(currentGameRoom).get();
+             if (!gameDoc.exists) {
+               console.error('Game room does not exist');
+               return;
+             }
+             
+             const gameRoom = gameDoc.data();
+             console.log('Current Connect 4 game state:', gameRoom);
+             
+             if (!gameRoom.gameState) {
+               console.error('No game state found for Connect 4');
+               return;
+             }
+             
+             const isMyTurn = (
+               (gameRoom.gameState.currentPlayer === 'red' && gameRoom.hostId === currentUser.uid) ||
+               (gameRoom.gameState.currentPlayer === 'blue' && gameRoom.guestId === currentUser.uid)
+             );
+             
+             console.log('Connect 4 turn validation:', {
                currentPlayer: gameRoom.gameState.currentPlayer,
                hostId: gameRoom.hostId,
                guestId: gameRoom.guestId,
-               currentUserId: currentUser.uid
+               currentUserId: currentUser.uid,
+               isMyTurn: isMyTurn
              });
-             return;
-           }
+             
+             if (!isMyTurn || gameRoom.status !== 'playing') {
+               console.log('Connect 4 move blocked:', {
+                 isMyTurn,
+                 gameStatus: gameRoom.status,
+                 currentPlayer: gameRoom.gameState.currentPlayer,
+                 hostId: gameRoom.hostId,
+                 guestId: gameRoom.guestId,
+                 currentUserId: currentUser.uid
+               });
+               return;
+             }
            
            // Find the lowest empty row in the column
            const newBoard = gameRoom.gameState.board.map(row => [...row]);
