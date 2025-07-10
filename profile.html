@@ -2009,10 +2009,25 @@
         if (statusNoteDoc.exists) {
           const noteData = statusNoteDoc.data();
           const now = new Date();
-          const expiry = noteData.expiresAt.toDate();
+          
+          // Handle different date formats safely
+          let expiry;
+          if (noteData.expiresAt && typeof noteData.expiresAt.toDate === 'function') {
+            // Firestore timestamp
+            expiry = noteData.expiresAt.toDate();
+          } else if (noteData.expiresAt instanceof Date) {
+            // Regular Date object
+            expiry = noteData.expiresAt;
+          } else if (noteData.expiresAt && noteData.expiresAt.seconds) {
+            // Firestore timestamp in seconds format
+            expiry = new Date(noteData.expiresAt.seconds * 1000);
+          } else {
+            // Invalid date format, treat as expired
+            return '';
+          }
           
           if (expiry > now) {
-            return noteData.text;
+            return noteData.text || '';
           }
         }
         return '';
@@ -3048,7 +3063,22 @@
         if (statusNoteDoc.exists) {
           const noteData = statusNoteDoc.data();
           const now = new Date();
-          const expiry = noteData.expiresAt.toDate();
+          
+          // Handle different date formats (Firestore timestamp or regular Date)
+          let expiry;
+          if (noteData.expiresAt && typeof noteData.expiresAt.toDate === 'function') {
+            // Firestore timestamp
+            expiry = noteData.expiresAt.toDate();
+          } else if (noteData.expiresAt instanceof Date) {
+            // Regular Date object
+            expiry = noteData.expiresAt;
+          } else if (noteData.expiresAt && noteData.expiresAt.seconds) {
+            // Firestore timestamp in seconds format
+            expiry = new Date(noteData.expiresAt.seconds * 1000);
+          } else {
+            console.warn('Unable to parse expiry date:', noteData.expiresAt);
+            return;
+          }
           
           if (expiry > now) {
             currentStatusNote = noteData;
@@ -3070,14 +3100,30 @@
       const noteExpiry = document.getElementById('statusNoteExpiry');
       
       if (noteContainer && noteText && noteExpiry) {
-        noteText.textContent = noteData.text;
-        noteExpiry.textContent = getTimeUntilExpiry(noteData.expiresAt.toDate());
+        // Parse expiry date safely
+        let expiryDate;
+        if (noteData.expiresAt && typeof noteData.expiresAt.toDate === 'function') {
+          // Firestore timestamp
+          expiryDate = noteData.expiresAt.toDate();
+        } else if (noteData.expiresAt instanceof Date) {
+          // Regular Date object
+          expiryDate = noteData.expiresAt;
+        } else if (noteData.expiresAt && noteData.expiresAt.seconds) {
+          // Firestore timestamp in seconds format
+          expiryDate = new Date(noteData.expiresAt.seconds * 1000);
+        } else {
+          console.warn('Unable to display status note - invalid expiry date:', noteData.expiresAt);
+          return;
+        }
+        
+        noteText.textContent = noteData.text || '';
+        noteExpiry.textContent = getTimeUntilExpiry(expiryDate);
         noteContainer.classList.remove('hidden');
         
         // Update expiry text every minute
         if (activeStatusNoteTimer) clearInterval(activeStatusNoteTimer);
         activeStatusNoteTimer = setInterval(() => {
-          const timeLeft = getTimeUntilExpiry(noteData.expiresAt.toDate());
+          const timeLeft = getTimeUntilExpiry(expiryDate);
           if (timeLeft === 'Expired') {
             clearStatusNote();
           } else {
@@ -3134,32 +3180,79 @@
     }
 
     async function saveStatusNote() {
-      const noteText = document.getElementById('statusNoteInput').value.trim();
-      if (!noteText || !currentUser) return;
+      const noteInput = document.getElementById('statusNoteInput');
+      if (!noteInput) {
+        console.error('Status note input element not found');
+        return;
+      }
+      
+      const noteText = noteInput.value.trim();
+      
+      // Validation
+      if (!noteText) {
+        showNotification('Empty Note', 'Please enter a status note before saving', 'warning');
+        return;
+      }
+      
+      if (!currentUser) {
+        showNotification('Not Logged In', 'Please log in to save status notes', 'error');
+        return;
+      }
+      
+      if (noteText.length > 100) {
+        showNotification('Note Too Long', 'Status notes must be 100 characters or less', 'error');
+        return;
+      }
       
       try {
+        // Sanitize the note text
+        const safeNoteText = sanitizeText(noteText);
+        
+        if (!safeNoteText) {
+          showNotification('Invalid Text', 'Please enter valid text for your status note', 'error');
+          return;
+        }
+        
         const expiresAt = new Date();
         expiresAt.setHours(expiresAt.getHours() + 24);
         
         const statusNoteData = {
           userId: currentUser.uid,
-          text: noteText,
+          text: safeNoteText,
           createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-          expiresAt: firebase.firestore.Timestamp.fromDate(expiresAt)
+          expiresAt: expiresAt // Use regular Date object - Firestore will handle conversion
         };
         
-        await db.collection('statusNotes').doc(currentUser.uid).set(statusNoteData);
-        currentStatusNote = { ...statusNoteData, expiresAt };
+        console.log('📝 Saving status note:', statusNoteData);
         
-        document.getElementById('statusNoteModal').classList.add('hidden');
-        document.getElementById('statusNoteInput').value = '';
+        await db.collection('statusNotes').doc(currentUser.uid).set(statusNoteData);
+        
+        // Create a properly formatted object for display
+        currentStatusNote = { 
+          ...statusNoteData, 
+          expiresAt: expiresAt // Use the actual date for consistent handling
+        };
+        
+        // Close modal and clear input
+        const modal = document.getElementById('statusNoteModal');
+        if (modal) modal.classList.add('hidden');
+        noteInput.value = '';
+        
+        // Update character count
+        updateStatusNoteCharCount();
         
         displayStatusNote(currentStatusNote);
         showNotification('Status Note Posted', 'Your 24-hour status note is now visible to friends!', 'success');
         
       } catch (error) {
         console.error('Error saving status note:', error);
-        showNotification('Error', 'Failed to save status note', 'error');
+        console.error('Error details:', error.message || error);
+        
+        let errorMessage = 'Failed to save status note';
+        if (error.message) {
+          errorMessage += ': ' + error.message;
+        }
+        showNotification('Error', errorMessage, 'error');
       }
     }
 
