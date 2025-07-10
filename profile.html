@@ -324,10 +324,16 @@
 
       <!-- Game Statistics -->
       <div id="gameStatsContainer" class="mb-8">
-        <h2 class="text-xl font-semibold text-rp-text mb-4 flex items-center gap-2">
-          <i class='bx bx-bar-chart text-rp-iris'></i>
-          Gaming Statistics
-        </h2>
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-xl font-semibold text-rp-text flex items-center gap-2">
+            <i class='bx bx-bar-chart text-rp-iris'></i>
+            Gaming Statistics
+          </h2>
+          <button id="refreshStatsBtn" class="px-3 py-2 bg-rp-foam hover:bg-rp-foam/90 text-rp-base rounded-lg transition-colors text-sm flex items-center gap-2">
+            <i class='bx bx-refresh'></i>
+            Refresh
+          </button>
+        </div>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           <div class="bg-rp-surface rounded-xl border border-rp-overlay p-4 text-center">
             <div class="text-2xl font-bold text-rp-foam" id="totalGamesPlayed">0</div>
@@ -1924,9 +1930,12 @@
       if (!currentUser) return;
       
       try {
+        console.log('📊 Loading game statistics for user:', currentUser.uid);
         const userDoc = await db.collection('users').doc(currentUser.uid).get();
         const userData = userDoc.exists ? userDoc.data() : {};
         const gameStats = userData.gameStats || {};
+        
+        console.log('📊 Raw gameStats data:', gameStats);
         
         // Calculate overall statistics
         let totalGamesPlayed = 0;
@@ -1935,8 +1944,9 @@
         const gamesList = [];
         
         Object.entries(gameStats).forEach(([gameId, stats]) => {
-          if (stats && stats.sessionsPlayed > 0) {
-            totalGamesPlayed++;
+          console.log(`📊 Processing game ${gameId}:`, stats);
+          if (stats && (stats.sessionsPlayed > 0 || stats.totalPlayTime > 0)) {
+            totalGamesPlayed++; // This counts unique games played
             totalPlayTime += stats.totalPlayTime || 0;
             totalSessions += stats.sessionsPlayed || 0;
             
@@ -1947,9 +1957,14 @@
                 ...game,
                 stats: stats
               });
+              console.log(`📊 Added game to list: ${game.title}`);
+            } else {
+              console.warn(`📊 Game not found in gamesData: ${gameId}`);
             }
           }
         });
+        
+        console.log(`📊 Final stats - Games: ${totalGamesPlayed}, Time: ${totalPlayTime}ms, Sessions: ${totalSessions}`);
         
         // Update UI
         document.getElementById('totalGamesPlayed').textContent = totalGamesPlayed;
@@ -1961,7 +1976,7 @@
         renderTopGames(gamesList);
         
       } catch (error) {
-        console.error('Error loading game statistics:', error);
+        console.error('❌ Error loading game statistics:', error);
       }
     }
 
@@ -2150,7 +2165,42 @@
           await loadFriendLeaderboard();
         });
       }
+      
+      const refreshStatsBtn = document.getElementById('refreshStatsBtn');
+      if (refreshStatsBtn) {
+        refreshStatsBtn.addEventListener('click', async () => {
+          console.log('🔄 Manual refresh triggered');
+          await loadGameStatistics();
+          await loadFriendLeaderboard();
+          showNotification('Statistics Updated', 'Your gaming statistics have been refreshed!', 'info');
+        });
+      }
     }
+
+    // Debug function for checking game statistics (call from console)
+    window.debugGameStats = async function() {
+      if (!currentUser) {
+        console.log('❌ No user logged in');
+        return;
+      }
+      
+      try {
+        const userDoc = await db.collection('users').doc(currentUser.uid).get();
+        const userData = userDoc.exists ? userDoc.data() : {};
+        console.log('🔍 Full user data:', userData);
+        console.log('🔍 Game stats:', userData.gameStats);
+        
+        if (userData.gameStats) {
+          Object.entries(userData.gameStats).forEach(([gameId, stats]) => {
+            console.log(`🎮 Game ${gameId}:`, stats);
+          });
+        } else {
+          console.log('⚠️ No gameStats found - have you played any games yet?');
+        }
+      } catch (error) {
+        console.error('❌ Error fetching debug data:', error);
+      }
+    };
 
     // User search functionality
     async function searchUsers(query) {
@@ -3457,6 +3507,19 @@
         await loadFriendshipStreaks();
         await loadGameStatistics();
         await loadFriendLeaderboard();
+        
+        // Set up periodic refresh of statistics (every 30 seconds)
+        setInterval(async () => {
+          await loadGameStatistics();
+          await loadFriendLeaderboard();
+        }, 30000);
+        
+        // Refresh statistics when page regains focus (user returns from playing)
+        window.addEventListener('focus', async () => {
+          console.log('🔄 Page regained focus, refreshing statistics');
+          await loadGameStatistics();
+          await loadFriendLeaderboard();
+        });
         // Only load activity feed if elements exist
         if (document.getElementById('activityFeed')) {
           try {

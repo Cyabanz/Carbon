@@ -3956,6 +3956,9 @@
         // Add to history
         await updateGameHistory(uid, gameId);
         
+        // Initialize game statistics tracking for this session
+        await initializeGameSession(uid, gameId);
+        
         // Track detailed activity
         const activityRef = db.collection('user-activity').doc(uid);
         const activity = {
@@ -4000,10 +4003,47 @@
           }, { merge: true });
           
           await updateGameHistory(uid, gameId);
+          await initializeGameSession(uid, gameId);
           console.log('✅ Critical updates completed as fallback');
         } catch (fallbackError) {
           console.error('❌ Fallback approach also failed:', fallbackError);
         }
+      }
+    }
+
+    // Initialize game session tracking when game starts
+    async function initializeGameSession(uid, gameId) {
+      if (!uid || !gameId) return;
+      
+      try {
+        console.log(`🎮 Initializing game session for user ${uid}, game ${gameId}`);
+        
+        const userRef = db.collection('users').doc(uid);
+        
+        // Get current stats
+        const userDoc = await userRef.get();
+        const userData = userDoc.exists ? userDoc.data() : {};
+        const gameStats = userData.gameStats || {};
+        const currentGameStats = gameStats[gameId] || { totalPlayTime: 0, sessionsPlayed: 0 };
+        
+        // Increment session count (this counts as "games played")
+        const newSessionsPlayed = (currentGameStats.sessionsPlayed || 0) + 1;
+        
+        await userRef.set({
+          gameStats: {
+            ...gameStats,
+            [gameId]: {
+              ...currentGameStats,
+              sessionsPlayed: newSessionsPlayed,
+              lastPlayed: firebase.firestore.FieldValue.serverTimestamp()
+            }
+          }
+        }, { merge: true });
+        
+        console.log(`✅ Game session initialized. Sessions played: ${newSessionsPlayed}`);
+        
+      } catch (error) {
+        console.error('❌ Error initializing game session:', error);
       }
     }
 
@@ -4016,31 +4056,30 @@
         
         // Update user's game statistics
         const userRef = db.collection('users').doc(uid);
-        const gameStatsPath = `gameStats.${gameId}`;
         
         // Get current stats
         const userDoc = await userRef.get();
         const userData = userDoc.exists ? userDoc.data() : {};
         const gameStats = userData.gameStats || {};
-        const currentGameStats = gameStats[gameId] || { totalPlayTime: 0, sessionsPlayed: 0 };
+        const currentGameStats = gameStats[gameId] || { totalPlayTime: 0, sessionsPlayed: 1 };
         
-        // Update stats
+        // Update total play time (sessions are already incremented in initializeGameSession)
         const newTotalPlayTime = (currentGameStats.totalPlayTime || 0) + duration;
-        const newSessionsPlayed = (currentGameStats.sessionsPlayed || 0) + 1;
+        const sessionsPlayed = currentGameStats.sessionsPlayed || 1;
         
         await userRef.set({
           gameStats: {
             ...gameStats,
             [gameId]: {
+              ...currentGameStats,
               totalPlayTime: newTotalPlayTime,
-              sessionsPlayed: newSessionsPlayed,
               lastPlayed: firebase.firestore.FieldValue.serverTimestamp(),
-              averageSessionTime: Math.round(newTotalPlayTime / newSessionsPlayed)
+              averageSessionTime: Math.round(newTotalPlayTime / sessionsPlayed)
             }
           }
         }, { merge: true });
         
-        console.log(`✅ Session duration saved: ${formatDuration(duration)} (Total: ${formatDuration(newTotalPlayTime)})`);
+        console.log(`✅ Session duration saved: ${formatDuration(duration)} (Total: ${formatDuration(newTotalPlayTime)}, Sessions: ${sessionsPlayed})`);
         
       } catch (error) {
         console.error('❌ Error saving session duration:', error);
