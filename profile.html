@@ -483,7 +483,7 @@
           </div>
         </div>
         
-        <!-- Chat & Online Friends -->
+                  <!-- Chat & Online Friends -->
         <div class="space-y-6">
           <!-- Online Friends -->
           <div class="bg-rp-surface rounded-xl border border-rp-overlay p-4">
@@ -495,6 +495,18 @@
               <!-- Online friends will be populated here -->
             </div>
             <div id="noOnlineFriends" class="text-rp-subtle text-sm text-center py-4">No friends online</div>
+          </div>
+          
+          <!-- Friend Streaks -->
+          <div class="bg-rp-surface rounded-xl border border-rp-overlay p-4">
+            <h3 class="text-lg font-semibold text-rp-text mb-4 flex items-center gap-2">
+              <i class='bx bx-trending-up text-rp-gold'></i>
+              Friend Streaks 🔥
+            </h3>
+            <div id="friendStreaksList" class="space-y-2">
+              <!-- Friend streaks will be populated here -->
+            </div>
+            <div id="noStreaks" class="text-rp-subtle text-sm text-center py-4">Start messaging friends to build streaks!</div>
           </div>
           
           <!-- Quick Chat -->
@@ -1439,7 +1451,7 @@
           })
         );
         
-        renderFriendsList(friendsData);
+        await renderFriendsList(friendsData);
         setupFriendsStatusListeners(friendUids);
         
       } catch (error) {
@@ -1447,10 +1459,15 @@
       }
     }
 
-    function renderFriendsList(friends) {
+    async function renderFriendsList(friends) {
       const friendsList = document.getElementById('friendsList');
       
-      friendsList.innerHTML = friends.map(friend => {
+      const friendsWithStreaks = await Promise.all(friends.map(async (friend) => {
+        const streak = await getFriendshipStreak(friend.uid);
+        return { ...friend, streak };
+      }));
+      
+      friendsList.innerHTML = friendsWithStreaks.map(friend => {
         const statusColor = statusColors[friend.status] || statusColors.offline;
         const statusText = getStatusText(friend.status);
         
@@ -1464,6 +1481,11 @@
         const safePhotoURL = friend.photoURL || '/default-avatar.png';
         const safeUid = sanitizeText(friend.uid || '');
         const safeCurrentGame = sanitizeText(friend.currentGame || '');
+        
+        // Get streak info
+        const streak = friend.streak || 0;
+        const streakEmoji = streak > 0 ? getStreakEmoji(streak) : '';
+        const streakDisplay = streak > 0 ? `${streakEmoji} ${streak} day${streak !== 1 ? 's' : ''}` : '';
         
         return `
           <div class="bg-rp-surface border border-rp-overlay rounded-xl p-4 hover:border-rp-foam/50 transition-all group">
@@ -1480,6 +1502,7 @@
                 <p class="text-xs text-rp-foam font-medium">${statusText}</p>
                 ${currentGameText ? `<p class="text-xs text-rp-gold truncate">${currentGameText}</p>` : ''}
                 ${friend.lastPlayedGame ? `<p class="text-xs text-rp-subtle">Last: ${getGameTitle(friend.lastPlayedGame)}</p>` : ''}
+                ${streakDisplay ? `<p class="text-xs text-rp-gold font-semibold">🔥 Streak: ${streakDisplay}</p>` : ''}
               </div>
             </div>
             
@@ -1596,6 +1619,9 @@
           }));
           renderChatMessages(messages);
         });
+      
+      // Update streak when chat is opened
+      await updateFriendshipStreak(friendUid);
     }
 
     function renderChatMessages(messages) {
@@ -1648,10 +1674,179 @@
           timestamp: firebase.firestore.FieldValue.serverTimestamp()
         });
         
+        // Update friendship streak when message is sent
+        await updateFriendshipStreak(activeChatUser.uid);
+        
         input.value = '';
       } catch (error) {
         console.error('Error sending message:', error);
         showNotification('Error', 'Failed to send message', 'error');
+      }
+    }
+
+    // ===== FRIENDSHIP STREAK SYSTEM =====
+    
+    async function updateFriendshipStreak(friendUid) {
+      if (!currentUser || !friendUid) return;
+      
+      try {
+        const streakId = [currentUser.uid, friendUid].sort().join('_');
+        const streakRef = db.collection('friendStreaks').doc(streakId);
+        const today = new Date().toDateString();
+        
+        const streakDoc = await streakRef.get();
+        
+        if (streakDoc.exists) {
+          const streakData = streakDoc.data();
+          const lastActivity = streakData.lastActivity;
+          const currentStreak = streakData.streak || 0;
+          
+          if (lastActivity === today) {
+            // Already updated today, don't change streak
+            return;
+          }
+          
+          const yesterday = new Date();
+          yesterday.setDate(yesterday.getDate() - 1);
+          const yesterdayStr = yesterday.toDateString();
+          
+          let newStreak;
+          if (lastActivity === yesterdayStr) {
+            // Consecutive day, increment streak
+            newStreak = currentStreak + 1;
+          } else {
+            // Streak broken, start new streak
+            newStreak = 1;
+          }
+          
+          await streakRef.update({
+            streak: newStreak,
+            lastActivity: today,
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+          });
+        } else {
+          // Create new streak
+          await streakRef.set({
+            users: [currentUser.uid, friendUid].sort(),
+            streak: 1,
+            lastActivity: today,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+          });
+        }
+        
+        // Reload streaks to update UI
+        await loadFriendshipStreaks();
+        
+      } catch (error) {
+        console.error('Error updating friendship streak:', error);
+      }
+    }
+
+    async function loadFriendshipStreaks() {
+      if (!currentUser) return;
+      
+      try {
+        const streaksQuery = await db.collection('friendStreaks')
+          .where('users', 'array-contains', currentUser.uid)
+          .orderBy('streak', 'desc')
+          .limit(10)
+          .get();
+        
+        const streaksList = document.getElementById('friendStreaksList');
+        const noStreaks = document.getElementById('noStreaks');
+        
+        if (streaksQuery.empty) {
+          streaksList.innerHTML = '';
+          noStreaks.classList.remove('hidden');
+          return;
+        }
+        
+        noStreaks.classList.add('hidden');
+        
+        const streaksHtml = await Promise.all(streaksQuery.docs.map(async (doc) => {
+          const streakData = doc.data();
+          const friendUid = streakData.users.find(uid => uid !== currentUser.uid);
+          
+          if (!friendUid) return '';
+          
+          // Get friend's info
+          const friendDoc = await db.collection('users').doc(friendUid).get();
+          const friendData = friendDoc.exists ? friendDoc.data() : null;
+          
+          if (!friendData) return '';
+          
+          const friendName = sanitizeText(friendData.displayName || 'Unknown User');
+          const friendPhoto = friendData.photoURL || '/default-avatar.png';
+          const streak = streakData.streak || 0;
+          
+          // Check if streak is still active (last activity was today or yesterday)
+          const today = new Date().toDateString();
+          const yesterday = new Date();
+          yesterday.setDate(yesterday.getDate() - 1);
+          const yesterdayStr = yesterday.toDateString();
+          
+          const isActive = streakData.lastActivity === today || streakData.lastActivity === yesterdayStr;
+          const streakEmoji = getStreakEmoji(streak);
+          
+          return `
+            <div class="flex items-center justify-between p-3 bg-rp-overlay rounded-lg ${isActive ? 'border border-rp-gold/30' : 'opacity-60'}">
+              <div class="flex items-center gap-3">
+                <img src="${sanitizeText(friendPhoto)}" class="w-10 h-10 rounded-full" alt="${friendName}">
+                <div>
+                  <p class="font-medium text-rp-text">${friendName}</p>
+                  <p class="text-sm text-rp-subtle">${isActive ? 'Active streak' : 'Streak ended'}</p>
+                </div>
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="text-lg">${streakEmoji}</span>
+                <span class="text-xl font-bold text-rp-gold">${streak}</span>
+                <span class="text-sm text-rp-subtle">day${streak !== 1 ? 's' : ''}</span>
+              </div>
+            </div>
+          `;
+        }));
+        
+        streaksList.innerHTML = streaksHtml.filter(html => html).join('');
+        
+      } catch (error) {
+        console.error('Error loading friendship streaks:', error);
+      }
+    }
+
+    function getStreakEmoji(streak) {
+      if (streak >= 365) return '👑'; // Year streak
+      if (streak >= 100) return '💎'; // 100+ days
+      if (streak >= 30) return '🚀';  // Month streak
+      if (streak >= 14) return '⭐';  // Two weeks
+      if (streak >= 7) return '🔥';   // Week streak
+      if (streak >= 3) return '✨';   // 3+ days
+      return '🌟'; // New streak
+    }
+
+    async function getFriendshipStreak(friendUid) {
+      if (!currentUser || !friendUid) return 0;
+      
+      try {
+        const streakId = [currentUser.uid, friendUid].sort().join('_');
+        const streakDoc = await db.collection('friendStreaks').doc(streakId).get();
+        
+        if (streakDoc.exists) {
+          const streakData = streakDoc.data();
+          const today = new Date().toDateString();
+          const yesterday = new Date();
+          yesterday.setDate(yesterday.getDate() - 1);
+          const yesterdayStr = yesterday.toDateString();
+          
+          // Check if streak is still active
+          const isActive = streakData.lastActivity === today || streakData.lastActivity === yesterdayStr;
+          return isActive ? (streakData.streak || 0) : 0;
+        }
+        
+        return 0;
+      } catch (error) {
+        console.error('Error getting friendship streak:', error);
+        return 0;
       }
     }
 
@@ -2778,6 +2973,19 @@
       // Setup friend actions if user is logged in
       if (currentUser && currentUser.uid !== uid) {
         await setupPublicProfileFriendActions(uid, userProfile);
+      } else if (!currentUser) {
+        // Show login prompt for non-logged in users
+        const actionsContainer = document.getElementById('publicProfileActions');
+        actionsContainer.innerHTML = `
+          <div class="text-center p-4 bg-rp-overlay rounded-lg">
+            <p class="text-rp-subtle mb-3">Sign in to add friends and message users</p>
+            <button onclick="googleSignIn()" class="px-4 py-2 bg-rp-foam hover:bg-rp-foam/90 text-rp-base rounded-lg transition-colors">
+              <i class='bx bxl-google mr-2'></i>
+              Sign In with Google
+            </button>
+          </div>
+        `;
+        actionsContainer.classList.remove('hidden');
       }
       
       const url = `${window.location.origin}${window.location.pathname}?uid=${encodeURIComponent(uid)}`;
@@ -2944,6 +3152,7 @@
         await loadUserProfile();
         await loadCurrentUserStatus();
         await updateOnlineFriendsList();
+        await loadFriendshipStreaks();
         // Only load activity feed if elements exist
         if (document.getElementById('activityFeed')) {
           try {
