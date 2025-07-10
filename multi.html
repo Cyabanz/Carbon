@@ -1143,8 +1143,8 @@
                     const mouseY = e.clientY - rect.top;
                     const paddleY = Math.max(0, Math.min(350, mouseY - 25));
                     
-                    // Throttle updates for smooth paddle movement
-                    if (!canvas.lastUpdate || Date.now() - canvas.lastUpdate > 50) {
+                    // Fast paddle updates for responsive collision detection
+                    if (!canvas.lastUpdate || Date.now() - canvas.lastUpdate > 16) {
                         const updateData = {};
                         updateData[`gameState.${isPlayer1 ? 'player1' : 'player2'}.y`] = paddleY;
                         updateData['lastActivity'] = firebase.firestore.FieldValue.serverTimestamp();
@@ -1310,18 +1310,20 @@
                     ball.dy = -ball.dy;
                 }
                 
-                // Ball collision with left paddle
-                if (ball.x <= 28 && ball.x >= 18 && 
-                    ball.y >= player1.y && ball.y <= player1.y + 50) {
+                // Ball collision with left paddle - expanded collision area for network lag compensation
+                if (ball.x <= 30 && ball.x >= 15 && 
+                    ball.y >= player1.y - 5 && ball.y <= player1.y + 55) {
                     ball.dx = Math.abs(ball.dx) + 0.1;
                     ball.dy += (ball.y - (player1.y + 25)) * 0.05;
+                    ball.x = 30; // Ensure ball doesn't get stuck
                 }
                 
-                // Ball collision with right paddle
-                if (ball.x >= 772 && ball.x <= 782 && 
-                    ball.y >= player2.y && ball.y <= player2.y + 50) {
+                // Ball collision with right paddle - expanded collision area for network lag compensation  
+                if (ball.x >= 770 && ball.x <= 785 && 
+                    ball.y >= player2.y - 5 && ball.y <= player2.y + 55) {
                     ball.dx = -Math.abs(ball.dx) - 0.1;
                     ball.dy += (ball.y - (player2.y + 25)) * 0.05;
+                    ball.x = 770; // Ensure ball doesn't get stuck
                 }
                 
                 // Scoring
