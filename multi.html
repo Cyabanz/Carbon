@@ -733,8 +733,12 @@
                             <!-- Host Player -->
                             <div class="bg-surface rounded-lg p-4 mb-3">
                                 <div class="flex items-center gap-3">
-                                    <img src="${roomData.hostPhoto || 'https://via.placeholder.com/40'}" 
-                                         class="w-10 h-10 rounded-full border-2 border-foam">
+                                    ${roomData.hostPhoto ? 
+                                        `<img src="${roomData.hostPhoto}" class="w-10 h-10 rounded-full border-2 border-foam">` :
+                                        `<div class="w-10 h-10 rounded-full border-2 border-foam bg-foam/20 flex items-center justify-center">
+                                            <i class="bx bx-user text-foam"></i>
+                                        </div>`
+                                    }
                                     <div class="flex-1">
                                         <div class="font-semibold text-text">${roomData.hostName}</div>
                                         <div class="text-xs text-foam">Host (Player 1)</div>
@@ -746,11 +750,15 @@
                             <div id="guest-slot" class="bg-surface rounded-lg p-4 mb-6">
                                 ${roomData.guestId ? `
                                     <div class="flex items-center gap-3">
-                                        <img src="${roomData.guestPhoto || 'https://via.placeholder.com/40'}" 
-                                             class="w-10 h-10 rounded-full border-2 border-love">
+                                        ${roomData.guestPhoto ? 
+                                            `<img src="${roomData.guestPhoto}" class="w-10 h-10 rounded-full border-2 border-iris">` :
+                                            `<div class="w-10 h-10 rounded-full border-2 border-iris bg-iris/20 flex items-center justify-center">
+                                                <i class="bx bx-user text-iris"></i>
+                                            </div>`
+                                        }
                                         <div class="flex-1">
                                             <div class="font-semibold text-text">${roomData.guestName}</div>
-                                            <div class="text-xs text-love">Guest (Player 2)</div>
+                                            <div class="text-xs text-iris">Guest (Player 2)</div>
                                         </div>
                                     </div>
                                 ` : `
@@ -933,36 +941,58 @@
         }
         
         function initializeGameInLobby(roomData, roomId) {
+            console.log('Initializing game in lobby:', roomData.gameType);
+            
             // Update lobby content to show game is starting
             const lobbyContent = document.getElementById('lobby-content');
-            if (lobbyContent) {
-                lobbyContent.innerHTML = `
-                    <div id="game-container" class="w-full h-full flex flex-col items-center justify-center">
-                        <div class="text-center mb-4">
-                            <h3 class="text-2xl font-bold text-foam mb-2">Game Started!</h3>
-                            <p class="text-muted">${getGameDisplayName(roomData.gameType)} is now in progress</p>
-                        </div>
-                        <div id="game-area-content" class="w-full flex-1 flex items-center justify-center">
-                            <!-- Game content will be rendered here -->
-                        </div>
-                    </div>
-                `;
+            if (!lobbyContent) {
+                console.error('Lobby content element not found!');
+                return;
             }
             
-            // Now initialize the specific game
-            startGame(roomData, roomId);
+            console.log('Creating game container...');
+            lobbyContent.innerHTML = `
+                <div id="game-container" class="w-full h-full flex flex-col items-center justify-center">
+                    <div class="text-center mb-4">
+                        <h3 class="text-2xl font-bold text-foam mb-2">Game Started!</h3>
+                        <p class="text-muted">${getGameDisplayName(roomData.gameType)} is now in progress</p>
+                    </div>
+                    <div id="game-area-content" class="w-full flex-1 flex items-center justify-center min-h-[400px]">
+                        <div class="flex items-center justify-center">
+                            <div class="spinner mr-3"></div>
+                            <span class="text-muted">Loading ${getGameDisplayName(roomData.gameType)}...</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Wait a moment for DOM to be ready, then initialize the specific game
+            setTimeout(() => {
+                const gameAreaContent = document.getElementById('game-area-content');
+                if (!gameAreaContent) {
+                    console.error('Game area content element not found after creation!');
+                    return;
+                }
+                console.log('Game area content found, starting game:', roomData.gameType);
+                startGame(roomData, roomId);
+            }, 100);
         }
 
         function updateLobbyWithGuest(roomData) {
             const guestSlot = document.getElementById('guest-slot');
             if (guestSlot && roomData.guestName) {
                 guestSlot.innerHTML = `
-                    <div class="w-10 h-10 bg-iris rounded-full flex items-center justify-center">
-                        <i class="bx bx-user text-white"></i>
-                    </div>
-                    <div>
-                        <div class="text-text font-medium">${roomData.guestName}</div>
-                        <div class="text-xs text-muted">Guest</div>
+                    <div class="flex items-center gap-3">
+                        ${roomData.guestPhoto ? 
+                            `<img src="${roomData.guestPhoto}" class="w-10 h-10 rounded-full border-2 border-iris">` :
+                            `<div class="w-10 h-10 rounded-full border-2 border-iris bg-iris/20 flex items-center justify-center">
+                                <i class="bx bx-user text-iris"></i>
+                            </div>`
+                        }
+                        <div class="flex-1">
+                            <div class="font-semibold text-text">${roomData.guestName}</div>
+                            <div class="text-xs text-iris">Guest (Player 2)</div>
+                        </div>
                     </div>
                 `;
                 guestSlot.classList.remove('border-dashed', 'border-highlight-med');
@@ -971,8 +1001,13 @@
                 // Start game automatically when both players are ready
                 setTimeout(() => {
                     if (roomData.hostId === currentUser.uid) {
+                        console.log('Starting game automatically - both players joined');
                         db.collection('game-rooms').doc(currentRoom).update({
                             status: 'playing'
+                        }).then(() => {
+                            console.log('Game status updated to playing');
+                        }).catch(error => {
+                            console.error('Error starting game:', error);
                         });
                     }
                 }, 2000);
@@ -1003,11 +1038,16 @@
 
         // Pong Game Implementation
         function startPongGame(roomData, roomId) {
+            console.log('Starting Pong Game...');
             currentGameData = roomData;
             
             function updatePongUI() {
+                console.log('Updating Pong UI...');
                 const gameAreaContent = document.getElementById('game-area-content');
-                if (!gameAreaContent) return;
+                if (!gameAreaContent) {
+                    console.error('Game area content not found for Pong!');
+                    return;
+                }
                 
                 // Validate game state
                 if (!currentGameData.gameState || !currentGameData.gameState.ball || !currentGameData.gameState.player1 || !currentGameData.gameState.player2) {
@@ -1016,11 +1056,15 @@
                         <div class="text-center text-love">
                             <h3 class="text-xl font-bold mb-4">Game Error</h3>
                             <p>Invalid pong game state. Please try again.</p>
+                            <div class="mt-4 text-sm text-muted">
+                                Check browser console for details
+                            </div>
                         </div>
                     `;
                     return;
                 }
                 
+                console.log('Creating Pong UI elements...');
                 gameAreaContent.innerHTML = `
                     <div class="w-full max-w-4xl">
                         <div class="flex justify-between items-center mb-4">
@@ -1035,7 +1079,7 @@
                             </div>
                         </div>
                         <div class="bg-surface border border-highlight-med rounded-xl p-4">
-                            <canvas id="pong-canvas" class="mx-auto border border-highlight-med rounded-lg" width="800" height="400" style="max-width: 100%; height: auto;"></canvas>
+                            <canvas id="pong-canvas" class="mx-auto border border-highlight-med rounded-lg" width="800" height="400" style="max-width: 100%; height: auto; background-color: #1f1d2e;"></canvas>
                         </div>
                         <div class="text-center mt-4 text-muted">
                             Use mouse to move your paddle • First to 5 points wins
@@ -1043,8 +1087,16 @@
                     </div>
                 `;
                 
-                // Initialize pong after DOM is ready
-                setTimeout(() => initPongGame(roomId), 50);
+                // Initialize pong after DOM is ready with verification
+                setTimeout(() => {
+                    const canvas = document.getElementById('pong-canvas');
+                    if (canvas) {
+                        console.log('Canvas found, initializing Pong game...');
+                        initPongGame(roomId);
+                    } else {
+                        console.error('Canvas not found after UI creation!');
+                    }
+                }, 100);
             }
             
             updatePongUI();
@@ -2000,8 +2052,16 @@
                             ${!isDraw ? `
                                 <div class="mt-4 flex items-center justify-center gap-4">
                                     <div class="flex items-center gap-2">
-                                        <img src="${didIWin ? (roomData.hostId === currentUser.uid ? roomData.hostPhoto : roomData.guestPhoto) : (roomData.hostId === currentUser.uid ? roomData.guestPhoto : roomData.hostPhoto)}" 
-                                             class="w-8 h-8 rounded-full border-2 ${didIWin ? 'border-foam' : 'border-love'}">
+                                        ${(() => {
+                                            const winnerPhoto = didIWin ? 
+                                                (roomData.hostId === currentUser.uid ? roomData.hostPhoto : roomData.guestPhoto) : 
+                                                (roomData.hostId === currentUser.uid ? roomData.guestPhoto : roomData.hostPhoto);
+                                            return winnerPhoto ? 
+                                                `<img src="${winnerPhoto}" class="w-8 h-8 rounded-full border-2 ${didIWin ? 'border-foam' : 'border-love'}">` :
+                                                `<div class="w-8 h-8 rounded-full border-2 ${didIWin ? 'border-foam' : 'border-love'} ${didIWin ? 'bg-foam/20' : 'bg-love/20'} flex items-center justify-center">
+                                                    <i class="bx bx-user ${didIWin ? 'text-foam' : 'text-love'}"></i>
+                                                </div>`;
+                                        })()}
                                         <span class="text-text font-semibold">${didIWin ? 'You' : (roomData.hostId === currentUser.uid ? roomData.guestName : roomData.hostName)}</span>
                                     </div>
                                     <span class="text-muted">won!</span>
