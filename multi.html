@@ -911,6 +911,24 @@
                 const previousStatus = currentGameData.status;
                 currentGameData = roomData;
                 
+                // Sync guest prediction with server data every few updates
+                if (roomData.gameType === 'pong' && roomData.hostId !== currentUser.uid) {
+                    if (guestPredictedBall && roomData.gameState && roomData.gameState.ball) {
+                        const serverBall = roomData.gameState.ball;
+                        const distance = Math.sqrt(
+                            Math.pow(guestPredictedBall.x - serverBall.x, 2) + 
+                            Math.pow(guestPredictedBall.y - serverBall.y, 2)
+                        );
+                        
+                        // If guest prediction drifted too far from server, resync
+                        if (distance > 50) {
+                            console.log('🔄 Resyncing guest prediction with server');
+                            guestPredictedBall = { ...serverBall };
+                            lastServerSync = Date.now();
+                        }
+                    }
+                }
+                
                 // Handle game completion for guest players
                 if (roomData.status === 'completed' && previousStatus === 'playing') {
                     console.log('🏁 Guest received game completion status');
@@ -1195,6 +1213,12 @@
                     pongInterval = setInterval(() => {
                         updatePongPhysics(roomId);
                     }, 16.67); // 60 FPS for precise collision detection
+                } else {
+                    // Guest runs local physics prediction for smooth ball movement
+                    console.log('🎮 Starting local prediction physics for guest at 60 FPS');
+                    pongInterval = setInterval(() => {
+                        updateGuestPrediction();
+                    }, 16.67); // 60 FPS local prediction
                 }
                 
                 // Render loop
@@ -1287,42 +1311,17 @@
                 ctx.strokeRect(760, paddle2Y - 15, 35, 80);
             }
             
-            // Draw ball with enhanced client-side prediction for guests
-            let ballX = gameState.ball.x || 400;
-            let ballY = gameState.ball.y || 200;
+            // Use local predicted ball for guests, server ball for host
+            let ballX, ballY;
             
-            // For guest players, predict ball position to reduce lag
-            if (!isHost && gameState.ball.dx && gameState.ball.dy) {
-                // Enhanced prediction with better physics simulation
-                const now = Date.now();
-                const lastUpdate = gameState.ball.lastUpdate || now;
-                const timeDiff = (now - lastUpdate) / 1000; // Convert to seconds
-                
-                // Only predict if the time difference is reasonable (less than 300ms)
-                if (timeDiff > 0 && timeDiff < 0.3) {
-                    // Predict ball position
-                    ballX += gameState.ball.dx * timeDiff * 30; // 30 FPS physics
-                    ballY += gameState.ball.dy * timeDiff * 30;
-                    
-                    // Simulate wall bounces for better prediction
-                    let bounces = 0;
-                    while (bounces < 3) { // Limit bounces to prevent infinite loops
-                        if (ballY <= 8) {
-                            ballY = 16 - ballY;
-                            break;
-                        } else if (ballY >= 392) {
-                            ballY = 784 - ballY;
-                            break;
-                        } else {
-                            break;
-                        }
-                        bounces++;
-                    }
-                    
-                    // Keep ball within bounds
-                    ballX = Math.max(0, Math.min(800, ballX));
-                    ballY = Math.max(8, Math.min(392, ballY));
-                }
+            if (!isHost && guestPredictedBall) {
+                // Guest uses locally predicted ball for 60 FPS smooth movement
+                ballX = guestPredictedBall.x;
+                ballY = guestPredictedBall.y;
+            } else {
+                // Host uses authoritative server ball
+                ballX = gameState.ball.x || 400;
+                ballY = gameState.ball.y || 200;
             }
             
             ctx.fillStyle = '#eb6f92';
@@ -1341,15 +1340,21 @@
             ctx.fillStyle = '#6e6a86';
             ctx.font = '10px Arial';
             ctx.textAlign = 'left';
-            ctx.fillText(`Ball: (${Math.round(ballX)}, ${Math.round(ballY)})`, 10, 380);
+            const ballType = (!isHost && guestPredictedBall) ? 'Pred' : 'Auth';
+            ctx.fillText(`Ball ${ballType}: (${Math.round(ballX)}, ${Math.round(ballY)})`, 10, 380);
             ctx.fillText(`P1: ${Math.round(paddle1Y)}, P2: ${Math.round(paddle2Y)}`, 10, 392);
             
             // Show sync info for guests
             if (!isHost) {
                 const lastUpdate = gameState.ball.lastUpdate;
                 const syncLag = lastUpdate ? Date.now() - lastUpdate : 0;
+                const usingPrediction = guestPredictedBall ? 'Local 60FPS' : 'Server';
                 ctx.fillText(`Sync: ${syncLag}ms`, 200, 380);
-                ctx.fillText(`Predicted: ${!isHost && syncLag > 50 ? 'Yes' : 'No'}`, 200, 392);
+                ctx.fillText(`Ball: ${usingPrediction}`, 200, 392);
+                
+                if (guestPredictedBall) {
+                    ctx.fillText(`Speed: ${guestPredictedBall.dx.toFixed(1)}, ${guestPredictedBall.dy.toFixed(1)}`, 350, 380);
+                }
             }
             
             // Check for game completion
@@ -1361,6 +1366,60 @@
                 ctx.textAlign = 'center';
                 const winner = (gameState.player1.score || 0) >= 5 ? roomData.hostName : roomData.guestName;
                 ctx.fillText(`${winner} Wins!`, 400, 200);
+            }
+        }
+
+        // Guest-specific local prediction variables
+        let guestPredictedBall = null;
+        let lastServerSync = 0;
+        
+        function updateGuestPrediction() {
+            if (!currentGameData || currentGameData.status !== 'playing') {
+                return;
+            }
+            
+            const serverBall = currentGameData.gameState.ball;
+            const now = Date.now();
+            
+            // Initialize or sync with server ball
+            if (!guestPredictedBall || now - lastServerSync > 100) {
+                guestPredictedBall = { ...serverBall };
+                lastServerSync = now;
+                return;
+            }
+            
+            // Run local physics at 60 FPS for smooth movement
+            guestPredictedBall.x += guestPredictedBall.dx;
+            guestPredictedBall.y += guestPredictedBall.dy;
+            
+            // Wall bounces
+            if (guestPredictedBall.y <= 8 || guestPredictedBall.y >= 392) {
+                guestPredictedBall.dy = -guestPredictedBall.dy;
+            }
+            
+            // Paddle collisions (simplified for guest prediction)
+            const player1 = currentGameData.gameState.player1;
+            const player2 = currentGameData.gameState.player2;
+            
+            // Left paddle collision
+            if (guestPredictedBall.x <= 40 && guestPredictedBall.x >= 5 && guestPredictedBall.dx < 0 &&
+                guestPredictedBall.y >= player1.y - 15 && guestPredictedBall.y <= player1.y + 65) {
+                guestPredictedBall.dx = Math.abs(guestPredictedBall.dx) + 0.1;
+                guestPredictedBall.dy += (guestPredictedBall.y - (player1.y + 25)) * 0.05;
+                guestPredictedBall.x = 40;
+            }
+            
+            // Right paddle collision
+            if (guestPredictedBall.x >= 760 && guestPredictedBall.x <= 795 && guestPredictedBall.dx > 0 &&
+                guestPredictedBall.y >= player2.y - 15 && guestPredictedBall.y <= player2.y + 65) {
+                guestPredictedBall.dx = -Math.abs(guestPredictedBall.dx) - 0.1;
+                guestPredictedBall.dy += (guestPredictedBall.y - (player2.y + 25)) * 0.05;
+                guestPredictedBall.x = 760;
+            }
+            
+            // Reset if ball goes off screen
+            if (guestPredictedBall.x < 0 || guestPredictedBall.x > 800) {
+                guestPredictedBall = { ...serverBall };
             }
         }
 
