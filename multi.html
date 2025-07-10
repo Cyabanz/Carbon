@@ -908,7 +908,27 @@
             
             // Update current game data for real-time sync
             if (currentGameData) {
+                const previousStatus = currentGameData.status;
                 currentGameData = roomData;
+                
+                // Handle game completion for guest players
+                if (roomData.status === 'completed' && previousStatus === 'playing') {
+                    console.log('🏁 Guest received game completion status');
+                    
+                    // Stop any running intervals for guest
+                    if (pongInterval) {
+                        clearInterval(pongInterval);
+                        pongInterval = null;
+                    }
+                    if (racingUpdateInterval) {
+                        clearInterval(racingUpdateInterval);
+                        racingUpdateInterval = null;
+                    }
+                    if (reactionTimeout) {
+                        clearTimeout(reactionTimeout);
+                        reactionTimeout = null;
+                    }
+                }
                 
                 // Update game data without recreating UI (prevents flickering)
                 if (roomData.status === 'playing' || roomData.status === 'completed') {
@@ -1135,7 +1155,7 @@
                 // Initial render to show something immediately
                 renderPongFrame(ctx, currentGameData.gameState, currentGameData);
                 
-                // Mouse control
+                // Mouse control with aggressive updates for collision detection
                 const mouseHandler = (e) => {
                     if (currentGameData.status !== 'playing') return;
                     
@@ -1143,11 +1163,22 @@
                     const mouseY = e.clientY - rect.top;
                     const paddleY = Math.max(0, Math.min(350, mouseY - 25));
                     
-                    // Fast paddle updates for responsive collision detection
+                    // Ultra-responsive paddle updates - every 16ms (~60 FPS) for precise collision
                     if (!canvas.lastUpdate || Date.now() - canvas.lastUpdate > 16) {
                         const updateData = {};
                         updateData[`gameState.${isPlayer1 ? 'player1' : 'player2'}.y`] = paddleY;
+                        updateData[`gameState.${isPlayer1 ? 'player1' : 'player2'}.lastUpdate`] = Date.now();
                         updateData['lastActivity'] = firebase.firestore.FieldValue.serverTimestamp();
+                        
+                        // Update local data immediately for smooth rendering
+                        if (isPlayer1) {
+                            currentGameData.gameState.player1.y = paddleY;
+                            currentGameData.gameState.player1.lastUpdate = Date.now();
+                        } else {
+                            currentGameData.gameState.player2.y = paddleY;
+                            currentGameData.gameState.player2.lastUpdate = Date.now();
+                        }
+                        
                         db.collection('game-rooms').doc(roomId).update(updateData).catch(console.error);
                         canvas.lastUpdate = Date.now();
                     }
@@ -1158,12 +1189,12 @@
                 // Store handler for cleanup
                 canvas.pongMouseHandler = mouseHandler;
                 
-                // Game physics loop (host only) - 60 FPS for smooth gameplay
+                // Game physics loop (host only) - increased to 60 FPS for accurate collision detection
                 if (isPlayer1) {
-                    console.log('🎮 Starting Pong physics loop for host');
+                    console.log('🎮 Starting Pong physics loop for host at 60 FPS');
                     pongInterval = setInterval(() => {
                         updatePongPhysics(roomId);
-                    }, 33.33); // ~30 FPS for better network performance
+                    }, 16.67); // 60 FPS for precise collision detection
                 }
                 
                 // Render loop
@@ -1190,12 +1221,16 @@
                     try {
                         renderPongFrame(ctx, gameState, currentGameData);
                         
-                        // Check for game completion
+                        // Check for game completion - ensure both players stop
                         if (currentGameData.status === 'completed') {
+                            console.log('🏁 Game completed in render loop');
                             if (pongInterval) {
                                 clearInterval(pongInterval);
                                 pongInterval = null;
                             }
+                            
+                            // Show final state with winner overlay
+                            renderPongFrame(ctx, gameState, currentGameData);
                             return;
                         }
                         
@@ -1236,25 +1271,56 @@
             ctx.fillRect(10, paddle1Y, 10, 50);
             ctx.fillRect(780, paddle2Y, 10, 50);
             
-            // Draw ball with client-side prediction for smoother guest experience
+            // Draw collision zones for debugging (semi-transparent)
+            const isHost = roomData.hostId === currentUser.uid;
+            if (!isHost) {
+                ctx.fillStyle = 'rgba(156, 207, 216, 0.3)';
+                // Left paddle collision zone (expanded)
+                ctx.fillRect(5, paddle1Y - 15, 35, 80);
+                // Right paddle collision zone (expanded for guest)  
+                ctx.fillRect(760, paddle2Y - 15, 35, 80);
+                
+                // Draw collision zone borders for clarity
+                ctx.strokeStyle = 'rgba(156, 207, 216, 0.8)';
+                ctx.lineWidth = 1;
+                ctx.strokeRect(5, paddle1Y - 15, 35, 80);
+                ctx.strokeRect(760, paddle2Y - 15, 35, 80);
+            }
+            
+            // Draw ball with enhanced client-side prediction for guests
             let ballX = gameState.ball.x || 400;
             let ballY = gameState.ball.y || 200;
             
             // For guest players, predict ball position to reduce lag
-            const isHost = roomData.hostId === currentUser.uid;
             if (!isHost && gameState.ball.dx && gameState.ball.dy) {
-                // Simple prediction: estimate where ball should be now based on last update
+                // Enhanced prediction with better physics simulation
                 const now = Date.now();
                 const lastUpdate = gameState.ball.lastUpdate || now;
                 const timeDiff = (now - lastUpdate) / 1000; // Convert to seconds
                 
-                // Only predict if the time difference is reasonable (less than 200ms)
-                if (timeDiff > 0 && timeDiff < 0.2) {
-                    ballX += gameState.ball.dx * timeDiff * 60; // 60 FPS equivalent
-                    ballY += gameState.ball.dy * timeDiff * 60;
+                // Only predict if the time difference is reasonable (less than 300ms)
+                if (timeDiff > 0 && timeDiff < 0.3) {
+                    // Predict ball position
+                    ballX += gameState.ball.dx * timeDiff * 30; // 30 FPS physics
+                    ballY += gameState.ball.dy * timeDiff * 30;
+                    
+                    // Simulate wall bounces for better prediction
+                    let bounces = 0;
+                    while (bounces < 3) { // Limit bounces to prevent infinite loops
+                        if (ballY <= 8) {
+                            ballY = 16 - ballY;
+                            break;
+                        } else if (ballY >= 392) {
+                            ballY = 784 - ballY;
+                            break;
+                        } else {
+                            break;
+                        }
+                        bounces++;
+                    }
                     
                     // Keep ball within bounds
-                    ballX = Math.max(8, Math.min(792, ballX));
+                    ballX = Math.max(0, Math.min(800, ballX));
                     ballY = Math.max(8, Math.min(392, ballY));
                 }
             }
@@ -1271,12 +1337,20 @@
             ctx.fillText(`${gameState.player1.score || 0}`, 200, 40);
             ctx.fillText(`${gameState.player2.score || 0}`, 600, 40);
             
-            // Draw debug info
+            // Draw enhanced debug info
             ctx.fillStyle = '#6e6a86';
-            ctx.font = '12px Arial';
+            ctx.font = '10px Arial';
             ctx.textAlign = 'left';
-            ctx.fillText(`Ball: (${Math.round(gameState.ball.x || 400)}, ${Math.round(gameState.ball.y || 200)})`, 10, 380);
-            ctx.fillText(`P1: ${Math.round(gameState.player1.y || 175)}, P2: ${Math.round(gameState.player2.y || 175)}`, 10, 395);
+            ctx.fillText(`Ball: (${Math.round(ballX)}, ${Math.round(ballY)})`, 10, 380);
+            ctx.fillText(`P1: ${Math.round(paddle1Y)}, P2: ${Math.round(paddle2Y)}`, 10, 392);
+            
+            // Show sync info for guests
+            if (!isHost) {
+                const lastUpdate = gameState.ball.lastUpdate;
+                const syncLag = lastUpdate ? Date.now() - lastUpdate : 0;
+                ctx.fillText(`Sync: ${syncLag}ms`, 200, 380);
+                ctx.fillText(`Predicted: ${!isHost && syncLag > 50 ? 'Yes' : 'No'}`, 200, 392);
+            }
             
             // Check for game completion
             if (roomData.status === 'completed') {
@@ -1292,14 +1366,16 @@
 
         async function updatePongPhysics(roomId) {
             try {
-                // Use current game data instead of re-fetching from Firebase
-                if (!currentGameData || !currentGameData.gameState || currentGameData.status !== 'playing') {
+                // Fetch fresh data from Firebase to ensure we have latest paddle positions
+                const doc = await db.collection('game-rooms').doc(roomId).get();
+                if (!doc.exists || doc.data().status !== 'playing') {
                     return;
                 }
                 
-                const ball = { ...currentGameData.gameState.ball };
-                const player1 = { ...currentGameData.gameState.player1 };
-                const player2 = { ...currentGameData.gameState.player2 };
+                const roomData = doc.data();
+                const ball = { ...roomData.gameState.ball };
+                const player1 = { ...roomData.gameState.player1 };
+                const player2 = { ...roomData.gameState.player2 };
                 
                 // Update ball position
                 ball.x += ball.dx;
@@ -1310,20 +1386,27 @@
                     ball.dy = -ball.dy;
                 }
                 
-                // Ball collision with left paddle - expanded collision area for network lag compensation
-                if (ball.x <= 30 && ball.x >= 15 && 
-                    ball.y >= player1.y - 5 && ball.y <= player1.y + 55) {
+                // Ultra-generous collision detection with massive lag compensation
+                let collided = false;
+                
+                // Ball collision with left paddle (Player 1) - expanded hit zone
+                if (ball.x <= 40 && ball.x >= 5 && ball.dx < 0 &&
+                    ball.y >= player1.y - 15 && ball.y <= player1.y + 65) {
                     ball.dx = Math.abs(ball.dx) + 0.1;
                     ball.dy += (ball.y - (player1.y + 25)) * 0.05;
-                    ball.x = 30; // Ensure ball doesn't get stuck
+                    ball.x = 40; // Move ball well away from paddle
+                    collided = true;
+                    console.log('🏓 Player 1 paddle hit!');
                 }
                 
-                // Ball collision with right paddle - expanded collision area for network lag compensation  
-                if (ball.x >= 770 && ball.x <= 785 && 
-                    ball.y >= player2.y - 5 && ball.y <= player2.y + 55) {
+                // Ball collision with right paddle (Player 2) - expanded hit zone for guest
+                if (ball.x >= 760 && ball.x <= 795 && ball.dx > 0 &&
+                    ball.y >= player2.y - 15 && ball.y <= player2.y + 65) {
                     ball.dx = -Math.abs(ball.dx) - 0.1;
                     ball.dy += (ball.y - (player2.y + 25)) * 0.05;
-                    ball.x = 770; // Ensure ball doesn't get stuck
+                    ball.x = 760; // Move ball well away from paddle
+                    collided = true;
+                    console.log('🏓 Player 2 paddle hit!');
                 }
                 
                 // Scoring
@@ -1345,6 +1428,15 @@
                     ball.dy = (Math.random() - 0.5) * 4;
                 }
                 
+                // Check for game completion
+                let gameCompleted = false;
+                if (player1.score >= 5 || player2.score >= 5) {
+                    gameCompleted = true;
+                }
+                
+                // Add timestamp for client prediction
+                ball.lastUpdate = Date.now();
+                
                 // Update Firebase with new positions
                 const updateData = {
                     'gameState.ball': ball,
@@ -1353,18 +1445,26 @@
                     'lastActivity': firebase.firestore.FieldValue.serverTimestamp()
                 };
                 
-                if (player1.score >= 5 || player2.score >= 5) {
+                if (gameCompleted) {
                     updateData.status = 'completed';
                     updateData.winner = player1.score >= 5 ? 'player1' : 'player2';
+                    console.log('🏆 Game completed! Winner:', updateData.winner);
+                    
+                    // Stop physics immediately
+                    if (pongInterval) {
+                        clearInterval(pongInterval);
+                        pongInterval = null;
+                    }
                 }
-                
-                // Add timestamp for client prediction
-                ball.lastUpdate = Date.now();
                 
                 // Update local data immediately for smooth rendering
                 currentGameData.gameState.ball = ball;
                 currentGameData.gameState.player1 = player1;
                 currentGameData.gameState.player2 = player2;
+                if (gameCompleted) {
+                    currentGameData.status = 'completed';
+                    currentGameData.winner = updateData.winner;
+                }
                 
                 await db.collection('game-rooms').doc(roomId).update(updateData);
                 
