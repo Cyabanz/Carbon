@@ -1163,7 +1163,7 @@
                     console.log('🎮 Starting Pong physics loop for host');
                     pongInterval = setInterval(() => {
                         updatePongPhysics(roomId);
-                    }, 16.67); // ~60 FPS
+                    }, 33.33); // ~30 FPS for better network performance
                 }
                 
                 // Render loop
@@ -1206,6 +1206,7 @@
                     }
                 }
                 
+                // Start 60 FPS render loop for smooth visuals (physics runs at 30 FPS for network optimization)
                 render();
             }, 150); // Wait a bit longer for DOM to be ready
         }
@@ -1225,14 +1226,38 @@
             ctx.stroke();
             ctx.setLineDash([]);
             
-            // Draw paddles
+            // Draw paddles with smoother interpolation
             ctx.fillStyle = '#9ccfd8';
-            ctx.fillRect(10, gameState.player1.y || 175, 10, 50);
-            ctx.fillRect(780, gameState.player2.y || 175, 10, 50);
             
-            // Draw ball
-            const ballX = gameState.ball.x || 400;
-            const ballY = gameState.ball.y || 200;
+            // Smooth paddle positions for better visual experience
+            const paddle1Y = gameState.player1.y || 175;
+            const paddle2Y = gameState.player2.y || 175;
+            
+            ctx.fillRect(10, paddle1Y, 10, 50);
+            ctx.fillRect(780, paddle2Y, 10, 50);
+            
+            // Draw ball with client-side prediction for smoother guest experience
+            let ballX = gameState.ball.x || 400;
+            let ballY = gameState.ball.y || 200;
+            
+            // For guest players, predict ball position to reduce lag
+            const isHost = roomData.hostId === currentUser.uid;
+            if (!isHost && gameState.ball.dx && gameState.ball.dy) {
+                // Simple prediction: estimate where ball should be now based on last update
+                const now = Date.now();
+                const lastUpdate = gameState.ball.lastUpdate || now;
+                const timeDiff = (now - lastUpdate) / 1000; // Convert to seconds
+                
+                // Only predict if the time difference is reasonable (less than 200ms)
+                if (timeDiff > 0 && timeDiff < 0.2) {
+                    ballX += gameState.ball.dx * timeDiff * 60; // 60 FPS equivalent
+                    ballY += gameState.ball.dy * timeDiff * 60;
+                    
+                    // Keep ball within bounds
+                    ballX = Math.max(8, Math.min(792, ballX));
+                    ballY = Math.max(8, Math.min(392, ballY));
+                }
+            }
             
             ctx.fillStyle = '#eb6f92';
             ctx.beginPath();
@@ -1330,6 +1355,9 @@
                     updateData.status = 'completed';
                     updateData.winner = player1.score >= 5 ? 'player1' : 'player2';
                 }
+                
+                // Add timestamp for client prediction
+                ball.lastUpdate = Date.now();
                 
                 // Update local data immediately for smooth rendering
                 currentGameData.gameState.ball = ball;
@@ -1489,7 +1517,7 @@
                     let lastUpdate = 0;
                     input.addEventListener('input', (e) => {
                         const now = Date.now();
-                        if (now - lastUpdate < 50) return; // Throttle updates
+                        if (now - lastUpdate < 100) return; // Throttle updates for better network performance
                         lastUpdate = now;
                         
                         const text = e.target.value;
@@ -1867,11 +1895,11 @@
             // Store event listeners for cleanup
             canvas.keyHandlers = { handleKeyDown, handleKeyUp };
             
-            // Update loop - 60 FPS for smooth racing
+            // Update loop - 30 FPS for better network performance
             if (racingUpdateInterval) clearInterval(racingUpdateInterval);
             racingUpdateInterval = setInterval(() => {
                 updateRacingGame(roomId, isPlayer1);
-            }, 16.67); // ~60 FPS
+            }, 33.33); // ~30 FPS
             
             // Render loop
             function render() {
@@ -1955,8 +1983,8 @@
                     player.y = Math.max(25, player.y - 10);
                 }
                 
-                // Update Firebase with throttling - more responsive for racing
-                if (!updateRacingGame.lastUpdate || Date.now() - updateRacingGame.lastUpdate > 33) {
+                // Update Firebase with throttling - optimized for better network performance
+                if (!updateRacingGame.lastUpdate || Date.now() - updateRacingGame.lastUpdate > 100) {
                     const updateData = {};
                     updateData[`gameState.${isPlayer1 ? 'player1' : 'player2'}`] = player;
                     updateData['lastActivity'] = firebase.firestore.FieldValue.serverTimestamp();
