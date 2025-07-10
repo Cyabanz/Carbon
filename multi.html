@@ -1192,8 +1192,8 @@
                     const mouseY = e.clientY - rect.top;
                     const paddleY = Math.max(0, Math.min(350, mouseY - 25));
                     
-                    // Optimized paddle updates - 30 FPS to prevent Firebase overload
-                    if (!canvas.lastUpdate || Date.now() - canvas.lastUpdate > 33) {
+                    // Ultra-conservative paddle updates - 10 FPS to prevent quota exhaustion
+                    if (!canvas.lastUpdate || Date.now() - canvas.lastUpdate > 100) {
                         const updateData = {};
                         updateData[`gameState.${isPlayer1 ? 'player1' : 'player2'}.y`] = paddleY;
                         updateData[`gameState.${isPlayer1 ? 'player1' : 'player2'}.lastUpdate`] = Date.now();
@@ -1211,13 +1211,13 @@
                         // Add retry logic for Firebase errors
                         db.collection('game-rooms').doc(roomId).update(updateData).catch(error => {
                             console.warn('Paddle update failed:', error.code || error);
-                            recordFirebaseError();
+                            recordFirebaseError(error.code);
                             
-                            // Only retry for specific error types and if not too many recent errors
-                            if (error.code === 'unavailable' && firebaseErrorCount < 3) {
+                            // Only retry for specific error types and if not in emergency mode
+                            if (error.code === 'unavailable' && !quotaExceeded && firebaseErrorCount < 5) {
                                 setTimeout(() => {
                                     db.collection('game-rooms').doc(roomId).update(updateData).catch(console.error);
-                                }, 200);
+                                }, 500);
                             }
                         });
                         canvas.lastUpdate = Date.now();
@@ -1229,12 +1229,12 @@
                 // Store handler for cleanup
                 canvas.pongMouseHandler = mouseHandler;
                 
-                // Game physics loop with Firebase-friendly rates
+                // Game physics loop with ultra-conservative rates
                 if (isPlayer1) {
-                    console.log('🎮 Starting Pong physics loop for host at 30 FPS (Firebase optimized)');
+                    console.log('🎮 Starting Pong physics loop for host at 10 FPS (quota conserving)');
                     pongInterval = setInterval(() => {
                         updatePongPhysics(roomId);
-                    }, 33.33); // 30 FPS to prevent Firebase overload
+                    }, 100); // 10 FPS to prevent quota exhaustion
                 } else {
                     // Guest runs local physics prediction for smooth ball movement
                     console.log('🎮 Starting local prediction physics for guest at 60 FPS');
@@ -1371,7 +1371,11 @@
                 const lastUpdate = gameState.ball.lastUpdate;
                 const syncLag = lastUpdate ? Date.now() - lastUpdate : 0;
                 const usingPrediction = guestPredictedBall ? 'Local 60FPS' : 'Server';
-                const connectionStatus = firebaseErrorCount > 3 ? 'Poor' : firebaseErrorCount > 0 ? 'Fair' : 'Good';
+                let connectionStatus = firebaseErrorCount > 10 ? 'Critical' : firebaseErrorCount > 5 ? 'Poor' : firebaseErrorCount > 0 ? 'Fair' : 'Good';
+                
+                if (quotaExceeded) {
+                    connectionStatus = 'QUOTA EXCEEDED';
+                }
                 
                 ctx.fillText(`Sync: ${syncLag}ms | Connection: ${connectionStatus}`, 200, 380);
                 ctx.fillText(`Ball: ${usingPrediction}`, 200, 392);
@@ -1403,17 +1407,51 @@
         function shouldAllowUpdate() {
             const now = Date.now();
             
-            // If we've had recent errors, be more conservative
-            if (firebaseErrorCount > 3 && now - lastFirebaseError < 5000) {
-                return now - lastFirebaseError > 200; // Slow down to 5 FPS if errors
+            // Emergency mode - near zero updates if quota exceeded
+            if (quotaExceeded) {
+                return now - lastFirebaseError > 2000; // 0.5 FPS emergency mode
             }
             
-            return true;
+            // If we've had quota errors, be extremely conservative
+            if (firebaseErrorCount > 10 && now - lastFirebaseError < 15000) {
+                return now - lastFirebaseError > 1000; // Slow down to 1 FPS if quota errors
+            }
+            
+            // If we've had recent errors, be more conservative
+            if (firebaseErrorCount > 5 && now - lastFirebaseError < 10000) {
+                return now - lastFirebaseError > 500; // Slow down to 2 FPS if errors
+            }
+            
+            // Always enforce minimum 10 FPS to prevent quota exhaustion
+            return now - lastFirebaseError > 100;
         }
         
-        function recordFirebaseError() {
+        let quotaExceeded = false;
+        
+        function recordFirebaseError(errorCode) {
             firebaseErrorCount++;
             lastFirebaseError = Date.now();
+            
+            // Handle quota exhaustion specifically
+            if (errorCode === 'resource-exhausted') {
+                quotaExceeded = true;
+                firebaseErrorCount += 10; // Heavy penalty for quota errors
+                showNotification('Quota Exceeded', 'Firebase quota exhausted - switching to emergency mode', 'error');
+                
+                // Emergency mode - stop all physics updates for host
+                if (pongInterval) {
+                    clearInterval(pongInterval);
+                    pongInterval = setInterval(() => {
+                        updatePongPhysics(currentRoom);
+                    }, 2000); // 0.5 FPS emergency mode
+                }
+                
+                // Reset quota flag after 5 minutes
+                setTimeout(() => {
+                    quotaExceeded = false;
+                    showNotification('Quota Reset', 'Resuming normal operation', 'success');
+                }, 300000);
+            }
             
             // Show notification for poor connection
             if (firebaseErrorCount === 3) {
@@ -1422,16 +1460,16 @@
                 showNotification('Poor Connection', 'Switching to offline mode for better experience', 'info');
             }
             
-            // Reset error count after 30 seconds of no errors
+            // Reset error count after 60 seconds of no errors (increased from 30)
             setTimeout(() => {
-                if (Date.now() - lastFirebaseError > 30000) {
+                if (Date.now() - lastFirebaseError > 60000) {
                     const hadPoorConnection = firebaseErrorCount >= 3;
-                    firebaseErrorCount = 0;
-                    if (hadPoorConnection) {
+                    firebaseErrorCount = Math.max(0, firebaseErrorCount - 5); // Gradual recovery
+                    if (hadPoorConnection && firebaseErrorCount === 0) {
                         showNotification('Connection Restored', 'Network stability improved', 'success');
                     }
                 }
-            }, 30000);
+            }, 60000);
         }
         
         function updateGuestPrediction() {
@@ -1595,7 +1633,7 @@
                 
             } catch (error) {
                 console.error('❌ Error updating pong physics:', error.code || error);
-                recordFirebaseError();
+                recordFirebaseError(error.code);
                 
                 // Handle specific Firebase errors
                 if (error.code === 'unavailable' || error.code === 'deadline-exceeded') {
@@ -1603,14 +1641,8 @@
                 } else if (error.code === 'permission-denied') {
                     console.error('Permission denied - check Firebase rules');
                 } else if (error.code === 'resource-exhausted') {
-                    console.error('Firebase quota exceeded - reducing update frequency');
-                    // Slow down updates temporarily
-                    if (pongInterval) {
-                        clearInterval(pongInterval);
-                        pongInterval = setInterval(() => {
-                            updatePongPhysics(roomId);
-                        }, 100); // Reduce to 10 FPS temporarily
-                    }
+                    console.error('🚨 QUOTA EXCEEDED - Emergency slowdown activated');
+                    // Emergency mode already handled in recordFirebaseError
                 } else if (error.message && error.message.includes('400')) {
                     console.warn('Bad request to Firebase - likely rate limited');
                 }
@@ -2487,6 +2519,7 @@
         };
 
         async function leaveRoom() {
+            console.log('🚪 Player leaving room:', currentRoom);
             winnerScreenShown = false;
             
             if (gameListener) {
@@ -2499,20 +2532,42 @@
                     const roomDoc = await db.collection('game-rooms').doc(currentRoom).get();
                     if (roomDoc.exists) {
                         const roomData = roomDoc.data();
-                        if (roomData.hostId === currentUser.uid && roomData.status === 'waiting') {
-                            // Delete room if host leaves before game starts
+                        const isHost = roomData.hostId === currentUser.uid;
+                        
+                        console.log('🚪 Room status:', roomData.status, 'Is host:', isHost);
+                        
+                        if (isHost && roomData.status === 'waiting') {
+                            // Host leaves before game starts - delete room
+                            console.log('🗑️ Host deleting room');
                             await db.collection('game-rooms').doc(currentRoom).delete();
-                        } else if (roomData.status === 'playing') {
-                            // Mark player as disconnected
-                            await db.collection('game-rooms').doc(currentRoom).update({
+                        } else if (roomData.status === 'playing' || roomData.status === 'waiting') {
+                            // Player leaves during game or waiting - mark as disconnected
+                            const updateData = {
                                 status: 'completed',
-                                winner: roomData.hostId === currentUser.uid ? 'player2' : 'player1',
-                                disconnectedPlayer: currentUser.uid
-                            });
+                                disconnectedPlayer: currentUser.uid,
+                                disconnectedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                                lastActivity: firebase.firestore.FieldValue.serverTimestamp()
+                            };
+                            
+                            // Determine winner if game was in progress
+                            if (roomData.status === 'playing') {
+                                updateData.winner = isHost ? 'player2' : 'player1';
+                                console.log('🏆 Game ended due to disconnect, winner:', updateData.winner);
+                            }
+                            
+                            await db.collection('game-rooms').doc(currentRoom).update(updateData);
+                        } else if (roomData.status === 'completed') {
+                            // Game already completed, just clean up
+                            console.log('🧹 Cleaning up completed game');
+                            setTimeout(() => {
+                                db.collection('game-rooms').doc(currentRoom).delete().catch(console.error);
+                            }, 5000); // Delete after 5 seconds
                         }
+                    } else {
+                        console.log('⚠️ Room no longer exists');
                     }
                 } catch (error) {
-                    console.error('Error leaving room:', error);
+                    console.error('❌ Error leaving room:', error);
                 }
                 currentRoom = null;
             }
@@ -2571,12 +2626,61 @@
             window.updateRacingUI = null;
         }
 
-        // Cleanup on page unload
-        window.addEventListener('beforeunload', () => {
+        // Enhanced cleanup on page unload
+        window.addEventListener('beforeunload', (e) => {
             if (currentRoom && db) {
-                db.collection('game-rooms').doc(currentRoom).delete();
+                try {
+                    // Use sendBeacon for reliable cleanup during page unload
+                    const cleanupData = {
+                        action: 'player_disconnect',
+                        roomId: currentRoom,
+                        playerId: currentUser?.uid || 'unknown',
+                        timestamp: Date.now()
+                    };
+                    
+                    // Attempt synchronous cleanup
+                    db.collection('game-rooms').doc(currentRoom).update({
+                        status: 'completed',
+                        disconnectedPlayer: currentUser?.uid || 'unknown',
+                        disconnectedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                        lastActivity: firebase.firestore.FieldValue.serverTimestamp()
+                    }).catch(console.error);
+                    
+                } catch (error) {
+                    console.error('Error during page unload cleanup:', error);
+                }
             }
         });
+        
+        // Also handle visibility change (tab switching, mobile background)
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden && currentRoom && currentGameData?.status === 'playing') {
+                console.log('⚠️ Player backgrounded during game');
+                // Don't immediately disconnect, but flag as potentially disconnected
+            }
+        });
+        
+        // Auto-cleanup old completed games (run every 5 minutes)
+        setInterval(async () => {
+            if (!db) return;
+            
+            try {
+                const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+                const oldGames = await db.collection('game-rooms')
+                    .where('status', '==', 'completed')
+                    .where('lastActivity', '<', fiveMinutesAgo)
+                    .limit(10)
+                    .get();
+                
+                const deletePromises = oldGames.docs.map(doc => doc.ref.delete());
+                if (deletePromises.length > 0) {
+                    await Promise.all(deletePromises);
+                    console.log('🧹 Cleaned up', deletePromises.length, 'old completed games');
+                }
+            } catch (error) {
+                console.error('Error cleaning up old games:', error);
+            }
+        }, 5 * 60 * 1000); // Every 5 minutes
     </script>
 </body>
 </html>
