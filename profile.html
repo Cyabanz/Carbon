@@ -266,6 +266,60 @@
       }
     }
 
+    /* Profile Frame Styles */
+    .profile-frame-red {
+      border: 3px solid #ff4444 !important;
+      box-shadow: 0 0 15px #ff444450 !important;
+    }
+
+    .profile-frame-blue {
+      border: 3px solid #4444ff !important;
+      box-shadow: 0 0 15px #4444ff50 !important;
+    }
+
+    .profile-frame-orange {
+      border: 3px solid #ff8844 !important;
+      box-shadow: 0 0 15px #ff884450 !important;
+    }
+
+    .profile-frame-green {
+      border: 3px solid #44ff44 !important;
+      box-shadow: 0 0 15px #44ff4450 !important;
+    }
+
+    .profile-frame-purple {
+      border: 3px solid #8844ff !important;
+      box-shadow: 0 0 15px #8844ff50 !important;
+    }
+
+    .profile-frame-gold {
+      border: 3px solid #ffd700 !important;
+      box-shadow: 0 0 20px #ffd70080 !important;
+      animation: goldGlow 2s infinite;
+    }
+
+    @keyframes goldGlow {
+      0%, 100% { box-shadow: 0 0 20px #ffd70080 !important; }
+      50% { box-shadow: 0 0 30px #ffd700a0 !important; }
+    }
+
+    .profile-frame-silver {
+      border: 3px solid #c0c0c0 !important;
+      box-shadow: 0 0 15px #c0c0c080 !important;
+    }
+
+    .profile-frame-rainbow {
+      border: 3px solid !important;
+      border-image: linear-gradient(45deg, #ff0000, #ff8000, #ffff00, #00ff00, #0080ff, #8000ff) 1 !important;
+      box-shadow: 0 0 20px rgba(255, 255, 255, 0.5) !important;
+      animation: rainbowProfileShift 3s infinite !important;
+    }
+
+    @keyframes rainbowProfileShift {
+      0% { filter: hue-rotate(0deg); }
+      100% { filter: hue-rotate(360deg); }
+    }
+
     /* Chat message container with custom backgrounds */
     .chat-bg-gradient {
       background: linear-gradient(135deg, rgba(156, 207, 216, 0.1) 0%, rgba(196, 167, 231, 0.1) 100%);
@@ -314,7 +368,7 @@
       <!-- Profile Header -->
       <div class="bg-rp-surface rounded-xl p-6 mb-8 border border-rp-overlay">
         <div class="flex flex-col sm:flex-row items-center gap-6">
-          <img id="profilePhoto" class="w-16 h-16 rounded-full ring-2 ring-rp-foam/50" src="" alt="Profile Photo">
+          <img id="profilePhoto" class="carbon-profile-avatar w-16 h-16 rounded-full ring-2 ring-rp-foam/50" src="" alt="Profile Photo">
           <div class="flex-1 text-center sm:text-left">
             <h1 id="profileName" class="text-2xl font-bold text-rp-text mb-1"></h1>
             <p id="profileEmail" class="text-rp-subtle text-sm"></p>
@@ -486,7 +540,7 @@
           <div class="bg-rp-surface rounded-xl border border-rp-overlay p-4 mb-6">
             <div class="flex items-center gap-4">
               <div class="relative">
-                <img id="userAvatar" src="" alt="Your Avatar" class="w-14 h-14 rounded-full ring-2 ring-rp-foam/50">
+                <img id="userAvatar" src="" alt="Your Avatar" class="carbon-profile-avatar w-14 h-14 rounded-full ring-2 ring-rp-foam/50">
                 <div id="statusIndicator" class="absolute -bottom-1 -right-1 w-5 h-5 rounded-full border-2 border-rp-surface bg-green-500"></div>
               </div>
               <div class="flex-1">
@@ -743,7 +797,7 @@
       <!-- Public Profile Header -->
       <div class="bg-rp-surface rounded-xl p-6 mb-8 border border-rp-overlay">
         <div class="flex flex-col sm:flex-row items-center gap-6">
-          <img id="publicProfilePhoto" class="w-16 h-16 rounded-full ring-2 ring-rp-foam/50" src="" alt="Profile Photo">
+          <img id="publicProfilePhoto" class="carbon-profile-avatar w-16 h-16 rounded-full ring-2 ring-rp-foam/50" src="" alt="Profile Photo">
           <div class="flex-1 text-center sm:text-left">
             <h1 id="publicProfileName" class="text-2xl font-bold text-rp-text mb-1"></h1>
             <p id="publicProfileUsername" class="text-rp-subtle text-sm"></p>
@@ -4913,6 +4967,37 @@
         updateBackgroundUI();
       }
     });
+
+    // Profile Frame Update System
+    function applyProfileFrame() {
+      const selectedFrame = localStorage.getItem('carbon-selected-profile-frame');
+      const profileElements = document.querySelectorAll('.carbon-profile-avatar, .user-avatar, .profile-avatar, [data-profile-avatar]');
+      
+      profileElements.forEach(element => {
+        // Remove all existing profile frame classes
+        ['red', 'blue', 'orange', 'green', 'purple', 'gold', 'silver', 'rainbow'].forEach(color => {
+          element.classList.remove(`profile-frame-${color}`);
+        });
+        
+        // Apply active frame class
+        if (selectedFrame && selectedFrame !== 'default') {
+          element.classList.add(`profile-frame-${selectedFrame}`);
+        }
+      });
+    }
+
+    // Listen for profile frame updates from parent window
+    window.addEventListener('message', (event) => {
+      if (event.data && event.data.type === 'carbon-profile-frame-update') {
+        localStorage.setItem('carbon-selected-profile-frame', event.data.frameId);
+        applyProfileFrame();
+      }
+    });
+
+    // Apply active profile frame on page load
+    setTimeout(() => {
+      applyProfileFrame();
+    }, 1000);
 
     // Debug instructions for testing friend requests
     console.log(`
