@@ -6,10 +6,12 @@
     <title>Carbon Multi - Multiplayer Games</title>
     <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
-    <script src="firebase-config.js"></script>
+    
+    <!-- Updated Firebase SDK to match index.html -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+    
     <style>
         :root {
             --theme-base: #191724;
@@ -97,6 +99,50 @@
         .text-iris { color: var(--theme-iris); }
         .text-pine { color: var(--theme-pine); }
         .border-highlight-med { border-color: var(--theme-highlight-med); }
+
+        /* Enhanced notification styles */
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            max-width: 350px;
+            padding: 16px;
+            border-radius: 8px;
+            color: white;
+            z-index: 10000;
+            animation: slideIn 0.3s ease;
+        }
+
+        .notification.success { background: #22c55e; }
+        .notification.error { background: #ef4444; }
+        .notification.warning { background: #f59e0b; }
+        .notification.info { background: #3b82f6; }
+
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        /* Loading spinner */
+        .spinner {
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-top: 3px solid var(--theme-foam);
+            border-radius: 50%;
+            width: 32px;
+            height: 32px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Modal styles */
+        .modal-backdrop {
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(4px);
+        }
     </style>
 </head>
 <body>
@@ -109,17 +155,47 @@
                     <h1 class="text-2xl font-bold text-text">Carbon Multi</h1>
                     <span class="text-muted">Real-time Multiplayer Games</span>
                 </div>
-                <div id="user-info" class="flex items-center gap-3">
-                    <div id="user-display" class="text-text"></div>
-                    <button onclick="signOut()" class="px-4 py-2 bg-love hover:bg-love/80 text-white rounded-lg transition-colors">
-                        Sign Out
-                    </button>
+                <div id="auth-section">
+                    <!-- Auth buttons will be inserted here -->
                 </div>
             </div>
         </header>
 
+        <!-- Authentication Screen -->
+        <div id="auth-screen" class="min-h-screen flex items-center justify-center">
+            <div class="bg-surface border border-highlight-med rounded-xl p-8 max-w-md w-full mx-4">
+                <div class="text-center mb-8">
+                    <i class="bx bx-game text-6xl text-iris mb-4"></i>
+                    <h2 class="text-3xl font-bold text-text mb-2">Carbon Multi</h2>
+                    <p class="text-muted">Sign in to play multiplayer games</p>
+                </div>
+                
+                <div class="space-y-4">
+                    <button onclick="signInWithGoogle()" 
+                            class="w-full flex items-center justify-center gap-3 px-6 py-3 bg-white hover:bg-gray-100 text-gray-800 rounded-lg font-medium transition-colors">
+                        <i class="bx bxl-google text-xl"></i>
+                        Continue with Google
+                    </button>
+                    
+                    <div class="text-center text-muted">
+                        <span>or</span>
+                    </div>
+                    
+                    <button onclick="signInAnonymously()" 
+                            class="w-full px-6 py-3 bg-foam hover:bg-foam/80 text-black rounded-lg font-medium transition-colors">
+                        <i class="bx bx-user mr-2"></i>
+                        Play as Guest
+                    </button>
+                </div>
+                
+                <p class="text-xs text-muted text-center mt-6">
+                    Your game data will be synced across devices when signed in
+                </p>
+            </div>
+        </div>
+
         <!-- Main Content -->
-        <main class="max-w-6xl mx-auto p-6">
+        <main id="main-content" class="max-w-6xl mx-auto p-6 hidden">
             <!-- Game Selection -->
             <div id="game-selection" class="space-y-6">
                 <div class="text-center mb-8">
@@ -201,10 +277,17 @@
                     </div>
                 </div>
 
-                <div class="text-center">
+                <div class="text-center space-y-4">
                     <button onclick="findRandomGame()" class="px-8 py-3 bg-foam hover:bg-foam/80 text-black rounded-lg font-bold transition-colors">
                         <i class="bx bx-shuffle mr-2"></i>
                         Find Random Game
+                    </button>
+                    
+                    <div class="text-muted">or</div>
+                    
+                    <button onclick="showJoinRoomModal()" class="px-8 py-3 bg-iris hover:bg-iris/80 text-white rounded-lg font-bold transition-colors">
+                        <i class="bx bx-log-in mr-2"></i>
+                        Join Room by ID
                     </button>
                 </div>
             </div>
@@ -213,109 +296,299 @@
             <div id="game-area" class="hidden">
                 <div class="text-center mb-6">
                     <button onclick="backToSelection()" class="px-4 py-2 bg-muted hover:bg-muted/80 text-white rounded-lg transition-colors">
-                        <i class="bx bx-arrow-back mr-2"></i>Back
+                        <i class="bx bx-arrow-back mr-2"></i>Back to Games
                     </button>
                 </div>
                 <div id="game-content"></div>
             </div>
         </main>
+
+        <!-- Join Room Modal -->
+        <div id="join-room-modal" class="fixed inset-0 modal-backdrop flex items-center justify-center z-50 hidden">
+            <div class="bg-surface border border-highlight-med rounded-xl p-6 max-w-md w-full mx-4">
+                <h3 class="text-xl font-bold text-text mb-4">Join Game Room</h3>
+                <input type="text" id="room-id-input" placeholder="Enter Room ID" 
+                       class="w-full p-3 bg-overlay border border-highlight-med rounded-lg text-text mb-4 focus:outline-none focus:border-foam">
+                <div class="flex gap-3">
+                    <button onclick="joinRoomById()" class="flex-1 px-4 py-2 bg-foam hover:bg-foam/80 text-black rounded-lg transition-colors">
+                        Join Room
+                    </button>
+                    <button onclick="hideJoinRoomModal()" class="flex-1 px-4 py-2 bg-muted hover:bg-muted/80 text-white rounded-lg transition-colors">
+                        Cancel
+                    </button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script>
-        // Firebase initialization
+        // Firebase Configuration (matching index.html)
+        const firebaseConfig = {
+            apiKey: "AIzaSyDWIwUrPHhQ_AjjqfkxpLiZeqPJfLPr4ec",
+            authDomain: "carbon-services.firebaseapp.com",
+            projectId: "carbon-services",
+            storageBucket: "carbon-services.firebasestorage.app",
+            messagingSenderId: "1003687084936",
+            appId: "1:1003687084936:web:e5ff75dc3e8ca41f62f11e"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+
+        // Global variables
         let currentUser = null;
         let currentRoom = null;
         let gameListener = null;
-        let db = null;
-        let auth = null;
+        let currentGameData = null;
+        let winnerScreenShown = false;
 
-        // Initialize Firebase
-        if (typeof firebase !== 'undefined' && window.firebaseConfig) {
-            const app = firebase.initializeApp(window.firebaseConfig);
-            db = firebase.firestore();
-            auth = firebase.auth();
+        // Game-specific intervals and timeouts
+        let pongInterval = null;
+        let racingUpdateInterval = null;
+        let reactionTimeout = null;
+        let racingKeys = { left: false, right: false, up: false, down: false };
+
+        // Auth state listener
+        auth.onAuthStateChanged((user) => {
+            currentUser = user;
+            updateUI();
+        });
+
+        function updateUI() {
+            const authScreen = document.getElementById('auth-screen');
+            const mainContent = document.getElementById('main-content');
+            const authSection = document.getElementById('auth-section');
             
-            auth.onAuthStateChanged((user) => {
-                currentUser = user;
-                updateUserDisplay();
-                if (!user) {
-                    window.location.href = '/';
-                }
-            });
-        } else {
-            console.error('Firebase not properly configured');
-        }
-
-        function updateUserDisplay() {
-            const userDisplay = document.getElementById('user-display');
             if (currentUser) {
-                userDisplay.textContent = currentUser.displayName || currentUser.email || 'Player';
+                authScreen.classList.add('hidden');
+                mainContent.classList.remove('hidden');
+                
+                authSection.innerHTML = `
+                    <div class="flex items-center gap-3">
+                        <img src="${currentUser.photoURL || 'https://via.placeholder.com/32'}" 
+                             class="w-8 h-8 rounded-full border-2 border-foam">
+                        <span class="text-text font-medium">${currentUser.displayName || currentUser.email || 'Player'}</span>
+                        <button onclick="signOut()" class="px-3 py-1 bg-love hover:bg-love/80 text-white rounded text-sm transition-colors">
+                            Sign Out
+                        </button>
+                    </div>
+                `;
+            } else {
+                authScreen.classList.remove('hidden');
+                mainContent.classList.add('hidden');
             }
         }
 
-        function signOut() {
-            if (auth) {
-                auth.signOut().then(() => {
-                    window.location.href = '/';
-                });
+        // Enhanced notification system
+        function showNotification(title, message, type = 'info') {
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.innerHTML = `
+                <div class="flex items-start gap-3">
+                    <i class="bx ${type === 'success' ? 'bx-check-circle' : 
+                                    type === 'error' ? 'bx-x-circle' : 
+                                    type === 'warning' ? 'bx-error' : 'bx-info-circle'} text-xl mt-0.5"></i>
+                    <div class="flex-1">
+                        <div class="font-semibold">${title}</div>
+                        <div class="text-sm opacity-90">${message}</div>
+                    </div>
+                    <button onclick="this.parentElement.parentElement.remove()" class="text-white/70 hover:text-white">
+                        <i class="bx bx-x text-lg"></i>
+                    </button>
+                </div>
+            `;
+            
+            document.body.appendChild(notification);
+            
+            // Auto remove after 5 seconds
+            setTimeout(() => {
+                if (notification.parentElement) {
+                    notification.remove();
+                }
+            }, 5000);
+        }
+
+        // Authentication functions
+        async function signInWithGoogle() {
+            try {
+                const provider = new firebase.auth.GoogleAuthProvider();
+                await auth.signInWithPopup(provider);
+                showNotification('Welcome!', 'Successfully signed in with Google', 'success');
+            } catch (error) {
+                console.error('Google sign-in error:', error);
+                showNotification('Sign In Failed', error.message, 'error');
             }
         }
 
+        async function signInAnonymously() {
+            try {
+                await auth.signInAnonymously();
+                showNotification('Welcome!', 'Playing as guest', 'success');
+            } catch (error) {
+                console.error('Anonymous sign-in error:', error);
+                showNotification('Sign In Failed', error.message, 'error');
+            }
+        }
+
+        async function signOut() {
+            try {
+                // Clean up current game if any
+                if (currentRoom) {
+                    await leaveRoom();
+                }
+                
+                await auth.signOut();
+                showNotification('Signed Out', 'You have been signed out', 'info');
+            } catch (error) {
+                console.error('Sign out error:', error);
+                showNotification('Error', 'Failed to sign out', 'error');
+            }
+        }
+
+        // Enhanced game selection and room management
         function selectGame(gameType) {
+            showNotification('Creating Room...', 'Setting up your game', 'info');
             createGameRoom(gameType);
         }
 
         function findRandomGame() {
             const games = ['pong', 'typing', 'reaction', 'racing'];
             const randomGame = games[Math.floor(Math.random() * games.length)];
+            showNotification('Finding Game...', `Looking for ${getGameDisplayName(randomGame)} opponents`, 'info');
             selectGame(randomGame);
         }
 
-        async function createGameRoom(gameType) {
-            if (!currentUser || !db) return;
+        function showJoinRoomModal() {
+            document.getElementById('join-room-modal').classList.remove('hidden');
+            document.getElementById('room-id-input').focus();
+        }
+
+        function hideJoinRoomModal() {
+            document.getElementById('join-room-modal').classList.add('hidden');
+            document.getElementById('room-id-input').value = '';
+        }
+
+        async function joinRoomById() {
+            const roomId = document.getElementById('room-id-input').value.trim();
+            if (!roomId) {
+                showNotification('Invalid Input', 'Please enter a room ID', 'warning');
+                return;
+            }
 
             try {
+                showNotification('Joining Room...', 'Connecting to game', 'info');
+                hideJoinRoomModal();
+                
+                const roomDoc = await db.collection('multi-rooms').doc(roomId).get();
+                if (!roomDoc.exists) {
+                    showNotification('Room Not Found', 'Game room does not exist!', 'error');
+                    return;
+                }
+
+                const roomData = roomDoc.data();
+                if (roomData.status !== 'waiting') {
+                    showNotification('Game In Progress', 'This game has already started!', 'warning');
+                    return;
+                }
+
+                if (roomData.hostId === currentUser.uid) {
+                    showNotification('Invalid', 'You cannot join your own game!', 'warning');
+                    return;
+                }
+
+                if (roomData.guestId) {
+                    showNotification('Room Full', 'This game room is already full!', 'warning');
+                    return;
+                }
+
+                await joinGameRoom(roomId, roomData);
+            } catch (error) {
+                console.error('Error joining room by ID:', error);
+                showNotification('Error', 'Failed to join room!', 'error');
+            }
+        }
+
+        async function createGameRoom(gameType) {
+            if (!currentUser || !db) {
+                showNotification('Authentication Required', 'Please sign in to play', 'error');
+                return;
+            }
+
+            try {
+                winnerScreenShown = false;
+                
                 // First, try to find an existing waiting room
                 const waitingRooms = await db.collection('multi-rooms')
                     .where('gameType', '==', gameType)
                     .where('status', '==', 'waiting')
                     .where('hostId', '!=', currentUser.uid)
-                    .limit(1)
+                    .limit(5)
                     .get();
 
                 if (!waitingRooms.empty) {
-                    // Join existing room
-                    const roomDoc = waitingRooms.docs[0];
-                    const roomData = roomDoc.data();
-                    
-                    await db.collection('multi-rooms').doc(roomDoc.id).update({
-                        guestId: currentUser.uid,
-                        guestName: currentUser.displayName || 'Player 2'
-                    });
-                    
-                    currentRoom = roomDoc.id;
-                    showGameLobby({ ...roomData, guestId: currentUser.uid, guestName: currentUser.displayName || 'Player 2' }, roomDoc.id);
-                    listenToRoom(roomDoc.id);
-                } else {
-                    // Create new room
-                    const roomData = {
-                        gameType: gameType,
-                        hostId: currentUser.uid,
-                        hostName: currentUser.displayName || 'Player 1',
-                        status: 'waiting',
-                        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                        gameState: getInitialGameState(gameType)
-                    };
-
-                    const docRef = await db.collection('multi-rooms').add(roomData);
-                    currentRoom = docRef.id;
-                    
-                    showGameLobby(roomData, docRef.id);
-                    listenToRoom(docRef.id);
+                    // Try to join the first valid room
+                    for (const roomDoc of waitingRooms.docs) {
+                        try {
+                            const freshRoomDoc = await db.collection('multi-rooms').doc(roomDoc.id).get();
+                            if (freshRoomDoc.exists && freshRoomDoc.data().status === 'waiting' && !freshRoomDoc.data().guestId) {
+                                await joinGameRoom(roomDoc.id, freshRoomDoc.data());
+                                return;
+                            }
+                        } catch (joinError) {
+                            console.error('Error joining room:', roomDoc.id, joinError);
+                            continue;
+                        }
+                    }
                 }
+
+                // Create new room if no valid rooms found
+                const roomData = {
+                    gameType: gameType,
+                    hostId: currentUser.uid,
+                    hostName: currentUser.displayName || currentUser.email || 'Player',
+                    hostPhoto: currentUser.photoURL || '',
+                    guestId: null,
+                    guestName: null,
+                    guestPhoto: null,
+                    status: 'waiting',
+                    gameState: getInitialGameState(gameType),
+                    winner: null,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    lastActivity: firebase.firestore.FieldValue.serverTimestamp()
+                };
+
+                const docRef = await db.collection('multi-rooms').add(roomData);
+                currentRoom = docRef.id;
+                
+                showGameLobby(roomData, docRef.id, true);
+                listenToRoom(docRef.id);
+                
+                showNotification('Room Created!', 'Share the room ID with a friend to play', 'success');
             } catch (error) {
-                console.error('Error creating/joining room:', error);
-                alert('Failed to create or join game room');
+                console.error('Error creating room:', error);
+                showNotification('Error', 'Failed to create game room!', 'error');
+            }
+        }
+
+        async function joinGameRoom(roomId, roomData) {
+            try {
+                await db.collection('multi-rooms').doc(roomId).update({
+                    guestId: currentUser.uid,
+                    guestName: currentUser.displayName || currentUser.email || 'Player',
+                    guestPhoto: currentUser.photoURL || '',
+                    lastActivity: firebase.firestore.FieldValue.serverTimestamp()
+                });
+
+                currentRoom = roomId;
+                showGameLobby({ ...roomData, guestId: currentUser.uid, guestName: currentUser.displayName || 'Player' }, roomId, false);
+                listenToRoom(roomId);
+                
+                showNotification('Joined Game!', 'Game will start shortly', 'success');
+            } catch (error) {
+                console.error('Error joining room:', error);
+                showNotification('Error', 'Failed to join game room!', 'error');
             }
         }
 
@@ -386,45 +659,129 @@
             return obstacles;
         }
 
-        function showGameLobby(roomData, roomId) {
+        function showGameLobby(roomData, roomId, isHost) {
             document.getElementById('game-selection').classList.add('hidden');
             document.getElementById('game-area').classList.remove('hidden');
             
             const gameContent = document.getElementById('game-content');
             gameContent.innerHTML = `
-                <div class="bg-surface border border-highlight-med rounded-xl p-6 max-w-2xl mx-auto">
-                    <h3 class="text-2xl font-bold text-text mb-4 text-center">Game Lobby</h3>
-                    <div class="text-center mb-6">
-                        <div class="text-lg text-muted mb-2">Game Type: <span class="text-foam">${getGameDisplayName(roomData.gameType)}</span></div>
-                        <div class="text-sm text-muted mb-4">Room ID: <span class="font-mono bg-overlay px-2 py-1 rounded">${roomId}</span></div>
+                <div class="bg-surface border border-highlight-med rounded-xl shadow-2xl max-w-4xl w-[95vw] h-[90vh] flex flex-col">
+                    <!-- Header -->
+                    <div class="flex items-center justify-between p-6 border-b border-highlight-med">
+                        <div class="flex items-center gap-3">
+                            <i class="bx ${getGameIcon(roomData.gameType)} text-3xl text-foam"></i>
+                            <div>
+                                <h2 class="text-2xl font-bold text-text">${getGameDisplayName(roomData.gameType)}</h2>
+                                <p class="text-muted">Room ID: ${roomId}</p>
+                            </div>
+                        </div>
+                        <button onclick="leaveRoom()" class="text-muted hover:text-love transition-colors">
+                            <i class="bx bx-x text-2xl"></i>
+                        </button>
                     </div>
                     
-                    <div class="space-y-4 mb-6">
-                        <div class="flex items-center gap-3 p-3 bg-overlay rounded-lg">
-                            <div class="w-10 h-10 bg-foam rounded-full flex items-center justify-center">
-                                <i class="bx bx-user text-black"></i>
-                            </div>
-                            <div>
-                                <div class="text-text font-medium">${roomData.hostName}</div>
-                                <div class="text-xs text-muted">Host</div>
+                    <!-- Game Content -->
+                    <div class="flex-1 flex">
+                        <!-- Game Area -->
+                        <div class="flex-1 p-6 flex flex-col items-center justify-center">
+                            <div id="lobby-content">
+                                ${roomData.status === 'waiting' ? `
+                                    <div class="text-center">
+                                        <div class="w-32 h-32 mx-auto mb-6 bg-highlight-med rounded-full flex items-center justify-center">
+                                            <div class="spinner"></div>
+                                        </div>
+                                        <h3 class="text-xl font-bold text-text mb-2">Waiting for Player...</h3>
+                                        <p class="text-muted mb-4">Share the room ID with a friend to start playing!</p>
+                                        <div class="flex gap-2 justify-center">
+                                            <input type="text" value="${roomId}" readonly class="px-3 py-2 bg-overlay border border-highlight-med rounded-lg text-text text-sm font-mono">
+                                            <button onclick="copyRoomId('${roomId}')" class="px-4 py-2 bg-foam hover:bg-foam/80 text-base rounded-lg transition-colors">
+                                                <i class="bx bx-copy"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                ` : '<!-- Game will be rendered here -->'}
                             </div>
                         </div>
                         
-                        <div id="guest-slot" class="flex items-center gap-3 p-3 bg-overlay rounded-lg border-2 border-dashed border-highlight-med">
-                            <div class="w-10 h-10 bg-muted/30 rounded-full flex items-center justify-center">
-                                <i class="bx bx-user-plus text-muted"></i>
+                        <!-- Players Panel -->
+                        <div class="w-80 bg-highlight-med/50 p-6 border-l border-highlight-med">
+                            <h3 class="text-lg font-bold text-text mb-4">Players</h3>
+                            
+                            <!-- Host Player -->
+                            <div class="bg-surface rounded-lg p-4 mb-3">
+                                <div class="flex items-center gap-3">
+                                    <img src="${roomData.hostPhoto || 'https://via.placeholder.com/40'}" 
+                                         class="w-10 h-10 rounded-full border-2 border-foam">
+                                    <div class="flex-1">
+                                        <div class="font-semibold text-text">${roomData.hostName}</div>
+                                        <div class="text-xs text-foam">Host (Player 1)</div>
+                                    </div>
+                                </div>
                             </div>
-                            <div class="text-muted">Waiting for player...</div>
+                            
+                            <!-- Guest Player -->
+                            <div id="guest-slot" class="bg-surface rounded-lg p-4 mb-6">
+                                ${roomData.guestId ? `
+                                    <div class="flex items-center gap-3">
+                                        <img src="${roomData.guestPhoto || 'https://via.placeholder.com/40'}" 
+                                             class="w-10 h-10 rounded-full border-2 border-love">
+                                        <div class="flex-1">
+                                            <div class="font-semibold text-text">${roomData.guestName}</div>
+                                            <div class="text-xs text-love">Guest (Player 2)</div>
+                                        </div>
+                                    </div>
+                                ` : `
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-10 h-10 rounded-full border-2 border-dashed border-muted flex items-center justify-center">
+                                            <i class="bx bx-user text-muted"></i>
+                                        </div>
+                                        <div class="flex-1">
+                                            <div class="font-semibold text-muted">Waiting...</div>
+                                            <div class="text-xs text-muted">Guest (Player 2)</div>
+                                        </div>
+                                    </div>
+                                `}
+                            </div>
+                            
+                            <!-- Game Status -->
+                            <div class="bg-surface rounded-lg p-4 mb-6">
+                                <h4 class="font-semibold text-text mb-2">Game Status</h4>
+                                <div id="game-status" class="text-sm">
+                                    ${roomData.status === 'waiting' ? 
+                                        '<span class="text-gold">Waiting for player...</span>' : 
+                                        roomData.status === 'playing' ? 
+                                        '<span class="text-foam">Game in progress</span>' : 
+                                        '<span class="text-love">Game completed</span>'}
+                                </div>
+                            </div>
+                            
+                            <!-- Quick Actions -->
+                            <div class="space-y-2">
+                                ${roomData.status === 'waiting' ? `
+                                    <button onclick="findRandomOpponent('${roomData.gameType}')" 
+                                            class="w-full px-4 py-2 bg-iris hover:bg-iris/80 text-white rounded-lg transition-colors text-sm">
+                                        <i class="bx bx-shuffle mr-2"></i>Find Random Player
+                                    </button>
+                                ` : ''}
+                                <button onclick="leaveRoom()" 
+                                        class="w-full px-4 py-2 bg-love hover:bg-love/80 text-white rounded-lg transition-colors text-sm">
+                                    <i class="bx bx-exit mr-2"></i>Leave Game
+                                </button>
+                            </div>
                         </div>
-                    </div>
-                    
-                    <div class="text-center">
-                        <button onclick="leaveRoom()" class="px-6 py-2 bg-love hover:bg-love/80 text-white rounded-lg transition-colors">
-                            Leave Room
-                        </button>
                     </div>
                 </div>
             `;
+        }
+
+        function getGameIcon(gameType) {
+            const icons = {
+                'pong': 'bx-tennis-ball',
+                'typing': 'bx-keyboard',
+                'reaction': 'bx-stopwatch',
+                'racing': 'bx-car'
+            };
+            return icons[gameType] || 'bx-game';
         }
 
         function getGameDisplayName(gameType) {
@@ -457,6 +814,21 @@
         }
 
         function updateGameUI(roomData, roomId) {
+            // Handle disconnections
+            if (roomData.status === 'completed' && roomData.disconnectedPlayer) {
+                const disconnectedPlayerName = roomData.disconnectedPlayer === roomData.hostId ? 
+                    (roomData.hostName || 'Host') : 
+                    (roomData.guestName || 'Guest');
+                
+                if (roomData.disconnectedPlayer !== currentUser.uid) {
+                    showNotification('Game Ended', `${disconnectedPlayerName} left the game`, 'info');
+                    setTimeout(() => {
+                        backToSelection();
+                    }, 2000);
+                    return;
+                }
+            }
+            
             // Update current game data for real-time sync
             if (currentGameData) {
                 currentGameData = roomData;
@@ -477,6 +849,11 @@
                             if (window.updateRacingUI) window.updateRacingUI();
                             break;
                     }
+                }
+                
+                // Show winner screen for normal completions
+                if (roomData.status === 'completed' && !roomData.disconnectedPlayer && !winnerScreenShown) {
+                    setTimeout(() => showWinnerScreen(roomData), 1000);
                 }
             } else if (roomData.status === 'playing') {
                 startGame(roomData, roomId);
@@ -531,8 +908,7 @@
         }
 
         // Global game state for real-time updates
-        let currentGameData = null;
-        let pongInterval = null;
+        // currentGameData and pongInterval are already declared above
 
         // Pong Game Implementation
         function startPongGame(roomData, roomId) {
@@ -839,7 +1215,7 @@
         }
 
         // Reaction Game Implementation
-        let reactionTimeout = null;
+        // reactionTimeout is already declared above
         
         function startReactionGame(roomData, roomId) {
             currentGameData = roomData;
@@ -1007,8 +1383,7 @@
         }
 
         // Racing Game Implementation
-        let racingKeys = { left: false, right: false, up: false, down: false };
-        let racingUpdateInterval = null;
+        // racingKeys and racingUpdateInterval are already declared above
         
         function startRacingGame(roomData, roomId) {
             currentGameData = roomData;
@@ -1276,17 +1651,175 @@
             }
         }
 
-        function leaveRoom() {
+        // Winner Screen
+        function showWinnerScreen(roomData) {
+            if (winnerScreenShown || document.getElementById('winnerModal')) return;
+            
+            winnerScreenShown = true;
+            
+            const didIWin = (
+                (roomData.winner === 'player1' && roomData.hostId === currentUser.uid) ||
+                (roomData.winner === 'player2' && roomData.guestId === currentUser.uid)
+            );
+            
+            const isDraw = roomData.winner === 'draw' || roomData.winner === 'tie';
+            const gameTitle = getGameDisplayName(roomData.gameType);
+            
+            const winnerModal = document.createElement('div');
+            winnerModal.id = 'winnerModal';
+            winnerModal.className = 'fixed inset-0 bg-black/90 backdrop-blur-md flex items-center justify-center z-[10000]';
+            
+            let titleText, titleColor, bgGradient, icon;
+            
+            if (isDraw) {
+                titleText = "It's a Draw!";
+                titleColor = 'text-gold';
+                bgGradient = 'from-gold/20 to-gold/10';
+                icon = 'bx-medal';
+            } else if (didIWin) {
+                titleText = "You Won!";
+                titleColor = 'text-foam';
+                bgGradient = 'from-foam/20 to-foam/10';
+                icon = 'bx-trophy';
+            } else {
+                titleText = "You Lost";
+                titleColor = 'text-love';
+                bgGradient = 'from-love/20 to-love/10';
+                icon = 'bx-sad';
+            }
+            
+            winnerModal.innerHTML = `
+                <div class="bg-surface border border-highlight-med rounded-2xl shadow-2xl max-w-md w-[90vw] mx-4 overflow-hidden">
+                    <div class="bg-gradient-to-br ${bgGradient} p-8 text-center relative">
+                        ${didIWin ? `
+                            <div class="absolute inset-0 overflow-hidden">
+                                <div class="confetti"></div>
+                                <div class="confetti"></div>
+                                <div class="confetti"></div>
+                                <div class="confetti"></div>
+                                <div class="confetti"></div>
+                                <div class="confetti"></div>
+                                <div class="confetti"></div>
+                                <div class="confetti"></div>
+                            </div>
+                        ` : ''}
+                        
+                        <div class="relative z-10">
+                            <div class="w-20 h-20 mx-auto mb-4 ${isDraw ? 'bg-gold/20' : didIWin ? 'bg-foam/20' : 'bg-love/20'} rounded-full flex items-center justify-center animate-bounce">
+                                <i class="bx ${icon} text-4xl ${titleColor}"></i>
+                            </div>
+                            
+                            <h2 class="text-3xl font-bold ${titleColor} mb-2">${titleText}</h2>
+                            <p class="text-muted text-lg">${gameTitle} Complete</p>
+                            
+                            ${!isDraw ? `
+                                <div class="mt-4 flex items-center justify-center gap-4">
+                                    <div class="flex items-center gap-2">
+                                        <img src="${didIWin ? (roomData.hostId === currentUser.uid ? roomData.hostPhoto : roomData.guestPhoto) : (roomData.hostId === currentUser.uid ? roomData.guestPhoto : roomData.hostPhoto)}" 
+                                             class="w-8 h-8 rounded-full border-2 ${didIWin ? 'border-foam' : 'border-love'}">
+                                        <span class="text-text font-semibold">${didIWin ? 'You' : (roomData.hostId === currentUser.uid ? roomData.guestName : roomData.hostName)}</span>
+                                    </div>
+                                    <span class="text-muted">won!</span>
+                                </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                    
+                    <div class="p-6 space-y-3">
+                        <button onclick="startNewGame('${roomData.gameType}')" 
+                                class="w-full px-4 py-3 bg-foam hover:bg-foam/80 text-base rounded-lg transition-colors font-semibold">
+                            <i class="bx bx-refresh mr-2"></i>Play Again
+                        </button>
+                        
+                        <button onclick="closeWinnerScreen()" 
+                                class="w-full px-4 py-3 bg-highlight-med hover:bg-highlight-high text-text rounded-lg transition-colors font-semibold">
+                            <i class="bx bx-home mr-2"></i>Back to Games
+                        </button>
+                    </div>
+                </div>
+                
+                <style>
+                    .confetti {
+                        position: absolute;
+                        width: 10px;
+                        height: 10px;
+                        background: linear-gradient(45deg, #9ccfd8, #c4a7e7, #eb6f92, #f6c177);
+                        animation: confetti-fall 3s linear infinite;
+                    }
+                    
+                    .confetti:nth-child(1) { left: 10%; animation-delay: 0s; }
+                    .confetti:nth-child(2) { left: 20%; animation-delay: 0.2s; }
+                    .confetti:nth-child(3) { left: 30%; animation-delay: 0.4s; }
+                    .confetti:nth-child(4) { left: 40%; animation-delay: 0.6s; }
+                    .confetti:nth-child(5) { left: 60%; animation-delay: 0.8s; }
+                    .confetti:nth-child(6) { left: 70%; animation-delay: 1s; }
+                    .confetti:nth-child(7) { left: 80%; animation-delay: 1.2s; }
+                    .confetti:nth-child(8) { left: 90%; animation-delay: 1.4s; }
+                    
+                    @keyframes confetti-fall {
+                        0% {
+                            transform: translateY(-100vh) rotate(0deg);
+                            opacity: 1;
+                        }
+                        100% {
+                            transform: translateY(100vh) rotate(720deg);
+                            opacity: 0;
+                        }
+                    }
+                </style>
+            `;
+            
+            document.body.appendChild(winnerModal);
+        }
+
+        window.startNewGame = function(gameType) {
+            closeWinnerScreen();
+            setTimeout(() => {
+                winnerScreenShown = false;
+                createGameRoom(gameType);
+            }, 500);
+        };
+
+        window.closeWinnerScreen = function() {
+            const winnerModal = document.getElementById('winnerModal');
+            if (winnerModal) {
+                winnerModal.remove();
+            }
+            winnerScreenShown = false;
+            backToSelection();
+        };
+
+        async function leaveRoom() {
+            winnerScreenShown = false;
+            
             if (gameListener) {
                 gameListener();
                 gameListener = null;
             }
             
             if (currentRoom && db) {
-                db.collection('multi-rooms').doc(currentRoom).delete().catch(console.error);
+                try {
+                    const roomDoc = await db.collection('multi-rooms').doc(currentRoom).get();
+                    if (roomDoc.exists) {
+                        const roomData = roomDoc.data();
+                        if (roomData.hostId === currentUser.uid && roomData.status === 'waiting') {
+                            // Delete room if host leaves before game starts
+                            await db.collection('multi-rooms').doc(currentRoom).delete();
+                        } else if (roomData.status === 'playing') {
+                            // Mark player as disconnected
+                            await db.collection('multi-rooms').doc(currentRoom).update({
+                                status: 'completed',
+                                winner: roomData.hostId === currentUser.uid ? 'player2' : 'player1',
+                                disconnectedPlayer: currentUser.uid
+                            });
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error leaving room:', error);
+                }
+                currentRoom = null;
             }
             
-            currentRoom = null;
             backToSelection();
         }
 
