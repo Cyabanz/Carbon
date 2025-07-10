@@ -1181,8 +1181,8 @@
                     const mouseY = e.clientY - rect.top;
                     const paddleY = Math.max(0, Math.min(350, mouseY - 25));
                     
-                    // Ultra-responsive paddle updates - every 16ms (~60 FPS) for precise collision
-                    if (!canvas.lastUpdate || Date.now() - canvas.lastUpdate > 16) {
+                    // Optimized paddle updates - 30 FPS to prevent Firebase overload
+                    if (!canvas.lastUpdate || Date.now() - canvas.lastUpdate > 33) {
                         const updateData = {};
                         updateData[`gameState.${isPlayer1 ? 'player1' : 'player2'}.y`] = paddleY;
                         updateData[`gameState.${isPlayer1 ? 'player1' : 'player2'}.lastUpdate`] = Date.now();
@@ -1197,7 +1197,18 @@
                             currentGameData.gameState.player2.lastUpdate = Date.now();
                         }
                         
-                        db.collection('game-rooms').doc(roomId).update(updateData).catch(console.error);
+                        // Add retry logic for Firebase errors
+                        db.collection('game-rooms').doc(roomId).update(updateData).catch(error => {
+                            console.warn('Paddle update failed:', error.code || error);
+                            recordFirebaseError();
+                            
+                            // Only retry for specific error types and if not too many recent errors
+                            if (error.code === 'unavailable' && firebaseErrorCount < 3) {
+                                setTimeout(() => {
+                                    db.collection('game-rooms').doc(roomId).update(updateData).catch(console.error);
+                                }, 200);
+                            }
+                        });
                         canvas.lastUpdate = Date.now();
                     }
                 };
@@ -1207,18 +1218,18 @@
                 // Store handler for cleanup
                 canvas.pongMouseHandler = mouseHandler;
                 
-                // Game physics loop (host only) - increased to 60 FPS for accurate collision detection
+                // Game physics loop with Firebase-friendly rates
                 if (isPlayer1) {
-                    console.log('🎮 Starting Pong physics loop for host at 60 FPS');
+                    console.log('🎮 Starting Pong physics loop for host at 30 FPS (Firebase optimized)');
                     pongInterval = setInterval(() => {
                         updatePongPhysics(roomId);
-                    }, 16.67); // 60 FPS for precise collision detection
+                    }, 33.33); // 30 FPS to prevent Firebase overload
                 } else {
                     // Guest runs local physics prediction for smooth ball movement
                     console.log('🎮 Starting local prediction physics for guest at 60 FPS');
                     pongInterval = setInterval(() => {
                         updateGuestPrediction();
-                    }, 16.67); // 60 FPS local prediction
+                    }, 16.67); // 60 FPS local prediction (no Firebase writes)
                 }
                 
                 // Render loop
@@ -1349,7 +1360,9 @@
                 const lastUpdate = gameState.ball.lastUpdate;
                 const syncLag = lastUpdate ? Date.now() - lastUpdate : 0;
                 const usingPrediction = guestPredictedBall ? 'Local 60FPS' : 'Server';
-                ctx.fillText(`Sync: ${syncLag}ms`, 200, 380);
+                const connectionStatus = firebaseErrorCount > 3 ? 'Poor' : firebaseErrorCount > 0 ? 'Fair' : 'Good';
+                
+                ctx.fillText(`Sync: ${syncLag}ms | Connection: ${connectionStatus}`, 200, 380);
                 ctx.fillText(`Ball: ${usingPrediction}`, 200, 392);
                 
                 if (guestPredictedBall) {
@@ -1372,6 +1385,43 @@
         // Guest-specific local prediction variables
         let guestPredictedBall = null;
         let lastServerSync = 0;
+        let firebaseErrorCount = 0;
+        let lastFirebaseError = 0;
+        
+        // Rate limiting for Firebase updates
+        function shouldAllowUpdate() {
+            const now = Date.now();
+            
+            // If we've had recent errors, be more conservative
+            if (firebaseErrorCount > 3 && now - lastFirebaseError < 5000) {
+                return now - lastFirebaseError > 200; // Slow down to 5 FPS if errors
+            }
+            
+            return true;
+        }
+        
+        function recordFirebaseError() {
+            firebaseErrorCount++;
+            lastFirebaseError = Date.now();
+            
+            // Show notification for poor connection
+            if (firebaseErrorCount === 3) {
+                showNotification('Connection Issues', 'Experiencing network lag - game may feel slower', 'warning');
+            } else if (firebaseErrorCount === 5) {
+                showNotification('Poor Connection', 'Switching to offline mode for better experience', 'info');
+            }
+            
+            // Reset error count after 30 seconds of no errors
+            setTimeout(() => {
+                if (Date.now() - lastFirebaseError > 30000) {
+                    const hadPoorConnection = firebaseErrorCount >= 3;
+                    firebaseErrorCount = 0;
+                    if (hadPoorConnection) {
+                        showNotification('Connection Restored', 'Network stability improved', 'success');
+                    }
+                }
+            }, 30000);
+        }
         
         function updateGuestPrediction() {
             if (!currentGameData || currentGameData.status !== 'playing') {
@@ -1425,6 +1475,11 @@
 
         async function updatePongPhysics(roomId) {
             try {
+                // Check rate limiting before proceeding
+                if (!shouldAllowUpdate()) {
+                    return;
+                }
+                
                 // Fetch fresh data from Firebase to ensure we have latest paddle positions
                 const doc = await db.collection('game-rooms').doc(roomId).get();
                 if (!doc.exists || doc.data().status !== 'playing') {
@@ -1528,7 +1583,26 @@
                 await db.collection('game-rooms').doc(roomId).update(updateData);
                 
             } catch (error) {
-                console.error('❌ Error updating pong physics:', error);
+                console.error('❌ Error updating pong physics:', error.code || error);
+                recordFirebaseError();
+                
+                // Handle specific Firebase errors
+                if (error.code === 'unavailable' || error.code === 'deadline-exceeded') {
+                    console.warn('Firebase temporarily unavailable, will retry next frame');
+                } else if (error.code === 'permission-denied') {
+                    console.error('Permission denied - check Firebase rules');
+                } else if (error.code === 'resource-exhausted') {
+                    console.error('Firebase quota exceeded - reducing update frequency');
+                    // Slow down updates temporarily
+                    if (pongInterval) {
+                        clearInterval(pongInterval);
+                        pongInterval = setInterval(() => {
+                            updatePongPhysics(roomId);
+                        }, 100); // Reduce to 10 FPS temporarily
+                    }
+                } else if (error.message && error.message.includes('400')) {
+                    console.warn('Bad request to Firebase - likely rate limited');
+                }
             }
         }
 
