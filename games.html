@@ -301,6 +301,62 @@
         <div id="dailyPicksGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"></div>
       </div>
 
+      <!-- Multiplayer Games Section -->
+      <div class="mb-12 animate-[fadeInUp_1s_ease-out_0.57s_both]">
+        <h2 class="text-2xl font-bold mb-6 bg-gradient-to-r from-green-400 to-blue-500 bg-clip-text text-transparent flex items-center gap-3">
+          <i class='bx bx-group text-rp-foam'></i>
+          Real-Time Multiplayer
+        </h2>
+        <p class="text-rp-muted mb-6">Challenge friends to real-time multiplayer games using Firebase!</p>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <!-- Tic Tac Toe Card -->
+          <div class="game-card rounded-2xl p-6 bg-gradient-to-br from-rp-surface to-rp-overlay hover:from-rp-overlay hover:to-rp-surface transition-all duration-300">
+            <div class="flex items-center gap-4 mb-4">
+              <i class="bx bx-grid-alt text-4xl text-rp-love"></i>
+              <div>
+                <h3 class="text-xl font-bold text-rp-text">Tic Tac Toe</h3>
+                <p class="text-rp-muted text-sm">Classic strategy game</p>
+              </div>
+            </div>
+            <p class="text-rp-subtle text-sm mb-4">Take turns marking spaces in a 3×3 grid. First to get three in a row wins!</p>
+            <button onclick="startMultiplayerGame('tictactoe')" class="w-full px-4 py-2 bg-rp-love hover:bg-rp-love/80 text-white rounded-lg transition-colors">
+              <i class="bx bx-play mr-2"></i>Start Game
+            </button>
+          </div>
+
+          <!-- Connect Four Card -->
+          <div class="game-card rounded-2xl p-6 bg-gradient-to-br from-rp-surface to-rp-overlay hover:from-rp-overlay hover:to-rp-surface transition-all duration-300">
+            <div class="flex items-center gap-4 mb-4">
+              <i class="bx bx-circle text-4xl text-rp-iris"></i>
+              <div>
+                <h3 class="text-xl font-bold text-rp-text">Connect Four</h3>
+                <p class="text-rp-muted text-sm">Strategic dropping game</p>
+              </div>
+            </div>
+            <p class="text-rp-subtle text-sm mb-4">Drop your pieces into the grid. Connect four in a row to win!</p>
+            <button onclick="startMultiplayerGame('connect4')" class="w-full px-4 py-2 bg-rp-iris hover:bg-rp-iris/80 text-white rounded-lg transition-colors">
+              <i class="bx bx-play mr-2"></i>Start Game
+            </button>
+          </div>
+
+          <!-- Join Game Card -->
+          <div class="game-card rounded-2xl p-6 bg-gradient-to-br from-rp-surface to-rp-overlay hover:from-rp-overlay hover:to-rp-surface transition-all duration-300">
+            <div class="flex items-center gap-4 mb-4">
+              <i class="bx bx-door-open text-4xl text-rp-foam"></i>
+              <div>
+                <h3 class="text-xl font-bold text-rp-text">Join Game</h3>
+                <p class="text-rp-muted text-sm">Enter room ID</p>
+              </div>
+            </div>
+            <p class="text-rp-subtle text-sm mb-4">Got a room ID from a friend? Join their multiplayer game here!</p>
+            <button onclick="joinGameById()" class="w-full px-4 py-2 bg-rp-foam hover:bg-rp-foam/80 text-rp-base rounded-lg transition-colors font-semibold">
+              <i class="bx bx-log-in mr-2"></i>Join Game
+            </button>
+          </div>
+        </div>
+      </div>
+
       <!-- Featured Games Carousel -->
       <div class="mb-16 animate-[fadeInUp_1s_ease-out_0.6s_both]">
         <h2 class="text-3xl font-bold mb-8 gradient-text">Featured Games</h2>
@@ -1084,6 +1140,35 @@
     setTimeout(() => {
       applyProfileFrame();
     }, 1000);
+
+    // === MULTIPLAYER GAMES ===
+    let currentGameRoom = null;
+    let gameListener = null;
+    
+    window.startMultiplayerGame = function(gameType) {
+      if (!currentUser) {
+        alert('Please sign in to play multiplayer games!');
+        return;
+      }
+      
+      // Redirect to main page for multiplayer games
+      window.parent.postMessage({
+        type: 'start-multiplayer-game',
+        gameType: gameType
+      }, '*');
+    };
+
+    window.joinGameById = function() {
+      if (!currentUser) {
+        alert('Please sign in to join multiplayer games!');
+        return;
+      }
+      
+      // Redirect to main page for joining games
+      window.parent.postMessage({
+        type: 'join-game-by-id'
+      }, '*');
+    };
   </script>
 </body>
 </html>
