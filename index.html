@@ -6024,7 +6024,27 @@
               gameStatus.innerHTML = '<span class="text-muted">Opponent\'s turn</span>';
             }
                      } else if (gameRoom.status === 'completed') {
-             if (gameRoom.winner === 'draw') {
+             // Check if someone disconnected
+             if (gameRoom.disconnectedPlayer) {
+               const disconnectedPlayerName = gameRoom.disconnectedPlayer === gameRoom.hostId ? 
+                 (gameRoom.hostName || 'Host') : 
+                 (gameRoom.guestName || 'Guest');
+               
+               if (gameRoom.disconnectedPlayer === currentUser.uid) {
+                 // Current user disconnected (shouldn't normally see this, but just in case)
+                 gameStatus.innerHTML = '<span class="text-muted">You left the game</span>';
+               } else {
+                 // Opponent disconnected
+                 gameStatus.innerHTML = '<span class="text-love">Opponent disconnected</span>';
+                 showNotification('Game Ended', `${disconnectedPlayerName} left the game`, 'info');
+                 
+                 // Automatically close the game after a short delay
+                 setTimeout(() => {
+                   leaveGame();
+                 }, 2000);
+                 return; // Don't show winner screen for disconnections
+               }
+             } else if (gameRoom.winner === 'draw') {
                gameStatus.innerHTML = '<span class="text-gold">Draw!</span>';
              } else {
                const didIWin = (
@@ -6037,8 +6057,10 @@
                  '<span class="text-love">You lost 😢</span>';
              }
              
-             // Show winner screen
-             setTimeout(() => showWinnerScreen(gameRoom), 1000);
+             // Show winner screen only for normal game completions (not disconnections)
+             if (!gameRoom.disconnectedPlayer) {
+               setTimeout(() => showWinnerScreen(gameRoom), 1000);
+             }
            }
         }
         
