@@ -3646,6 +3646,8 @@
           if (window.carbonTheme) {
             window.carbonTheme.loadThemesFromFirebase();
           }
+          // Load frames from Firebase
+          loadFramesFromFirebase();
           // Also restore browser data from Firebase
           setTimeout(() => {
             restoreAllDataFromFirebase();
@@ -3796,6 +3798,21 @@
       
       const lootBoxes = [
         {
+          id: 'daily-mystery',
+          name: 'Daily Mystery Box',
+          price: 250,
+          rarity: 'mystery',
+          borderColor: '#f97316',
+          gradient: 'linear-gradient(135deg, #f97316, #fb923c)',
+          description: '🎲 One per day! Random surprise item from any category',
+          rewards: {
+            random: true,
+            currency: { min: 100, max: 500 },
+            special: 25
+          },
+          isDaily: true
+        },
+        {
           id: 'basic',
           name: 'Basic Crate',
           price: 200,
@@ -3854,13 +3871,57 @@
       ];
       
       const pets = [
-        { id: 'dragon', name: 'Cyber Dragon', price: 800, description: 'A glowing digital companion that follows you around', emoji: '🐉', rarity: 'epic' },
-        { id: 'cat', name: 'Pixel Cat', price: 300, description: 'A cute 8-bit feline friend', emoji: '🐱', rarity: 'common' },
-        { id: 'robot', name: 'Nano Bot', price: 600, description: 'A helpful AI assistant', emoji: '🤖', rarity: 'rare' },
-        { id: 'phoenix', name: 'Fire Phoenix', price: 1200, description: 'Legendary creature with flame effects', emoji: '🔥', rarity: 'legendary' },
-        { id: 'unicorn', name: 'Rainbow Unicorn', price: 1500, description: 'Magical unicorn with rainbow trail', emoji: '🦄', rarity: 'legendary' },
-        { id: 'ghost', name: 'Friendly Ghost', price: 400, description: 'A spooky but harmless companion', emoji: '👻', rarity: 'rare' }
+        { id: 'dragon', name: 'Cyber Dragon', price: 800, description: 'A glowing digital companion that follows you around', emoji: '🐉', rarity: 'epic', basePower: 75 },
+        { id: 'cat', name: 'Pixel Cat', price: 300, description: 'A cute 8-bit feline friend', emoji: '🐱', rarity: 'common', basePower: 25 },
+        { id: 'robot', name: 'Nano Bot', price: 600, description: 'A helpful AI assistant', emoji: '🤖', rarity: 'rare', basePower: 50 },
+        { id: 'phoenix', name: 'Fire Phoenix', price: 1200, description: 'Legendary creature with flame effects', emoji: '🔥', rarity: 'legendary', basePower: 100 },
+        { id: 'unicorn', name: 'Rainbow Unicorn', price: 1500, description: 'Magical unicorn with rainbow trail', emoji: '🦄', rarity: 'legendary', basePower: 120 },
+        { id: 'ghost', name: 'Friendly Ghost', price: 400, description: 'A spooky but harmless companion', emoji: '👻', rarity: 'rare', basePower: 35 },
+        // Fusion pets
+        { id: 'cybernetic-phoenix', name: 'Cybernetic Phoenix', description: 'Fusion of Cyber Dragon + Fire Phoenix', emoji: '🤖🔥', rarity: 'mythic', basePower: 200, fusion: ['dragon', 'phoenix'] },
+        { id: 'shadow-cat', name: 'Shadow Cat', description: 'Fusion of Pixel Cat + Friendly Ghost', emoji: '🐱👻', rarity: 'epic', basePower: 65, fusion: ['cat', 'ghost'] },
+        { id: 'rainbow-dragon', name: 'Rainbow Dragon', description: 'Fusion of Cyber Dragon + Rainbow Unicorn', emoji: '🐉🦄', rarity: 'cosmic', basePower: 250, fusion: ['dragon', 'unicorn'] }
       ];
+
+      // Gacha system
+      const gachaTypes = [
+        {
+          id: 'standard',
+          name: 'Standard Gacha',
+          cost: 100,
+          description: 'Basic gacha with common rewards',
+          rates: { common: 70, rare: 25, epic: 4.5, legendary: 0.5 }
+        },
+        {
+          id: 'premium',
+          name: 'Premium Gacha',
+          cost: 300,
+          description: 'Better rates for rare items',
+          rates: { common: 50, rare: 35, epic: 12, legendary: 3 }
+        },
+        {
+          id: 'ultimate',
+          name: 'Ultimate Gacha',
+          cost: 500,
+          description: 'Guaranteed rare or better!',
+          rates: { common: 0, rare: 60, epic: 30, legendary: 10 }
+        }
+      ];
+
+      // Pet badges and achievements
+      const petBadges = [
+        { id: 'first-pet', name: 'First Friend', description: 'Adopt your first pet', icon: '🐾', reward: 50 },
+        { id: 'pet-collector', name: 'Pet Collector', description: 'Own 5 different pets', icon: '🏆', reward: 200 },
+        { id: 'level-master', name: 'Level Master', description: 'Get a pet to level 10', icon: '⭐', reward: 300 },
+        { id: 'fusion-expert', name: 'Fusion Expert', description: 'Create your first fusion pet', icon: '🔬', reward: 500 },
+        { id: 'battle-veteran', name: 'Battle Veteran', description: 'Win 10 pet battles', icon: '⚔️', reward: 400 },
+        { id: 'rare-collector', name: 'Rare Collector', description: 'Own 3 legendary pets', icon: '💎', reward: 1000 }
+      ];
+
+      // Initialize user pet data with levels
+      let userPetData = JSON.parse(localStorage.getItem('carbon-pet-data') || '{}');
+      let userBadges = JSON.parse(localStorage.getItem('carbon-badges') || '[]');
+      let dailyMysteryUsed = localStorage.getItem('carbon-daily-mystery-date') === new Date().toDateString();
 
       const profileFrames = [
         { id: 'red', name: 'Red Frame', price: 200, color: '#ff4444', description: 'Classic red border for your profile' },
@@ -4507,8 +4568,20 @@
                  <button onclick="showShopSection('lootboxes')" class="shop-nav-btn w-full text-left px-3 py-2 rounded-lg hover:bg-highlight-med text-text">
                    <i class="bx bx-package mr-2"></i>Loot Boxes
                  </button>
+                 <button onclick="showShopSection('gacha')" class="shop-nav-btn w-full text-left px-3 py-2 rounded-lg hover:bg-highlight-med text-text">
+                   <i class="bx bx-dice-6 mr-2"></i>Gacha Pulls
+                 </button>
+                 <button onclick="showShopSection('petmanagement')" class="shop-nav-btn w-full text-left px-3 py-2 rounded-lg hover:bg-highlight-med text-text">
+                   <i class="bx bx-cog mr-2"></i>Pet Management
+                 </button>
+                 <button onclick="showShopSection('badges')" class="shop-nav-btn w-full text-left px-3 py-2 rounded-lg hover:bg-highlight-med text-text">
+                   <i class="bx bx-medal mr-2"></i>Badges & Trophies
+                 </button>
                  <button onclick="showShopSection('minigames')" class="shop-nav-btn w-full text-left px-3 py-2 rounded-lg hover:bg-highlight-med text-text">
                    <i class="bx bx-game mr-2"></i>Mini Games
+                 </button>
+                 <button onclick="showShopSection('multiplayer')" class="shop-nav-btn w-full text-left px-3 py-2 rounded-lg hover:bg-highlight-med text-text">
+                   <i class="bx bx-group mr-2"></i>2-Player Games
                  </button>
                </nav>
             </div>
@@ -4676,36 +4749,241 @@
                  <h3 class="text-2xl font-bold text-text mb-6">Loot Boxes</h3>
                  <p class="text-muted mb-6">Open loot boxes to discover frames, currency, and special rewards!</p>
                  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                   ${lootBoxes.map(box => `
-                     <div class="bg-highlight-med rounded-xl p-6 border-2" style="border-color: ${box.borderColor};">
-                       <div class="w-full h-32 rounded-lg mb-4 flex items-center justify-center relative overflow-hidden" 
-                            style="background: ${box.gradient};">
-                         <div class="relative">
-                           <i class="bx bx-package text-6xl text-white drop-shadow-lg"></i>
-                           <div class="absolute inset-0 bg-gradient-to-t from-transparent to-white/20 rounded-lg"></div>
+                   ${lootBoxes.map(box => {
+                     const isToday = box.isDaily && localStorage.getItem('carbon-daily-mystery-date') === new Date().toDateString();
+                     const canAfford = userCurrency >= box.price;
+                     const canOpen = canAfford && !isToday;
+                     
+                     return `
+                       <div class="bg-highlight-med rounded-xl p-6 border-2 ${isToday ? 'opacity-60' : ''}" style="border-color: ${box.borderColor};">
+                         <div class="w-full h-32 rounded-lg mb-4 flex items-center justify-center relative overflow-hidden" 
+                              style="background: ${box.gradient};">
+                           <div class="relative">
+                             <i class="bx bx-package text-6xl text-white drop-shadow-lg"></i>
+                             <div class="absolute inset-0 bg-gradient-to-t from-transparent to-white/20 rounded-lg"></div>
+                           </div>
+                           ${box.rarity === 'mystery' ? '<div class="absolute inset-0 bg-gradient-to-r from-orange-500/30 to-yellow-500/30 animate-pulse"></div>' : ''}
+                           ${box.rarity === 'legendary' ? '<div class="absolute inset-0 bg-gradient-to-r from-yellow-500/30 to-orange-500/30 animate-pulse"></div>' : ''}
+                           ${box.rarity === 'epic' ? '<div class="absolute inset-0 bg-gradient-to-r from-purple-500/30 to-pink-500/30"></div>' : ''}
+                           ${isToday ? '<div class="absolute inset-0 bg-black/50 flex items-center justify-center"><span class="text-white font-bold">USED TODAY</span></div>' : ''}
                          </div>
-                         ${box.rarity === 'legendary' ? '<div class="absolute inset-0 bg-gradient-to-r from-yellow-500/30 to-orange-500/30 animate-pulse"></div>' : ''}
-                         ${box.rarity === 'epic' ? '<div class="absolute inset-0 bg-gradient-to-r from-purple-500/30 to-pink-500/30"></div>' : ''}
+                         <h4 class="text-lg font-semibold text-text mb-2">${box.name}</h4>
+                         <p class="text-sm text-muted mb-3">${box.description}</p>
+                         <div class="text-xs text-muted mb-4">
+                           ${box.rewards.random ? `
+                             <div class="mb-1">🎲 Random surprise item!</div>
+                             <div class="mb-1">💰 ${box.rewards.currency.min}-${box.rewards.currency.max} coins</div>
+                             <div>✨ ${box.rewards.special}% special bonus chance</div>
+                           ` : `
+                             <div class="mb-1">🎁 ${box.rewards.frames > 0 ? box.rewards.frames + ' frames guaranteed' : 'No frames'}</div>
+                             <div class="mb-1">💰 ${box.rewards.currency.min}-${box.rewards.currency.max} coins</div>
+                             <div>✨ ${box.rewards.special}% special item chance</div>
+                           `}
+                         </div>
+                         <div class="flex items-center justify-between">
+                           <div class="text-gold font-bold">${box.price} coins</div>
+                           <button onclick="openLootBox('${box.id}')" 
+                                   class="px-4 py-2 rounded-lg transition-colors ${canOpen ? 'bg-foam hover:bg-foam/80 text-base' : 'bg-muted/20 text-muted cursor-not-allowed'}">
+                             ${isToday ? 'Used Today' : canAfford ? 'Open Box' : 'Insufficient Funds'}
+                           </button>
+                         </div>
                        </div>
-                       <h4 class="text-lg font-semibold text-text mb-2">${box.name}</h4>
-                       <p class="text-sm text-muted mb-3">${box.description}</p>
-                       <div class="text-xs text-muted mb-4">
-                         <div class="mb-1">🎁 ${box.rewards.frames > 0 ? box.rewards.frames + ' frames guaranteed' : 'No frames'}</div>
-                         <div class="mb-1">💰 ${box.rewards.currency.min}-${box.rewards.currency.max} coins</div>
-                         <div>✨ ${box.rewards.special}% special item chance</div>
+                     `;
+                   }).join('')}
+                 </div>
+               </div>
+               
+               <!-- Gacha Section -->
+               <div id="shop-gacha" class="shop-section hidden">
+                 <h3 class="text-2xl font-bold text-text mb-6">Gacha Pulls</h3>
+                 <p class="text-muted mb-6">Roll for rare items! Higher tier gachas have better drop rates.</p>
+                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                   ${gachaTypes.map(gacha => `
+                     <div class="bg-highlight-med rounded-xl p-6 border border-overlay">
+                       <div class="w-full h-32 rounded-lg mb-4 flex items-center justify-center bg-gradient-to-br from-iris/20 to-love/20">
+                         <i class="bx bx-dice-6 text-6xl text-iris animate-pulse"></i>
+                       </div>
+                       <h4 class="text-lg font-semibold text-text mb-2">${gacha.name}</h4>
+                       <p class="text-sm text-muted mb-4">${gacha.description}</p>
+                       <div class="text-xs text-muted mb-4 space-y-1">
+                         <div>🎯 Common: ${gacha.rates.common}%</div>
+                         <div>💙 Rare: ${gacha.rates.rare}%</div>
+                         <div>💜 Epic: ${gacha.rates.epic}%</div>
+                         <div>✨ Legendary: ${gacha.rates.legendary}%</div>
                        </div>
                        <div class="flex items-center justify-between">
-                         <div class="text-gold font-bold">${box.price} coins</div>
-                         <button onclick="openLootBox('${box.id}')" 
-                                 class="px-4 py-2 rounded-lg transition-colors ${userCurrency >= box.price ? 'bg-foam hover:bg-foam/80 text-base' : 'bg-muted/20 text-muted cursor-not-allowed'}">
-                           ${userCurrency >= box.price ? 'Open Box' : 'Insufficient Funds'}
+                         <div class="text-gold font-bold">${gacha.cost} coins</div>
+                         <button onclick="pullGacha('${gacha.id}')" 
+                                 class="px-4 py-2 rounded-lg transition-colors ${userCurrency >= gacha.cost ? 'bg-iris hover:bg-iris/80 text-white' : 'bg-muted/20 text-muted cursor-not-allowed'}">
+                           ${userCurrency >= gacha.cost ? 'Pull!' : 'Insufficient Funds'}
                          </button>
                        </div>
                      </div>
                    `).join('')}
                  </div>
                </div>
-               
+
+               <!-- Pet Management Section -->
+               <div id="shop-petmanagement" class="shop-section hidden">
+                 <h3 class="text-2xl font-bold text-text mb-6">Pet Management</h3>
+                 <p class="text-muted mb-6">Level up your pets, create fusions, and manage your collection!</p>
+                 
+                 ${userPets.length > 0 ? `
+                   <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+                     ${userPets.map(petId => {
+                       const pet = pets.find(p => p.id === petId);
+                       const petData = userPetData[petId] || { level: 1, xp: 0, battles: 0 };
+                       const maxXp = petData.level * 100;
+                       const power = pet.basePower + (petData.level - 1) * 10;
+                       const levelUpCost = petData.level * 50;
+                       
+                       return `
+                         <div class="bg-highlight-med rounded-xl p-6 border border-overlay">
+                           <div class="flex items-center justify-between mb-4">
+                             <div class="text-4xl">${pet.emoji}</div>
+                             <div class="text-right">
+                               <div class="text-lg font-bold text-text">Level ${petData.level}</div>
+                               <div class="text-sm text-muted">Power: ${power}</div>
+                             </div>
+                           </div>
+                           <h4 class="text-lg font-semibold text-text mb-2">${pet.name}</h4>
+                           
+                           <!-- XP Bar -->
+                           <div class="mb-4">
+                             <div class="flex justify-between text-xs text-muted mb-1">
+                               <span>XP: ${petData.xp}/${maxXp}</span>
+                               <span>Battles: ${petData.battles}</span>
+                             </div>
+                             <div class="w-full bg-overlay rounded-full h-2">
+                               <div class="bg-foam h-2 rounded-full transition-all duration-300" style="width: ${(petData.xp / maxXp) * 100}%"></div>
+                             </div>
+                           </div>
+                           
+                           <div class="space-y-2">
+                             <button onclick="levelUpPet('${petId}')" 
+                                     class="w-full px-4 py-2 rounded-lg transition-colors ${userCurrency >= levelUpCost ? 'bg-gold hover:bg-gold/80 text-base' : 'bg-muted/20 text-muted cursor-not-allowed'} text-sm">
+                               Level Up (${levelUpCost} coins)
+                             </button>
+                             <button onclick="battleWithPet('${petId}')" 
+                                     class="w-full px-4 py-2 bg-love hover:bg-love/80 text-white rounded-lg transition-colors text-sm">
+                               Battle Training (+XP)
+                             </button>
+                           </div>
+                         </div>
+                       `;
+                     }).join('')}
+                   </div>
+                   
+                   <!-- Fusion Section -->
+                   <div class="bg-highlight-med rounded-xl p-6 border border-overlay mb-6">
+                     <h4 class="text-xl font-bold text-text mb-4 flex items-center gap-2">
+                       <i class="bx bx-dna text-iris"></i>
+                       Pet Fusion Laboratory
+                     </h4>
+                     <p class="text-muted mb-4">Combine two pets to create powerful fusion creatures!</p>
+                     
+                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                       <div>
+                         <label class="block text-sm font-medium text-text mb-2">Pet 1</label>
+                         <select id="fusionPet1" class="w-full px-3 py-2 bg-overlay border border-highlight-med rounded-lg text-text">
+                           <option value="">Select first pet...</option>
+                           ${userPets.map(petId => {
+                             const pet = pets.find(p => p.id === petId);
+                             return `<option value="${petId}">${pet.emoji} ${pet.name}</option>`;
+                           }).join('')}
+                         </select>
+                       </div>
+                       <div>
+                         <label class="block text-sm font-medium text-text mb-2">Pet 2</label>
+                         <select id="fusionPet2" class="w-full px-3 py-2 bg-overlay border border-highlight-med rounded-lg text-text">
+                           <option value="">Select second pet...</option>
+                           ${userPets.map(petId => {
+                             const pet = pets.find(p => p.id === petId);
+                             return `<option value="${petId}">${pet.emoji} ${pet.name}</option>`;
+                           }).join('')}
+                         </select>
+                       </div>
+                       <div>
+                         <label class="block text-sm font-medium text-text mb-2">Action</label>
+                         <button onclick="attemptFusion()" class="w-full px-4 py-2 bg-iris hover:bg-iris/80 text-white rounded-lg transition-colors">
+                           Fuse Pets (500 coins)
+                         </button>
+                       </div>
+                     </div>
+                     
+                     <div id="fusionPreview" class="text-center py-4 text-muted">
+                       Select two pets to see fusion preview
+                     </div>
+                   </div>
+                 ` : `
+                   <div class="text-center py-12">
+                     <i class="bx bx-heart text-6xl text-muted mb-4"></i>
+                     <h4 class="text-xl font-semibold text-text mb-2">No Pets Adopted</h4>
+                     <p class="text-muted mb-4">Adopt pets from the Digital Pets section to start managing them!</p>
+                     <button onclick="showShopSection('pets')" class="px-6 py-3 bg-foam hover:bg-foam/80 text-base rounded-lg font-medium">
+                       Adopt Pets
+                     </button>
+                   </div>
+                 `}
+               </div>
+
+               <!-- Badges Section -->
+               <div id="shop-badges" class="shop-section hidden">
+                 <h3 class="text-2xl font-bold text-text mb-6">Badges & Trophies</h3>
+                 <p class="text-muted mb-6">Earn badges by completing achievements and show off your accomplishments!</p>
+                 
+                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                   ${petBadges.map(badge => {
+                     const earned = userBadges.includes(badge.id);
+                     return `
+                       <div class="bg-highlight-med rounded-xl p-6 border border-overlay ${earned ? 'border-gold' : ''}">
+                         <div class="w-full h-32 rounded-lg mb-4 flex items-center justify-center ${earned ? 'bg-gold/20' : 'bg-muted/10'}">
+                           <div class="text-6xl ${earned ? 'animate-pulse' : 'grayscale opacity-50'}">${badge.icon}</div>
+                         </div>
+                         <h4 class="text-lg font-semibold text-text mb-2">${badge.name}</h4>
+                         <p class="text-sm text-muted mb-4">${badge.description}</p>
+                         <div class="flex items-center justify-between">
+                           <div class="text-gold font-bold">+${badge.reward} coins</div>
+                           <div class="px-3 py-1 rounded-full text-xs font-bold ${earned ? 'bg-gold/20 text-gold' : 'bg-muted/20 text-muted'}">
+                             ${earned ? 'EARNED' : 'LOCKED'}
+                           </div>
+                         </div>
+                       </div>
+                     `;
+                   }).join('')}
+                 </div>
+               </div>
+
+               <!-- Multiplayer Games Section -->
+               <div id="shop-multiplayer" class="shop-section hidden">
+                 <h3 class="text-2xl font-bold text-text mb-6">2-Player Games</h3>
+                 <p class="text-muted mb-6">Challenge friends to real-time multiplayer games using Firebase!</p>
+                 
+                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                   <div class="bg-highlight-med rounded-xl p-6 border border-overlay">
+                     <div class="w-full h-32 bg-gradient-to-br from-love/20 to-gold/20 rounded-lg mb-4 flex items-center justify-center">
+                       <i class="bx bx-grid-alt text-4xl text-love"></i>
+                     </div>
+                     <h4 class="text-lg font-semibold text-text mb-2">Tic Tac Toe</h4>
+                     <p class="text-sm text-muted mb-4">Classic strategy game for two players</p>
+                     <button onclick="startMultiplayerGame('tictactoe')" class="w-full px-4 py-2 bg-love hover:bg-love/80 text-white rounded-lg transition-colors">
+                       Start Game
+                     </button>
+                   </div>
+                   
+                   <div class="bg-highlight-med rounded-xl p-6 border border-overlay">
+                     <div class="w-full h-32 bg-gradient-to-br from-iris/20 to-foam/20 rounded-lg mb-4 flex items-center justify-center">
+                       <i class="bx bx-circle text-4xl text-iris"></i>
+                     </div>
+                     <h4 class="text-lg font-semibold text-text mb-2">Connect Four</h4>
+                     <p class="text-sm text-muted mb-4">Drop tokens to get four in a row</p>
+                     <button onclick="startMultiplayerGame('connect4')" class="w-full px-4 py-2 bg-iris hover:bg-iris/80 text-white rounded-lg transition-colors">
+                       Start Game
+                     </button>
+                   </div>
+                 </div>
+               </div>
+
                <div id="shop-minigames" class="shop-section hidden">
                 <h3 class="text-2xl font-bold text-text mb-6">Mini Games</h3>
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -4778,9 +5056,18 @@
         userCurrency -= pet.price;
         userPets.push(petId);
         
+        // Initialize pet data
+        if (!userPetData[petId]) {
+          userPetData[petId] = { level: 1, xp: 0, battles: 0 };
+        }
+        
         updateCurrencyDisplay();
         saveCurrencyToStorage();
         savePetsToStorage();
+        savePetDataToStorage();
+        
+        // Check badges
+        checkBadges();
         
         // Refresh shop display
         closeShop();
@@ -4825,6 +5112,9 @@
           }, '*');
         });
         
+        // Save to Firebase
+        saveFramesToFirebase();
+        
         showNotification('Profile Frame Selected', `${frameId === 'default' ? 'Default' : profileFrames.find(f => f.id === frameId)?.name} profile frame is now active!`, 'success');
         
         // Refresh shop to show selection
@@ -4867,6 +5157,9 @@
            }, '*');
          });
          
+         // Save to Firebase
+         saveFramesToFirebase();
+         
          showNotification('Frame Selected', `${frameId === 'default' ? 'Default' : gameFrames.find(f => f.id === frameId)?.name} frame is now active!`, 'success');
          
          // Refresh shop to show selection
@@ -4878,23 +5171,53 @@
          const box = lootBoxes.find(b => b.id === boxId);
          if (!box || userCurrency < box.price) return;
          
+         // Check daily mystery box restriction
+         if (box.isDaily) {
+           const today = new Date().toDateString();
+           const lastUsed = localStorage.getItem('carbon-daily-mystery-date');
+           
+           if (lastUsed === today) {
+             showNotification('Daily Limit Reached', 'You can only open one Daily Mystery Box per day!', 'warning');
+             return;
+           }
+           
+           localStorage.setItem('carbon-daily-mystery-date', today);
+         }
+         
          // Deduct cost
          userCurrency -= box.price;
          saveCurrencyToStorage();
          
          // Generate rewards
-         const rewards = generateLootBoxRewards(box);
+         const rewards = box.rewards.random ? generateRandomReward() : generateLootBoxRewards(box);
          
          // Add rewards to user
          userCurrency += rewards.currency;
-         rewards.frames.forEach(frameId => {
+         rewards.frames?.forEach(frameId => {
            if (!userFrames.includes(frameId)) {
              userFrames.push(frameId);
+           }
+         });
+         rewards.pets?.forEach(petId => {
+           if (!userPets.includes(petId)) {
+             userPets.push(petId);
+             if (!userPetData[petId]) {
+               userPetData[petId] = { level: 1, xp: 0, battles: 0 };
+             }
+             checkBadges();
+           }
+         });
+         rewards.profileFrames?.forEach(frameId => {
+           if (!userProfileFrames.includes(frameId)) {
+             userProfileFrames.push(frameId);
            }
          });
          
          saveCurrencyToStorage();
          saveFramesToStorage();
+         savePetsToStorage();
+         saveProfileFramesToStorage();
+         savePetDataToStorage();
          updateCurrencyDisplay();
          
          // Show rewards modal
@@ -4904,6 +5227,48 @@
          closeShop();
          setTimeout(() => openCarbonShop(), 2000);
        };
+
+       function generateRandomReward() {
+         const rewards = {
+           currency: Math.floor(Math.random() * 400) + 100,
+           frames: [],
+           pets: [],
+           profileFrames: [],
+           special: null
+         };
+         
+         // Random chance for different reward types
+         const rand = Math.random();
+         
+         if (rand < 0.3) {
+           // 30% chance for pet
+           const availablePets = pets.filter(p => !p.fusion && !userPets.includes(p.id));
+           if (availablePets.length > 0) {
+             rewards.pets.push(availablePets[Math.floor(Math.random() * availablePets.length)].id);
+           }
+         } else if (rand < 0.6) {
+           // 30% chance for game frame
+           const availableFrames = gameFrames.filter(f => !userFrames.includes(f.id));
+           if (availableFrames.length > 0) {
+             rewards.frames.push(availableFrames[Math.floor(Math.random() * availableFrames.length)].id);
+           }
+         } else if (rand < 0.85) {
+           // 25% chance for profile frame
+           const availableProfileFrames = profileFrames.filter(f => !userProfileFrames.includes(f.id));
+           if (availableProfileFrames.length > 0) {
+             rewards.profileFrames.push(availableProfileFrames[Math.floor(Math.random() * availableProfileFrames.length)].id);
+           }
+         }
+         
+         // 25% chance for special bonus
+         if (Math.random() < 0.25) {
+           const bonusCurrency = Math.floor(rewards.currency * 0.5);
+           rewards.currency += bonusCurrency;
+           rewards.special = `Mystery Bonus: +${bonusCurrency} coins!`;
+         }
+         
+         return rewards;
+       }
        
        function generateLootBoxRewards(box) {
          const rewards = {
@@ -4982,13 +5347,39 @@
                  </div>
                </div>
                
-               ${rewards.frames.length > 0 ? `
+               ${rewards.frames && rewards.frames.length > 0 ? `
                  <div class="bg-highlight-med rounded-lg p-3">
                    <div class="flex items-center justify-center gap-2 mb-2">
                      <i class="bx bx-image text-foam text-xl"></i>
-                     <span class="text-lg font-semibold text-text">New Frames!</span>
+                     <span class="text-lg font-semibold text-text">New Game Frames!</span>
                    </div>
                    <div class="text-sm text-foam">${frameNames.join(', ')}</div>
+                 </div>
+               ` : ''}
+               
+               ${rewards.pets && rewards.pets.length > 0 ? `
+                 <div class="bg-highlight-med rounded-lg p-3">
+                   <div class="flex items-center justify-center gap-2 mb-2">
+                     <i class="bx bx-heart text-iris text-xl"></i>
+                     <span class="text-lg font-semibold text-text">New Pets!</span>
+                   </div>
+                   <div class="text-sm text-iris">${rewards.pets.map(petId => {
+                     const pet = pets.find(p => p.id === petId);
+                     return pet ? `${pet.emoji} ${pet.name}` : petId;
+                   }).join(', ')}</div>
+                 </div>
+               ` : ''}
+               
+               ${rewards.profileFrames && rewards.profileFrames.length > 0 ? `
+                 <div class="bg-highlight-med rounded-lg p-3">
+                   <div class="flex items-center justify-center gap-2 mb-2">
+                     <i class="bx bx-user text-love text-xl"></i>
+                     <span class="text-lg font-semibold text-text">New Profile Frames!</span>
+                   </div>
+                   <div class="text-sm text-love">${rewards.profileFrames.map(frameId => {
+                     const frame = profileFrames.find(f => f.id === frameId);
+                     return frame ? frame.name : frameId;
+                   }).join(', ')}</div>
                  </div>
                ` : ''}
                
@@ -5037,6 +5428,348 @@
       function saveProfileFramesToStorage() {
         localStorage.setItem('carbon-profile-frames', JSON.stringify(userProfileFrames));
       }
+
+      function savePetDataToStorage() {
+        localStorage.setItem('carbon-pet-data', JSON.stringify(userPetData));
+      }
+
+      function saveBadgesToStorage() {
+        localStorage.setItem('carbon-badges', JSON.stringify(userBadges));
+      }
+
+      // Gacha system functions
+      window.pullGacha = function(gachaId) {
+        const gacha = gachaTypes.find(g => g.id === gachaId);
+        if (!gacha || userCurrency < gacha.cost) return;
+        
+        userCurrency -= gacha.cost;
+        saveCurrencyToStorage();
+        
+        // Generate random item based on rates
+        const rand = Math.random() * 100;
+        let rarity = 'common';
+        let cumulative = 0;
+        
+        for (const [rarityLevel, rate] of Object.entries(gacha.rates)) {
+          cumulative += rate;
+          if (rand <= cumulative) {
+            rarity = rarityLevel;
+            break;
+          }
+        }
+        
+        // Give reward based on rarity
+        const rewards = generateGachaReward(rarity);
+        
+        // Apply rewards
+        userCurrency += rewards.currency || 0;
+        if (rewards.frame && !userFrames.includes(rewards.frame)) {
+          userFrames.push(rewards.frame);
+        }
+        if (rewards.pet && !userPets.includes(rewards.pet)) {
+          userPets.push(rewards.pet);
+        }
+        if (rewards.profileFrame && !userProfileFrames.includes(rewards.profileFrame)) {
+          userProfileFrames.push(rewards.profileFrame);
+        }
+        
+        updateCurrencyDisplay();
+        saveCurrencyToStorage();
+        saveFramesToStorage();
+        savePetsToStorage();
+        saveProfileFramesToStorage();
+        
+        showGachaResults(gacha, rarity, rewards);
+        
+        closeShop();
+        setTimeout(() => openCarbonShop(), 2000);
+      };
+
+      function generateGachaReward(rarity) {
+        const rewards = {};
+        
+        switch(rarity) {
+          case 'common':
+            rewards.currency = Math.floor(Math.random() * 100) + 50;
+            break;
+          case 'rare':
+            rewards.currency = Math.floor(Math.random() * 200) + 150;
+            if (Math.random() < 0.3) {
+              const availablePets = pets.filter(p => p.rarity === 'common' && !userPets.includes(p.id));
+              if (availablePets.length > 0) {
+                rewards.pet = availablePets[Math.floor(Math.random() * availablePets.length)].id;
+              }
+            }
+            break;
+          case 'epic':
+            rewards.currency = Math.floor(Math.random() * 300) + 250;
+            const availableFrames = gameFrames.filter(f => !userFrames.includes(f.id));
+            if (availableFrames.length > 0) {
+              rewards.frame = availableFrames[Math.floor(Math.random() * availableFrames.length)].id;
+            }
+            break;
+          case 'legendary':
+            rewards.currency = Math.floor(Math.random() * 500) + 500;
+            const legendaryPets = pets.filter(p => p.rarity === 'legendary' && !userPets.includes(p.id));
+            if (legendaryPets.length > 0) {
+              rewards.pet = legendaryPets[Math.floor(Math.random() * legendaryPets.length)].id;
+            }
+            const expensiveFrames = gameFrames.filter(f => f.price >= 1000 && !userFrames.includes(f.id));
+            if (expensiveFrames.length > 0) {
+              rewards.frame = expensiveFrames[Math.floor(Math.random() * expensiveFrames.length)].id;
+            }
+            break;
+        }
+        
+        return rewards;
+      }
+
+      function showGachaResults(gacha, rarity, rewards) {
+        const modal = document.createElement('div');
+        modal.className = 'fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[9999]';
+        
+        const rarityColors = {
+          common: '#6b7280',
+          rare: '#3b82f6', 
+          epic: '#a855f7',
+          legendary: '#f59e0b'
+        };
+        
+        modal.innerHTML = `
+          <div class="bg-surface border-2 rounded-xl shadow-2xl max-w-md w-[90vw] p-6 text-center" style="border-color: ${rarityColors[rarity]};">
+            <div class="mb-6">
+              <div class="w-24 h-24 mx-auto mb-4 rounded-lg flex items-center justify-center animate-pulse" style="background: ${rarityColors[rarity]}30;">
+                <i class="bx bx-dice-6 text-4xl" style="color: ${rarityColors[rarity]};"></i>
+              </div>
+              <h2 class="text-2xl font-bold text-text mb-2">${rarity.toUpperCase()} PULL!</h2>
+              <p class="text-muted">Here's what you got:</p>
+            </div>
+            
+            <div class="space-y-3 mb-6">
+              ${rewards.currency ? `
+                <div class="bg-highlight-med rounded-lg p-3">
+                  <div class="flex items-center justify-center gap-2">
+                    <i class="bx bx-coin text-gold text-xl"></i>
+                    <span class="text-lg font-semibold text-gold">${rewards.currency} Carbon Coins</span>
+                  </div>
+                </div>
+              ` : ''}
+              
+              ${rewards.frame ? `
+                <div class="bg-highlight-med rounded-lg p-3">
+                  <div class="flex items-center justify-center gap-2">
+                    <i class="bx bx-image text-foam text-xl"></i>
+                    <span class="text-lg font-semibold text-text">New Frame: ${gameFrames.find(f => f.id === rewards.frame)?.name}!</span>
+                  </div>
+                </div>
+              ` : ''}
+              
+              ${rewards.pet ? `
+                <div class="bg-highlight-med rounded-lg p-3">
+                  <div class="flex items-center justify-center gap-2">
+                    <span class="text-2xl">${pets.find(p => p.id === rewards.pet)?.emoji}</span>
+                    <span class="text-lg font-semibold text-text">New Pet: ${pets.find(p => p.id === rewards.pet)?.name}!</span>
+                  </div>
+                </div>
+              ` : ''}
+              
+              ${rewards.profileFrame ? `
+                <div class="bg-highlight-med rounded-lg p-3">
+                  <div class="flex items-center justify-center gap-2">
+                    <i class="bx bx-user text-iris text-xl"></i>
+                    <span class="text-lg font-semibold text-text">New Profile Frame: ${profileFrames.find(f => f.id === rewards.profileFrame)?.name}!</span>
+                  </div>
+                </div>
+              ` : ''}
+            </div>
+            
+            <button onclick="this.parentElement.parentElement.remove()" 
+                    class="w-full px-6 py-3 bg-foam hover:bg-foam/80 text-base rounded-lg font-medium transition-colors">
+              Amazing!
+            </button>
+          </div>
+        `;
+        
+        document.body.appendChild(modal);
+        
+        setTimeout(() => {
+          if (modal.parentNode) modal.remove();
+        }, 10000);
+      }
+
+      // Pet management functions
+      window.levelUpPet = function(petId) {
+        const pet = pets.find(p => p.id === petId);
+        const petData = userPetData[petId] || { level: 1, xp: 0, battles: 0 };
+        const levelUpCost = petData.level * 50;
+        
+        if (!pet || userCurrency < levelUpCost) return;
+        
+        userCurrency -= levelUpCost;
+        petData.level += 1;
+        petData.xp = 0;
+        userPetData[petId] = petData;
+        
+        updateCurrencyDisplay();
+        saveCurrencyToStorage();
+        savePetDataToStorage();
+        
+        showNotification('Level Up!', `${pet.name} is now level ${petData.level}!`, 'success');
+        
+        // Check for level master badge
+        if (petData.level >= 10 && !userBadges.includes('level-master')) {
+          earnBadge('level-master');
+        }
+        
+        closeShop();
+        setTimeout(() => {
+          openCarbonShop();
+          showShopSection('petmanagement');
+        }, 100);
+      };
+
+      window.battleWithPet = function(petId) {
+        const pet = pets.find(p => p.id === petId);
+        const petData = userPetData[petId] || { level: 1, xp: 0, battles: 0 };
+        
+        // Random XP gain from battle (20-50 XP)
+        const xpGain = Math.floor(Math.random() * 31) + 20;
+        petData.xp += xpGain;
+        petData.battles += 1;
+        
+        // Level up if enough XP
+        const maxXp = petData.level * 100;
+        if (petData.xp >= maxXp) {
+          petData.level += 1;
+          petData.xp = 0;
+          showNotification('Level Up!', `${pet.name} leveled up to ${petData.level}!`, 'success');
+          
+          // Check for level master badge
+          if (petData.level >= 10 && !userBadges.includes('level-master')) {
+            earnBadge('level-master');
+          }
+        } else {
+          showNotification('Training Complete!', `${pet.name} gained ${xpGain} XP!`, 'success');
+        }
+        
+        userPetData[petId] = petData;
+        savePetDataToStorage();
+        
+        // Check for battle veteran badge
+        const totalBattles = Object.values(userPetData).reduce((sum, data) => sum + (data.battles || 0), 0);
+        if (totalBattles >= 10 && !userBadges.includes('battle-veteran')) {
+          earnBadge('battle-veteran');
+        }
+        
+        closeShop();
+        setTimeout(() => {
+          openCarbonShop();
+          showShopSection('petmanagement');
+        }, 100);
+      };
+
+      window.attemptFusion = function() {
+        const pet1Id = document.getElementById('fusionPet1')?.value;
+        const pet2Id = document.getElementById('fusionPet2')?.value;
+        
+        if (!pet1Id || !pet2Id || pet1Id === pet2Id || userCurrency < 500) {
+          showNotification('Fusion Failed', 'Select two different pets and ensure you have 500 coins!', 'error');
+          return;
+        }
+        
+        // Check if a fusion recipe exists
+        const fusionPet = pets.find(p => p.fusion && 
+          p.fusion.includes(pet1Id) && p.fusion.includes(pet2Id));
+        
+        if (!fusionPet) {
+          showNotification('Fusion Failed', 'These pets cannot be fused together!', 'error');
+          return;
+        }
+        
+        if (userPets.includes(fusionPet.id)) {
+          showNotification('Fusion Failed', 'You already own this fusion pet!', 'error');
+          return;
+        }
+        
+        // Perform fusion
+        userCurrency -= 500;
+        userPets.push(fusionPet.id);
+        
+        // Initialize fusion pet with higher level
+        const pet1Data = userPetData[pet1Id] || { level: 1 };
+        const pet2Data = userPetData[pet2Id] || { level: 1 };
+        const fusionLevel = Math.floor((pet1Data.level + pet2Data.level) / 2) + 1;
+        
+        userPetData[fusionPet.id] = {
+          level: fusionLevel,
+          xp: 0,
+          battles: 0
+        };
+        
+        updateCurrencyDisplay();
+        saveCurrencyToStorage();
+        savePetsToStorage();
+        savePetDataToStorage();
+        
+        showNotification('Fusion Success!', `Created ${fusionPet.name} at level ${fusionLevel}!`, 'success');
+        
+        // Check for fusion expert badge
+        if (!userBadges.includes('fusion-expert')) {
+          earnBadge('fusion-expert');
+        }
+        
+        closeShop();
+        setTimeout(() => {
+          openCarbonShop();
+          showShopSection('petmanagement');
+        }, 100);
+      };
+
+      function earnBadge(badgeId) {
+        const badge = petBadges.find(b => b.id === badgeId);
+        if (!badge || userBadges.includes(badgeId)) return;
+        
+        userBadges.push(badgeId);
+        userCurrency += badge.reward;
+        
+        updateCurrencyDisplay();
+        saveCurrencyToStorage();
+        saveBadgesToStorage();
+        
+        showNotification('Badge Earned!', `${badge.icon} ${badge.name} - Earned ${badge.reward} coins!`, 'success');
+      }
+
+      // Check badges on various actions
+      function checkBadges() {
+        // First pet badge
+        if (userPets.length >= 1 && !userBadges.includes('first-pet')) {
+          earnBadge('first-pet');
+        }
+        
+        // Pet collector badge
+        if (userPets.length >= 5 && !userBadges.includes('pet-collector')) {
+          earnBadge('pet-collector');
+        }
+        
+        // Rare collector badge
+        const legendaryPets = userPets.filter(petId => {
+          const pet = pets.find(p => p.id === petId);
+          return pet && pet.rarity === 'legendary';
+        });
+        if (legendaryPets.length >= 3 && !userBadges.includes('rare-collector')) {
+          earnBadge('rare-collector');
+        }
+      }
+
+      // Multiplayer games
+      window.startMultiplayerGame = function(gameType) {
+        if (!currentUser) {
+          showNotification('Sign In Required', 'Please sign in to play multiplayer games!', 'error');
+          return;
+        }
+        
+        showNotification('Feature Coming Soon!', `${gameType} multiplayer is being developed!`, 'info');
+      };
       
       // === PRIVATE BROWSING SYSTEM ===
       let privateBrowsingMode = false;
@@ -5592,6 +6325,59 @@
           window.carbonFrames.applyActiveFrame();
           window.carbonProfileFrames.applyActiveFrame();
         }, 500);
+
+        // Firebase frame sync functions
+        async function saveFramesToFirebase() {
+          const user = auth?.currentUser;
+          if (!user) return;
+          
+          try {
+            const framesData = {
+              selectedGameFrame: localStorage.getItem('carbon-selected-frame') || 'default',
+              selectedProfileFrame: localStorage.getItem('carbon-selected-profile-frame') || 'default',
+              updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            };
+            
+            await db.collection('user-frames').doc(user.uid).set(framesData, { merge: true });
+            console.log('✅ Frames saved to Firebase');
+          } catch (error) {
+            console.error('❌ Error saving frames to Firebase:', error);
+          }
+        }
+
+        async function loadFramesFromFirebase() {
+          const user = auth?.currentUser;
+          if (!user) return;
+          
+          try {
+            const framesDoc = await db.collection('user-frames').doc(user.uid).get();
+            if (framesDoc.exists) {
+              const data = framesDoc.data();
+              
+              if (data.selectedGameFrame) {
+                localStorage.setItem('carbon-selected-frame', data.selectedGameFrame);
+              }
+              
+              if (data.selectedProfileFrame) {
+                localStorage.setItem('carbon-selected-profile-frame', data.selectedProfileFrame);
+              }
+              
+              // Apply frames after loading
+              setTimeout(() => {
+                window.carbonFrames.applyActiveFrame();
+                window.carbonProfileFrames.applyActiveFrame();
+              }, 100);
+              
+              console.log('✅ Frames loaded from Firebase');
+            }
+          } catch (error) {
+            console.error('❌ Error loading frames from Firebase:', error);
+          }
+        }
+
+        // Make functions globally available
+        window.saveFramesToFirebase = saveFramesToFirebase;
+        window.loadFramesFromFirebase = loadFramesFromFirebase;
         
                  // Listen for frame selection changes
          window.addEventListener('message', (event) => {
