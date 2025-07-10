@@ -5798,9 +5798,21 @@
              lastActivity: firebase.firestore.FieldValue.serverTimestamp()
            };
 
-           console.log('Creating game room:', gameRoom);
+                      console.log('Creating game room:', gameRoom);
+           
+           if (gameType === 'connect4') {
+             console.log('Connect 4 board structure:', gameRoom.gameState.board);
+             console.log('Board length:', gameRoom.gameState.board.length);
+             
+             // Test helper functions
+             console.log('Testing Connect 4 helpers:');
+             console.log('Position (0,0) index:', getConnect4Index(0, 0), 'should be 0');
+             console.log('Position (5,6) index:', getConnect4Index(5, 6), 'should be 41');
+             console.log('Index 0 coords:', getConnect4RowCol(0), 'should be {row:0, col:0}');
+             console.log('Index 41 coords:', getConnect4RowCol(41), 'should be {row:5, col:6}');
+           }
 
-                     const docRef = await db.collection('game-rooms').add(gameRoom);
+          const docRef = await db.collection('game-rooms').add(gameRoom);
            currentGameRoom = docRef.id;
            
            console.log('Game room created successfully with ID:', docRef.id);
@@ -5823,7 +5835,7 @@
 
       function initConnect4State() {
         return {
-          board: Array(6).fill().map(() => Array(7).fill(null)),
+          board: Array(42).fill(null), // Flattened 6x7 grid (6*7=42)
           currentPlayer: 'red'
         };
       }
@@ -6301,6 +6313,35 @@
        }
 
        // === CONNECT 4 GAME LOGIC ===
+       
+       // Helper functions for Connect 4 board conversion
+       function getConnect4Index(row, col) {
+         return row * 7 + col;
+       }
+       
+       function getConnect4RowCol(index) {
+         return {
+           row: Math.floor(index / 7),
+           col: index % 7
+         };
+       }
+       
+       function getConnect4Cell(board, row, col) {
+         if (row < 0 || row >= 6 || col < 0 || col >= 7) {
+           console.warn('Invalid Connect 4 coordinates:', row, col);
+           return null;
+         }
+         return board[getConnect4Index(row, col)];
+       }
+       
+       function setConnect4Cell(board, row, col, value) {
+         if (row < 0 || row >= 6 || col < 0 || col >= 7) {
+           console.error('Invalid Connect 4 coordinates for setting:', row, col);
+           return;
+         }
+         board[getConnect4Index(row, col)] = value;
+       }
+       
        function renderConnect4(gameRoom, roomId) {
          console.log('Rendering Connect 4:', gameRoom);
          const gameArea = document.getElementById('gameArea');
@@ -6346,12 +6387,15 @@
              
              <!-- Game board -->
              <div class="grid grid-cols-7 grid-rows-6 gap-1 bg-surface p-3 rounded-lg border-2 border-highlight-med">
-               ${gameRoom.gameState.board.map((row, rowIndex) => 
-                 row.map((cell, colIndex) => `
-                   <div class="w-16 h-16 bg-highlight-med rounded-full flex items-center justify-center border-2 border-overlay" style="grid-row: ${rowIndex + 1}; grid-column: ${colIndex + 1};">
-                     ${cell ? `<div class="w-12 h-12 rounded-full ${cell === 'red' ? 'bg-love' : 'bg-iris'}"></div>` : ''}
-                   </div>
-                 `).join('')
+               ${Array(6).fill().map((_, row) =>
+                 Array(7).fill().map((_, col) => {
+                   const cell = getConnect4Cell(gameRoom.gameState.board, row, col);
+                   return `
+                     <div class="w-16 h-16 bg-highlight-med rounded-full flex items-center justify-center border-2 border-overlay" style="grid-row: ${row + 1}; grid-column: ${col + 1};">
+                       ${cell ? `<div class="w-12 h-12 rounded-full ${cell === 'red' ? 'bg-love' : 'bg-iris'}"></div>` : ''}
+                     </div>
+                   `;
+                 }).join('')
                ).join('')}
              </div>
            </div>
@@ -6406,29 +6450,29 @@
                return;
              }
            
-           // Find the lowest empty row in the column
-           const newBoard = gameRoom.gameState.board.map(row => [...row]);
-           let row = -1;
-           
-           for (let r = 5; r >= 0; r--) {
-             if (!newBoard[r][column]) {
-               row = r;
-               break;
+                        // Find the lowest empty row in the column
+             const newBoard = [...gameRoom.gameState.board];
+             let row = -1;
+             
+             for (let r = 5; r >= 0; r--) {
+               if (!getConnect4Cell(newBoard, r, column)) {
+                 row = r;
+                 break;
+               }
              }
-           }
+             
+             if (row === -1) {
+               // Column is full
+               showNotification('Invalid Move', 'Column is full!', 'warning');
+               return;
+             }
+             
+             // Make the move
+             setConnect4Cell(newBoard, row, column, gameRoom.gameState.currentPlayer);
            
-           if (row === -1) {
-             // Column is full
-             showNotification('Invalid Move', 'Column is full!', 'warning');
-             return;
-           }
-           
-           // Make the move
-           newBoard[row][column] = gameRoom.gameState.currentPlayer;
-           
-           // Check for winner
-           const winner = checkConnect4Winner(newBoard, row, column, gameRoom.gameState.currentPlayer);
-           const isDraw = !winner && newBoard[0].every(cell => cell !== null);
+                        // Check for winner
+             const winner = checkConnect4Winner(newBoard, row, column, gameRoom.gameState.currentPlayer);
+             const isDraw = !winner && Array(7).fill().every((_, col) => getConnect4Cell(newBoard, 0, col) !== null);
            
            const updateData = {
              'gameState.board': newBoard,
@@ -6465,7 +6509,7 @@
            for (let i = 1; i < 4; i++) {
              const r = row + dr * i;
              const c = col + dc * i;
-             if (r >= 0 && r < 6 && c >= 0 && c < 7 && board[r][c] === player) {
+             if (r >= 0 && r < 6 && c >= 0 && c < 7 && getConnect4Cell(board, r, c) === player) {
                count++;
              } else {
                break;
@@ -6476,7 +6520,7 @@
            for (let i = 1; i < 4; i++) {
              const r = row - dr * i;
              const c = col - dc * i;
-             if (r >= 0 && r < 6 && c >= 0 && c < 7 && board[r][c] === player) {
+             if (r >= 0 && r < 6 && c >= 0 && c < 7 && getConnect4Cell(board, r, c) === player) {
                count++;
              } else {
                break;
@@ -6488,7 +6532,7 @@
            }
          }
          
-                  return null;
+         return null;
        }
 
        // Winner Screen
