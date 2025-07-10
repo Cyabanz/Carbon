@@ -429,6 +429,15 @@
                   </div>
                 </div>
 
+                <!-- Private Browsing Toggle -->
+                <button
+                  id="private-browsing-btn"
+                  class="w-8 h-8 rounded-md bg-transparent hover:bg-highlight-med text-muted hover:text-text transition-all flex items-center justify-center"
+                  title="Open Private Browser"
+                >
+                  <i id="private-browsing-icon" class="bx bx-hide text-lg"></i>
+                </button>
+
                 <!-- Fullscreen Toggle -->
                 <button
                   id="fullscreen-toggle-btn"
@@ -568,6 +577,14 @@
                     >
                       <i class="bx bx-game text-gold"></i>
                       <span>Games</span>
+                    </button>
+                    <button
+                      id="carbon-shop-btn"
+                      class="w-full flex items-center gap-3 px-3 py-2 text-text hover:bg-highlight-med transition-colors text-sm"
+                    >
+                      <i class="bx bx-store text-pine"></i>
+                      <span>Carbon Shop</span>
+                      <span class="ml-auto text-xs bg-gold/20 text-gold px-2 py-0.5 rounded-full">NEW</span>
                     </button>
                     <button
                       id="carbon-ai-btn"
@@ -3626,10 +3643,596 @@
         }
       }, 30000);
       
+      // === CARBON SHOP SYSTEM ===
+      let userCurrency = parseInt(localStorage.getItem('carbon-currency') || '0');
+      let userFrames = JSON.parse(localStorage.getItem('carbon-frames') || '[]');
+      
+      const gameFrames = [
+        { id: 'neon', name: 'Neon Glow', price: 500, color: '#00ffff', description: 'Electric neon border with pulsing glow effect' },
+        { id: 'fire', name: 'Fire Frame', price: 750, color: '#ff4500', description: 'Animated fire border with ember particles' },
+        { id: 'galaxy', name: 'Galaxy Portal', price: 1000, color: '#9400d3', description: 'Cosmic border with swirling stars' },
+        { id: 'diamond', name: 'Diamond Elite', price: 1500, color: '#b9f2ff', description: 'Crystalline border with sparkle effects' },
+        { id: 'rainbow', name: 'Rainbow Storm', price: 2000, color: 'linear-gradient(45deg, #ff0000, #ff8000, #ffff00, #00ff00, #0080ff, #8000ff)', description: 'Animated rainbow border' },
+        { id: 'shadow', name: 'Shadow Realm', price: 1200, color: '#2d1b69', description: 'Dark mystical border with shadow effects' }
+      ];
+      
+      const miniGames = [
+        { id: 'clicker', name: 'Carbon Clicker', reward: 50, description: 'Click as fast as you can!' },
+        { id: 'memory', name: 'Memory Match', reward: 100, description: 'Match the carbon molecules' },
+        { id: 'reaction', name: 'Reaction Test', reward: 75, description: 'Test your reaction speed' }
+      ];
+
+      // Mini-game implementations
+      function playClickerGame() {
+        let clicks = 0;
+        let timeLeft = 10;
+        
+        const gameModal = createGameModal('Carbon Clicker', `
+          <div class="text-center">
+            <div class="text-6xl font-bold text-foam mb-4" id="click-counter">0</div>
+            <div class="text-xl mb-4">Time: <span id="time-left" class="text-gold">${timeLeft}</span>s</div>
+            <button id="click-button" class="w-32 h-32 bg-foam hover:bg-foam/80 text-base rounded-full text-4xl font-bold transition-transform hover:scale-110 active:scale-95">
+              CLICK!
+            </button>
+            <div class="mt-4 text-muted">Click as fast as you can!</div>
+          </div>
+        `);
+        
+        const clickButton = gameModal.querySelector('#click-button');
+        const clickCounter = gameModal.querySelector('#click-counter');
+        const timeDisplay = gameModal.querySelector('#time-left');
+        
+        clickButton.addEventListener('click', () => {
+          clicks++;
+          clickCounter.textContent = clicks;
+          clickButton.style.transform = 'scale(0.95)';
+          setTimeout(() => clickButton.style.transform = '', 100);
+        });
+        
+        const timer = setInterval(() => {
+          timeLeft--;
+          timeDisplay.textContent = timeLeft;
+          if (timeLeft <= 0) {
+            clearInterval(timer);
+            endClickerGame(clicks);
+          }
+        }, 1000);
+        
+        function endClickerGame(finalClicks) {
+          const reward = Math.min(finalClicks * 5, 250); // Max 250 coins
+          userCurrency += reward;
+          updateCurrencyDisplay();
+          saveCurrencyToStorage();
+          
+          gameModal.innerHTML = `
+            <div class="text-center">
+              <i class="bx bx-trophy text-6xl text-gold mb-4"></i>
+              <h3 class="text-2xl font-bold text-text mb-2">Game Complete!</h3>
+              <p class="text-muted mb-4">You clicked ${finalClicks} times!</p>
+              <p class="text-xl text-foam mb-6">Earned: <span class="text-gold">${reward}</span> Carbon Coins</p>
+              <button onclick="closeGameModal()" class="px-6 py-3 bg-foam hover:bg-foam/80 text-base rounded-lg font-medium">
+                Continue
+              </button>
+            </div>
+          `;
+        }
+      }
+      
+      function playMemoryGame() {
+        const symbols = ['🔥', '⚡', '🌟', '💎', '🎮', '🚀'];
+        let cards = [...symbols, ...symbols].sort(() => Math.random() - 0.5);
+        let flipped = [];
+        let matches = 0;
+        let attempts = 0;
+        
+        const gameModal = createGameModal('Memory Match', `
+          <div class="text-center">
+            <div class="text-lg mb-4">Matches: <span id="matches" class="text-gold">0</span>/6 | Attempts: <span id="attempts" class="text-muted">0</span></div>
+            <div class="grid grid-cols-4 gap-2 max-w-sm mx-auto" id="memory-grid"></div>
+          </div>
+        `);
+        
+        const grid = gameModal.querySelector('#memory-grid');
+        const matchesDisplay = gameModal.querySelector('#matches');
+        const attemptsDisplay = gameModal.querySelector('#attempts');
+        
+        cards.forEach((symbol, index) => {
+          const card = document.createElement('button');
+          card.className = 'w-16 h-16 bg-highlight-med hover:bg-highlight-high rounded-lg text-2xl transition-all';
+          card.dataset.index = index;
+          card.dataset.symbol = symbol;
+          card.textContent = '?';
+          
+          card.addEventListener('click', () => flipCard(card));
+          grid.appendChild(card);
+        });
+        
+        function flipCard(card) {
+          if (flipped.length >= 2 || card.classList.contains('flipped')) return;
+          
+          card.textContent = card.dataset.symbol;
+          card.classList.add('flipped', 'bg-foam', 'text-base');
+          flipped.push(card);
+          
+          if (flipped.length === 2) {
+            attempts++;
+            attemptsDisplay.textContent = attempts;
+            
+            setTimeout(() => {
+              if (flipped[0].dataset.symbol === flipped[1].dataset.symbol) {
+                matches++;
+                matchesDisplay.textContent = matches;
+                flipped.forEach(c => c.classList.add('matched', 'bg-pine'));
+                
+                if (matches === 6) {
+                  endMemoryGame(attempts);
+                }
+              } else {
+                flipped.forEach(c => {
+                  c.textContent = '?';
+                  c.classList.remove('flipped', 'bg-foam', 'text-base');
+                });
+              }
+              flipped = [];
+            }, 1000);
+          }
+        }
+        
+        function endMemoryGame(totalAttempts) {
+          const baseReward = 100;
+          const bonus = Math.max(0, (20 - totalAttempts) * 10); // Bonus for fewer attempts
+          const reward = baseReward + bonus;
+          
+          userCurrency += reward;
+          updateCurrencyDisplay();
+          saveCurrencyToStorage();
+          
+          setTimeout(() => {
+            gameModal.innerHTML = `
+              <div class="text-center">
+                <i class="bx bx-brain text-6xl text-foam mb-4"></i>
+                <h3 class="text-2xl font-bold text-text mb-2">Excellent Memory!</h3>
+                <p class="text-muted mb-2">Completed in ${totalAttempts} attempts</p>
+                <p class="text-xl text-foam mb-6">Earned: <span class="text-gold">${reward}</span> Carbon Coins</p>
+                <button onclick="closeGameModal()" class="px-6 py-3 bg-foam hover:bg-foam/80 text-base rounded-lg font-medium">
+                  Continue
+                </button>
+              </div>
+            `;
+          }, 1500);
+        }
+      }
+      
+      function playReactionGame() {
+        let gameStarted = false;
+        let startTime = 0;
+        
+        const gameModal = createGameModal('Reaction Test', `
+          <div class="text-center">
+            <div class="w-64 h-64 mx-auto mb-6 rounded-lg border-2 border-highlight-med flex items-center justify-center" id="reaction-area">
+              <div class="text-muted">Wait for GREEN...</div>
+            </div>
+            <div class="text-lg text-muted" id="reaction-instruction">Click when the area turns GREEN!</div>
+          </div>
+        `);
+        
+        const reactionArea = gameModal.querySelector('#reaction-area');
+        const instruction = gameModal.querySelector('#reaction-instruction');
+        
+        // Random delay between 1-5 seconds
+        const delay = Math.random() * 4000 + 1000;
+        
+        setTimeout(() => {
+          reactionArea.className = 'w-64 h-64 mx-auto mb-6 rounded-lg border-2 border-foam bg-foam/20 flex items-center justify-center cursor-pointer';
+          reactionArea.innerHTML = '<div class="text-base text-4xl font-bold">CLICK NOW!</div>';
+          instruction.textContent = 'CLICK NOW!';
+          gameStarted = true;
+          startTime = Date.now();
+        }, delay);
+        
+        reactionArea.addEventListener('click', () => {
+          if (!gameStarted) {
+            instruction.textContent = 'Too early! Wait for green...';
+            instruction.className = 'text-lg text-love';
+            return;
+          }
+          
+          const reactionTime = Date.now() - startTime;
+          endReactionGame(reactionTime);
+        });
+        
+        function endReactionGame(time) {
+          let reward = 75;
+          let rating = 'Good';
+          
+          if (time < 300) {
+            reward = 150;
+            rating = 'Incredible!';
+          } else if (time < 500) {
+            reward = 125;
+            rating = 'Excellent!';
+          } else if (time < 700) {
+            reward = 100;
+            rating = 'Great!';
+          }
+          
+          userCurrency += reward;
+          updateCurrencyDisplay();
+          saveCurrencyToStorage();
+          
+          reactionArea.innerHTML = `
+            <div class="text-center">
+              <i class="bx bx-time text-6xl text-foam mb-4"></i>
+              <h3 class="text-2xl font-bold text-text mb-2">${rating}</h3>
+              <p class="text-muted mb-2">Reaction Time: ${time}ms</p>
+              <p class="text-xl text-foam mb-6">Earned: <span class="text-gold">${reward}</span> Carbon Coins</p>
+              <button onclick="closeGameModal()" class="px-6 py-3 bg-foam hover:bg-foam/80 text-base rounded-lg font-medium">
+                Continue
+              </button>
+            </div>
+          `;
+          instruction.textContent = '';
+        }
+      }
+      
+      function createGameModal(title, content) {
+        const modal = document.createElement('div');
+        modal.className = 'fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[9999]';
+        modal.innerHTML = `
+          <div class="bg-surface border border-highlight-med rounded-xl shadow-2xl max-w-lg w-[90vw] p-6">
+            <div class="flex items-center justify-between mb-6">
+              <h2 class="text-xl font-semibold text-text">${title}</h2>
+              <button onclick="closeGameModal()" class="text-muted hover:text-love transition-colors">
+                <i class="bx bx-x text-2xl"></i>
+              </button>
+            </div>
+            <div>${content}</div>
+          </div>
+        `;
+        document.body.appendChild(modal);
+        window.currentGameModal = modal;
+        return modal;
+      }
+      
+      window.closeGameModal = function() {
+        if (window.currentGameModal) {
+          window.currentGameModal.remove();
+          window.currentGameModal = null;
+        }
+      };
+      
+      function openCarbonShop() {
+        const shopModal = document.createElement('div');
+        shopModal.className = 'fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[9999]';
+        shopModal.innerHTML = `
+          <div class="bg-surface border border-highlight-med rounded-xl shadow-2xl max-w-6xl w-[95vw] h-[90vh] flex">
+            <!-- Sidebar -->
+            <div class="w-64 bg-overlay/50 p-6 border-r border-highlight-med">
+              <div class="flex items-center justify-between mb-6">
+                <h2 class="text-xl font-semibold text-text">Carbon Shop</h2>
+                <button onclick="closeShop()" class="text-muted hover:text-love transition-colors">
+                  <i class="bx bx-x text-2xl"></i>
+                </button>
+              </div>
+              
+              <div class="bg-foam/10 border border-foam/30 rounded-lg p-4 mb-6">
+                <div class="flex items-center gap-2 mb-2">
+                  <i class="bx bx-coin text-gold text-xl"></i>
+                  <span class="text-text font-medium">Your Balance</span>
+                </div>
+                <div class="text-2xl font-bold text-gold" id="shop-currency">${userCurrency}</div>
+                <div class="text-xs text-muted">Carbon Coins</div>
+              </div>
+              
+                             <nav class="space-y-2">
+                 <button onclick="showShopSection('frames')" class="shop-nav-btn w-full text-left px-3 py-2 rounded-lg bg-foam/20 text-foam">
+                   <i class="bx bx-image mr-2"></i>Game Frames
+                 </button>
+                 <button onclick="showShopSection('selector')" class="shop-nav-btn w-full text-left px-3 py-2 rounded-lg hover:bg-highlight-med text-text">
+                   <i class="bx bx-palette mr-2"></i>Frame Selector
+                 </button>
+                 <button onclick="showShopSection('minigames')" class="shop-nav-btn w-full text-left px-3 py-2 rounded-lg hover:bg-highlight-med text-text">
+                   <i class="bx bx-game mr-2"></i>Mini Games
+                 </button>
+               </nav>
+            </div>
+            
+            <!-- Main Content -->
+            <div class="flex-1 p-6 overflow-y-auto">
+              <div id="shop-frames" class="shop-section">
+                <h3 class="text-2xl font-bold text-text mb-6">Game Frames</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  ${gameFrames.map(frame => `
+                    <div class="bg-highlight-med rounded-xl p-6 border border-overlay">
+                      <div class="w-full h-32 rounded-lg mb-4 border-4 flex items-center justify-center relative overflow-hidden" 
+                           style="border-color: ${frame.color}; background: ${frame.color}15;">
+                        <span class="text-text font-medium">Game Preview</span>
+                        ${frame.id === 'fire' ? '<div class="absolute inset-0 bg-gradient-to-r from-orange-500/20 to-red-500/20 animate-pulse"></div>' : ''}
+                        ${frame.id === 'galaxy' ? '<div class="absolute inset-0 bg-gradient-to-r from-purple-500/20 to-blue-500/20"></div>' : ''}
+                        ${frame.id === 'neon' ? '<div class="absolute inset-0 shadow-lg shadow-cyan-500/50"></div>' : ''}
+                      </div>
+                      <h4 class="text-lg font-semibold text-text mb-2">${frame.name}</h4>
+                      <p class="text-sm text-muted mb-4">${frame.description}</p>
+                      <div class="flex items-center justify-between">
+                        <div class="text-gold font-bold">${frame.price} coins</div>
+                        <button onclick="purchaseFrame('${frame.id}')" 
+                                class="px-4 py-2 rounded-lg transition-colors ${userFrames.includes(frame.id) ? 'bg-pine/20 text-pine' : userCurrency >= frame.price ? 'bg-foam hover:bg-foam/80 text-base' : 'bg-muted/20 text-muted cursor-not-allowed'}">
+                          ${userFrames.includes(frame.id) ? 'Owned' : userCurrency >= frame.price ? 'Purchase' : 'Insufficient Funds'}
+                        </button>
+                      </div>
+                    </div>
+                  `).join('')}
+                </div>
+                             </div>
+               
+               <div id="shop-selector" class="shop-section hidden">
+                 <h3 class="text-2xl font-bold text-text mb-6">Frame Selector</h3>
+                 <p class="text-muted mb-6">Choose which frame to use when playing games. Only frames you own can be selected.</p>
+                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                   <div class="bg-highlight-med rounded-xl p-6 border border-overlay">
+                     <div class="w-full h-32 rounded-lg mb-4 border-4 border-gray-400 flex items-center justify-center bg-gray-100/10">
+                       <span class="text-text font-medium">Default Frame</span>
+                     </div>
+                     <h4 class="text-lg font-semibold text-text mb-2">Default</h4>
+                     <p class="text-sm text-muted mb-4">Standard game border</p>
+                     <button onclick="selectFrame('default')" class="w-full px-4 py-2 bg-foam hover:bg-foam/80 text-base rounded-lg transition-colors">
+                       Select
+                     </button>
+                   </div>
+                   ${gameFrames.filter(frame => userFrames.includes(frame.id)).map(frame => `
+                     <div class="bg-highlight-med rounded-xl p-6 border border-overlay">
+                       <div class="w-full h-32 rounded-lg mb-4 border-4 flex items-center justify-center relative overflow-hidden" 
+                            style="border-color: ${frame.color}; background: ${frame.color}15;">
+                         <span class="text-text font-medium">Game Preview</span>
+                         ${frame.id === 'fire' ? '<div class="absolute inset-0 bg-gradient-to-r from-orange-500/20 to-red-500/20 animate-pulse"></div>' : ''}
+                         ${frame.id === 'galaxy' ? '<div class="absolute inset-0 bg-gradient-to-r from-purple-500/20 to-blue-500/20"></div>' : ''}
+                         ${frame.id === 'neon' ? '<div class="absolute inset-0 shadow-lg shadow-cyan-500/50"></div>' : ''}
+                       </div>
+                       <h4 class="text-lg font-semibold text-text mb-2">${frame.name}</h4>
+                       <p class="text-sm text-muted mb-4">${frame.description}</p>
+                       <button onclick="selectFrame('${frame.id}')" class="w-full px-4 py-2 bg-foam hover:bg-foam/80 text-base rounded-lg transition-colors">
+                         Select
+                       </button>
+                     </div>
+                   `).join('')}
+                 </div>
+                 ${userFrames.length === 0 ? `
+                   <div class="text-center py-12">
+                     <i class="bx bx-package text-6xl text-muted mb-4"></i>
+                     <h4 class="text-xl font-semibold text-text mb-2">No Frames Owned</h4>
+                     <p class="text-muted mb-4">Purchase frames from the Game Frames section to customize your gaming experience!</p>
+                     <button onclick="showShopSection('frames')" class="px-6 py-3 bg-foam hover:bg-foam/80 text-base rounded-lg font-medium">
+                       Browse Frames
+                     </button>
+                   </div>
+                 ` : ''}
+               </div>
+               
+               <div id="shop-minigames" class="shop-section hidden">
+                <h3 class="text-2xl font-bold text-text mb-6">Mini Games</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  ${miniGames.map(game => `
+                    <div class="bg-highlight-med rounded-xl p-6 border border-overlay">
+                      <div class="w-full h-32 bg-gradient-to-br from-foam/20 to-iris/20 rounded-lg mb-4 flex items-center justify-center">
+                        <i class="bx bx-${game.id === 'clicker' ? 'mouse' : game.id === 'memory' ? 'brain' : 'time'} text-4xl text-foam"></i>
+                      </div>
+                      <h4 class="text-lg font-semibold text-text mb-2">${game.name}</h4>
+                      <p class="text-sm text-muted mb-4">${game.description}</p>
+                      <div class="flex items-center justify-between">
+                        <div class="text-foam">Earn up to <span class="text-gold font-bold">${game.reward}</span> coins</div>
+                        <button onclick="playMiniGame('${game.id}')" class="px-4 py-2 bg-foam hover:bg-foam/80 text-base rounded-lg transition-colors">
+                          Play
+                        </button>
+                      </div>
+                    </div>
+                  `).join('')}
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+        document.body.appendChild(shopModal);
+        window.currentShopModal = shopModal;
+      }
+      
+      window.closeShop = function() {
+        if (window.currentShopModal) {
+          window.currentShopModal.remove();
+          window.currentShopModal = null;
+        }
+      };
+      
+      window.showShopSection = function(section) {
+        document.querySelectorAll('.shop-section').forEach(s => s.classList.add('hidden'));
+        document.querySelectorAll('.shop-nav-btn').forEach(btn => {
+          btn.classList.remove('bg-foam/20', 'text-foam');
+          btn.classList.add('hover:bg-highlight-med', 'text-text');
+        });
+        
+        document.getElementById(`shop-${section}`).classList.remove('hidden');
+        event.target.classList.add('bg-foam/20', 'text-foam');
+        event.target.classList.remove('hover:bg-highlight-med', 'text-text');
+      };
+      
+      window.purchaseFrame = function(frameId) {
+        const frame = gameFrames.find(f => f.id === frameId);
+        if (!frame || userFrames.includes(frameId) || userCurrency < frame.price) return;
+        
+        userCurrency -= frame.price;
+        userFrames.push(frameId);
+        
+        updateCurrencyDisplay();
+        saveCurrencyToStorage();
+        saveFramesToStorage();
+        
+        // Refresh shop display
+        closeShop();
+        openCarbonShop();
+        
+        // Show success notification
+        showNotification('Purchase Successful!', `You've unlocked the ${frame.name} frame!`, 'success');
+      };
+      
+             window.playMiniGame = function(gameId) {
+         closeShop();
+         
+         switch(gameId) {
+           case 'clicker':
+             playClickerGame();
+             break;
+           case 'memory':
+             playMemoryGame();
+             break;
+           case 'reaction':
+             playReactionGame();
+             break;
+         }
+       };
+       
+       window.selectFrame = function(frameId) {
+         window.carbonFrames.setActiveFrame(frameId);
+         
+         // Notify all open play.html instances
+         const gameIframes = document.querySelectorAll('iframe[src*="play.html"]');
+         gameIframes.forEach(iframe => {
+           iframe.contentWindow.postMessage({
+             type: 'carbon-frame-update',
+             frameId: frameId,
+             frameData: frameId === 'default' ? null : gameFrames.find(f => f.id === frameId)
+           }, '*');
+         });
+         
+         showNotification('Frame Selected', `${frameId === 'default' ? 'Default' : gameFrames.find(f => f.id === frameId)?.name} frame is now active!`, 'success');
+         
+         // Refresh shop to show selection
+         closeShop();
+         setTimeout(() => openCarbonShop(), 100);
+       };
+      
+      function updateCurrencyDisplay() {
+        const currencyEl = document.getElementById('shop-currency');
+        if (currencyEl) currencyEl.textContent = userCurrency;
+      }
+      
+      function saveCurrencyToStorage() {
+        localStorage.setItem('carbon-currency', userCurrency.toString());
+      }
+      
+      function saveFramesToStorage() {
+        localStorage.setItem('carbon-frames', JSON.stringify(userFrames));
+      }
+      
+      // === PRIVATE BROWSING SYSTEM ===
+      let privateBrowsingMode = false;
+      let privateTabHistory = [];
+      
+      function togglePrivateBrowsing() {
+        privateBrowsingMode = !privateBrowsingMode;
+        const btn = document.getElementById('private-browsing-btn');
+        const icon = document.getElementById('private-browsing-icon');
+        
+        if (privateBrowsingMode) {
+          btn.classList.add('bg-love/20', 'border-love/30');
+          btn.title = 'Exit Private Browsing';
+          icon.className = 'bx bx-shield-check text-lg text-love';
+          
+          // Show notification
+          showNotification('Private Browsing Active', 'Your browsing history will not be saved', 'info');
+          
+          // Clear private history on activation
+          privateTabHistory = [];
+        } else {
+          btn.classList.remove('bg-love/20', 'border-love/30');
+          btn.title = 'Open Private Browser';
+          icon.className = 'bx bx-hide text-lg';
+          
+          showNotification('Private Browsing Disabled', 'Normal browsing mode restored', 'info');
+          
+          // Clear private history when exiting
+          privateTabHistory = [];
+        }
+        
+        // Update current tab indicator
+        const activeTab = getActiveTab();
+        if (activeTab) {
+          renderTabs();
+        }
+      }
+      
+             // Override history functions for private browsing
+       const originalUpdateTabHistory = updateTabHistory;
+       updateTabHistory = function(tabId, url) {
+         const tab = tabs.find(t => t.id === tabId);
+         if (tab && privateBrowsingMode) {
+           // Mark tab as private
+           tab.isPrivate = true;
+           
+           // Store in private history instead
+           if (!privateTabHistory.find(entry => entry.url === url && entry.tabId === tabId)) {
+             privateTabHistory.push({
+               tabId: tabId,
+               url: url,
+               title: tab.title || 'Untitled',
+               timestamp: Date.now()
+             });
+           }
+           return; // Don't save to regular history
+         }
+         
+         return originalUpdateTabHistory.apply(this, arguments);
+       };
+       
+       // Override addTab to mark new tabs as private if in private mode
+       const originalAddTabFunc = addTab;
+       addTab = function(url, title) {
+         const tab = originalAddTabFunc.call(this, url, title);
+         if (privateBrowsingMode && tab) {
+           tab.isPrivate = true;
+           renderTabs(); // Re-render to show private indicator
+         }
+         return tab;
+       };
+      
+      // Notification system
+      function showNotification(title, message, type = 'info') {
+        const notification = document.createElement('div');
+        notification.className = `fixed top-4 right-4 bg-surface border border-highlight-med rounded-lg p-4 shadow-lg z-[9999] transform translate-x-full transition-transform duration-300`;
+        
+        const iconMap = {
+          success: 'bx-check-circle text-pine',
+          error: 'bx-error-circle text-love',
+          warning: 'bx-error text-gold',
+          info: 'bx-info-circle text-foam'
+        };
+        
+        notification.innerHTML = `
+          <div class="flex items-start gap-3">
+            <i class="bx ${iconMap[type]} text-xl"></i>
+            <div class="flex-1">
+              <div class="font-medium text-text">${title}</div>
+              <div class="text-sm text-muted">${message}</div>
+            </div>
+            <button onclick="this.parentElement.parentElement.remove()" class="text-muted hover:text-love transition-colors">
+              <i class="bx bx-x"></i>
+            </button>
+          </div>
+        `;
+        
+        document.body.appendChild(notification);
+        
+        // Slide in
+        setTimeout(() => notification.classList.remove('translate-x-full'), 100);
+        
+        // Auto-remove after 4 seconds
+        setTimeout(() => {
+          notification.classList.add('translate-x-full');
+          setTimeout(() => notification.remove(), 300);
+        }, 4000);
+      }
+
       // Hook into tab operations and settings changes to sync data
       const originalAddTab = addTab;
       const originalRemoveTab = removeTab;
-      const originalUpdateTabHistory = updateTabHistory;
       
       addTab = function(...args) {
         const result = originalAddTab.apply(this, args);
@@ -3768,6 +4371,29 @@
           }
         };
         checkThemeSystem();
+      }
+
+      // Initialize Carbon Shop and Private Browsing
+      document.getElementById('carbon-shop-btn').addEventListener('click', (e) => {
+        e.preventDefault();
+        const dropdownMenu = document.getElementById('dropdown-menu');
+        dropdownMenu.classList.add('hidden');
+        openCarbonShop();
+      });
+      
+      document.getElementById('private-browsing-btn').addEventListener('click', (e) => {
+        e.preventDefault();
+        togglePrivateBrowsing();
+      });
+      
+      // Give users some starting currency if they're new
+      if (userCurrency === 0 && !localStorage.getItem('carbon-currency-initialized')) {
+        userCurrency = 100; // Starting bonus
+        saveCurrencyToStorage();
+        localStorage.setItem('carbon-currency-initialized', 'true');
+        setTimeout(() => {
+          showNotification('Welcome to Carbon!', 'You received 100 Carbon Coins to get started!', 'success');
+        }, 2000);
       }
 
       // Initialize sortable for horizontal tabs
@@ -3981,8 +4607,40 @@
         }
       }
 
-      // Initialize background system
-      initializeBackgroundSystem();
+              // Initialize background system
+        initializeBackgroundSystem();
+        
+        // Export frame data for play.html integration
+        window.carbonFrames = {
+          userFrames: userFrames,
+          gameFrames: gameFrames,
+          getActiveFrame: function() {
+            const selectedFrame = localStorage.getItem('carbon-selected-frame');
+            return userFrames.includes(selectedFrame) ? selectedFrame : 'default';
+          },
+          setActiveFrame: function(frameId) {
+            if (userFrames.includes(frameId) || frameId === 'default') {
+              localStorage.setItem('carbon-selected-frame', frameId);
+            }
+          }
+        };
+        
+        // Listen for frame selection changes and update play.html
+        window.addEventListener('message', (event) => {
+          if (event.data && event.data.type === 'carbon-frame-selected') {
+            window.carbonFrames.setActiveFrame(event.data.frameId);
+            
+            // Notify all game iframes about frame change
+            const gameIframes = document.querySelectorAll('iframe[src*="play.html"]');
+            gameIframes.forEach(iframe => {
+              iframe.contentWindow.postMessage({
+                type: 'carbon-frame-update',
+                frameId: event.data.frameId,
+                frameData: gameFrames.find(f => f.id === event.data.frameId)
+              }, '*');
+            });
+          }
+        });
     </script>
   </body>
 </html>
