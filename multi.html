@@ -910,20 +910,21 @@
             if (currentGameData) {
                 currentGameData = roomData;
                 
-                // Update UI for each game type
+                // Update game data without recreating UI (prevents flickering)
                 if (roomData.status === 'playing' || roomData.status === 'completed') {
+                    // Call specific update functions that only update dynamic content
                     switch (roomData.gameType) {
                         case 'pong':
-                            if (window.updatePongUI) window.updatePongUI();
+                            if (window.updatePongScores) window.updatePongScores();
                             break;
                         case 'typing':
-                            if (window.updateTypingUI) window.updateTypingUI();
+                            if (window.updateTypingProgress) window.updateTypingProgress(roomData);
                             break;
                         case 'reaction':
-                            if (window.updateReactionUI) window.updateReactionUI();
+                            if (window.updateReactionGame) window.updateReactionGame(roomData);
                             break;
                         case 'racing':
-                            if (window.updateRacingUI) window.updateRacingUI();
+                            if (window.updateRacingScores) window.updateRacingScores(roomData);
                             break;
                     }
                 }
@@ -1041,66 +1042,57 @@
             console.log('Starting Pong Game...');
             currentGameData = roomData;
             
-            function updatePongUI() {
-                console.log('Updating Pong UI...');
-                const gameAreaContent = document.getElementById('game-area-content');
-                if (!gameAreaContent) {
-                    console.error('Game area content not found for Pong!');
-                    return;
-                }
-                
-                // Validate game state
-                if (!currentGameData.gameState || !currentGameData.gameState.ball || !currentGameData.gameState.player1 || !currentGameData.gameState.player2) {
-                    console.error('Invalid game state for Pong:', currentGameData.gameState);
-                    gameAreaContent.innerHTML = `
-                        <div class="text-center text-love">
-                            <h3 class="text-xl font-bold mb-4">Game Error</h3>
-                            <p>Invalid pong game state. Please try again.</p>
-                            <div class="mt-4 text-sm text-muted">
-                                Check browser console for details
-                            </div>
-                        </div>
-                    `;
-                    return;
-                }
-                
-                console.log('Creating Pong UI elements...');
-                gameAreaContent.innerHTML = `
-                    <div class="w-full max-w-4xl">
-                        <div class="flex justify-between items-center mb-4">
-                            <div class="text-text">
-                                <span class="text-foam font-bold">${currentGameData.hostName}</span>
-                                <span class="text-2xl font-bold ml-2">${currentGameData.gameState.player1.score || 0}</span>
-                            </div>
-                            <div class="text-xl font-bold text-text">Ping Pong</div>
-                            <div class="text-text">
-                                <span class="text-2xl font-bold mr-2">${currentGameData.gameState.player2.score || 0}</span>
-                                <span class="text-iris font-bold">${currentGameData.guestName}</span>
-                            </div>
-                        </div>
-                        <div class="bg-surface border border-highlight-med rounded-xl p-4">
-                            <canvas id="pong-canvas" class="mx-auto border border-highlight-med rounded-lg" width="800" height="400" style="max-width: 100%; height: auto; background-color: #1f1d2e;"></canvas>
-                        </div>
-                        <div class="text-center mt-4 text-muted">
-                            Use mouse to move your paddle • First to 5 points wins
-                        </div>
-                    </div>
-                `;
-                
-                // Initialize pong after DOM is ready with verification
-                setTimeout(() => {
-                    const canvas = document.getElementById('pong-canvas');
-                    if (canvas) {
-                        console.log('Canvas found, initializing Pong game...');
-                        initPongGame(roomId);
-                    } else {
-                        console.error('Canvas not found after UI creation!');
-                    }
-                }, 100);
+            const gameAreaContent = document.getElementById('game-area-content');
+            if (!gameAreaContent) {
+                console.error('Game area content not found for Pong!');
+                return;
             }
             
-            updatePongUI();
-            window.updatePongUI = updatePongUI;
+            // Validate game state
+            if (!currentGameData.gameState || !currentGameData.gameState.ball || !currentGameData.gameState.player1 || !currentGameData.gameState.player2) {
+                console.error('Invalid game state for Pong:', currentGameData.gameState);
+                gameAreaContent.innerHTML = `
+                    <div class="text-center text-love">
+                        <h3 class="text-xl font-bold mb-4">Game Error</h3>
+                        <p>Invalid pong game state. Please try again.</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            // Create UI once and never recreate it
+            gameAreaContent.innerHTML = `
+                <div class="w-full max-w-4xl">
+                    <div class="flex justify-between items-center mb-4">
+                        <div class="text-text">
+                            <span class="text-foam font-bold">${currentGameData.hostName}</span>
+                            <span id="player1-score" class="text-2xl font-bold ml-2">${currentGameData.gameState.player1.score || 0}</span>
+                        </div>
+                        <div class="text-xl font-bold text-text">Ping Pong</div>
+                        <div class="text-text">
+                            <span id="player2-score" class="text-2xl font-bold mr-2">${currentGameData.gameState.player2.score || 0}</span>
+                            <span class="text-iris font-bold">${currentGameData.guestName}</span>
+                        </div>
+                    </div>
+                    <div class="bg-surface border border-highlight-med rounded-xl p-4">
+                        <canvas id="pong-canvas" class="mx-auto border border-highlight-med rounded-lg" width="800" height="400" style="max-width: 100%; height: auto; background-color: #1f1d2e;"></canvas>
+                    </div>
+                    <div class="text-center mt-4 text-muted">
+                        Use mouse to move your paddle • First to 5 points wins
+                    </div>
+                </div>
+            `;
+            
+            // Initialize game
+            setTimeout(() => initPongGame(roomId), 100);
+            
+            // No UI update function - just update scores when needed
+            window.updatePongScores = function() {
+                const p1Score = document.getElementById('player1-score');
+                const p2Score = document.getElementById('player2-score');
+                if (p1Score && currentGameData) p1Score.textContent = currentGameData.gameState.player1.score || 0;
+                if (p2Score && currentGameData) p2Score.textContent = currentGameData.gameState.player2.score || 0;
+            };
         }
 
         function initPongGame(roomId) {
@@ -1356,91 +1348,127 @@
                 sentence: roomData.gameState.sentence
             });
             
-            function updateTypingUI() {
-                const gameAreaContent = document.getElementById('game-area-content');
-                if (!gameAreaContent) return;
-                
-                const gameState = currentGameData.gameState;
-                
-                // Validate game state
-                if (!gameState || !gameState.sentence) {
-                    console.error('Invalid typing game state:', gameState);
-                    gameAreaContent.innerHTML = `
-                        <div class="text-center text-love">
-                            <h3 class="text-xl font-bold mb-4">Game Error</h3>
-                            <p>Invalid typing game state. Please try again.</p>
-                        </div>
-                    `;
-                    return;
-                }
-                
+            const gameAreaContent = document.getElementById('game-area-content');
+            if (!gameAreaContent) return;
+            
+            const gameState = currentGameData.gameState;
+            
+            // Validate game state
+            if (!gameState || !gameState.sentence) {
+                console.error('Invalid typing game state:', gameState);
                 gameAreaContent.innerHTML = `
-                    <div class="w-full max-w-4xl">
-                        <h3 class="text-2xl font-bold text-text mb-6 text-center">Typing Duel</h3>
-                        
-                        <div class="bg-overlay rounded-lg p-4 mb-6 border-2 border-gold">
-                            <div class="text-center text-lg text-text font-mono leading-relaxed break-words">
-                                "${gameState.sentence.trim()}"
-                            </div>
-                            <div class="text-center text-xs text-muted mt-2">
-                                ${gameState.sentence.length} characters
-                            </div>
-                        </div>
-                        
-                        <div class="space-y-4 mb-6">
-                            <div class="p-4 bg-highlight-med rounded-lg">
-                                <div class="flex justify-between items-center mb-2">
-                                    <span class="text-foam font-bold">${currentGameData.hostName}</span>
-                                    <span class="text-muted">${Math.round(((gameState.player1Progress || 0) / gameState.sentence.length) * 100)}%</span>
-                                </div>
-                                <div class="w-full bg-overlay rounded-full h-3">
-                                    <div class="bg-foam h-3 rounded-full transition-all duration-300" style="width: ${((gameState.player1Progress || 0) / gameState.sentence.length) * 100}%"></div>
-                                </div>
-                                <div class="text-xs text-muted mt-1 font-mono">${gameState.player1Text || ''}</div>
-                            </div>
-                            
-                            <div class="p-4 bg-highlight-med rounded-lg">
-                                <div class="flex justify-between items-center mb-2">
-                                    <span class="text-iris font-bold">${currentGameData.guestName}</span>
-                                    <span class="text-muted">${Math.round(((gameState.player2Progress || 0) / gameState.sentence.length) * 100)}%</span>
-                                </div>
-                                <div class="w-full bg-overlay rounded-full h-3">
-                                    <div class="bg-iris h-3 rounded-full transition-all duration-300" style="width: ${((gameState.player2Progress || 0) / gameState.sentence.length) * 100}%"></div>
-                                </div>
-                                <div class="text-xs text-muted mt-1 font-mono">${gameState.player2Text || ''}</div>
-                            </div>
-                        </div>
-                        
-                        <div class="mb-4">
-                            <input type="text" id="typing-input" class="w-full p-4 bg-overlay border-2 border-highlight-med rounded-lg text-text font-mono text-lg focus:outline-none focus:border-foam transition-colors" placeholder="Start typing the sentence..." autocomplete="off" spellcheck="false" ${currentGameData.status === 'completed' ? 'disabled' : ''}>
-                            <div class="text-xs text-muted mt-1 text-center">
-                                <span class="text-foam">Green border</span> = correct so far, 
-                                <span class="text-love">Red border</span> = error detected
-                            </div>
-                        </div>
-                        
-                        <div class="text-center text-muted">
-                            ${currentGameData.status === 'completed' ? 
-                                `🎉 ${gameState.winner === 'player1' ? currentGameData.hostName : currentGameData.guestName} wins!` :
-                                '<strong>Type the sentence exactly as shown above</strong> - spaces and punctuation must match!'
-                            }
-                        </div>
-                        
-                        ${currentGameData.status !== 'completed' ? `
-                            <div class="mt-4 text-center">
-                                <div class="text-xs text-muted">
-                                    Your progress: <span class="text-foam font-bold">${Math.round(((isPlayer1 ? (gameState.player1Progress || 0) : (gameState.player2Progress || 0)) / gameState.sentence.length) * 100)}%</span>
-                                </div>
-                            </div>
-                        ` : ''}
+                    <div class="text-center text-love">
+                        <h3 class="text-xl font-bold mb-4">Game Error</h3>
+                        <p>Invalid typing game state. Please try again.</p>
                     </div>
                 `;
-                
-                // Re-attach event listener if game is still active
-                if (currentGameData.status !== 'completed') {
-                    attachTypingInputHandler(gameState, isPlayer1, roomId);
-                }
+                return;
             }
+            
+            // Create UI once
+            gameAreaContent.innerHTML = `
+                <div class="w-full max-w-4xl">
+                    <h3 class="text-2xl font-bold text-text mb-6 text-center">Typing Duel</h3>
+                    
+                    <div class="bg-overlay rounded-lg p-4 mb-6 border-2 border-gold">
+                        <div class="text-center text-lg text-text font-mono leading-relaxed break-words">
+                            "${gameState.sentence.trim()}"
+                        </div>
+                        <div class="text-center text-xs text-muted mt-2">
+                            ${gameState.sentence.length} characters
+                        </div>
+                    </div>
+                    
+                    <div class="space-y-4 mb-6">
+                        <div class="p-4 bg-highlight-med rounded-lg">
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="text-foam font-bold">${currentGameData.hostName}</span>
+                                <span id="typing-p1-percent" class="text-muted">${Math.round(((gameState.player1Progress || 0) / gameState.sentence.length) * 100)}%</span>
+                            </div>
+                            <div class="w-full bg-overlay rounded-full h-3">
+                                <div id="typing-p1-progress" class="bg-foam h-3 rounded-full transition-all duration-300" style="width: ${((gameState.player1Progress || 0) / gameState.sentence.length) * 100}%"></div>
+                            </div>
+                            <div id="typing-p1-text" class="text-xs text-muted mt-1 font-mono">${gameState.player1Text || ''}</div>
+                        </div>
+                        
+                        <div class="p-4 bg-highlight-med rounded-lg">
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="text-iris font-bold">${currentGameData.guestName}</span>
+                                <span id="typing-p2-percent" class="text-muted">${Math.round(((gameState.player2Progress || 0) / gameState.sentence.length) * 100)}%</span>
+                            </div>
+                            <div class="w-full bg-overlay rounded-full h-3">
+                                <div id="typing-p2-progress" class="bg-iris h-3 rounded-full transition-all duration-300" style="width: ${((gameState.player2Progress || 0) / gameState.sentence.length) * 100}%"></div>
+                            </div>
+                            <div id="typing-p2-text" class="text-xs text-muted mt-1 font-mono">${gameState.player2Text || ''}</div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <input type="text" id="typing-input" class="w-full p-4 bg-overlay border-2 border-highlight-med rounded-lg text-text font-mono text-lg focus:outline-none focus:border-foam transition-colors" placeholder="Start typing the sentence..." autocomplete="off" spellcheck="false" ${currentGameData.status === 'completed' ? 'disabled' : ''}>
+                        <div class="text-xs text-muted mt-1 text-center">
+                            <span class="text-foam">Green border</span> = correct so far, 
+                            <span class="text-love">Red border</span> = error detected
+                        </div>
+                    </div>
+                    
+                    <div id="typing-status" class="text-center text-muted">
+                        ${currentGameData.status === 'completed' ? 
+                            `🎉 ${gameState.winner === 'player1' ? currentGameData.hostName : currentGameData.guestName} wins!` :
+                            '<strong>Type the sentence exactly as shown above</strong> - spaces and punctuation must match!'
+                        }
+                    </div>
+                    
+                    ${currentGameData.status !== 'completed' ? `
+                        <div class="mt-4 text-center">
+                            <div class="text-xs text-muted">
+                                Your progress: <span id="typing-my-progress" class="text-foam font-bold">${Math.round(((isPlayer1 ? (gameState.player1Progress || 0) : (gameState.player2Progress || 0)) / gameState.sentence.length) * 100)}%</span>
+                            </div>
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+            
+            // Attach input handler once
+            if (currentGameData.status !== 'completed') {
+                attachTypingInputHandler(gameState, isPlayer1, roomId);
+            }
+            
+            // Update function that only updates dynamic content
+            window.updateTypingProgress = function(newRoomData) {
+                const newGameState = newRoomData.gameState;
+                
+                // Update progress bars and percentages
+                const p1Percent = document.getElementById('typing-p1-percent');
+                const p2Percent = document.getElementById('typing-p2-percent');
+                const p1Progress = document.getElementById('typing-p1-progress');
+                const p2Progress = document.getElementById('typing-p2-progress');
+                const p1Text = document.getElementById('typing-p1-text');
+                const p2Text = document.getElementById('typing-p2-text');
+                const status = document.getElementById('typing-status');
+                const myProgress = document.getElementById('typing-my-progress');
+                
+                if (p1Percent) p1Percent.textContent = `${Math.round(((newGameState.player1Progress || 0) / newGameState.sentence.length) * 100)}%`;
+                if (p2Percent) p2Percent.textContent = `${Math.round(((newGameState.player2Progress || 0) / newGameState.sentence.length) * 100)}%`;
+                if (p1Progress) p1Progress.style.width = `${((newGameState.player1Progress || 0) / newGameState.sentence.length) * 100}%`;
+                if (p2Progress) p2Progress.style.width = `${((newGameState.player2Progress || 0) / newGameState.sentence.length) * 100}%`;
+                if (p1Text) p1Text.textContent = newGameState.player1Text || '';
+                if (p2Text) p2Text.textContent = newGameState.player2Text || '';
+                if (myProgress) myProgress.textContent = `${Math.round(((isPlayer1 ? (newGameState.player1Progress || 0) : (newGameState.player2Progress || 0)) / newGameState.sentence.length) * 100)}%`;
+                
+                if (status) {
+                    if (newRoomData.status === 'completed') {
+                        status.textContent = `🎉 ${newGameState.winner === 'player1' ? newRoomData.hostName : newRoomData.guestName} wins!`;
+                    } else {
+                        status.innerHTML = '<strong>Type the sentence exactly as shown above</strong> - spaces and punctuation must match!';
+                    }
+                }
+                
+                // Disable input if game completed
+                const input = document.getElementById('typing-input');
+                if (input && newRoomData.status === 'completed') {
+                    input.disabled = true;
+                }
+            };
             
             function attachTypingInputHandler(gameState, isPlayer1, roomId) {
                 setTimeout(() => {
@@ -1458,18 +1486,8 @@
                         if (now - lastUpdate < 50) return; // Throttle updates
                         lastUpdate = now;
                         
-                        const rawText = e.target.value;
-                        const text = rawText; // Don't trim during typing - only for comparison
+                        const text = e.target.value;
                         const sentence = gameState.sentence;
-                        
-                        console.log('Typing input:', {
-                            rawText: rawText,
-                            text: text,
-                            sentence: sentence,
-                            textLength: text.length,
-                            sentenceLength: sentence.length,
-                            isEqual: text === sentence
-                        });
                         
                         // Calculate progress - only count consecutive correct characters from start
                         let progress = 0;
@@ -1494,11 +1512,7 @@
                         updateData['lastActivity'] = firebase.firestore.FieldValue.serverTimestamp();
                         
                         if (isWinner) {
-                            console.log('🎉 WINNER DETECTED!', {
-                                player: isPlayer1 ? 'player1' : 'player2',
-                                text: text,
-                                sentence: sentence
-                            });
+                            console.log('🎉 WINNER DETECTED!', isPlayer1 ? 'player1' : 'player2');
                             updateData['gameState.winner'] = isPlayer1 ? 'player1' : 'player2';
                             updateData['status'] = 'completed';
                             
@@ -1508,23 +1522,10 @@
                             showNotification('🎉 You Won!', 'You completed the sentence first!', 'success');
                         }
                         
-                        db.collection('game-rooms').doc(roomId).update(updateData).then(() => {
-                            if (isWinner) {
-                                console.log('✅ Winner update sent to Firebase successfully');
-                            }
-                        }).catch(error => {
-                            console.error('❌ Error updating typing game:', error);
-                            if (isWinner) {
-                                // Re-enable input if Firebase update failed
-                                input.disabled = false;
-                            }
-                        });
+                        db.collection('game-rooms').doc(roomId).update(updateData).catch(console.error);
                     });
                 }, 100);
             }
-            
-            updateTypingUI();
-            window.updateTypingUI = updateTypingUI;
         }
 
         // Reaction Game Implementation
@@ -1534,67 +1535,119 @@
             currentGameData = roomData;
             const isPlayer1 = roomData.hostId === currentUser.uid;
             
-            function updateReactionUI() {
-                const gameAreaContent = document.getElementById('game-area-content');
-                if (!gameAreaContent) return;
+            const gameAreaContent = document.getElementById('game-area-content');
+            if (!gameAreaContent) return;
+            
+            // Create UI once
+            createReactionUI(gameAreaContent, currentGameData, isPlayer1);
+            
+            // Attach event listener once
+            setTimeout(() => {
+                const zone = document.getElementById('reaction-zone');
+                if (zone) {
+                    console.log('Attaching reaction click handler...');
+                    zone.addEventListener('click', () => {
+                        console.log('Reaction zone clicked!', currentGameData.gameState.currentState);
+                        handleReactionClick(roomId, isPlayer1);
+                    });
+                }
                 
-                const gameState = currentGameData.gameState;
-                const zoneColor = gameState.currentState === 'go' ? 'bg-green-500' : 
-                                gameState.currentState === 'early' ? 'bg-red-500' : 'bg-overlay';
+                // Host controls game flow
+                if (isPlayer1) {
+                    console.log('Host starting reaction flow...');
+                    handleReactionFlow(roomId, currentGameData.gameState);
+                }
+            }, 100);
+            
+            // Update function that only updates dynamic content
+            window.updateReactionGame = function(newGameData) {
+                currentGameData = newGameData;
+                const gameState = newGameData.gameState;
                 
-                gameAreaContent.innerHTML = `
-                    <div class="w-full max-w-2xl">
-                        <div class="text-center mb-6">
-                            <h3 class="text-2xl font-bold text-text mb-2">Reaction Test</h3>
-                            <div class="text-muted">Round ${gameState.round} of ${gameState.maxRounds}</div>
+                // Update scores
+                const p1Score = document.getElementById('reaction-p1-score');
+                const p2Score = document.getElementById('reaction-p2-score');
+                const p1Time = document.getElementById('reaction-p1-time');
+                const p2Time = document.getElementById('reaction-p2-time');
+                const round = document.getElementById('reaction-round');
+                const zone = document.getElementById('reaction-zone');
+                const text = document.getElementById('reaction-text');
+                const status = document.getElementById('reaction-status');
+                
+                if (p1Score) p1Score.textContent = gameState.player1Score || 0;
+                if (p2Score) p2Score.textContent = gameState.player2Score || 0;
+                if (p1Time) p1Time.textContent = gameState.player1Time && gameState.player1Time > 0 ? gameState.player1Time + 'ms' : gameState.player1Time === -1 ? 'Too Early!' : '';
+                if (p2Time) p2Time.textContent = gameState.player2Time && gameState.player2Time > 0 ? gameState.player2Time + 'ms' : gameState.player2Time === -1 ? 'Too Early!' : '';
+                if (round) round.textContent = `Round ${gameState.round} of ${gameState.maxRounds}`;
+                if (text) text.textContent = getReactionText(gameState.currentState, gameState);
+                
+                // Update zone color
+                if (zone) {
+                    zone.className = zone.className.replace(/bg-\w+-\d+/g, '');
+                    if (gameState.currentState === 'go') {
+                        zone.classList.add('bg-green-500');
+                    } else if (gameState.currentState === 'early') {
+                        zone.classList.add('bg-red-500');
+                    } else {
+                        zone.classList.add('bg-overlay');
+                    }
+                }
+                
+                // Update status
+                if (status) {
+                    if (newGameData.status === 'completed') {
+                        status.textContent = `🎉 ${(gameState.player1Score || 0) > (gameState.player2Score || 0) ? newGameData.hostName : newGameData.guestName} wins ${Math.max(gameState.player1Score || 0, gameState.player2Score || 0)}-${Math.min(gameState.player1Score || 0, gameState.player2Score || 0)}!`;
+                    } else {
+                        status.textContent = 'Click/tap the area above when it turns green!';
+                    }
+                }
+                
+                // Host continues game flow
+                if (isPlayer1 && newGameData.status === 'playing') {
+                    handleReactionFlow(roomId, gameState);
+                }
+            };
+        }
+        
+        function createReactionUI(gameAreaContent, roomData, isPlayer1) {
+            const gameState = roomData.gameState;
+            const zoneColor = gameState.currentState === 'go' ? 'bg-green-500' : 
+                            gameState.currentState === 'early' ? 'bg-red-500' : 'bg-overlay';
+            
+            gameAreaContent.innerHTML = `
+                <div class="w-full max-w-2xl">
+                    <div class="text-center mb-6">
+                        <h3 class="text-2xl font-bold text-text mb-2">Reaction Test</h3>
+                        <div id="reaction-round" class="text-muted">Round ${gameState.round} of ${gameState.maxRounds}</div>
+                    </div>
+                    
+                    <div class="flex justify-between mb-6">
+                        <div class="text-center">
+                            <div class="text-foam font-bold text-lg">${roomData.hostName}</div>
+                            <div id="reaction-p1-score" class="text-2xl font-bold text-text">${gameState.player1Score || 0}</div>
+                            <div id="reaction-p1-time" class="text-xs text-muted">${gameState.player1Time && gameState.player1Time > 0 ? gameState.player1Time + 'ms' : gameState.player1Time === -1 ? 'Too Early!' : ''}</div>
                         </div>
-                        
-                        <div class="flex justify-between mb-6">
-                            <div class="text-center">
-                                <div class="text-foam font-bold text-lg">${currentGameData.hostName}</div>
-                                <div class="text-2xl font-bold text-text">${gameState.player1Score || 0}</div>
-                                <div class="text-xs text-muted">${gameState.player1Time && gameState.player1Time > 0 ? gameState.player1Time + 'ms' : gameState.player1Time === -1 ? 'Too Early!' : ''}</div>
-                            </div>
-                            <div class="text-center">
-                                <div class="text-iris font-bold text-lg">${currentGameData.guestName}</div>
-                                <div class="text-2xl font-bold text-text">${gameState.player2Score || 0}</div>
-                                <div class="text-xs text-muted">${gameState.player2Time && gameState.player2Time > 0 ? gameState.player2Time + 'ms' : gameState.player2Time === -1 ? 'Too Early!' : ''}</div>
-                            </div>
-                        </div>
-                        
-                        <div id="reaction-zone" class="reaction-zone w-full h-64 ${zoneColor} rounded-lg flex items-center justify-center cursor-pointer mb-4 transition-colors duration-300 border-2 border-highlight-med">
-                            <div id="reaction-text" class="text-xl font-bold text-white text-center">
-                                ${getReactionText(gameState.currentState, gameState)}
-                            </div>
-                        </div>
-                        
-                        <div class="text-center text-muted">
-                            ${currentGameData.status === 'completed' ? 
-                                `🎉 ${(gameState.player1Score || 0) > (gameState.player2Score || 0) ? currentGameData.hostName : currentGameData.guestName} wins ${Math.max(gameState.player1Score || 0, gameState.player2Score || 0)}-${Math.min(gameState.player1Score || 0, gameState.player2Score || 0)}!` :
-                                'Click/tap the area above when it turns green!'
-                            }
+                        <div class="text-center">
+                            <div class="text-iris font-bold text-lg">${roomData.guestName}</div>
+                            <div id="reaction-p2-score" class="text-2xl font-bold text-text">${gameState.player2Score || 0}</div>
+                            <div id="reaction-p2-time" class="text-xs text-muted">${gameState.player2Time && gameState.player2Time > 0 ? gameState.player2Time + 'ms' : gameState.player2Time === -1 ? 'Too Early!' : ''}</div>
                         </div>
                     </div>
-                `;
-                
-                // Reattach event listener
-                if (currentGameData.status !== 'completed') {
-                    setTimeout(() => {
-                        const zone = document.getElementById('reaction-zone');
-                        if (zone) {
-                            zone.addEventListener('click', () => handleReactionClick(roomId, isPlayer1));
+                    
+                    <div id="reaction-zone" class="reaction-zone w-full h-64 ${zoneColor} rounded-lg flex items-center justify-center cursor-pointer mb-4 transition-colors duration-300 border-2 border-highlight-med">
+                        <div id="reaction-text" class="text-xl font-bold text-white text-center">
+                            ${getReactionText(gameState.currentState, gameState)}
+                        </div>
+                    </div>
+                    
+                    <div id="reaction-status" class="text-center text-muted">
+                        ${roomData.status === 'completed' ? 
+                            `🎉 ${(gameState.player1Score || 0) > (gameState.player2Score || 0) ? roomData.hostName : roomData.guestName} wins ${Math.max(gameState.player1Score || 0, gameState.player2Score || 0)}-${Math.min(gameState.player1Score || 0, gameState.player2Score || 0)}!` :
+                            'Click/tap the area above when it turns green!'
                         }
-                        
-                        // Host controls game flow
-                        if (isPlayer1) {
-                            handleReactionFlow(roomId, gameState);
-                        }
-                    }, 50);
-                }
-            }
-            
-            updateReactionUI();
-            window.updateReactionUI = updateReactionUI;
+                    </div>
+                </div>
+            `;
         }
 
         function getReactionText(state, gameState) {
@@ -1617,23 +1670,42 @@
         }
 
         function handleReactionClick(roomId, isPlayer1) {
+            if (!currentGameData || !currentGameData.gameState) {
+                console.error('No game data available for reaction click');
+                return;
+            }
+            
             const gameState = currentGameData.gameState;
             const now = Date.now();
             
+            console.log('Reaction click handled:', {
+                currentState: gameState.currentState,
+                isPlayer1: isPlayer1,
+                changeTime: gameState.changeTime
+            });
+            
             if (gameState.currentState === 'waiting') {
                 // Too early
+                console.log('Too early click!');
                 const updateData = {};
                 updateData[`gameState.${isPlayer1 ? 'player1' : 'player2'}Time`] = -1;
                 updateData['gameState.currentState'] = 'early';
                 updateData['lastActivity'] = firebase.firestore.FieldValue.serverTimestamp();
-                db.collection('game-rooms').doc(roomId).update(updateData).catch(console.error);
+                db.collection('game-rooms').doc(roomId).update(updateData).then(() => {
+                    console.log('Early click update sent');
+                }).catch(console.error);
             } else if (gameState.currentState === 'go') {
                 // Valid reaction
                 const reactionTime = now - gameState.changeTime;
+                console.log(`Valid reaction! Time: ${reactionTime}ms`);
                 const updateData = {};
                 updateData[`gameState.${isPlayer1 ? 'player1' : 'player2'}Time`] = reactionTime;
                 updateData['lastActivity'] = firebase.firestore.FieldValue.serverTimestamp();
-                db.collection('game-rooms').doc(roomId).update(updateData).catch(console.error);
+                db.collection('game-rooms').doc(roomId).update(updateData).then(() => {
+                    console.log('Reaction time update sent:', reactionTime);
+                }).catch(console.error);
+            } else {
+                console.log('Click ignored - current state:', gameState.currentState);
             }
         }
 
@@ -1708,57 +1780,72 @@
             currentGameData = roomData;
             const isPlayer1 = roomData.hostId === currentUser.uid;
             
-            function updateRacingUI() {
-                const gameAreaContent = document.getElementById('game-area-content');
-                if (!gameAreaContent) return;
-                
-                const gameState = currentGameData.gameState;
-                
-                // Validate game state
-                if (!gameState || !gameState.player1 || !gameState.player2) {
-                    console.error('Invalid racing game state:', gameState);
-                    gameAreaContent.innerHTML = `
-                        <div class="text-center text-love">
-                            <h3 class="text-xl font-bold mb-4">Game Error</h3>
-                            <p>Invalid racing game state. Please try again.</p>
-                        </div>
-                    `;
-                    return;
-                }
-                
+            const gameAreaContent = document.getElementById('game-area-content');
+            if (!gameAreaContent) return;
+            
+            const gameState = currentGameData.gameState;
+            
+            // Validate game state
+            if (!gameState || !gameState.player1 || !gameState.player2) {
+                console.error('Invalid racing game state:', gameState);
                 gameAreaContent.innerHTML = `
-                    <div class="w-full max-w-4xl">
-                        <div class="flex justify-between items-center mb-4">
-                            <div class="text-text">
-                                <span class="text-foam font-bold">${currentGameData.hostName}</span>
-                                <span class="ml-2">Laps: ${gameState.player1.laps || 0}/${gameState.maxLaps}</span>
-                            </div>
-                            <div class="text-xl font-bold text-text">Mini Racing</div>
-                            <div class="text-text">
-                                <span class="mr-2">Laps: ${gameState.player2.laps || 0}/${gameState.maxLaps}</span>
-                                <span class="text-iris font-bold">${currentGameData.guestName}</span>
-                            </div>
-                        </div>
-                        <div class="bg-surface border border-highlight-med rounded-xl p-4">
-                            <canvas id="racing-canvas" class="mx-auto border border-highlight-med rounded-lg" width="800" height="400" style="max-width: 100%; height: auto;"></canvas>
-                        </div>
-                        <div class="text-center mt-4 text-muted">
-                            ${currentGameData.status === 'completed' ? 
-                                `🎉 ${(gameState.player1.laps || 0) >= gameState.maxLaps ? currentGameData.hostName : currentGameData.guestName} wins!` :
-                                'Use arrow keys to steer and avoid obstacles • First to 3 laps wins'
-                            }
-                        </div>
+                    <div class="text-center text-love">
+                        <h3 class="text-xl font-bold mb-4">Game Error</h3>
+                        <p>Invalid racing game state. Please try again.</p>
                     </div>
                 `;
-                
-                // Reinitialize the racing game
-                if (currentGameData.status !== 'completed') {
-                    setTimeout(() => initRacingGame(roomId, isPlayer1), 50);
-                }
+                return;
             }
             
-            updateRacingUI();
-            window.updateRacingUI = updateRacingUI;
+            // Create UI once
+            gameAreaContent.innerHTML = `
+                <div class="w-full max-w-4xl">
+                    <div class="flex justify-between items-center mb-4">
+                        <div class="text-text">
+                            <span class="text-foam font-bold">${currentGameData.hostName}</span>
+                            <span id="racing-p1-laps" class="ml-2">Laps: ${gameState.player1.laps || 0}/${gameState.maxLaps}</span>
+                        </div>
+                        <div class="text-xl font-bold text-text">Mini Racing</div>
+                        <div class="text-text">
+                            <span id="racing-p2-laps" class="mr-2">Laps: ${gameState.player2.laps || 0}/${gameState.maxLaps}</span>
+                            <span class="text-iris font-bold">${currentGameData.guestName}</span>
+                        </div>
+                    </div>
+                    <div class="bg-surface border border-highlight-med rounded-xl p-4">
+                        <canvas id="racing-canvas" class="mx-auto border border-highlight-med rounded-lg" width="800" height="400" style="max-width: 100%; height: auto; background-color: #1f1d2e;"></canvas>
+                    </div>
+                    <div id="racing-status" class="text-center mt-4 text-muted">
+                        ${currentGameData.status === 'completed' ? 
+                            `🎉 ${(gameState.player1.laps || 0) >= gameState.maxLaps ? currentGameData.hostName : currentGameData.guestName} wins!` :
+                            'Use arrow keys to steer and avoid obstacles • First to 3 laps wins'
+                        }
+                    </div>
+                </div>
+            `;
+            
+            // Initialize racing game once
+            if (currentGameData.status !== 'completed') {
+                setTimeout(() => initRacingGame(roomId, isPlayer1), 100);
+            }
+            
+            // Update function that only updates lap counts
+            window.updateRacingScores = function(newRoomData) {
+                const newGameState = newRoomData.gameState;
+                const p1Laps = document.getElementById('racing-p1-laps');
+                const p2Laps = document.getElementById('racing-p2-laps');
+                const status = document.getElementById('racing-status');
+                
+                if (p1Laps) p1Laps.textContent = `Laps: ${newGameState.player1.laps || 0}/${newGameState.maxLaps}`;
+                if (p2Laps) p2Laps.textContent = `Laps: ${newGameState.player2.laps || 0}/${newGameState.maxLaps}`;
+                
+                if (status) {
+                    if (newRoomData.status === 'completed') {
+                        status.textContent = `🎉 ${(newGameState.player1.laps || 0) >= newGameState.maxLaps ? newRoomData.hostName : newRoomData.guestName} wins!`;
+                    } else {
+                        status.textContent = 'Use arrow keys to steer and avoid obstacles • First to 3 laps wins';
+                    }
+                }
+            };
         }
 
         function initRacingGame(roomId, isPlayer1) {
