@@ -790,7 +790,8 @@
                     return {
                         ball: { x: 400, y: 200, dx: 3, dy: 2 },
                         player1: { y: 175, score: 0 },
-                        player2: { y: 175, score: 0 }
+                        player2: { y: 175, score: 0 },
+                        gameStarted: false
                     };
                 case 'typing':
                     return {
@@ -3286,21 +3287,14 @@
                     ball: { 
                         x: 400, 
                         y: 200, 
-                        dx: Math.random() > 0.5 ? 3 : -3, 
-                        dy: (Math.random() - 0.5) * 4 
+                        dx: 3,  // Simple fixed values for testing
+                        dy: 2 
                     },
                     player1: { y: 175, score: 0 },
                     player2: { y: 175, score: 0 },
                     gameStarted: true,
                     lastUpdate: Date.now()
                 };
-
-                // Validate all values before setting
-                if (!isValidNumber(gameState.ball.x) || !isValidNumber(gameState.ball.y) ||
-                    !isValidNumber(gameState.ball.dx) || !isValidNumber(gameState.ball.dy)) {
-                    console.error('Invalid initial game state');
-                    return;
-                }
 
                 console.log('🎮 Setting initial game state:', gameState);
 
@@ -3310,7 +3304,7 @@
                 
                 await realtimeDb.ref(`pong-rooms/${roomId}`).update({
                     status: 'playing',
-                    startedAt: firebase.database.ServerValue.TIMESTAMP
+                    startedAt: Date.now()
                 });
                 console.log('✅ Room status updated to playing');
 
@@ -3420,31 +3414,20 @@
                 }
             });
 
-            // Start physics loop - wait for game state to be ready
-            if (isHost) {
-                console.log('🎮 Host waiting for game state before starting physics...');
-                
-                // Wait for game state to be ready before starting physics
-                const waitForGameState = () => {
-                    pongPhysicsRef.once('value', (snapshot) => {
-                        if (snapshot.exists() && snapshot.val().gameStarted) {
-                            console.log('🎮 Game state ready, starting authoritative physics loop at 30 FPS');
-                            pongInterval = setInterval(() => {
-                                updatePongPhysics(roomId);
-                            }, 33); // 30 FPS
-                        } else {
-                            console.log('🎮 Game state not ready, waiting...');
-                            setTimeout(waitForGameState, 100);
-                        }
-                    });
-                };
-                waitForGameState();
-            } else {
-                console.log('🎮 Starting guest prediction physics at 60 FPS');
-                guestPhysicsInterval = setInterval(() => {
-                    updateGuestBallPrediction();
-                }, 16.67); // 60 FPS for smooth guest experience
-            }
+            // Start physics loop with a small delay to ensure everything is ready
+            setTimeout(() => {
+                if (isHost) {
+                    console.log('🎮 Starting host physics loop at 30 FPS');
+                    pongInterval = setInterval(() => {
+                        updatePongPhysics(roomId);
+                    }, 33); // 30 FPS
+                } else {
+                    console.log('🎮 Starting guest prediction physics at 60 FPS');
+                    guestPhysicsInterval = setInterval(() => {
+                        updateGuestBallPrediction();
+                    }, 16.67); // 60 FPS for smooth guest experience
+                }
+            }, 500); // Wait 500ms for everything to be ready
 
             // Listen to player movements
             pongPlayersRef.on('value', (snapshot) => {
@@ -3553,38 +3536,33 @@
                 }
 
                 const gameState = snapshot.val();
-                if (!gameState || !gameState.ball || !gameState.player1 || !gameState.player2) {
-                    console.warn('Invalid game state for physics update:', gameState);
-                    return;
-                }
+                console.log('Physics update - raw gameState:', gameState);
 
-                // Check if game is actually started
-                if (!gameState.gameStarted) {
-                    console.log('Game not started yet, skipping physics');
-                    return;
-                }
+                // Create safe defaults if data is missing
+                const ball = gameState.ball || { x: 400, y: 200, dx: 3, dy: 2 };
+                const player1 = gameState.player1 || { y: 175, score: 0 };
+                const player2 = gameState.player2 || { y: 175, score: 0 };
 
-                const ball = { ...gameState.ball };
-                const player1 = { ...gameState.player1 };
-                const player2 = { ...gameState.player2 };
+                // Ensure all values are numbers
+                ball.x = isValidNumber(ball.x) ? ball.x : 400;
+                ball.y = isValidNumber(ball.y) ? ball.y : 200;
+                ball.dx = isValidNumber(ball.dx) ? ball.dx : 3;
+                ball.dy = isValidNumber(ball.dy) ? ball.dy : 2;
 
-                // Validate ball values
-                if (!isValidNumber(ball.x) || !isValidNumber(ball.y) || 
-                    !isValidNumber(ball.dx) || !isValidNumber(ball.dy)) {
-                    console.warn('Invalid ball state, resetting');
-                    resetBall(ball);
-                    return;
-                }
+                player1.y = isValidNumber(player1.y) ? player1.y : 175;
+                player1.score = isValidNumber(player1.score) ? player1.score : 0;
+                player2.y = isValidNumber(player2.y) ? player2.y : 175;
+                player2.score = isValidNumber(player2.score) ? player2.score : 0;
 
-                // Validate paddle positions
-                if (!isValidNumber(player1.y)) player1.y = 175;
-                if (!isValidNumber(player2.y)) player2.y = 175;
-                if (!isValidNumber(player1.score)) player1.score = 0;
-                if (!isValidNumber(player2.score)) player2.score = 0;
+                console.log('Physics update - after validation:', { ball, player1, player2 });
 
                 // Update ball position
+                const oldBallX = ball.x;
+                const oldBallY = ball.y;
                 ball.x += ball.dx;
                 ball.y += ball.dy;
+                
+                console.log(`Ball moved from (${oldBallX}, ${oldBallY}) to (${ball.x}, ${ball.y}) with velocity (${ball.dx}, ${ball.dy})`);
 
                 // Wall collisions
                 if (ball.y <= 8 || ball.y >= 392) {
@@ -3592,30 +3570,27 @@
                     ball.y = Math.max(8, Math.min(392, ball.y));
                 }
 
-                // Paddle collisions with validation
+                // Paddle collisions
                 if (ball.x <= 20 && ball.dx < 0 && 
                     ball.y >= player1.y && ball.y <= player1.y + 50) {
                     ball.dx = Math.abs(ball.dx) + 0.1;
-                    const impact = (ball.y - (player1.y + 25)) * 0.05;
-                    ball.dy += isValidNumber(impact) ? impact : 0;
+                    ball.dy += (ball.y - (player1.y + 25)) * 0.05;
                     ball.x = 20;
                 }
 
                 if (ball.x >= 780 && ball.dx > 0 && 
                     ball.y >= player2.y && ball.y <= player2.y + 50) {
                     ball.dx = -Math.abs(ball.dx) - 0.1;
-                    const impact = (ball.y - (player2.y + 25)) * 0.05;
-                    ball.dy += isValidNumber(impact) ? impact : 0;
+                    ball.dy += (ball.y - (player2.y + 25)) * 0.05;
                     ball.x = 780;
                 }
 
-                // Limit ball speed to prevent runaway velocity
+                // Limit ball speed
                 const maxSpeed = 10;
                 ball.dx = Math.max(-maxSpeed, Math.min(maxSpeed, ball.dx));
                 ball.dy = Math.max(-maxSpeed, Math.min(maxSpeed, ball.dy));
 
                 // Scoring
-                let gameComplete = false;
                 if (ball.x < 0) {
                     player2.score++;
                     resetBall(ball);
@@ -3625,34 +3600,28 @@
                     resetBall(ball);
                 }
 
-                // Final validation before update
-                if (!isValidNumber(ball.x) || !isValidNumber(ball.y) || 
-                    !isValidNumber(ball.dx) || !isValidNumber(ball.dy)) {
-                    console.warn('Ball became invalid after physics, resetting');
-                    resetBall(ball);
-                }
-
                 // Check win condition
                 if (player1.score >= 5 || player2.score >= 5) {
-                    gameComplete = true;
                     clearInterval(pongInterval);
                     pongInterval = null;
 
                     await realtimeDb.ref(`pong-rooms/${roomId}`).update({
                         status: 'completed',
                         winner: player1.score >= 5 ? 'player1' : 'player2',
-                        completedAt: firebase.database.ServerValue.TIMESTAMP
+                        completedAt: Date.now()
                     });
                 }
 
-                // Update physics - use current timestamp to avoid NaN
+                // Update physics state
                 const updateData = {
                     ball: ball,
                     player1: player1,
                     player2: player2,
+                    gameStarted: true,
                     lastUpdate: Date.now()
                 };
 
+                console.log('Updating physics with:', updateData);
                 await pongPhysicsRef.update(updateData);
 
             } catch (error) {
@@ -3757,8 +3726,8 @@
             // Update score display
             const p1ScoreElement = document.getElementById('player1-score');
             const p2ScoreElement = document.getElementById('player2-score');
-            if (p1ScoreElement) p1ScoreElement.textContent = gameState.player1.score || 0;
-            if (p2ScoreElement) p2ScoreElement.textContent = gameState.player2.score || 0;
+            if (p1ScoreElement) p1ScoreElement.textContent = (safeGameState.player1 && safeGameState.player1.score) || 0;
+            if (p2ScoreElement) p2ScoreElement.textContent = (safeGameState.player2 && safeGameState.player2.score) || 0;
 
             // Update connection status
             const connectionStatus = document.getElementById('connection-status');
@@ -3772,12 +3741,13 @@
             }
 
             // Show winner overlay
-            if (roomData.status === 'completed') {
+            if (roomData && roomData.status === 'completed') {
                 ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
                 ctx.fillRect(0, 0, 800, 400);
                 ctx.fillStyle = '#e0def4';
                 ctx.font = '48px Arial';
-                const winner = (gameState.player1.score || 0) >= 5 ? roomData.hostName : roomData.guestName;
+                const p1Score = (safeGameState.player1 && safeGameState.player1.score) || 0;
+                const winner = p1Score >= 5 ? (roomData.hostName || 'Host') : (roomData.guestName || 'Guest');
                 ctx.fillText(`${winner} Wins!`, 400, 200);
             }
         }
