@@ -2410,9 +2410,12 @@
                 attachTypingInputHandler(gameState, isPlayer1, roomId);
             }
             
-            // Update function that only updates dynamic content
+            // Update function that only updates dynamic content - capture isPlayer1 in closure
             window.updateTypingProgress = function(newRoomData) {
                 const newGameState = newRoomData.gameState;
+                
+                // Determine player role from current user ID
+                const currentIsPlayer1 = newRoomData.hostId === currentUser?.uid;
                 
                 // Update progress bars and percentages
                 const p1Percent = document.getElementById('typing-p1-percent');
@@ -2430,7 +2433,7 @@
                 if (p2Progress) p2Progress.style.width = `${((newGameState.player2Progress || 0) / newGameState.sentence.length) * 100}%`;
                 if (p1Text) p1Text.textContent = newGameState.player1Text || '';
                 if (p2Text) p2Text.textContent = newGameState.player2Text || '';
-                if (myProgress) myProgress.textContent = `${Math.round(((isPlayer1 ? (newGameState.player1Progress || 0) : (newGameState.player2Progress || 0)) / newGameState.sentence.length) * 100)}%`;
+                if (myProgress) myProgress.textContent = `${Math.round(((currentIsPlayer1 ? (newGameState.player1Progress || 0) : (newGameState.player2Progress || 0)) / newGameState.sentence.length) * 100)}%`;
                 
                 if (status) {
                     if (newRoomData.status === 'completed') {
@@ -2595,52 +2598,77 @@
                 }
             }, 100);
             
-            // Update function that only updates dynamic content
+            // Update function that only updates dynamic content - with recursion prevention
+            let reactionUpdateInProgress = false;
             window.updateReactionGame = function(newGameData) {
-                currentGameData = newGameData;
-                const gameState = newGameData.gameState;
-                
-                // Update scores
-                const p1Score = document.getElementById('reaction-p1-score');
-                const p2Score = document.getElementById('reaction-p2-score');
-                const p1Time = document.getElementById('reaction-p1-time');
-                const p2Time = document.getElementById('reaction-p2-time');
-                const round = document.getElementById('reaction-round');
-                const zone = document.getElementById('reaction-zone');
-                const text = document.getElementById('reaction-text');
-                const status = document.getElementById('reaction-status');
-                
-                if (p1Score) p1Score.textContent = gameState.player1Score || 0;
-                if (p2Score) p2Score.textContent = gameState.player2Score || 0;
-                if (p1Time) p1Time.textContent = gameState.player1Time && gameState.player1Time > 0 ? gameState.player1Time + 'ms' : gameState.player1Time === -1 ? 'Too Early!' : '';
-                if (p2Time) p2Time.textContent = gameState.player2Time && gameState.player2Time > 0 ? gameState.player2Time + 'ms' : gameState.player2Time === -1 ? 'Too Early!' : '';
-                if (round) round.textContent = `Round ${gameState.round} of ${gameState.maxRounds}`;
-                if (text) text.textContent = getReactionText(gameState.currentState, gameState);
-                
-                // Update zone color
-                if (zone) {
-                    zone.className = zone.className.replace(/bg-\w+-\d+/g, '');
-                    if (gameState.currentState === 'go') {
-                        zone.classList.add('bg-green-500');
-                    } else if (gameState.currentState === 'early') {
-                        zone.classList.add('bg-red-500');
-                    } else {
-                        zone.classList.add('bg-overlay');
-                    }
+                // Prevent infinite recursion from state updates
+                if (reactionUpdateInProgress) {
+                    console.log('Reaction update already in progress, skipping to prevent recursion');
+                    return;
                 }
                 
-                // Update status
-                if (status) {
-                    if (newGameData.status === 'completed') {
-                        status.textContent = `🎉 ${(gameState.player1Score || 0) > (gameState.player2Score || 0) ? newGameData.hostName : newGameData.guestName} wins ${Math.max(gameState.player1Score || 0, gameState.player2Score || 0)}-${Math.min(gameState.player1Score || 0, gameState.player2Score || 0)}!`;
-                    } else {
-                        status.textContent = 'Click or tap the area above when it turns green!';
-                    }
-                }
+                reactionUpdateInProgress = true;
                 
-                // Host continues game flow
-                if (isPlayer1 && newGameData.status === 'playing') {
-                    handleReactionFlow(roomId, gameState);
+                try {
+                    currentGameData = newGameData;
+                    const gameState = newGameData.gameState;
+                    
+                    // Determine if current user is host (player1)
+                    const currentIsPlayer1 = newGameData.hostId === currentUser?.uid;
+                    
+                    // Update scores
+                    const p1Score = document.getElementById('reaction-p1-score');
+                    const p2Score = document.getElementById('reaction-p2-score');
+                    const p1Time = document.getElementById('reaction-p1-time');
+                    const p2Time = document.getElementById('reaction-p2-time');
+                    const round = document.getElementById('reaction-round');
+                    const zone = document.getElementById('reaction-zone');
+                    const text = document.getElementById('reaction-text');
+                    const status = document.getElementById('reaction-status');
+                    
+                    if (p1Score) p1Score.textContent = gameState.player1Score || 0;
+                    if (p2Score) p2Score.textContent = gameState.player2Score || 0;
+                    if (p1Time) p1Time.textContent = gameState.player1Time && gameState.player1Time > 0 ? gameState.player1Time + 'ms' : gameState.player1Time === -1 ? 'Too Early!' : '';
+                    if (p2Time) p2Time.textContent = gameState.player2Time && gameState.player2Time > 0 ? gameState.player2Time + 'ms' : gameState.player2Time === -1 ? 'Too Early!' : '';
+                    if (round) round.textContent = `Round ${gameState.round} of ${gameState.maxRounds}`;
+                    if (text) text.textContent = getReactionText(gameState.currentState, gameState, newGameData);
+                    
+                    // Update zone color - improved class removal
+                    if (zone) {
+                        // Remove existing background color classes more reliably
+                        zone.classList.remove('bg-green-500', 'bg-red-500', 'bg-overlay', 'bg-yellow-500', 'bg-blue-500');
+                        
+                        // Add appropriate background color
+                        if (gameState.currentState === 'go') {
+                            zone.classList.add('bg-green-500');
+                        } else if (gameState.currentState === 'early') {
+                            zone.classList.add('bg-red-500');
+                        } else {
+                            zone.classList.add('bg-overlay');
+                        }
+                    }
+                    
+                    // Update status
+                    if (status) {
+                        if (newGameData.status === 'completed') {
+                            status.textContent = `🎉 ${(gameState.player1Score || 0) > (gameState.player2Score || 0) ? newGameData.hostName : newGameData.guestName} wins ${Math.max(gameState.player1Score || 0, gameState.player2Score || 0)}-${Math.min(gameState.player1Score || 0, gameState.player2Score || 0)}!`;
+                        } else {
+                            status.textContent = 'Click or tap the area above when it turns green!';
+                        }
+                    }
+                    
+                    // Host continues game flow - with additional safeguards
+                    if (currentIsPlayer1 && newGameData.status === 'playing' && gameState) {
+                        // Use setTimeout to break potential recursion and allow UI updates
+                        setTimeout(() => {
+                            if (currentGameData && currentGameData.status === 'playing') {
+                                handleReactionFlow(roomId, gameState);
+                            }
+                        }, 10);
+                    }
+                } finally {
+                    // Always reset the flag, even if an error occurs
+                    reactionUpdateInProgress = false;
                 }
             };
         }
@@ -2672,7 +2700,7 @@
                     
                     <div id="reaction-zone" class="reaction-zone w-full h-64 ${zoneColor} rounded-lg flex items-center justify-center cursor-pointer mb-4 transition-colors duration-300 border-2 border-highlight-med">
                         <div id="reaction-text" class="text-xl font-bold text-white text-center">
-                            ${getReactionText(gameState.currentState, gameState)}
+                            ${getReactionText(gameState.currentState, gameState, roomData)}
                         </div>
                     </div>
                     
@@ -2686,7 +2714,11 @@
             `;
         }
 
-        function getReactionText(state, gameState) {
+        function getReactionText(state, gameState, roomData = null) {
+            // Use roomData for player names if available, fallback to generic names
+            const hostName = roomData?.hostName || currentGameData?.hostName || 'Player 1';
+            const guestName = roomData?.guestName || currentGameData?.guestName || 'Player 2';
+            
             switch (state) {
                 case 'waiting': return 'Get Ready...';
                 case 'go': return 'TAP NOW!';
@@ -2694,10 +2726,9 @@
                 case 'results': 
                     if (gameState.player1Time && gameState.player2Time) {
                         if (gameState.player1Time === -1 && gameState.player2Time === -1) return 'Both too early!';
-                        if (gameState.player1Time === -1) return `${gameState.guestName || 'Player 2'} wins round!`;
-                        if (gameState.player2Time === -1) return `${gameState.hostName || 'Player 1'} wins round!`;
-                        const winner = gameState.player1Time < gameState.player2Time ? 
-                            (gameState.hostName || 'Player 1') : (gameState.guestName || 'Player 2');
+                        if (gameState.player1Time === -1) return `${guestName} wins round!`;
+                        if (gameState.player2Time === -1) return `${hostName} wins round!`;
+                        const winner = gameState.player1Time < gameState.player2Time ? hostName : guestName;
                         return `${winner} wins round!`;
                     }
                     return 'Waiting for results...';
@@ -3773,6 +3804,15 @@
             window.updateTypingUI = null;
             window.updateReactionUI = null;
             window.updateRacingUI = null;
+            
+            // Clean up click debouncing variables to prevent memory leaks
+            if ('lastClick_p1' in window) delete window.lastClick_p1;
+            if ('lastClick_p2' in window) delete window.lastClick_p2;
+            
+            // Reset recursion prevention flags
+            if (typeof reactionUpdateInProgress !== 'undefined') {
+                reactionUpdateInProgress = false;
+            }
         }
 
         // Enhanced cleanup on page unload
