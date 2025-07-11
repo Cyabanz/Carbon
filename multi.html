@@ -383,6 +383,13 @@
         let isHost = false;
         let lastPaddleUpdate = 0;
         let connectionRef = null;
+        
+        // Guest prediction variables
+        let guestBallPrediction = null;
+        let lastServerBallUpdate = 0;
+        let guestPhysicsInterval = null;
+        let currentServerBall = null;
+        let currentServerGameState = null;
 
         // Auth state listener
         auth.onAuthStateChanged((user) => {
@@ -2902,10 +2909,20 @@
                 gameListener = null;
             }
             
+            // Clean up pong room if active
+            if (pongRoomRef) {
+                cleanupPongRoom();
+            }
+            
             // Clean up game-specific resources
             if (pongInterval) {
                 clearInterval(pongInterval);
                 pongInterval = null;
+            }
+            
+            if (guestPhysicsInterval) {
+                clearInterval(guestPhysicsInterval);
+                guestPhysicsInterval = null;
             }
             
             if (racingUpdateInterval) {
@@ -2935,6 +2952,13 @@
             // Reset game state
             currentGameData = null;
             currentRoom = null;
+            
+            // Reset ping pong variables
+            guestBallPrediction = null;
+            lastServerBallUpdate = 0;
+            currentServerBall = null;
+            currentServerGameState = null;
+            isHost = false;
             
             // Clean up UI update functions
             window.updatePongUI = null;
@@ -3093,7 +3117,7 @@
                     </div>
                     <div class="text-center mt-2 text-xs text-muted">
                         <span id="connection-status">Connected</span> | 
-                        <span id="ping-display">Ping: 0ms</span>
+                        <span id="ping-display">Realtime Database</span>
                     </div>
                 </div>
             `;
@@ -3111,7 +3135,39 @@
             pongPhysicsRef.on('value', (snapshot) => {
                 if (snapshot.exists()) {
                     const gameState = snapshot.val();
-                    renderPongGame(ctx, gameState, currentGameData);
+                    
+                    // Update server data for guests
+                    if (!isHost && gameState.ball) {
+                        currentServerBall = { ...gameState.ball };
+                        currentServerGameState = { ...gameState };
+                        lastServerBallUpdate = Date.now();
+                        
+                        // Initialize or sync guest prediction
+                        if (!guestBallPrediction) {
+                            console.log('🎯 Initializing guest ball prediction');
+                            guestBallPrediction = { ...currentServerBall };
+                        } else {
+                            // Check if prediction drifted too far from server
+                            const distance = Math.sqrt(
+                                Math.pow(guestBallPrediction.x - currentServerBall.x, 2) + 
+                                Math.pow(guestBallPrediction.y - currentServerBall.y, 2)
+                            );
+                            
+                            // Resync if too far off (>30 pixels) or ball stopped
+                            if (distance > 30 || (guestBallPrediction.dx === 0 && guestBallPrediction.dy === 0)) {
+                                console.log('🔄 Resyncing guest prediction (distance:', Math.round(distance), ')');
+                                guestBallPrediction = { ...currentServerBall };
+                            }
+                        }
+                    }
+                    
+                    // Render with appropriate ball data
+                    const renderState = { ...gameState };
+                    if (!isHost && guestBallPrediction) {
+                        renderState.ball = guestBallPrediction;
+                    }
+                    
+                    renderPongGame(ctx, renderState, currentGameData);
                 }
             });
 
@@ -3124,7 +3180,6 @@
                 const mouseY = e.clientY - rect.top;
                 const paddleY = Math.max(0, Math.min(350, mouseY - 25));
                 
-                const playerKey = isHost ? 'player1' : 'player2';
                 pongPlayersRef.child(`${currentUser.uid}`).set({
                     y: paddleY,
                     lastUpdate: firebase.database.ServerValue.TIMESTAMP
@@ -3133,12 +3188,17 @@
                 lastPaddleUpdate = now;
             });
 
-            // Start physics loop (host only)
+            // Start physics loop
             if (isHost) {
-                console.log('🎮 Starting physics loop for host');
+                console.log('🎮 Starting authoritative physics loop for host at 30 FPS');
                 pongInterval = setInterval(() => {
                     updatePongPhysics(roomId);
                 }, 33); // 30 FPS
+            } else {
+                console.log('🎮 Starting guest prediction physics at 60 FPS');
+                guestPhysicsInterval = setInterval(() => {
+                    updateGuestBallPrediction();
+                }, 16.67); // 60 FPS for smooth guest experience
             }
 
             // Listen to player movements
@@ -3148,6 +3208,67 @@
                     updatePlayerPositions(roomId, players);
                 }
             });
+        }
+
+        function updateGuestBallPrediction() {
+            if (!guestBallPrediction || !currentServerBall) return;
+            
+            // Run local physics at 60 FPS
+            guestBallPrediction.x += guestBallPrediction.dx;
+            guestBallPrediction.y += guestBallPrediction.dy;
+            
+            // Wall bounces
+            if (guestBallPrediction.y <= 8 || guestBallPrediction.y >= 392) {
+                guestBallPrediction.dy = -guestBallPrediction.dy;
+            }
+            
+            // Enhanced paddle collision prediction using server paddle data
+            if (currentServerGameState && currentServerGameState.player1 && currentServerGameState.player2) {
+                const player1Y = currentServerGameState.player1.y || 175;
+                const player2Y = currentServerGameState.player2.y || 175;
+                
+                // Left paddle (host) collision
+                if (guestBallPrediction.x <= 20 && guestBallPrediction.dx < 0 &&
+                    guestBallPrediction.y >= player1Y && guestBallPrediction.y <= player1Y + 50) {
+                    guestBallPrediction.dx = Math.abs(guestBallPrediction.dx) + 0.1;
+                    guestBallPrediction.dy += (guestBallPrediction.y - (player1Y + 25)) * 0.05;
+                    guestBallPrediction.x = 20;
+                }
+                
+                // Right paddle (guest) collision  
+                if (guestBallPrediction.x >= 780 && guestBallPrediction.dx > 0 &&
+                    guestBallPrediction.y >= player2Y && guestBallPrediction.y <= player2Y + 50) {
+                    guestBallPrediction.dx = -Math.abs(guestBallPrediction.dx) - 0.1;
+                    guestBallPrediction.dy += (guestBallPrediction.y - (player2Y + 25)) * 0.05;
+                    guestBallPrediction.x = 780;
+                }
+            } else {
+                // Fallback collision detection without paddle data
+                if (guestBallPrediction.x <= 10 && guestBallPrediction.dx < 0) {
+                    guestBallPrediction.x = 10;
+                    guestBallPrediction.dx = Math.abs(guestBallPrediction.dx);
+                }
+                if (guestBallPrediction.x >= 790 && guestBallPrediction.dx > 0) {
+                    guestBallPrediction.x = 790;
+                    guestBallPrediction.dx = -Math.abs(guestBallPrediction.dx);
+                }
+            }
+            
+            // Reset if ball goes off screen (let server handle scoring)
+            if (guestBallPrediction.x < -50 || guestBallPrediction.x > 850) {
+                if (currentServerBall) {
+                    guestBallPrediction = { ...currentServerBall };
+                }
+            }
+            
+            // Periodic sync with server (every 100ms)
+            const now = Date.now();
+            if (currentServerBall && now - lastServerBallUpdate < 100) {
+                // Gently pull prediction towards server position to prevent drift
+                const pullStrength = 0.1;
+                guestBallPrediction.x += (currentServerBall.x - guestBallPrediction.x) * pullStrength;
+                guestBallPrediction.y += (currentServerBall.y - guestBallPrediction.y) * pullStrength;
+            }
         }
 
         async function updatePlayerPositions(roomId, players) {
@@ -3282,11 +3403,44 @@
             ctx.fillText(`${gameState.player1.score || 0}`, 200, 40);
             ctx.fillText(`${gameState.player2.score || 0}`, 600, 40);
 
+            // Draw debug info for guests
+            if (!isHost) {
+                ctx.fillStyle = '#6e6a86';
+                ctx.font = '10px Arial';
+                ctx.textAlign = 'left';
+                
+                const syncAge = currentServerBall ? Date.now() - lastServerBallUpdate : 0;
+                const usingPrediction = guestBallPrediction ? 'Local 60FPS' : 'Server';
+                
+                ctx.fillText(`Ball: ${usingPrediction}`, 10, 380);
+                ctx.fillText(`Sync: ${syncAge}ms ago`, 10, 392);
+                
+                if (guestBallPrediction && currentServerBall) {
+                    const distance = Math.sqrt(
+                        Math.pow(guestBallPrediction.x - currentServerBall.x, 2) + 
+                        Math.pow(guestBallPrediction.y - currentServerBall.y, 2)
+                    );
+                    ctx.fillText(`Drift: ${Math.round(distance)}px`, 150, 380);
+                    ctx.fillText(`Speed: ${guestBallPrediction.dx.toFixed(1)}, ${guestBallPrediction.dy.toFixed(1)}`, 150, 392);
+                }
+            }
+
             // Update score display
             const p1Score = document.getElementById('player1-score');
             const p2Score = document.getElementById('player2-score');
             if (p1Score) p1Score.textContent = gameState.player1.score || 0;
             if (p2Score) p2Score.textContent = gameState.player2.score || 0;
+
+            // Update connection status
+            const connectionStatus = document.getElementById('connection-status');
+            if (connectionStatus) {
+                if (isHost) {
+                    connectionStatus.textContent = 'Host (Authoritative)';
+                } else {
+                    const status = guestBallPrediction ? 'Smooth (60 FPS)' : 'Syncing...';
+                    connectionStatus.textContent = status;
+                }
+            }
 
             // Show winner overlay
             if (roomData.status === 'completed') {
@@ -3304,6 +3458,10 @@
             if (pongInterval) {
                 clearInterval(pongInterval);
                 pongInterval = null;
+            }
+            if (guestPhysicsInterval) {
+                clearInterval(guestPhysicsInterval);
+                guestPhysicsInterval = null;
             }
 
             // Remove listeners
@@ -3328,6 +3486,11 @@
             isHost = false;
             currentRoom = null;
             currentGameData = null;
+            guestBallPrediction = null;
+            lastServerBallUpdate = 0;
+            currentServerBall = null;
+            currentServerGameState = null;
+            lastPaddleUpdate = 0;
         }
 
         // Session cleanup
