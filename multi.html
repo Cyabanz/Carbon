@@ -762,8 +762,8 @@
                     guestId: currentUser.uid,
                     guestName: currentUser.displayName || currentUser.email || 'Player',
                     guestPhoto: currentUser.photoURL || '',
-                    status: 'playing',
                     lastActivity: firebase.database.ServerValue.TIMESTAMP
+                    // Note: Keep status as 'waiting' so host can see guest join
                 });
 
                 currentRoom = roomId;
@@ -1829,6 +1829,8 @@
                         if (roomData.gameType === 'pong') {
                             realtimeDb.ref(`pong-rooms/${currentRoom}`).update(nameUpdate).then(() => {
                                 console.log('✅ Pong game status updated to playing with correct names');
+                                // Initialize pong physics after status update
+                                startPongGame(currentRoom);
                             }).catch(error => {
                                 console.error('❌ Error starting pong game:', error);
                             });
@@ -4235,15 +4237,7 @@
             if (roomData.status === 'waiting' && roomData.guestId) {
                 console.log('🎯 Guest joined, updating lobby');
                 updateLobbyWithGuest(roomData);
-                
-                // Auto-start game if both players present and we're the host
-                if (isHost && roomData.guestId) {
-                    console.log('🚀 Host starting game in 2 seconds...');
-                    setTimeout(async () => {
-                        console.log('🚀 Host triggering game start');
-                        await startPongGame(roomId);
-                    }, 2000);
-                }
+                // Note: updateLobbyWithGuest handles auto-starting the game for the host
             }
             
             // Handle game starting
