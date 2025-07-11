@@ -529,14 +529,14 @@
                     return;
                 }
                 
-                // Try regular game room
-                const roomDoc = await db.collection('game-rooms').doc(roomId).get();
-                if (!roomDoc.exists) {
+                // Try regular game room in realtime database
+                const roomSnapshot = await realtimeDb.ref(`game-rooms/${roomId}`).once('value');
+                if (!roomSnapshot.exists()) {
                     showNotification('Room Not Found', 'Game room does not exist!', 'error');
                     return;
                 }
 
-                const roomData = roomDoc.data();
+                const roomData = roomSnapshot.val();
                 if (roomData.status !== 'waiting') {
                     showNotification('Game In Progress', 'This game has already started!', 'warning');
                     return;
@@ -552,7 +552,7 @@
                     return;
                 }
 
-                await joinGameRoom(roomId, roomData);
+                await joinRealtimeRoom(roomId);
             } catch (error) {
                 console.error('Error joining room by ID:', error);
                 showNotification('Error', 'Failed to join room!', 'error');
@@ -568,43 +568,38 @@
             try {
                 winnerScreenShown = false;
                 
-                // Handle ping pong with Realtime Database
-                if (gameType === 'pong') {
-                    await createPongRoom();
-                    return;
-                }
+                // All games now use Realtime Database
+                await createRealtimeRoom(gameType);
                 
-                // Handle other games with Firestore (existing logic)
-                if (!db) {
-                    showNotification('Database Error', 'Database not initialized', 'error');
-                    return;
-                }
-                
-                // First, try to find an existing waiting room
-                const waitingRooms = await db.collection('game-rooms')
-                    .where('gameType', '==', gameType)
-                    .where('status', '==', 'waiting')
-                    .where('hostId', '!=', currentUser.uid)
-                    .limit(5)
-                    .get();
+            } catch (error) {
+                console.error('Error creating room:', error);
+                showNotification('Error', 'Failed to create game room!', 'error');
+            }
+        }
 
-                if (!waitingRooms.empty) {
-                    // Try to join the first valid room
-                    for (const roomDoc of waitingRooms.docs) {
-                        try {
-                            const freshRoomDoc = await db.collection('game-rooms').doc(roomDoc.id).get();
-                            if (freshRoomDoc.exists && freshRoomDoc.data().status === 'waiting' && !freshRoomDoc.data().guestId) {
-                                await joinGameRoom(roomDoc.id, freshRoomDoc.data());
-                                return;
-                            }
-                        } catch (joinError) {
-                            console.error('Error joining room:', roomDoc.id, joinError);
-                            continue;
+        async function createRealtimeRoom(gameType) {
+            try {
+                // Try to find an existing waiting room first
+                const waitingRoomsSnapshot = await realtimeDb.ref(`game-rooms`)
+                    .orderByChild('gameType')
+                    .equalTo(gameType)
+                    .once('value');
+
+                if (waitingRoomsSnapshot.exists()) {
+                    const rooms = waitingRoomsSnapshot.val();
+                    // Look for a waiting room that's not full and not hosted by current user
+                    for (const [roomId, roomData] of Object.entries(rooms)) {
+                        if (roomData.status === 'waiting' && 
+                            !roomData.guestId && 
+                            roomData.hostId !== currentUser.uid) {
+                            await joinRealtimeRoom(roomId);
+                            return;
                         }
                     }
                 }
 
                 // Create new room if no valid rooms found
+                const roomId = realtimeDb.ref(`game-rooms`).push().key;
                 const roomData = {
                     gameType: gameType,
                     hostId: currentUser.uid,
@@ -616,19 +611,20 @@
                     status: 'waiting',
                     gameState: getInitialGameState(gameType),
                     winner: null,
-                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                    lastActivity: firebase.firestore.FieldValue.serverTimestamp()
+                    createdAt: firebase.database.ServerValue.TIMESTAMP,
+                    lastActivity: firebase.database.ServerValue.TIMESTAMP
                 };
 
-                const docRef = await db.collection('game-rooms').add(roomData);
-                currentRoom = docRef.id;
+                await realtimeDb.ref(`game-rooms/${roomId}`).set(roomData);
+                currentRoom = roomId;
+                isHost = true;
                 
-                showGameLobby(roomData, docRef.id, true);
-                listenToRoom(docRef.id);
+                showGameLobby(roomData, roomId, true);
+                await setupRealtimeRoom(roomId, gameType);
                 
-                showNotification('Room Created!', 'Share the room ID with a friend to play', 'success');
+                showNotification(`${getGameDisplayName(gameType)} Room Created!`, 'Share the room ID with a friend to play', 'success');
             } catch (error) {
-                console.error('Error creating room:', error);
+                console.error('Error creating realtime room:', error);
                 showNotification('Error', 'Failed to create game room!', 'error');
             }
         }
@@ -990,6 +986,132 @@
             return names[gameType] || gameType;
         }
 
+        async function joinRealtimeRoom(roomId) {
+            try {
+                const roomRef = realtimeDb.ref(`game-rooms/${roomId}`);
+                const roomSnapshot = await roomRef.once('value');
+                
+                if (!roomSnapshot.exists()) {
+                    showNotification('Error', 'Room not found!', 'error');
+                    return;
+                }
+                
+                const roomData = roomSnapshot.val();
+                
+                if (roomData.status !== 'waiting' || roomData.guestId) {
+                    showNotification('Error', 'Room is not available!', 'error');
+                    return;
+                }
+                
+                // Join the room
+                await roomRef.update({
+                    guestId: currentUser.uid,
+                    guestName: currentUser.displayName || currentUser.email || 'Player',
+                    guestPhoto: currentUser.photoURL || '',
+                    status: 'playing',
+                    lastActivity: firebase.database.ServerValue.TIMESTAMP
+                });
+                
+                currentRoom = roomId;
+                isHost = false;
+                
+                showGameLobby(roomData, roomId, false);
+                await setupRealtimeRoom(roomId, roomData.gameType);
+                
+                showNotification(`Joined ${getGameDisplayName(roomData.gameType)} Room!`, 'Get ready to play!', 'success');
+            } catch (error) {
+                console.error('Error joining room:', error);
+                showNotification('Error', 'Failed to join room!', 'error');
+            }
+        }
+
+        async function setupRealtimeRoom(roomId, gameType) {
+            // Set up disconnect cleanup
+            const userRef = realtimeDb.ref(`game-rooms/${roomId}`);
+            
+            // Handle disconnect
+            userRef.onDisconnect().update({
+                status: 'disconnected',
+                lastActivity: firebase.database.ServerValue.TIMESTAMP
+            });
+            
+            // Listen to room changes
+            userRef.on('value', (snapshot) => {
+                if (snapshot.exists()) {
+                    const roomData = snapshot.val();
+                    handleRoomUpdate(roomData, roomId);
+                }
+            });
+            
+            // Set up game-specific listeners
+            await setupGameSpecificListeners(roomId, gameType);
+        }
+
+        async function setupGameSpecificListeners(roomId, gameType) {
+            switch (gameType) {
+                case 'pong':
+                    await setupPongListeners(roomId);
+                    break;
+                case 'typing':
+                    await setupTypingListeners(roomId);
+                    break;
+                case 'reaction':
+                    await setupReactionListeners(roomId);
+                    break;
+                case 'racing':
+                    await setupRacingListeners(roomId);
+                    break;
+            }
+        }
+
+        function handleRoomUpdate(roomData, roomId) {
+            currentGameData = roomData;
+            
+            // Update lobby UI if in lobby
+            if (document.getElementById('lobby-content')) {
+                updateLobbyStatus(roomData);
+            }
+            
+            // Start game if status changed to playing
+            if (roomData.status === 'playing' && !document.getElementById('game-container')) {
+                initializeGameInLobby(roomData, roomId);
+            }
+            
+            // Handle disconnections
+            if (roomData.status === 'disconnected') {
+                showNotification('Player Disconnected', 'The other player has left the game', 'info');
+                setTimeout(() => backToSelection(), 2000);
+            }
+        }
+
+        function updateLobbyStatus(roomData) {
+            const gameStatus = document.getElementById('game-status');
+            const guestSlot = document.getElementById('guest-slot');
+            
+            if (gameStatus) {
+                gameStatus.innerHTML = roomData.status === 'waiting' ? 
+                    '<span class="text-gold">Waiting for player...</span>' : 
+                    '<span class="text-foam">Game starting...</span>';
+            }
+            
+            if (guestSlot && roomData.guestId) {
+                guestSlot.innerHTML = `
+                    <div class="flex items-center gap-3">
+                        ${roomData.guestPhoto ? 
+                            `<img src="${roomData.guestPhoto}" class="w-10 h-10 rounded-full border-2 border-iris">` :
+                            `<div class="w-10 h-10 rounded-full border-2 border-iris bg-iris/20 flex items-center justify-center">
+                                <i class="bx bx-user text-iris"></i>
+                            </div>`
+                        }
+                        <div class="flex-1">
+                            <div class="font-semibold text-text">${roomData.guestName}</div>
+                            <div class="text-xs text-iris">Guest (Player 2)</div>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
         // Global window functions for HTML onclick handlers
         window.copyRoomId = function(roomId) {
             navigator.clipboard.writeText(roomId).then(() => {
@@ -1003,23 +1125,24 @@
             showNotification('Searching...', 'Looking for available players', 'info');
             
             try {
-                const waitingRooms = await db.collection('game-rooms')
-                    .where('gameType', '==', gameType)
-                    .where('status', '==', 'waiting')
-                    .where('hostId', '!=', currentUser.uid)
-                    .limit(5)
-                    .get();
+                const waitingRoomsSnapshot = await realtimeDb.ref(`game-rooms`)
+                    .orderByChild('gameType')
+                    .equalTo(gameType)
+                    .once('value');
                 
-                if (!waitingRooms.empty) {
-                    for (const roomDoc of waitingRooms.docs) {
+                if (waitingRoomsSnapshot.exists()) {
+                    const rooms = waitingRoomsSnapshot.val();
+                    
+                    for (const [roomId, roomData] of Object.entries(rooms)) {
                         try {
-                            const freshRoomDoc = await db.collection('game-rooms').doc(roomDoc.id).get();
-                            if (freshRoomDoc.exists && freshRoomDoc.data().status === 'waiting' && !freshRoomDoc.data().guestId) {
-                                await joinGameRoom(roomDoc.id, freshRoomDoc.data());
+                            if (roomData.status === 'waiting' && 
+                                !roomData.guestId && 
+                                roomData.hostId !== currentUser.uid) {
+                                await joinRealtimeRoom(roomId);
                                 return;
                             }
                         } catch (joinError) {
-                            console.error('Error joining room:', roomDoc.id, joinError);
+                            console.error('Error joining room:', roomId, joinError);
                             continue;
                         }
                     }
@@ -1924,6 +2047,21 @@
         }
 
         // Typing Game Implementation
+        async function setupTypingListeners(roomId) {
+            const gameStateRef = realtimeDb.ref(`game-rooms/${roomId}/gameState`);
+            gameStateRef.on('value', (snapshot) => {
+                if (snapshot.exists()) {
+                    const gameState = snapshot.val();
+                    if (currentGameData) {
+                        currentGameData.gameState = gameState;
+                        if (window.updateTypingProgress) {
+                            window.updateTypingProgress(currentGameData);
+                        }
+                    }
+                }
+            });
+        }
+
         function startTypingGame(roomData, roomId) {
             currentGameData = roomData;
             const isPlayer1 = roomData.hostId === currentUser.uid;
@@ -2093,14 +2231,12 @@
                         const isWinner = text.length > 0 && text === sentence;
                         
                         const updateData = {};
-                        updateData[`gameState.${isPlayer1 ? 'player1' : 'player2'}Progress`] = progress;
-                        updateData[`gameState.${isPlayer1 ? 'player1' : 'player2'}Text`] = text;
-                        updateData['lastActivity'] = firebase.firestore.FieldValue.serverTimestamp();
+                        updateData[`${isPlayer1 ? 'player1' : 'player2'}Progress`] = progress;
+                        updateData[`${isPlayer1 ? 'player1' : 'player2'}Text`] = text;
                         
                         if (isWinner) {
                             console.log('🎉 WINNER DETECTED!', isPlayer1 ? 'player1' : 'player2');
-                            updateData['gameState.winner'] = isPlayer1 ? 'player1' : 'player2';
-                            updateData['status'] = 'completed';
+                            updateData['winner'] = isPlayer1 ? 'player1' : 'player2';
                             
                             // Disable input immediately
                             input.disabled = true;
@@ -2108,15 +2244,41 @@
                             showNotification('🎉 You Won!', 'You completed the sentence first!', 'success');
                         }
                         
-                        db.collection('game-rooms').doc(roomId).update(updateData).catch(console.error);
+                        // Update game state in realtime database
+                        realtimeDb.ref(`game-rooms/${roomId}/gameState`).update(updateData).catch(console.error);
+                        
+                        // Update room lastActivity
+                        realtimeDb.ref(`game-rooms/${roomId}`).update({
+                            lastActivity: firebase.database.ServerValue.TIMESTAMP
+                        }).catch(console.error);
+                        
+                        // Update room status if winner
+                        if (isWinner) {
+                            realtimeDb.ref(`game-rooms/${roomId}`).update({
+                                status: 'completed'
+                            }).catch(console.error);
+                        }
                     });
                 }, 100);
             }
         }
 
         // Reaction Game Implementation
-        // reactionTimeout is already declared above
-        
+        async function setupReactionListeners(roomId) {
+            const gameStateRef = realtimeDb.ref(`game-rooms/${roomId}/gameState`);
+            gameStateRef.on('value', (snapshot) => {
+                if (snapshot.exists()) {
+                    const gameState = snapshot.val();
+                    if (currentGameData) {
+                        currentGameData.gameState = gameState;
+                        if (window.updateReactionGame) {
+                            window.updateReactionGame(currentGameData);
+                        }
+                    }
+                }
+            });
+        }
+
         function startReactionGame(roomData, roomId) {
             currentGameData = roomData;
             const isPlayer1 = roomData.hostId === currentUser.uid;
@@ -2263,17 +2425,25 @@
             if (gameState.currentState === 'waiting') {
                 // Too early
                 const updateData = {};
-                updateData[`gameState.${isPlayer1 ? 'player1' : 'player2'}Time`] = -1;
-                updateData['gameState.currentState'] = 'early';
-                updateData['lastActivity'] = firebase.firestore.FieldValue.serverTimestamp();
-                db.collection('game-rooms').doc(roomId).update(updateData).catch(console.error);
+                updateData[`${isPlayer1 ? 'player1' : 'player2'}Time`] = -1;
+                updateData['currentState'] = 'early';
+                realtimeDb.ref(`game-rooms/${roomId}/gameState`).update(updateData).catch(console.error);
+                
+                // Update room activity
+                realtimeDb.ref(`game-rooms/${roomId}`).update({
+                    lastActivity: firebase.database.ServerValue.TIMESTAMP
+                }).catch(console.error);
             } else if (gameState.currentState === 'go') {
                 // Valid reaction
                 const reactionTime = now - gameState.changeTime;
                 const updateData = {};
-                updateData[`gameState.${isPlayer1 ? 'player1' : 'player2'}Time`] = reactionTime;
-                updateData['lastActivity'] = firebase.firestore.FieldValue.serverTimestamp();
-                db.collection('game-rooms').doc(roomId).update(updateData).catch(console.error);
+                updateData[`${isPlayer1 ? 'player1' : 'player2'}Time`] = reactionTime;
+                realtimeDb.ref(`game-rooms/${roomId}/gameState`).update(updateData).catch(console.error);
+                
+                // Update room activity
+                realtimeDb.ref(`game-rooms/${roomId}`).update({
+                    lastActivity: firebase.database.ServerValue.TIMESTAMP
+                }).catch(console.error);
             }
         }
 
@@ -2284,9 +2454,9 @@
                 
                 const delay = Math.random() * 3000 + 2000; // 2-5 seconds
                 reactionTimeout = setTimeout(() => {
-                    db.collection('game-rooms').doc(roomId).update({
-                        'gameState.currentState': 'go',
-                        'gameState.changeTime': Date.now()
+                    realtimeDb.ref(`game-rooms/${roomId}/gameState`).update({
+                        'currentState': 'go',
+                        'changeTime': Date.now()
                     }).catch(console.error);
                 }, delay);
             } else if (gameState.currentState === 'results' || 
@@ -2320,21 +2490,23 @@
                 const newScore2 = gameState.player2Score + (player2Won ? 1 : 0);
                 const newRound = gameState.round + 1;
                 
-                const updateData = {
-                    'gameState.player1Score': newScore1,
-                    'gameState.player2Score': newScore2,
-                    'gameState.round': newRound,
-                    'gameState.player1Time': null,
-                    'gameState.player2Time': null,
-                    'gameState.currentState': newRound > gameState.maxRounds ? 'completed' : 'waiting'
+                const gameStateUpdateData = {
+                    'player1Score': newScore1,
+                    'player2Score': newScore2,
+                    'round': newRound,
+                    'player1Time': null,
+                    'player2Time': null,
+                    'currentState': newRound > gameState.maxRounds ? 'completed' : 'waiting'
                 };
                 
-                if (newRound > gameState.maxRounds) {
-                    updateData.status = 'completed';
-                    updateData.winner = newScore1 > newScore2 ? 'player1' : newScore2 > newScore1 ? 'player2' : 'tie';
-                }
+                await realtimeDb.ref(`game-rooms/${roomId}/gameState`).update(gameStateUpdateData);
                 
-                await db.collection('game-rooms').doc(roomId).update(updateData);
+                if (newRound > gameState.maxRounds) {
+                    await realtimeDb.ref(`game-rooms/${roomId}`).update({
+                        status: 'completed',
+                        winner: newScore1 > newScore2 ? 'player1' : newScore2 > newScore1 ? 'player2' : 'tie'
+                    });
+                }
                 
             } catch (error) {
                 console.error('Error processing reaction round:', error);
@@ -2342,7 +2514,20 @@
         }
 
         // Racing Game Implementation
-        // racingKeys and racingUpdateInterval are already declared above
+        async function setupRacingListeners(roomId) {
+            const gameStateRef = realtimeDb.ref(`game-rooms/${roomId}/gameState`);
+            gameStateRef.on('value', (snapshot) => {
+                if (snapshot.exists()) {
+                    const gameState = snapshot.val();
+                    if (currentGameData) {
+                        currentGameData.gameState = gameState;
+                        if (window.updateRacingScores) {
+                            window.updateRacingScores(currentGameData);
+                        }
+                    }
+                }
+            });
+        }
         
         function startRacingGame(roomData, roomId) {
             currentGameData = roomData;
@@ -2537,17 +2722,25 @@
                 
                 // Update Firebase with throttling - optimized for better network performance
                 if (!updateRacingGame.lastUpdate || Date.now() - updateRacingGame.lastUpdate > 100) {
-                    const updateData = {};
-                    updateData[`gameState.${isPlayer1 ? 'player1' : 'player2'}`] = player;
-                    updateData['lastActivity'] = firebase.firestore.FieldValue.serverTimestamp();
+                    const gameStateUpdateData = {};
+                    gameStateUpdateData[`${isPlayer1 ? 'player1' : 'player2'}`] = player;
+                    
+                    // Update game state in realtime database
+                    realtimeDb.ref(`game-rooms/${roomId}/gameState`).update(gameStateUpdateData).catch(console.error);
+                    
+                    // Update room activity
+                    realtimeDb.ref(`game-rooms/${roomId}`).update({
+                        lastActivity: firebase.database.ServerValue.TIMESTAMP
+                    }).catch(console.error);
                     
                     // Check for winner
                     if (player.laps >= gameState.maxLaps) {
-                        updateData['status'] = 'completed';
-                        updateData['winner'] = isPlayer1 ? 'player1' : 'player2';
+                        realtimeDb.ref(`game-rooms/${roomId}`).update({
+                            status: 'completed',
+                            winner: isPlayer1 ? 'player1' : 'player2'
+                        }).catch(console.error);
                     }
                     
-                    db.collection('game-rooms').doc(roomId).update(updateData).catch(console.error);
                     updateRacingGame.lastUpdate = Date.now();
                 }
                 
@@ -2807,8 +3000,8 @@
                     if (pongRoomRef) {
                         await leavePongRoom();
                     }
-                    // Handle regular game room
-                    else if (db) {
+                    // Handle regular game room (all games now use realtime database)
+                    else {
                         await leaveRegularRoom();
                     }
                 } catch (error) {
@@ -2857,9 +3050,9 @@
 
         async function leaveRegularRoom() {
             try {
-                const roomDoc = await db.collection('game-rooms').doc(currentRoom).get();
-                if (roomDoc.exists) {
-                    const roomData = roomDoc.data();
+                const roomSnapshot = await realtimeDb.ref(`game-rooms/${currentRoom}`).once('value');
+                if (roomSnapshot.exists()) {
+                    const roomData = roomSnapshot.val();
                     const isHost = roomData.hostId === currentUser.uid;
                     
                     console.log('🚪 Room status:', roomData.status, 'Is host:', isHost);
@@ -2867,14 +3060,14 @@
                     if (isHost && roomData.status === 'waiting') {
                         // Host leaves before game starts - delete room
                         console.log('🗑️ Host deleting room');
-                        await db.collection('game-rooms').doc(currentRoom).delete();
+                        await realtimeDb.ref(`game-rooms/${currentRoom}`).remove();
                     } else if (roomData.status === 'playing' || roomData.status === 'waiting') {
                         // Player leaves during game or waiting - mark as disconnected
                         const updateData = {
                             status: 'completed',
                             disconnectedPlayer: currentUser.uid,
-                            disconnectedAt: firebase.firestore.FieldValue.serverTimestamp(),
-                            lastActivity: firebase.firestore.FieldValue.serverTimestamp()
+                            disconnectedAt: firebase.database.ServerValue.TIMESTAMP,
+                            lastActivity: firebase.database.ServerValue.TIMESTAMP
                         };
                         
                         // Determine winner if game was in progress
@@ -2883,12 +3076,12 @@
                             console.log('🏆 Game ended due to disconnect, winner:', updateData.winner);
                         }
                         
-                        await db.collection('game-rooms').doc(currentRoom).update(updateData);
+                        await realtimeDb.ref(`game-rooms/${currentRoom}`).update(updateData);
                     } else if (roomData.status === 'completed') {
                         // Game already completed, just clean up
                         console.log('🧹 Cleaning up completed game');
                         setTimeout(() => {
-                            db.collection('game-rooms').doc(currentRoom).delete().catch(console.error);
+                            realtimeDb.ref(`game-rooms/${currentRoom}`).remove().catch(console.error);
                         }, 5000); // Delete after 5 seconds
                     }
                 } else {
