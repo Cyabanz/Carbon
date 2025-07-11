@@ -781,9 +781,18 @@
                     return;
                 }
 
+                // Enhanced guest name resolution with better fallback
+                const guestName = currentUser.displayName || currentUser.email || currentUser.uid || 'Player';
+                console.log('🎯 Setting guest name for pong room:', {
+                    displayName: currentUser.displayName,
+                    email: currentUser.email,
+                    uid: currentUser.uid,
+                    resolvedName: guestName
+                });
+
                 await realtimeDb.ref(`pong-rooms/${roomId}`).update({
                     guestId: currentUser.uid,
-                    guestName: currentUser.displayName || currentUser.email || 'Player',
+                    guestName: guestName,
                     guestPhoto: currentUser.photoURL || '',
                     lastActivity: firebase.database.ServerValue.TIMESTAMP
                     // Note: Keep status as 'waiting' so host can see guest join
@@ -1851,10 +1860,13 @@
             
             const guestSlot = document.getElementById('guest-slot');
             if (guestSlot && roomData.guestName) {
-                // Force name display with fallback handling
-                const displayName = roomData.guestName !== 'guest' && roomData.guestName !== 'Guest' 
+                // Enhanced name display with better fallback handling
+                const displayName = roomData.guestName && 
+                                  roomData.guestName !== 'guest' && 
+                                  roomData.guestName !== 'Guest' && 
+                                  roomData.guestName !== 'undefined'
                     ? roomData.guestName 
-                    : (currentUser?.displayName || currentUser?.email || 'Player 2');
+                    : (currentUser?.displayName || currentUser?.email || currentUser?.uid || 'Player 2');
                 
                 guestSlot.innerHTML = `
                     <div class="flex items-center gap-3">
@@ -4262,6 +4274,15 @@
 
         function handlePongRoomUpdate(roomData, roomId) {
             console.log('🏓 Pong room update:', roomData.status, 'Host:', roomData.hostName, 'Guest:', roomData.guestName);
+            console.log('🔍 Full room data debug:', {
+                status: roomData.status,
+                hostId: roomData.hostId,
+                hostName: roomData.hostName,
+                guestId: roomData.guestId,
+                guestName: roomData.guestName,
+                hasGuestName: roomData.guestName !== undefined,
+                guestNameType: typeof roomData.guestName
+            });
             
             // Update current game data
             currentGameData = roomData;
@@ -4309,6 +4330,25 @@
             // Handle guest joining
             if (roomData.status === 'waiting' && roomData.guestId) {
                 console.log('🎯 Guest joined, updating lobby');
+                
+                // Fix undefined guest name by updating database if needed
+                if (!roomData.guestName || roomData.guestName === 'undefined') {
+                    console.log('⚠️ Guest name is undefined, fixing it...');
+                    // If we're the guest and our name is missing, fix it
+                    if (roomData.guestId === currentUser.uid) {
+                        const fixedName = currentUser.displayName || currentUser.email || currentUser.uid || 'Player';
+                        realtimeDb.ref(`pong-rooms/${roomId}`).update({
+                            guestName: fixedName
+                        }).then(() => {
+                            console.log('✅ Fixed guest name to:', fixedName);
+                        }).catch(console.error);
+                        
+                        // Update local data immediately for UI
+                        roomData.guestName = fixedName;
+                        currentGameData.guestName = fixedName;
+                    }
+                }
+                
                 updateLobbyWithGuest(roomData);
                 // Note: updateLobbyWithGuest handles auto-starting the game for the host
             }
