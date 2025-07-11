@@ -568,7 +568,13 @@
             try {
                 winnerScreenShown = false;
                 
-                // All games now use Realtime Database
+                // Handle ping pong with its dedicated system
+                if (gameType === 'pong') {
+                    await createPongRoom();
+                    return;
+                }
+                
+                // Other games use unified Realtime Database system
                 await createRealtimeRoom(gameType);
                 
             } catch (error) {
@@ -633,7 +639,7 @@
         // Ping Pong Realtime Database Functions
         async function createPongRoom() {
             try {
-                const roomId = realtimeDb.ref('pong-rooms').push().key;
+                const roomId = realtimeDb.ref().push().key;
                 const roomData = {
                     gameType: 'pong',
                     hostId: currentUser.uid,
@@ -689,6 +695,7 @@
                     guestId: currentUser.uid,
                     guestName: currentUser.displayName || currentUser.email || 'Player',
                     guestPhoto: currentUser.photoURL || '',
+                    status: 'playing',
                     lastActivity: firebase.database.ServerValue.TIMESTAMP
                 });
 
@@ -1051,7 +1058,8 @@
         async function setupGameSpecificListeners(roomId, gameType) {
             switch (gameType) {
                 case 'pong':
-                    await setupPongListeners(roomId);
+                    // Ping pong uses separate system - no additional listeners needed
+                    // The pong system handles its own listeners in setupPongRoom
                     break;
                 case 'typing':
                     await setupTypingListeners(roomId);
