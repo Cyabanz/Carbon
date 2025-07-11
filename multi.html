@@ -870,6 +870,7 @@
                         winner: null
                     };
                 case 'reaction':
+                    // Enhanced reaction game state with proper initialization
                     return {
                         round: 1,
                         maxRounds: 5,
@@ -878,7 +879,12 @@
                         currentState: 'waiting',
                         changeTime: null,
                         player1Time: null,
-                        player2Time: null
+                        player2Time: null,
+                        gameStarted: false,
+                        hostReady: false,
+                        guestReady: false,
+                        lastRoundTime: null,
+                        roundStartedAt: null
                     };
                 case 'racing':
                     return {
@@ -1471,8 +1477,15 @@
         function initializeGameInLobby(roomData, roomId) {
             console.log('🎮 Initializing game in lobby:', roomData.gameType, 'for player:', currentUser.uid === roomData.hostId ? 'Host' : 'Guest');
             
-            // Ensure currentGameData is set
-            currentGameData = roomData;
+            // Enhanced currentGameData setting with name validation
+            currentGameData = {
+                ...roomData,
+                // Ensure proper names are set - fix guest display issue
+                hostName: roomData.hostName || currentGameData?.hostName || 'Host',
+                guestName: roomData.guestName && roomData.guestName !== 'guest' && roomData.guestName !== 'Guest' 
+                    ? roomData.guestName 
+                    : (currentGameData?.guestName || 'Player 2')
+            };
             
             // Update lobby content to show game is starting
             const lobbyContent = document.getElementById('lobby-content');
@@ -1487,45 +1500,105 @@
                 gameStatus.innerHTML = '<span class="text-foam">Game starting...</span>';
             }
             
-            console.log('✅ Creating game container...');
+            // Force update guest slot with correct name before game starts
+            const guestSlot = document.getElementById('guest-slot');
+            if (guestSlot && currentGameData.guestName) {
+                guestSlot.innerHTML = `
+                    <div class="flex items-center gap-3">
+                        ${currentGameData.guestPhoto ? 
+                            `<img src="${currentGameData.guestPhoto}" class="w-10 h-10 rounded-full border-2 border-iris">` :
+                            `<div class="w-10 h-10 rounded-full border-2 border-iris bg-iris/20 flex items-center justify-center">
+                                <i class="bx bx-user text-iris"></i>
+                            </div>`
+                        }
+                        <div class="flex-1">
+                            <div class="font-semibold text-text">${currentGameData.guestName}</div>
+                            <div class="text-xs text-iris">Guest (Player 2)</div>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            console.log('✅ Creating game container with correct player names...');
             lobbyContent.innerHTML = `
                 <div id="game-container" class="w-full h-full flex flex-col items-center justify-center">
                     <div class="text-center mb-4">
                         <h3 class="text-2xl font-bold text-foam mb-2">Game Started!</h3>
-                        <p class="text-muted">${getGameDisplayName(roomData.gameType)} is now in progress</p>
+                        <p class="text-muted">${getGameDisplayName(currentGameData.gameType)} is now in progress</p>
                         <p class="text-xs text-muted mt-2">
-                            Host: ${roomData.hostName} vs Guest: ${roomData.guestName}
+                            Host: ${currentGameData.hostName} vs Guest: ${currentGameData.guestName}
                         </p>
                     </div>
                     <div id="game-area-content" class="w-full flex-1 flex items-center justify-center min-h-[400px]">
                         <div class="flex items-center justify-center">
                             <div class="spinner mr-3"></div>
-                            <span class="text-muted">Loading ${getGameDisplayName(roomData.gameType)}...</span>
+                            <span class="text-muted">Loading ${getGameDisplayName(currentGameData.gameType)}...</span>
                         </div>
                     </div>
                 </div>
             `;
             
-            // Wait a moment for DOM to be ready, then initialize the specific game
+            // Enhanced game initialization with proper error handling
             setTimeout(() => {
                 const gameAreaContent = document.getElementById('game-area-content');
                 if (!gameAreaContent) {
                     console.error('❌ Game area content element not found after creation!');
+                    showNotification('Error', 'Failed to initialize game UI', 'error');
                     return;
                 }
-                console.log('✅ Game area content found, starting game:', roomData.gameType);
-                startGame(roomData, roomId);
+                
+                // Validate game state before starting
+                if (!currentGameData.gameState) {
+                    console.error('❌ Missing game state for game type:', currentGameData.gameType);
+                    gameAreaContent.innerHTML = `
+                        <div class="text-center text-love">
+                            <h3 class="text-xl font-bold mb-4">Game Error</h3>
+                            <p>Game state is missing. Please try starting a new game.</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                console.log('✅ Game area content found, starting game:', currentGameData.gameType);
+                console.log('✅ Player names confirmed - Host:', currentGameData.hostName, 'Guest:', currentGameData.guestName);
+                
+                try {
+                    startGame(currentGameData, roomId);
+                } catch (error) {
+                    console.error('❌ Error starting game:', error);
+                    gameAreaContent.innerHTML = `
+                        <div class="text-center text-love">
+                            <h3 class="text-xl font-bold mb-4">Game Error</h3>
+                            <p>Failed to start game: ${error.message}</p>
+                            <button onclick="backToSelection()" class="mt-4 px-4 py-2 bg-love hover:bg-love/80 text-white rounded-lg">
+                                Back to Games
+                            </button>
+                        </div>
+                    `;
+                    showNotification('Error', 'Failed to start game', 'error');
+                }
             }, 100);
         }
 
         function updateLobbyWithGuest(roomData) {
             console.log('🎯 Updating lobby with guest:', roomData.guestName, 'Host:', roomData.hostName);
             
-            // Ensure currentGameData is set for both players
-            currentGameData = roomData;
+            // Ensure currentGameData is set for both players and force name update
+            currentGameData = {
+                ...currentGameData,
+                ...roomData,
+                // Force update names to prevent "guest" showing
+                hostName: roomData.hostName || currentGameData?.hostName || 'Host',
+                guestName: roomData.guestName || currentGameData?.guestName || 'Guest'
+            };
             
             const guestSlot = document.getElementById('guest-slot');
             if (guestSlot && roomData.guestName) {
+                // Force name display with fallback handling
+                const displayName = roomData.guestName !== 'guest' && roomData.guestName !== 'Guest' 
+                    ? roomData.guestName 
+                    : (currentUser?.displayName || currentUser?.email || 'Player 2');
+                
                 guestSlot.innerHTML = `
                     <div class="flex items-center gap-3">
                         ${roomData.guestPhoto ? 
@@ -1535,7 +1608,7 @@
                             </div>`
                         }
                         <div class="flex-1">
-                            <div class="font-semibold text-text">${roomData.guestName}</div>
+                            <div class="font-semibold text-text">${displayName}</div>
                             <div class="text-xs text-iris">Guest (Player 2)</div>
                         </div>
                     </div>
@@ -1549,20 +1622,44 @@
                     gameStatus.innerHTML = '<span class="text-foam">Both players connected!</span>';
                 }
                 
-                // Start game automatically when both players are ready (only host triggers)
+                // Enhanced game start logic - ensure both players see correct names
                 if (roomData.hostId === currentUser.uid && roomData.guestId && roomData.status === 'waiting') {
                     console.log('🚀 Host starting game automatically - both players ready');
+                    
+                    // Update names in database before starting game to prevent display issues
+                    const nameUpdate = {
+                        hostName: roomData.hostName || currentGameData.hostName,
+                        guestName: displayName, // Use the properly resolved name
+                        status: 'playing',
+                        gameStartedAt: firebase.firestore ? firebase.firestore.FieldValue.serverTimestamp() : firebase.database.ServerValue.TIMESTAMP,
+                        lastActivity: firebase.firestore ? firebase.firestore.FieldValue.serverTimestamp() : firebase.database.ServerValue.TIMESTAMP
+                    };
+                    
                     setTimeout(() => {
-                        db.collection('game-rooms').doc(currentRoom).update({
-                            status: 'playing',
-                            gameStartedAt: firebase.firestore.FieldValue.serverTimestamp(),
-                            lastActivity: firebase.firestore.FieldValue.serverTimestamp()
-                        }).then(() => {
-                            console.log('✅ Game status updated to playing');
-                        }).catch(error => {
-                            console.error('❌ Error starting game:', error);
-                        });
-                    }, 1500); // Reduced delay for faster start
+                        // Use appropriate database based on game type
+                        if (roomData.gameType === 'pong') {
+                            realtimeDb.ref(`pong-rooms/${currentRoom}`).update(nameUpdate).then(() => {
+                                console.log('✅ Pong game status updated to playing with correct names');
+                            }).catch(error => {
+                                console.error('❌ Error starting pong game:', error);
+                            });
+                        } else {
+                            const updateRef = db ? db.collection('game-rooms').doc(currentRoom) : realtimeDb.ref(`game-rooms/${currentRoom}`);
+                            if (db) {
+                                updateRef.update(nameUpdate).then(() => {
+                                    console.log('✅ Firestore game status updated to playing with correct names');
+                                }).catch(error => {
+                                    console.error('❌ Error starting firestore game:', error);
+                                });
+                            } else {
+                                updateRef.update(nameUpdate).then(() => {
+                                    console.log('✅ Realtime DB game status updated to playing with correct names');
+                                }).catch(error => {
+                                    console.error('❌ Error starting realtime game:', error);
+                                });
+                            }
+                        }
+                    }, 1000); // Slight delay to ensure name propagation
                 }
             }
         }
@@ -2445,29 +2542,55 @@
             // Create UI once
             createReactionUI(gameAreaContent, currentGameData, isPlayer1);
             
-            // Attach event listener once
+            // Enhanced event listener setup with proper debouncing
             setTimeout(() => {
                 const zone = document.getElementById('reaction-zone');
                 if (zone) {
-                    // Mouse/desktop click support
-                    zone.addEventListener('click', () => {
-                        handleReactionClick(roomId, isPlayer1);
-                    });
+                    // Remove any existing event listeners to prevent duplicates
+                    const existingClickHandler = zone.clickHandler;
+                    const existingTouchHandler = zone.touchHandler;
+                    const existingContextHandler = zone.contextHandler;
                     
-                    // Touch support for mobile
-                    zone.addEventListener('touchstart', (e) => {
-                        e.preventDefault(); // Prevent mouse click from firing
-                        handleReactionClick(roomId, isPlayer1);
-                    });
+                    if (existingClickHandler) {
+                        zone.removeEventListener('click', existingClickHandler);
+                    }
+                    if (existingTouchHandler) {
+                        zone.removeEventListener('touchstart', existingTouchHandler);
+                    }
+                    if (existingContextHandler) {
+                        zone.removeEventListener('contextmenu', existingContextHandler);
+                    }
                     
-                    // Prevent context menu on long press
-                    zone.addEventListener('contextmenu', (e) => {
+                    // Create new handlers with proper debouncing
+                    const clickHandler = (e) => {
                         e.preventDefault();
-                    });
+                        handleReactionClick(roomId, isPlayer1);
+                    };
+                    
+                    const touchHandler = (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleReactionClick(roomId, isPlayer1);
+                    };
+                    
+                    const contextHandler = (e) => {
+                        e.preventDefault();
+                    };
+                    
+                    // Add new event listeners
+                    zone.addEventListener('click', clickHandler);
+                    zone.addEventListener('touchstart', touchHandler);
+                    zone.addEventListener('contextmenu', contextHandler);
+                    
+                    // Store handlers for cleanup
+                    zone.clickHandler = clickHandler;
+                    zone.touchHandler = touchHandler;
+                    zone.contextHandler = contextHandler;
                 }
                 
                 // Host controls game flow
                 if (isPlayer1) {
+                    console.log('Host initializing reaction game flow');
                     handleReactionFlow(roomId, currentGameData.gameState);
                 }
             }, 100);
@@ -2583,101 +2706,296 @@
         }
 
         function handleReactionClick(roomId, isPlayer1) {
-            if (!currentGameData || !currentGameData.gameState) {
+            // Enhanced validation and debouncing
+            if (!currentGameData || !currentGameData.gameState || !roomId) {
+                console.warn('Invalid game state for reaction click:', { currentGameData, roomId });
                 return;
             }
             
             const gameState = currentGameData.gameState;
             const now = Date.now();
             
+            // Prevent double clicks and ensure game is active
+            if (currentGameData.status !== 'playing') {
+                console.warn('Game not in playing state:', currentGameData.status);
+                return;
+            }
+            
+            // Check if this player has already responded this round
+            const playerTimeKey = isPlayer1 ? 'player1Time' : 'player2Time';
+            if (gameState[playerTimeKey] !== null && gameState[playerTimeKey] !== undefined) {
+                console.warn('Player already responded this round');
+                return;
+            }
+            
+            // Add debouncing to prevent rapid clicks
+            const clickKey = `lastClick_${isPlayer1 ? 'p1' : 'p2'}`;
+            if (window[clickKey] && now - window[clickKey] < 100) {
+                console.warn('Click too rapid, ignoring');
+                return;
+            }
+            window[clickKey] = now;
+            
             if (gameState.currentState === 'waiting') {
-                // Too early
+                // Too early penalty
+                console.log('Player clicked too early');
                 const updateData = {};
-                updateData[`${isPlayer1 ? 'player1' : 'player2'}Time`] = -1;
+                updateData[playerTimeKey] = -1;
                 updateData['currentState'] = 'early';
-                realtimeDb.ref(`game-rooms/${roomId}/gameState`).update(updateData).catch(console.error);
+                
+                realtimeDb.ref(`game-rooms/${roomId}/gameState`).update(updateData).catch(error => {
+                    console.error('Failed to update early click:', error);
+                    showNotification('Error', 'Failed to register click', 'error');
+                });
                 
                 // Update room activity
                 realtimeDb.ref(`game-rooms/${roomId}`).update({
                     lastActivity: firebase.database.ServerValue.TIMESTAMP
                 }).catch(console.error);
-            } else if (gameState.currentState === 'go') {
-                // Valid reaction
-                const reactionTime = now - gameState.changeTime;
+                
+            } else if (gameState.currentState === 'go' && gameState.changeTime) {
+                // Valid reaction - calculate time
+                const reactionTime = Math.max(1, now - gameState.changeTime); // Minimum 1ms to prevent 0ms cheating
+                
+                console.log(`Player ${isPlayer1 ? 1 : 2} reaction time:`, reactionTime + 'ms');
+                
                 const updateData = {};
-                updateData[`${isPlayer1 ? 'player1' : 'player2'}Time`] = reactionTime;
-                realtimeDb.ref(`game-rooms/${roomId}/gameState`).update(updateData).catch(console.error);
+                updateData[playerTimeKey] = reactionTime;
+                
+                realtimeDb.ref(`game-rooms/${roomId}/gameState`).update(updateData).catch(error => {
+                    console.error('Failed to update reaction time:', error);
+                    showNotification('Error', 'Failed to register reaction time', 'error');
+                });
                 
                 // Update room activity
                 realtimeDb.ref(`game-rooms/${roomId}`).update({
                     lastActivity: firebase.database.ServerValue.TIMESTAMP
                 }).catch(console.error);
+                
+            } else {
+                console.warn('Invalid game state for click:', gameState.currentState);
             }
         }
 
         function handleReactionFlow(roomId, gameState) {
-            if (gameState.currentState === 'waiting' && !gameState.player1Time && !gameState.player2Time) {
-                // Start countdown for next round
-                if (reactionTimeout) clearTimeout(reactionTimeout);
+            // Enhanced validation and state management
+            if (!roomId || !gameState || !currentGameData) {
+                console.error('Invalid parameters for reaction flow:', { roomId, gameState, currentGameData });
+                return;
+            }
+            
+            // Only host should control the reaction flow to prevent conflicts
+            const isHost = currentGameData.hostId === currentUser.uid;
+            if (!isHost) {
+                console.log('Guest player - skipping reaction flow control');
+                return;
+            }
+            
+            // Ensure game is still active
+            if (currentGameData.status !== 'playing') {
+                console.log('Game no longer active, stopping reaction flow');
+                if (reactionTimeout) {
+                    clearTimeout(reactionTimeout);
+                    reactionTimeout = null;
+                }
+                return;
+            }
+            
+            console.log('Reaction flow state:', gameState.currentState, 'Round:', gameState.round);
+            
+            if (gameState.currentState === 'waiting' && 
+                (gameState.player1Time === null || gameState.player1Time === undefined) && 
+                (gameState.player2Time === null || gameState.player2Time === undefined)) {
                 
-                const delay = Math.random() * 3000 + 2000; // 2-5 seconds
+                // Start countdown for next round
+                console.log('Starting reaction timer for round', gameState.round);
+                
+                // Clear any existing timeout to prevent race conditions
+                if (reactionTimeout) {
+                    clearTimeout(reactionTimeout);
+                    reactionTimeout = null;
+                }
+                
+                const delay = Math.random() * 3000 + 2000; // 2-5 seconds random delay
+                console.log('Reaction delay set to:', delay + 'ms');
+                
                 reactionTimeout = setTimeout(() => {
-                    realtimeDb.ref(`game-rooms/${roomId}/gameState`).update({
-                        'currentState': 'go',
-                        'changeTime': Date.now()
-                    }).catch(console.error);
+                    // Double-check game is still active before updating
+                    if (currentGameData && currentGameData.status === 'playing') {
+                        console.log('Triggering GO state for reaction game');
+                        realtimeDb.ref(`game-rooms/${roomId}/gameState`).update({
+                            'currentState': 'go',
+                            'changeTime': Date.now()
+                        }).catch(error => {
+                            console.error('Failed to update game state to GO:', error);
+                            showNotification('Error', 'Game state update failed', 'error');
+                        });
+                    } else {
+                        console.log('Game no longer active, skipping GO state');
+                    }
+                    reactionTimeout = null;
                 }, delay);
-            } else if (gameState.currentState === 'results' || 
-                     (gameState.player1Time !== null && gameState.player2Time !== null)) {
-                // Both players have responded, process results
+                
+            } else if (gameState.currentState === 'early') {
+                // Handle early click state - wait before processing
+                console.log('Handling early click state');
                 setTimeout(() => {
-                    processReactionRound(roomId, gameState);
-                }, 2000);
+                    if (currentGameData && currentGameData.status === 'playing') {
+                        processReactionRound(roomId, gameState);
+                    }
+                }, 1500);
+                
+            } else if (gameState.currentState === 'go' || gameState.currentState === 'results' || 
+                     (gameState.player1Time !== null && gameState.player2Time !== null)) {
+                
+                // Both players have responded OR we're in results state, process results
+                console.log('Processing reaction results - both players responded');
+                
+                // Clear any pending timeout since round is complete
+                if (reactionTimeout) {
+                    clearTimeout(reactionTimeout);
+                    reactionTimeout = null;
+                }
+                
+                setTimeout(() => {
+                    if (currentGameData && currentGameData.status === 'playing') {
+                        processReactionRound(roomId, gameState);
+                    }
+                }, 1500); // Give time for UI updates
             }
         }
 
         async function processReactionRound(roomId, gameState) {
             try {
+                // Enhanced validation and safety checks
+                if (!roomId || !gameState || !currentGameData) {
+                    console.error('Invalid parameters for processing reaction round');
+                    return;
+                }
+                
+                // Only host should process rounds to prevent conflicts
+                const isHost = currentGameData.hostId === currentUser.uid;
+                if (!isHost) {
+                    console.log('Guest player - skipping round processing');
+                    return;
+                }
+                
+                // Ensure game is still active
+                if (currentGameData.status !== 'playing') {
+                    console.log('Game no longer active - stopping round processing');
+                    return;
+                }
+                
+                console.log('Processing reaction round:', gameState.round, 'Times:', gameState.player1Time, gameState.player2Time);
+                
                 let player1Won = false;
                 let player2Won = false;
                 
-                // Determine round winner
-                if (gameState.player1Time === -1 && gameState.player2Time === -1) {
-                    // Both too early, no one wins
-                } else if (gameState.player1Time === -1) {
-                    player2Won = true;
-                } else if (gameState.player2Time === -1) {
-                    player1Won = true;
-                } else if (gameState.player1Time < gameState.player2Time) {
-                    player1Won = true;
-                } else {
-                    player2Won = true;
+                // Enhanced winner determination logic
+                const p1Time = gameState.player1Time;
+                const p2Time = gameState.player2Time;
+                
+                // Validate times exist
+                if (p1Time === null || p1Time === undefined || p2Time === null || p2Time === undefined) {
+                    console.log('Waiting for both players to respond...');
+                    return; // Don't process until both players respond
                 }
                 
-                const newScore1 = gameState.player1Score + (player1Won ? 1 : 0);
-                const newScore2 = gameState.player2Score + (player2Won ? 1 : 0);
-                const newRound = gameState.round + 1;
+                // Determine round winner with enhanced logic
+                if (p1Time === -1 && p2Time === -1) {
+                    // Both too early, no one wins
+                    console.log('Both players clicked too early - no winner');
+                } else if (p1Time === -1 && p2Time > 0) {
+                    // Player 1 too early, Player 2 wins
+                    player2Won = true;
+                    console.log('Player 1 too early, Player 2 wins');
+                } else if (p2Time === -1 && p1Time > 0) {
+                    // Player 2 too early, Player 1 wins
+                    player1Won = true;
+                    console.log('Player 2 too early, Player 1 wins');
+                } else if (p1Time > 0 && p2Time > 0) {
+                    // Both valid times - faster time wins
+                    if (p1Time < p2Time) {
+                        player1Won = true;
+                        console.log(`Player 1 wins with ${p1Time}ms vs ${p2Time}ms`);
+                    } else if (p2Time < p1Time) {
+                        player2Won = true;
+                        console.log(`Player 2 wins with ${p2Time}ms vs ${p1Time}ms`);
+                    } else {
+                        // Extremely rare tie case
+                        console.log('Exact tie - no winner');
+                    }
+                } else {
+                    console.warn('Unexpected time values:', { p1Time, p2Time });
+                }
                 
+                // Calculate new scores with bounds checking
+                const currentScore1 = Math.max(0, gameState.player1Score || 0);
+                const currentScore2 = Math.max(0, gameState.player2Score || 0);
+                const newScore1 = currentScore1 + (player1Won ? 1 : 0);
+                const newScore2 = currentScore2 + (player2Won ? 1 : 0);
+                const newRound = (gameState.round || 1) + 1;
+                const maxRounds = gameState.maxRounds || 5;
+                
+                console.log('Score update:', { currentScore1, currentScore2, newScore1, newScore2, newRound, maxRounds });
+                
+                // Prepare game state update
                 const gameStateUpdateData = {
                     'player1Score': newScore1,
                     'player2Score': newScore2,
                     'round': newRound,
                     'player1Time': null,
                     'player2Time': null,
-                    'currentState': newRound > gameState.maxRounds ? 'completed' : 'waiting'
+                    'currentState': newRound > maxRounds ? 'completed' : 'waiting',
+                    'changeTime': null // Reset change time
                 };
                 
+                // Update game state
                 await realtimeDb.ref(`game-rooms/${roomId}/gameState`).update(gameStateUpdateData);
                 
-                if (newRound > gameState.maxRounds) {
+                // Check if game is complete
+                if (newRound > maxRounds) {
+                    console.log('Game completed! Final scores:', newScore1, newScore2);
+                    
+                    // Determine overall winner
+                    let overallWinner = 'tie';
+                    let winnerName = 'Tie Game';
+                    
+                    if (newScore1 > newScore2) {
+                        overallWinner = 'player1';
+                        winnerName = currentGameData.hostName || 'Player 1';
+                    } else if (newScore2 > newScore1) {
+                        overallWinner = 'player2';
+                        winnerName = currentGameData.guestName || 'Player 2';
+                    }
+                    
+                    // Update room status to completed
                     await realtimeDb.ref(`game-rooms/${roomId}`).update({
                         status: 'completed',
-                        winner: newScore1 > newScore2 ? 'player1' : newScore2 > newScore1 ? 'player2' : 'tie'
+                        winner: overallWinner,
+                        winnerName: winnerName,
+                        finalScore1: newScore1,
+                        finalScore2: newScore2,
+                        completedAt: firebase.database.ServerValue.TIMESTAMP
                     });
+                    
+                    console.log('✅ Reaction game completed:', winnerName, 'wins!');
                 }
                 
             } catch (error) {
                 console.error('Error processing reaction round:', error);
+                showNotification('Error', 'Failed to process round results', 'error');
+                
+                // Try to reset round state on error
+                try {
+                    await realtimeDb.ref(`game-rooms/${roomId}/gameState`).update({
+                        'player1Time': null,
+                        'player2Time': null,
+                        'currentState': 'waiting'
+                    });
+                } catch (resetError) {
+                    console.error('Failed to reset round state:', resetError);
+                }
             }
         }
 
@@ -4177,6 +4495,161 @@
         // Auto-cleanup disabled to avoid permission issues
         // Rooms will be cleaned up when players leave or disconnect
         // setInterval(cleanupExpiredPongRooms, 2 * 60 * 1000);
+
+        // Enhanced error monitoring and recovery
+        let gameErrorCount = 0;
+        let lastGameError = 0;
+        
+        function recordGameError(error, context) {
+            gameErrorCount++;
+            lastGameError = Date.now();
+            
+            console.error(`Game Error #${gameErrorCount} in ${context}:`, error);
+            
+            // Show user-friendly notification based on error type
+            if (error.code === 'permission-denied') {
+                showNotification('Permission Error', 'Game access denied. Please refresh and try again.', 'error');
+            } else if (error.code === 'unavailable') {
+                showNotification('Connection Error', 'Game server temporarily unavailable.', 'error');
+            } else if (error.code === 'resource-exhausted') {
+                showNotification('Server Overloaded', 'Too many players online. Please try again later.', 'error');
+            } else {
+                showNotification('Game Error', 'An error occurred. The game will attempt to recover.', 'warning');
+            }
+            
+            // Auto-recovery for certain error types
+            if (gameErrorCount >= 3 && Date.now() - lastGameError < 10000) {
+                console.log('Too many game errors, initiating auto-recovery...');
+                autoRecoverGame();
+            }
+        }
+        
+        function autoRecoverGame() {
+            try {
+                // Clean up current game state
+                if (currentRoom) {
+                    leaveRoom();
+                }
+                
+                // Reset error counter after recovery
+                setTimeout(() => {
+                    gameErrorCount = 0;
+                    showNotification('Recovery Complete', 'Game system has been reset.', 'success');
+                }, 2000);
+                
+            } catch (error) {
+                console.error('Auto-recovery failed:', error);
+                showNotification('Recovery Failed', 'Please refresh the page to continue.', 'error');
+            }
+        }
+        
+        // Enhanced touch controls for mobile reaction game
+        function setupMobileOptimizations() {
+            // Prevent zooming on touch games
+            document.addEventListener('touchstart', (e) => {
+                if (e.touches.length > 1) {
+                    e.preventDefault();
+                }
+            }, { passive: false });
+            
+            document.addEventListener('touchend', (e) => {
+                if (e.touches.length > 1) {
+                    e.preventDefault();
+                }
+            }, { passive: false });
+            
+            // Prevent context menu on long press for game elements
+            document.addEventListener('contextmenu', (e) => {
+                if (e.target.closest('#reaction-zone') || 
+                    e.target.closest('#pong-canvas') || 
+                    e.target.closest('#racing-canvas')) {
+                    e.preventDefault();
+                }
+            });
+            
+            // Add visual feedback for touch devices
+            if ('ontouchstart' in window) {
+                document.body.classList.add('touch-device');
+                
+                // Add CSS for touch feedback
+                const style = document.createElement('style');
+                style.textContent = `
+                    .touch-device button:active,
+                    .touch-device .cursor-pointer:active {
+                        transform: scale(0.95);
+                        transition: transform 0.1s ease;
+                    }
+                    
+                    .touch-device #reaction-zone:active {
+                        transform: scale(0.98);
+                        transition: transform 0.1s ease;
+                    }
+                `;
+                document.head.appendChild(style);
+            }
+        }
+        
+        // Initialize mobile optimizations
+        setupMobileOptimizations();
+        
+        // Performance monitoring
+        let performanceMetrics = {
+            gameStartTime: null,
+            frameDrops: 0,
+            lastFrameTime: 0,
+            avgFrameTime: 0,
+            frameCount: 0
+        };
+        
+        function monitorPerformance() {
+            const now = performance.now();
+            if (performanceMetrics.lastFrameTime > 0) {
+                const frameTime = now - performanceMetrics.lastFrameTime;
+                performanceMetrics.avgFrameTime = (performanceMetrics.avgFrameTime * performanceMetrics.frameCount + frameTime) / (performanceMetrics.frameCount + 1);
+                performanceMetrics.frameCount++;
+                
+                // Detect frame drops (>33ms = below 30 FPS)
+                if (frameTime > 33) {
+                    performanceMetrics.frameDrops++;
+                }
+                
+                // Warn if performance is poor
+                if (performanceMetrics.frameCount > 100 && performanceMetrics.avgFrameTime > 25) {
+                    console.warn('Poor game performance detected. Average frame time:', performanceMetrics.avgFrameTime.toFixed(2) + 'ms');
+                }
+            }
+            performanceMetrics.lastFrameTime = now;
+        }
+        
+        // Global error handler for uncaught errors in games
+        window.addEventListener('error', (e) => {
+            if (currentRoom && currentGameData) {
+                recordGameError(e.error || e, 'Uncaught Error');
+            }
+        });
+        
+        // Handle unhandled promise rejections
+        window.addEventListener('unhandledrejection', (e) => {
+            if (currentRoom && currentGameData) {
+                recordGameError(e.reason, 'Unhandled Promise Rejection');
+            }
+        });
+        
+        // Debug functions for testing (only in development)
+        if (window.location.hostname === 'localhost' || window.location.hostname.includes('127.0.0.1')) {
+            window.debugMultiGame = {
+                getCurrentGameData: () => currentGameData,
+                getCurrentRoom: () => currentRoom,
+                getPerformanceMetrics: () => performanceMetrics,
+                getErrorCount: () => gameErrorCount,
+                forceLeaveRoom: () => leaveRoom(),
+                simulateError: (errorType) => recordGameError(new Error('Simulated ' + errorType), 'Debug'),
+                resetErrorCount: () => { gameErrorCount = 0; lastGameError = 0; }
+            };
+            console.log('Debug functions available at window.debugMultiGame');
+        }
+        
+        console.log('🎮 Carbon Multi - All systems initialized successfully!');
     </script>
 </body>
 </html>
