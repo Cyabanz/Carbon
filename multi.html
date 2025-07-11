@@ -1237,50 +1237,38 @@
             showNotification('Searching...', 'Looking for available players', 'info');
             
             try {
-                // Search for pong rooms first if pong game type
-                if (gameType === 'pong') {
-                    const pongRoomsSnapshot = await realtimeDb.ref(`pong-rooms`)
-                        .orderByChild('status')
-                        .equalTo('waiting')
-                        .once('value');
+                // Look for waiting rooms of the same game type
+                const waitingRoomsSnapshot = await realtimeDb.ref(`game-rooms`)
+                    .orderByChild('gameType')
+                    .equalTo(gameType)
+                    .once('value');
+                
+                if (waitingRoomsSnapshot.exists()) {
+                    const rooms = waitingRoomsSnapshot.val();
                     
-                    if (pongRoomsSnapshot.exists()) {
-                        const rooms = pongRoomsSnapshot.val();
-                        
-                        for (const [roomId, roomData] of Object.entries(rooms)) {
-                            if (roomData.status === 'waiting' && 
-                                !roomData.guestId && 
-                                roomData.hostId !== currentUser.uid) {
-                                await joinPongRoom(roomId);
-                                return;
-                            }
-                        }
-                    }
-                } else {
-                    // Search for regular game rooms
-                    const waitingRoomsSnapshot = await realtimeDb.ref(`game-rooms`)
-                        .orderByChild('gameType')
-                        .equalTo(gameType)
-                        .once('value');
-                    
-                    if (waitingRoomsSnapshot.exists()) {
-                        const rooms = waitingRoomsSnapshot.val();
-                        
-                        for (const [roomId, roomData] of Object.entries(rooms)) {
-                            if (roomData.status === 'waiting' && 
-                                !roomData.guestId && 
-                                roomData.hostId !== currentUser.uid) {
+                    // Try to join the first valid room
+                    for (const [roomId, roomData] of Object.entries(rooms)) {
+                        try {
+                            // Double-check the room is still valid before joining
+                            const freshRoomSnapshot = await realtimeDb.ref(`game-rooms/${roomId}`).once('value');
+                            if (freshRoomSnapshot.exists() && freshRoomSnapshot.val().status === 'waiting') {
                                 await joinRealtimeRoom(roomId);
-                                return;
+                                return; // Successfully joined
+                            } else {
+                                // Room is stale, skip to next one
+                                console.log('Skipping stale room:', roomId);
+                                continue;
                             }
+                        } catch (joinError) {
+                            console.error('Error joining room:', roomId, joinError);
+                            continue; // Try next room
                         }
                     }
+                    // If we get here, no valid rooms were found
+                    showNotification('No Players Found', 'No waiting games found. Your room is now public for others to join!', 'info');
+                } else {
+                    showNotification('No Players Found', 'No waiting games found. Your room is now public for others to join!', 'info');
                 }
-                
-                // If no rooms found, create a new one
-                showNotification('No Players Found', 'Creating a new room for other players to join!', 'info');
-                selectGame(gameType);
-                
             } catch (error) {
                 console.error('Error finding opponent:', error);
                 showNotification('Error', 'Failed to find opponent', 'error');
