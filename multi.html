@@ -781,54 +781,95 @@
         }
 
         async function setupPongRoom(roomId) {
-            // Clean up existing listeners
+            // Clean up existing listeners first
             if (pongRoomRef) {
                 pongRoomRef.off();
+                pongRoomRef = null;
+            }
+            if (pongPhysicsRef) {
+                pongPhysicsRef.off();
+                pongPhysicsRef = null;
+            }
+            if (pongPlayersRef) {
+                pongPlayersRef.off();
+                pongPlayersRef = null;
             }
             if (connectionRef) {
                 connectionRef.off();
+                connectionRef = null;
             }
 
-            // Setup room listener
+            // Clean up previous disconnect handlers
+            await cleanupDisconnectHandlers();
+
+            // Setup room references
             pongRoomRef = realtimeDb.ref(`pong-rooms/${roomId}`);
             pongPhysicsRef = realtimeDb.ref(`pong-physics/${roomId}`);
             pongPlayersRef = realtimeDb.ref(`pong-players/${roomId}`);
 
-            // Listen for room changes
+            // Enhanced disconnect handling with conflict prevention
+            const playerRef = realtimeDb.ref(`pong-rooms/${roomId}/players/${currentUser.uid}`);
+            const pongPlayersUserRef = realtimeDb.ref(`pong-players/${roomId}/${currentUser.uid}`);
+            
+            // Set up disconnect handlers
+            playerRef.onDisconnect().remove();
+            pongPlayersUserRef.onDisconnect().remove();
+            pongRoomRef.onDisconnect().update({
+                disconnectedPlayer: currentUser.uid,
+                disconnectedAt: firebase.database.ServerValue.TIMESTAMP,
+                status: 'completed'
+            });
+            
+            // Track disconnect handlers
+            activeDisconnectHandlers.add({ ref: playerRef, roomId, type: 'pong-player' });
+            activeDisconnectHandlers.add({ ref: pongPlayersUserRef, roomId, type: 'pong-players' });
+            activeDisconnectHandlers.add({ ref: pongRoomRef, roomId, type: 'pong-room' });
+
+            // Listen for room changes with error handling
             pongRoomRef.on('value', (snapshot) => {
                 if (!snapshot.exists()) {
                     showNotification('Game Ended', 'The ping pong room was closed', 'info');
                     cleanupPongRoom();
-                    backToSelection();
+                    cleanupAndBackToSelection();
                     return;
                 }
 
                 const roomData = snapshot.val();
                 handlePongRoomUpdate(roomData, roomId);
+            }, (error) => {
+                console.error('Error listening to pong room:', error);
+                showNotification('Connection Error', 'Lost connection to ping pong game', 'error');
+                cleanupPongRoom();
+                cleanupAndBackToSelection();
             });
 
-            // Setup connection monitoring
+            // Setup connection monitoring with enhanced handling
             connectionRef = realtimeDb.ref('.info/connected');
             connectionRef.on('value', (snapshot) => {
                 if (snapshot.val() === false) {
                     showNotification('Connection Lost', 'Reconnecting to game...', 'warning');
                 } else if (currentRoom) {
                     // Update last activity when reconnected
-                    realtimeDb.ref(`pong-rooms/${currentRoom}/lastActivity`).set(firebase.database.ServerValue.TIMESTAMP);
+                    realtimeDb.ref(`pong-rooms/${currentRoom}/lastActivity`).set(firebase.database.ServerValue.TIMESTAMP).catch(console.error);
                 }
+            }, (error) => {
+                console.error('Connection monitoring error:', error);
             });
-
-            // Setup disconnect handling
-            realtimeDb.ref(`pong-rooms/${roomId}/players/${currentUser.uid}`).onDisconnect().remove();
-            realtimeDb.ref(`pong-players/${roomId}/${currentUser.uid}`).onDisconnect().remove();
             
-            // Mark player as online
-            await realtimeDb.ref(`pong-rooms/${roomId}/players/${currentUser.uid}`).set({
-                name: currentUser.displayName || currentUser.email || 'Player',
-                photo: currentUser.photoURL || '',
-                online: true,
-                lastSeen: firebase.database.ServerValue.TIMESTAMP
-            });
+            // Mark player as online with error handling
+            try {
+                await realtimeDb.ref(`pong-rooms/${roomId}/players/${currentUser.uid}`).set({
+                    name: currentUser.displayName || currentUser.email || 'Player',
+                    photo: currentUser.photoURL || '',
+                    online: true,
+                    lastSeen: firebase.database.ServerValue.TIMESTAMP
+                });
+                
+                console.log('✅ Player marked as online in pong room');
+            } catch (error) {
+                console.error('Error marking player as online:', error);
+                throw error; // Re-throw to trigger error handling in caller
+            }
         }
 
         async function joinGameRoom(roomId, roomData) {
@@ -1109,33 +1150,83 @@
             }
         }
 
+        // Track active disconnect handlers to prevent conflicts
+        let activeDisconnectHandlers = new Set();
+        
         async function setupRealtimeRoom(roomId, gameType) {
-            // Set up disconnect cleanup
-            const userRef = realtimeDb.ref(`game-rooms/${roomId}`);
+            // Clean up any existing disconnect handlers first
+            await cleanupDisconnectHandlers();
             
-            // Handle disconnect
-            userRef.onDisconnect().update({
+            // Set up disconnect cleanup with conflict prevention
+            const userRef = realtimeDb.ref(`game-rooms/${roomId}`);
+            const disconnectRef = userRef.child('disconnectHandler').child(currentUser.uid);
+            
+            // Create unique disconnect handler
+            const disconnectData = {
                 status: 'completed',
                 disconnectedPlayer: currentUser.uid,
                 disconnectedPlayerName: currentUser.displayName || currentUser.email || 'Player',
                 disconnectedAt: firebase.database.ServerValue.TIMESTAMP,
                 lastActivity: firebase.database.ServerValue.TIMESTAMP
-            });
+            };
             
-            // Listen to room changes
-            userRef.on('value', (snapshot) => {
+            // Set up disconnect handler with proper cleanup
+            userRef.onDisconnect().update(disconnectData);
+            activeDisconnectHandlers.add({ ref: userRef, roomId, type: 'regular' });
+            
+            // Clean up any existing room listeners to prevent memory leaks
+            if (gameListener && typeof gameListener === 'function') {
+                gameListener();
+                gameListener = null;
+            }
+            
+            // Listen to room changes with enhanced error handling
+            gameListener = userRef.on('value', (snapshot) => {
                 if (snapshot.exists()) {
                     const roomData = snapshot.val();
                     handleRoomUpdate(roomData, roomId);
                 } else {
                     console.log('❌ Room no longer exists');
                     showNotification('Game Ended', 'The game room was closed', 'info');
-                    backToSelection();
+                    cleanupAndBackToSelection();
                 }
+            }, (error) => {
+                console.error('❌ Error listening to room:', error);
+                showNotification('Connection Error', 'Lost connection to game room', 'error');
+                cleanupAndBackToSelection();
             });
             
             // Set up game-specific listeners
             await setupGameSpecificListeners(roomId, gameType);
+        }
+
+        async function cleanupDisconnectHandlers() {
+            // Cancel all active disconnect handlers
+            for (const handler of activeDisconnectHandlers) {
+                try {
+                    handler.ref.onDisconnect().cancel();
+                    console.log('🧹 Cancelled disconnect handler for room:', handler.roomId);
+                } catch (error) {
+                    console.warn('Error cancelling disconnect handler:', error);
+                }
+            }
+            activeDisconnectHandlers.clear();
+        }
+
+        function cleanupAndBackToSelection() {
+            // Enhanced cleanup to prevent race conditions
+            cleanupDisconnectHandlers();
+            
+            // Clean up game listeners
+            if (gameListener && typeof gameListener === 'function') {
+                gameListener();
+                gameListener = null;
+            }
+            
+            // Reset state and go back
+            setTimeout(() => {
+                backToSelection();
+            }, 100);
         }
 
         async function setupGameSpecificListeners(roomId, gameType) {
@@ -1239,47 +1330,49 @@
             });
         };
 
+        // Debouncing for find random opponent to prevent rapid clicking
+        let findRandomInProgress = false;
+        let lastFindRandomAttempt = 0;
+        
         window.findRandomOpponent = async function(gameType) {
-            showNotification('Searching...', 'Looking for available players', 'info');
+            // Prevent rapid clicking and multiple simultaneous searches
+            const now = Date.now();
+            if (findRandomInProgress) {
+                console.log('Find random already in progress, ignoring request');
+                return;
+            }
+            
+            if (now - lastFindRandomAttempt < 2000) {
+                showNotification('Please Wait', 'Please wait before searching again', 'warning');
+                return;
+            }
+            
+            findRandomInProgress = true;
+            lastFindRandomAttempt = now;
             
             try {
+                showNotification('Searching...', 'Looking for available players', 'info');
+                
+                // Clean up any existing room connections first
+                if (currentRoom) {
+                    console.log('🧹 Cleaning up existing room before finding new opponent');
+                    await leaveRoom();
+                    await new Promise(resolve => setTimeout(resolve, 500)); // Wait for cleanup
+                }
+                
                 // Search for pong rooms first if pong game type
                 if (gameType === 'pong') {
-                    const pongRoomsSnapshot = await realtimeDb.ref(`pong-rooms`)
-                        .orderByChild('status')
-                        .equalTo('waiting')
-                        .once('value');
-                    
-                    if (pongRoomsSnapshot.exists()) {
-                        const rooms = pongRoomsSnapshot.val();
-                        
-                        for (const [roomId, roomData] of Object.entries(rooms)) {
-                            if (roomData.status === 'waiting' && 
-                                !roomData.guestId && 
-                                roomData.hostId !== currentUser.uid) {
-                                await joinPongRoom(roomId);
-                                return;
-                            }
-                        }
+                    const foundRoom = await findValidPongRoom();
+                    if (foundRoom) {
+                        await joinPongRoom(foundRoom.roomId);
+                        return;
                     }
                 } else {
-                    // Search for regular game rooms
-                    const waitingRoomsSnapshot = await realtimeDb.ref(`game-rooms`)
-                        .orderByChild('gameType')
-                        .equalTo(gameType)
-                        .once('value');
-                    
-                    if (waitingRoomsSnapshot.exists()) {
-                        const rooms = waitingRoomsSnapshot.val();
-                        
-                        for (const [roomId, roomData] of Object.entries(rooms)) {
-                            if (roomData.status === 'waiting' && 
-                                !roomData.guestId && 
-                                roomData.hostId !== currentUser.uid) {
-                                await joinRealtimeRoom(roomId);
-                                return;
-                            }
-                        }
+                    // Search for regular game rooms with enhanced validation
+                    const foundRoom = await findValidRegularRoom(gameType);
+                    if (foundRoom) {
+                        await joinRealtimeRoom(foundRoom.roomId);
+                        return;
                     }
                 }
                 
@@ -1289,9 +1382,105 @@
                 
             } catch (error) {
                 console.error('Error finding opponent:', error);
-                showNotification('Error', 'Failed to find opponent', 'error');
+                showNotification('Error', 'Failed to find opponent. Please try again.', 'error');
+                
+                // Reset state on error
+                if (currentRoom) {
+                    backToSelection();
+                }
+            } finally {
+                // Always reset the flag
+                setTimeout(() => {
+                    findRandomInProgress = false;
+                }, 1000);
             }
         };
+
+        // Enhanced room finding with staleness detection
+        async function findValidPongRoom() {
+            try {
+                const pongRoomsSnapshot = await realtimeDb.ref(`pong-rooms`)
+                    .orderByChild('status')
+                    .equalTo('waiting')
+                    .limitToFirst(10) // Limit search to prevent excessive queries
+                    .once('value');
+                
+                if (!pongRoomsSnapshot.exists()) {
+                    return null;
+                }
+                
+                const rooms = pongRoomsSnapshot.val();
+                const now = Date.now();
+                const fiveMinutesAgo = now - (5 * 60 * 1000);
+                
+                for (const [roomId, roomData] of Object.entries(rooms)) {
+                    // Enhanced validation
+                    if (roomData.status === 'waiting' && 
+                        !roomData.guestId && 
+                        roomData.hostId !== currentUser.uid &&
+                        roomData.lastActivity && roomData.lastActivity > fiveMinutesAgo) {
+                        
+                        // Double-check room is still valid by reading it again
+                        const verifySnapshot = await realtimeDb.ref(`pong-rooms/${roomId}`).once('value');
+                        if (verifySnapshot.exists()) {
+                            const currentRoomData = verifySnapshot.val();
+                            if (currentRoomData.status === 'waiting' && !currentRoomData.guestId) {
+                                console.log('✅ Found valid pong room:', roomId);
+                                return { roomId, roomData: currentRoomData };
+                            }
+                        }
+                    }
+                }
+                
+                return null;
+            } catch (error) {
+                console.error('Error finding valid pong room:', error);
+                return null;
+            }
+        }
+
+        async function findValidRegularRoom(gameType) {
+            try {
+                const waitingRoomsSnapshot = await realtimeDb.ref(`game-rooms`)
+                    .orderByChild('gameType')
+                    .equalTo(gameType)
+                    .limitToFirst(10) // Limit search
+                    .once('value');
+                
+                if (!waitingRoomsSnapshot.exists()) {
+                    return null;
+                }
+                
+                const rooms = waitingRoomsSnapshot.val();
+                const now = Date.now();
+                const fiveMinutesAgo = now - (5 * 60 * 1000);
+                
+                for (const [roomId, roomData] of Object.entries(rooms)) {
+                    // Enhanced validation with staleness check
+                    if (roomData.status === 'waiting' && 
+                        !roomData.guestId && 
+                        roomData.hostId !== currentUser.uid &&
+                        roomData.gameType === gameType &&
+                        roomData.lastActivity && roomData.lastActivity > fiveMinutesAgo) {
+                        
+                        // Double-check room is still valid
+                        const verifySnapshot = await realtimeDb.ref(`game-rooms/${roomId}`).once('value');
+                        if (verifySnapshot.exists()) {
+                            const currentRoomData = verifySnapshot.val();
+                            if (currentRoomData.status === 'waiting' && !currentRoomData.guestId) {
+                                console.log('✅ Found valid regular room:', roomId);
+                                return { roomId, roomData: currentRoomData };
+                            }
+                        }
+                    }
+                }
+                
+                return null;
+            } catch (error) {
+                console.error('Error finding valid regular room:', error);
+                return null;
+            }
+        }
 
         async function listenToRoom(roomId) {
             if (!db) return;
@@ -3624,32 +3813,110 @@
             backToSelection();
         };
 
+        // Prevent multiple simultaneous leave operations
+        let leavingInProgress = false;
+        
         async function leaveRoom() {
             console.log('🚪 Player leaving room:', currentRoom);
+            
+            // Prevent race conditions with multiple leave calls
+            if (leavingInProgress) {
+                console.log('Leave already in progress, skipping...');
+                return;
+            }
+            
+            leavingInProgress = true;
             winnerScreenShown = false;
             
-            if (gameListener) {
-                gameListener();
-                gameListener = null;
-            }
-            
-            if (currentRoom) {
-                try {
-                    // Handle ping pong room
-                    if (pongRoomRef) {
-                        await leavePongRoom();
-                    }
-                    // Handle regular game room (all games now use realtime database)
-                    else {
-                        await leaveRegularRoom();
-                    }
-                } catch (error) {
-                    console.error('❌ Error leaving room:', error);
+            try {
+                // Clean up disconnect handlers first to prevent conflicts
+                await cleanupDisconnectHandlers();
+                
+                // Clean up game listeners
+                if (gameListener && typeof gameListener === 'function') {
+                    gameListener();
+                    gameListener = null;
                 }
-                currentRoom = null;
+                
+                if (currentRoom) {
+                    try {
+                        // Handle ping pong room
+                        if (pongRoomRef) {
+                            await leavePongRoom();
+                        }
+                        // Handle regular game room (all games now use realtime database)
+                        else {
+                            await leaveRegularRoom();
+                        }
+                    } catch (error) {
+                        console.error('❌ Error leaving room:', error);
+                        // Continue with cleanup even if leaving fails
+                    }
+                    
+                    currentRoom = null;
+                }
+                
+                // Additional cleanup to prevent memory leaks
+                cleanupAllGameResources();
+                
+            } finally {
+                leavingInProgress = false;
+                backToSelection();
+            }
+        }
+
+        function cleanupAllGameResources() {
+            // Clean up all possible game intervals and timeouts
+            if (pongInterval) {
+                clearInterval(pongInterval);
+                pongInterval = null;
             }
             
-            backToSelection();
+            if (guestPhysicsInterval) {
+                clearInterval(guestPhysicsInterval);
+                guestPhysicsInterval = null;
+            }
+            
+            if (racingUpdateInterval) {
+                clearInterval(racingUpdateInterval);
+                racingUpdateInterval = null;
+            }
+            
+            if (reactionTimeout) {
+                clearTimeout(reactionTimeout);
+                reactionTimeout = null;
+            }
+            
+            // Clean up pong-specific resources
+            if (pongRoomRef) {
+                pongRoomRef.off();
+                pongRoomRef = null;
+            }
+            if (pongPhysicsRef) {
+                pongPhysicsRef.off();
+                pongPhysicsRef = null;
+            }
+            if (pongPlayersRef) {
+                pongPlayersRef.off();
+                pongPlayersRef = null;
+            }
+            if (connectionRef) {
+                connectionRef.off();
+                connectionRef = null;
+            }
+            
+            // Reset game state variables
+            currentGameData = null;
+            isHost = false;
+            guestBallPrediction = null;
+            lastServerBallUpdate = 0;
+            currentServerBall = null;
+            currentServerGameState = null;
+            lastPaddleUpdate = 0;
+            guestPredictedBall = null;
+            lastServerSync = 0;
+            
+            console.log('🧹 All game resources cleaned up');
         }
 
         async function leavePongRoom() {
@@ -3739,46 +4006,34 @@
         }
 
         function backToSelection() {
+            console.log('🔙 Going back to game selection...');
+            
             document.getElementById('game-area').classList.add('hidden');
             document.getElementById('game-selection').classList.remove('hidden');
             
-            // Clean up game listeners and intervals
-            if (gameListener) {
-                gameListener();
-                gameListener = null;
-            }
+            // Comprehensive cleanup to prevent memory leaks and conflicts
+            cleanupAllGameResources();
             
-            // Clean up pong room if active
-            if (pongRoomRef) {
-                cleanupPongRoom();
-            }
+            // Clean up find random state
+            findRandomInProgress = false;
             
-            // Clean up game-specific resources
-            if (pongInterval) {
-                clearInterval(pongInterval);
-                pongInterval = null;
-            }
-            
-            if (guestPhysicsInterval) {
-                clearInterval(guestPhysicsInterval);
-                guestPhysicsInterval = null;
-            }
-            
-            if (racingUpdateInterval) {
-                clearInterval(racingUpdateInterval);
-                racingUpdateInterval = null;
-            }
-            
-            if (reactionTimeout) {
-                clearTimeout(reactionTimeout);
-                reactionTimeout = null;
-            }
+            // Clean up UI update functions
+            window.updatePongUI = null;
+            window.updateTypingUI = null;
+            window.updateReactionUI = null;
+            window.updateRacingUI = null;
+            window.updatePongScores = null;
+            window.updateTypingProgress = null;
+            window.updateReactionGame = null;
+            window.updateRacingScores = null;
             
             // Clean up canvas event listeners
             const pongCanvas = document.getElementById('pong-canvas');
             if (pongCanvas && pongCanvas.pongMouseHandler) {
                 pongCanvas.removeEventListener('mousemove', pongCanvas.pongMouseHandler);
+                pongCanvas.removeEventListener('touchmove', pongCanvas.pongTouchHandler);
                 pongCanvas.pongMouseHandler = null;
+                pongCanvas.pongTouchHandler = null;
             }
             
             const racingCanvas = document.getElementById('racing-canvas');
@@ -3788,23 +4043,6 @@
                 racingCanvas.keyHandlers = null;
             }
             
-            // Reset game state
-            currentGameData = null;
-            currentRoom = null;
-            
-            // Reset ping pong variables
-            guestBallPrediction = null;
-            lastServerBallUpdate = 0;
-            currentServerBall = null;
-            currentServerGameState = null;
-            isHost = false;
-            
-            // Clean up UI update functions
-            window.updatePongUI = null;
-            window.updateTypingUI = null;
-            window.updateReactionUI = null;
-            window.updateRacingUI = null;
-            
             // Clean up click debouncing variables to prevent memory leaks
             if ('lastClick_p1' in window) delete window.lastClick_p1;
             if ('lastClick_p2' in window) delete window.lastClick_p2;
@@ -3813,68 +4051,137 @@
             if (typeof reactionUpdateInProgress !== 'undefined') {
                 reactionUpdateInProgress = false;
             }
+            
+            // Reset winner screen state
+            winnerScreenShown = false;
+            
+            // Force garbage collection of large objects
+            if (window.gc && typeof window.gc === 'function') {
+                try {
+                    window.gc();
+                } catch (e) {
+                    // Ignore errors - gc() might not be available
+                }
+            }
+            
+            console.log('✅ Back to selection cleanup complete');
         }
 
-        // Enhanced cleanup on page unload
+        // Enhanced cleanup on page unload with improved error handling
         window.addEventListener('beforeunload', (e) => {
-            if (currentRoom) {
+            if (currentRoom && currentUser) {
                 try {
                     // Handle ping pong room cleanup
                     if (pongRoomRef) {
-                        realtimeDb.ref(`pong-rooms/${currentRoom}/players/${currentUser?.uid}`).remove().catch(console.error);
-                        realtimeDb.ref(`pong-players/${currentRoom}/${currentUser?.uid}`).remove().catch(console.error);
+                        // Use sendBeacon for more reliable cleanup on unload
+                        const cleanupData = {
+                            disconnectedPlayer: currentUser.uid,
+                            disconnectedAt: Date.now(),
+                            status: 'completed'
+                        };
                         
-                        // Mark as disconnected
-                        realtimeDb.ref(`pong-rooms/${currentRoom}`).update({
-                            disconnectedPlayer: currentUser?.uid || 'unknown',
-                            disconnectedAt: firebase.database.ServerValue.TIMESTAMP
-                        }).catch(console.error);
+                        // Try multiple cleanup approaches
+                        realtimeDb.ref(`pong-rooms/${currentRoom}/players/${currentUser.uid}`).remove().catch(console.error);
+                        realtimeDb.ref(`pong-players/${currentRoom}/${currentUser.uid}`).remove().catch(console.error);
+                        realtimeDb.ref(`pong-rooms/${currentRoom}`).update(cleanupData).catch(console.error);
                     }
-                    // Handle regular room cleanup
-                    else if (db) {
-                        db.collection('game-rooms').doc(currentRoom).update({
+                    // Handle regular room cleanup (now all use realtime database)
+                    else {
+                        const cleanupData = {
                             status: 'completed',
-                            disconnectedPlayer: currentUser?.uid || 'unknown',
-                            disconnectedAt: firebase.firestore.FieldValue.serverTimestamp(),
-                            lastActivity: firebase.firestore.FieldValue.serverTimestamp()
-                        }).catch(console.error);
+                            disconnectedPlayer: currentUser.uid,
+                            disconnectedAt: Date.now(),
+                            lastActivity: Date.now()
+                        };
+                        
+                        realtimeDb.ref(`game-rooms/${currentRoom}`).update(cleanupData).catch(console.error);
                     }
+                    
+                    // Clean up disconnect handlers
+                    cleanupDisconnectHandlers().catch(console.error);
                     
                 } catch (error) {
                     console.error('Error during page unload cleanup:', error);
                 }
             }
         });
+
+                 // Handle visibility change (tab switching, mobile background)
+         document.addEventListener('visibilitychange', () => {
+             if (document.hidden && currentRoom && currentGameData?.status === 'playing') {
+                 console.log('⚠️ Player backgrounded during game');
+                 
+                 // Update last activity to indicate potential disconnection
+                 if (pongRoomRef) {
+                     realtimeDb.ref(`pong-rooms/${currentRoom}/lastActivity`).set(Date.now()).catch(console.error);
+                 } else if (currentRoom) {
+                     realtimeDb.ref(`game-rooms/${currentRoom}/lastActivity`).set(Date.now()).catch(console.error);
+                 }
+             }
+         });
         
-        // Also handle visibility change (tab switching, mobile background)
-        document.addEventListener('visibilitychange', () => {
-            if (document.hidden && currentRoom && currentGameData?.status === 'playing') {
-                console.log('⚠️ Player backgrounded during game');
-                // Don't immediately disconnect, but flag as potentially disconnected
-            }
-        });
-        
-        // Auto-cleanup old completed games (run every 5 minutes)
-        setInterval(async () => {
-            if (!db) return;
-            
-            try {
-                const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
-                const oldGames = await db.collection('game-rooms')
-                    .where('status', '==', 'completed')
-                    .where('lastActivity', '<', fiveMinutesAgo)
-                    .limit(10)
-                    .get();
-                
-                const deletePromises = oldGames.docs.map(doc => doc.ref.delete());
-                if (deletePromises.length > 0) {
-                    await Promise.all(deletePromises);
-                    console.log('🧹 Cleaned up', deletePromises.length, 'old completed games');
-                }
-            } catch (error) {
-                console.error('Error cleaning up old games:', error);
-            }
-        }, 5 * 60 * 1000); // Every 5 minutes
+                 // Auto-cleanup old completed games (run every 10 minutes)
+         setInterval(async () => {
+             if (!realtimeDb) return;
+             
+             try {
+                 const tenMinutesAgo = Date.now() - (10 * 60 * 1000);
+                 
+                 // Clean up regular game rooms
+                 const gameRoomsSnapshot = await realtimeDb.ref('game-rooms')
+                     .orderByChild('status')
+                     .equalTo('completed')
+                     .limitToFirst(20)
+                     .once('value');
+                 
+                 if (gameRoomsSnapshot.exists()) {
+                     const rooms = gameRoomsSnapshot.val();
+                     let cleanedCount = 0;
+                     
+                     for (const [roomId, roomData] of Object.entries(rooms)) {
+                         if (roomData.lastActivity && roomData.lastActivity < tenMinutesAgo) {
+                             await realtimeDb.ref(`game-rooms/${roomId}`).remove();
+                             cleanedCount++;
+                         }
+                     }
+                     
+                     if (cleanedCount > 0) {
+                         console.log('🧹 Cleaned up', cleanedCount, 'old completed regular game rooms');
+                     }
+                 }
+                 
+                 // Clean up pong rooms
+                 const pongRoomsSnapshot = await realtimeDb.ref('pong-rooms')
+                     .orderByChild('status')
+                     .equalTo('completed')
+                     .limitToFirst(20)
+                     .once('value');
+                 
+                 if (pongRoomsSnapshot.exists()) {
+                     const rooms = pongRoomsSnapshot.val();
+                     let cleanedCount = 0;
+                     
+                     for (const [roomId, roomData] of Object.entries(rooms)) {
+                         if (roomData.lastActivity && roomData.lastActivity < tenMinutesAgo) {
+                             // Clean up all pong-related data
+                             await Promise.all([
+                                 realtimeDb.ref(`pong-rooms/${roomId}`).remove(),
+                                 realtimeDb.ref(`pong-physics/${roomId}`).remove(),
+                                 realtimeDb.ref(`pong-players/${roomId}`).remove()
+                             ]);
+                             cleanedCount++;
+                         }
+                     }
+                     
+                     if (cleanedCount > 0) {
+                         console.log('🧹 Cleaned up', cleanedCount, 'old completed pong rooms');
+                     }
+                 }
+                 
+             } catch (error) {
+                 console.error('Error cleaning up old games:', error);
+             }
+         }, 10 * 60 * 1000); // Every 10 minutes
 
         // Add after setupPongRoom function
 
@@ -4467,6 +4774,11 @@
         }
 
         function cleanupPongRoom() {
+            console.log('🧹 Cleaning up pong room resources...');
+            
+            // Clean up disconnect handlers for pong
+            cleanupDisconnectHandlers().catch(console.error);
+            
             // Clear intervals
             if (pongInterval) {
                 clearInterval(pongInterval);
@@ -4477,25 +4789,38 @@
                 guestPhysicsInterval = null;
             }
 
-            // Remove listeners
-            if (pongRoomRef) {
-                pongRoomRef.off();
-                pongRoomRef = null;
-            }
-            if (pongPhysicsRef) {
-                pongPhysicsRef.off();
-                pongPhysicsRef = null;
-            }
-            if (pongPlayersRef) {
-                pongPlayersRef.off();
-                pongPlayersRef = null;
-            }
-            if (connectionRef) {
-                connectionRef.off();
-                connectionRef = null;
+            // Remove listeners with error handling
+            try {
+                if (pongRoomRef) {
+                    pongRoomRef.off();
+                    pongRoomRef = null;
+                }
+                if (pongPhysicsRef) {
+                    pongPhysicsRef.off();
+                    pongPhysicsRef = null;
+                }
+                if (pongPlayersRef) {
+                    pongPlayersRef.off();
+                    pongPlayersRef = null;
+                }
+                if (connectionRef) {
+                    connectionRef.off();
+                    connectionRef = null;
+                }
+            } catch (error) {
+                console.warn('Error cleaning up pong listeners:', error);
             }
 
-            // Reset variables
+            // Remove canvas event listeners
+            const pongCanvas = document.getElementById('pong-canvas');
+            if (pongCanvas && pongCanvas.pongMouseHandler) {
+                pongCanvas.removeEventListener('mousemove', pongCanvas.pongMouseHandler);
+                pongCanvas.removeEventListener('touchmove', pongCanvas.pongTouchHandler);
+                pongCanvas.pongMouseHandler = null;
+                pongCanvas.pongTouchHandler = null;
+            }
+
+            // Reset all variables comprehensively
             isHost = false;
             currentRoom = null;
             currentGameData = null;
@@ -4504,6 +4829,10 @@
             currentServerBall = null;
             currentServerGameState = null;
             lastPaddleUpdate = 0;
+            guestPredictedBall = null;
+            lastServerSync = 0;
+            
+            console.log('✅ Pong room cleanup complete');
         }
 
         // Session cleanup
