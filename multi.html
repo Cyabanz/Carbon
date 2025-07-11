@@ -936,18 +936,27 @@
                 
                 // Sync guest prediction with server data every few updates
                 if (roomData.gameType === 'pong' && roomData.hostId !== currentUser.uid) {
-                    if (guestPredictedBall && roomData.gameState && roomData.gameState.ball) {
+                    if (roomData.gameState && roomData.gameState.ball) {
                         const serverBall = roomData.gameState.ball;
-                        const distance = Math.sqrt(
-                            Math.pow(guestPredictedBall.x - serverBall.x, 2) + 
-                            Math.pow(guestPredictedBall.y - serverBall.y, 2)
-                        );
                         
-                        // If guest prediction drifted too far from server, resync
-                        if (distance > 50) {
-                            console.log('🔄 Resyncing guest prediction with server');
+                        // Initialize guest prediction if it doesn't exist
+                        if (!guestPredictedBall) {
+                            console.log('🎯 Late initialization of guest prediction from server sync');
                             guestPredictedBall = { ...serverBall };
                             lastServerSync = Date.now();
+                        } else {
+                            // Check if prediction drifted too far from server
+                            const distance = Math.sqrt(
+                                Math.pow(guestPredictedBall.x - serverBall.x, 2) + 
+                                Math.pow(guestPredictedBall.y - serverBall.y, 2)
+                            );
+                            
+                            // If guest prediction drifted too far from server, resync
+                            if (distance > 50) {
+                                console.log('🔄 Resyncing guest prediction with server (distance:', distance, ')');
+                                guestPredictedBall = { ...serverBall };
+                                lastServerSync = Date.now();
+                            }
                         }
                     }
                 }
@@ -1138,18 +1147,18 @@
 
         // Pong Game Implementation
         function startPongGame(roomData, roomId) {
-            console.log('Starting Pong Game...');
+            console.log('🏓 Starting Pong Game...');
             currentGameData = roomData;
             
             const gameAreaContent = document.getElementById('game-area-content');
             if (!gameAreaContent) {
-                console.error('Game area content not found for Pong!');
+                console.error('❌ Game area content not found for Pong!');
                 return;
             }
             
             // Validate game state
             if (!currentGameData.gameState || !currentGameData.gameState.ball || !currentGameData.gameState.player1 || !currentGameData.gameState.player2) {
-                console.error('Invalid game state for Pong:', currentGameData.gameState);
+                console.error('❌ Invalid game state for Pong:', currentGameData.gameState);
                 gameAreaContent.innerHTML = `
                     <div class="text-center text-love">
                         <h3 class="text-xl font-bold mb-4">Game Error</h3>
@@ -1157,6 +1166,15 @@
                     </div>
                 `;
                 return;
+            }
+            
+            // Initialize guest prediction system for non-host players
+            const isGuest = roomData.hostId !== currentUser.uid;
+            if (isGuest) {
+                console.log('🎯 Setting up guest prediction system');
+                guestPredictedBall = { ...currentGameData.gameState.ball };
+                lastServerSync = Date.now();
+                console.log('🎯 Guest ball initialized:', guestPredictedBall);
             }
             
             // Create UI once and never recreate it
@@ -1288,6 +1306,11 @@
                 } else {
                     // Guest runs local physics prediction for smooth ball movement
                     console.log('🎮 Starting local prediction physics for guest at 60 FPS');
+                    
+                    // Reset guest prediction for new game
+                    guestPredictedBall = null;
+                    lastServerSync = 0;
+                    
                     pongInterval = setInterval(() => {
                         updateGuestPrediction();
                     }, 16.67); // 60 FPS local prediction (no Firebase writes)
@@ -1386,14 +1409,19 @@
             // Use local predicted ball for guests, server ball for host
             let ballX, ballY;
             
-            if (!isHost && guestPredictedBall) {
+            if (!isHost && guestPredictedBall && guestPredictedBall.x !== undefined && guestPredictedBall.y !== undefined) {
                 // Guest uses locally predicted ball for 60 FPS smooth movement
                 ballX = guestPredictedBall.x;
                 ballY = guestPredictedBall.y;
             } else {
-                // Host uses authoritative server ball
+                // Fallback to server ball (host or guest without prediction)
                 ballX = gameState.ball.x || 400;
                 ballY = gameState.ball.y || 200;
+                
+                // Debug log for guest fallback
+                if (!isHost && !guestPredictedBall) {
+                    console.log('⚠️ Guest using server ball, prediction not ready');
+                }
             }
             
             ctx.fillStyle = '#eb6f92';
@@ -1432,7 +1460,12 @@
                 
                 if (guestPredictedBall) {
                     ctx.fillText(`Speed: ${guestPredictedBall.dx.toFixed(1)}, ${guestPredictedBall.dy.toFixed(1)}`, 350, 380);
+                } else {
+                    ctx.fillText(`Server: ${gameState.ball.dx?.toFixed(1) || 0}, ${gameState.ball.dy?.toFixed(1) || 0}`, 350, 380);
                 }
+                
+                // Show additional debug info
+                ctx.fillText(`LastSync: ${Date.now() - lastServerSync}ms ago`, 500, 392);
             }
             
             // Check for game completion
@@ -1523,16 +1556,40 @@
         }
         
         function updateGuestPrediction() {
-            if (!currentGameData || currentGameData.status !== 'playing') {
+            if (!currentGameData || currentGameData.status !== 'playing' || !currentGameData.gameState || !currentGameData.gameState.ball) {
                 return;
             }
             
             const serverBall = currentGameData.gameState.ball;
             const now = Date.now();
             
-            // Initialize or sync with server ball
-            if (!guestPredictedBall || now - lastServerSync > 100) {
+            // Initialize guest prediction if not exists or server ball changed significantly
+            if (!guestPredictedBall) {
+                console.log('🎯 Initializing guest ball prediction:', serverBall);
                 guestPredictedBall = { ...serverBall };
+                // Ensure ball has velocity
+                if (!guestPredictedBall.dx || !guestPredictedBall.dy) {
+                    guestPredictedBall.dx = guestPredictedBall.dx || 3;
+                    guestPredictedBall.dy = guestPredictedBall.dy || 2;
+                    console.log('⚡ Added default velocity to guest ball:', guestPredictedBall.dx, guestPredictedBall.dy);
+                }
+                lastServerSync = now;
+                return;
+            }
+            
+            // Sync with server every 200ms or if ball velocity is zero (stuck)
+            const ballStuck = (guestPredictedBall.dx === 0 && guestPredictedBall.dy === 0);
+            const syncDue = (now - lastServerSync > 200);
+            
+            if (syncDue || ballStuck) {
+                console.log('🔄 Syncing guest prediction with server ball', ballStuck ? '(ball stuck)' : '(periodic sync)');
+                guestPredictedBall = { ...serverBall };
+                // Ensure ball has velocity after sync
+                if (!guestPredictedBall.dx || !guestPredictedBall.dy) {
+                    guestPredictedBall.dx = guestPredictedBall.dx || 3;
+                    guestPredictedBall.dy = guestPredictedBall.dy || 2;
+                    console.log('⚡ Added default velocity after sync:', guestPredictedBall.dx, guestPredictedBall.dy);
+                }
                 lastServerSync = now;
                 return;
             }
@@ -1568,7 +1625,9 @@
             
             // Reset if ball goes off screen
             if (guestPredictedBall.x < 0 || guestPredictedBall.x > 800) {
+                console.log('⚠️ Ball went off screen, resyncing with server');
                 guestPredictedBall = { ...serverBall };
+                lastServerSync = now;
             }
         }
 
