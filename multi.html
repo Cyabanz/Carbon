@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Carbon Multi - Multiplayer Games</title>
     <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
@@ -143,6 +143,62 @@
         .modal-backdrop {
             background: rgba(0, 0, 0, 0.8);
             backdrop-filter: blur(4px);
+        }
+
+        /* Mobile optimizations */
+        @media (max-width: 768px) {
+            .game-canvas {
+                max-width: 100% !important;
+                height: auto !important;
+            }
+            
+            #racing-canvas {
+                max-width: 100% !important;
+                height: auto !important;
+            }
+            
+            .grid {
+                grid-template-columns: 1fr !important;
+            }
+            
+            /* Make reaction zone larger on mobile */
+            #reaction-zone {
+                min-height: 200px !important;
+                font-size: 1.25rem !important;
+            }
+            
+            /* Improve button sizes for touch */
+            button {
+                min-height: 44px;
+                min-width: 44px;
+            }
+            
+            /* Better spacing on mobile */
+            .p-6 {
+                padding: 1rem !important;
+            }
+            
+            .mx-4 {
+                margin-left: 0.5rem !important;
+                margin-right: 0.5rem !important;
+            }
+        }
+
+        /* Touch device specific styles */
+        @media (hover: none) and (pointer: coarse) {
+            .hover\:border-foam {
+                border-color: var(--theme-foam);
+            }
+            
+            .hover\:bg-foam\/80 {
+                background-color: rgba(156, 207, 216, 0.8);
+            }
+            
+            /* Visual feedback for touch */
+            button:active, .cursor-pointer:active {
+                transform: scale(0.98);
+                transition: transform 0.1s;
+            }
         }
     </style>
 </head>
@@ -2303,8 +2359,20 @@
             setTimeout(() => {
                 const zone = document.getElementById('reaction-zone');
                 if (zone) {
+                    // Mouse/desktop click support
                     zone.addEventListener('click', () => {
                         handleReactionClick(roomId, isPlayer1);
+                    });
+                    
+                    // Touch support for mobile
+                    zone.addEventListener('touchstart', (e) => {
+                        e.preventDefault(); // Prevent mouse click from firing
+                        handleReactionClick(roomId, isPlayer1);
+                    });
+                    
+                    // Prevent context menu on long press
+                    zone.addEventListener('contextmenu', (e) => {
+                        e.preventDefault();
                     });
                 }
                 
@@ -2353,7 +2421,7 @@
                     if (newGameData.status === 'completed') {
                         status.textContent = `🎉 ${(gameState.player1Score || 0) > (gameState.player2Score || 0) ? newGameData.hostName : newGameData.guestName} wins ${Math.max(gameState.player1Score || 0, gameState.player2Score || 0)}-${Math.min(gameState.player1Score || 0, gameState.player2Score || 0)}!`;
                     } else {
-                        status.textContent = 'Click/tap the area above when it turns green!';
+                        status.textContent = 'Click or tap the area above when it turns green!';
                     }
                 }
                 
@@ -2398,7 +2466,7 @@
                     <div id="reaction-status" class="text-center text-muted">
                         ${roomData.status === 'completed' ? 
                             `🎉 ${(gameState.player1Score || 0) > (gameState.player2Score || 0) ? roomData.hostName : roomData.guestName} wins ${Math.max(gameState.player1Score || 0, gameState.player2Score || 0)}-${Math.min(gameState.player1Score || 0, gameState.player2Score || 0)}!` :
-                            'Click/tap the area above when it turns green!'
+                            'Click or tap the area above when it turns green!'
                         }
                     </div>
                 </div>
@@ -2580,7 +2648,7 @@
                     <div id="racing-status" class="text-center mt-4 text-muted">
                         ${currentGameData.status === 'completed' ? 
                             `🏆 ${(gameState.player1.laps || 0) >= gameState.maxLaps ? currentGameData.hostName : currentGameData.guestName} wins the race!` :
-                            '🏎️ Use arrow keys to steer and avoid 📦 crates • First to 3 laps wins 🏁'
+                            '🏎️ Use arrow keys or touch to steer and avoid 📦 crates • First to 3 laps wins 🏁'
                         }
                     </div>
                 </div>
@@ -2605,7 +2673,7 @@
                     if (newRoomData.status === 'completed') {
                         status.textContent = `🏆 ${(newGameState.player1.laps || 0) >= newGameState.maxLaps ? newRoomData.hostName : newRoomData.guestName} wins the race!`;
                     } else {
-                        status.textContent = '🏎️ Use arrow keys to steer and avoid 📦 crates • First to 3 laps wins 🏁';
+                        status.textContent = '🏎️ Use arrow keys or touch to steer and avoid 📦 crates • First to 3 laps wins 🏁';
                     }
                 }
             };
@@ -2636,8 +2704,89 @@
                 }
             };
             
+            // Touch controls for mobile
+            let touchControlActive = false;
+            let initialTouchPosition = null;
+            
+            const handleTouchStart = (e) => {
+                e.preventDefault();
+                if (e.touches.length > 0) {
+                    touchControlActive = true;
+                    const rect = canvas.getBoundingClientRect();
+                    initialTouchPosition = {
+                        x: e.touches[0].clientX - rect.left,
+                        y: e.touches[0].clientY - rect.top
+                    };
+                }
+            };
+            
+            const handleTouchMove = (e) => {
+                e.preventDefault();
+                if (!touchControlActive || !initialTouchPosition || e.touches.length === 0) return;
+                
+                const rect = canvas.getBoundingClientRect();
+                const currentTouch = {
+                    x: e.touches[0].clientX - rect.left,
+                    y: e.touches[0].clientY - rect.top
+                };
+                
+                const deltaX = currentTouch.x - initialTouchPosition.x;
+                const deltaY = currentTouch.y - initialTouchPosition.y;
+                
+                // Minimum movement threshold to avoid jitter
+                const threshold = 20;
+                
+                // Reset all racing keys
+                racingKeys.left = false;
+                racingKeys.right = false;
+                racingKeys.up = false;
+                racingKeys.down = false;
+                
+                // Horizontal movement
+                if (Math.abs(deltaX) > threshold) {
+                    if (deltaX > 0) {
+                        racingKeys.right = true;
+                    } else {
+                        racingKeys.left = true;
+                    }
+                }
+                
+                // Vertical movement
+                if (Math.abs(deltaY) > threshold) {
+                    if (deltaY > 0) {
+                        racingKeys.down = true;
+                    } else {
+                        racingKeys.up = true;
+                    }
+                }
+            };
+            
+            const handleTouchEnd = (e) => {
+                e.preventDefault();
+                touchControlActive = false;
+                initialTouchPosition = null;
+                
+                // Reset all keys when touch ends
+                racingKeys.left = false;
+                racingKeys.right = false;
+                racingKeys.up = false;
+                racingKeys.down = false;
+            };
+            
+            // Add keyboard events
             document.addEventListener('keydown', handleKeyDown);
             document.addEventListener('keyup', handleKeyUp);
+            
+            // Add touch events for mobile
+            canvas.addEventListener('touchstart', handleTouchStart);
+            canvas.addEventListener('touchmove', handleTouchMove);
+            canvas.addEventListener('touchend', handleTouchEnd);
+            canvas.addEventListener('touchcancel', handleTouchEnd);
+            
+            // Prevent context menu on long press
+            canvas.addEventListener('contextmenu', (e) => {
+                e.preventDefault();
+            });
             
             // Store event listeners for cleanup
             canvas.keyHandlers = { handleKeyDown, handleKeyUp };
@@ -3395,14 +3544,14 @@
                 }
             });
 
-            // Setup paddle control
-            canvas.addEventListener('mousemove', (e) => {
+            // Setup paddle control for both mouse and touch
+            function updatePaddlePosition(clientY) {
                 const now = Date.now();
                 if (now - lastPaddleUpdate < 16) return; // 60 FPS limit
                 
                 const rect = canvas.getBoundingClientRect();
-                const mouseY = e.clientY - rect.top;
-                const paddleY = Math.max(0, Math.min(350, mouseY - 25));
+                const relativeY = clientY - rect.top;
+                const paddleY = Math.max(0, Math.min(350, relativeY - 25));
                 
                 // Validate paddle position before setting
                 if (isValidNumber(paddleY)) {
@@ -3412,6 +3561,35 @@
                     });
                     lastPaddleUpdate = now;
                 }
+            }
+
+            // Mouse controls
+            canvas.addEventListener('mousemove', (e) => {
+                updatePaddlePosition(e.clientY);
+            });
+
+            // Touch controls for mobile
+            canvas.addEventListener('touchstart', (e) => {
+                e.preventDefault(); // Prevent scrolling
+                if (e.touches.length > 0) {
+                    updatePaddlePosition(e.touches[0].clientY);
+                }
+            });
+
+            canvas.addEventListener('touchmove', (e) => {
+                e.preventDefault(); // Prevent scrolling
+                if (e.touches.length > 0) {
+                    updatePaddlePosition(e.touches[0].clientY);
+                }
+            });
+
+            canvas.addEventListener('touchend', (e) => {
+                e.preventDefault(); // Prevent default behavior
+            });
+
+            // Prevent context menu on long press (mobile)
+            canvas.addEventListener('contextmenu', (e) => {
+                e.preventDefault();
             });
 
             // Start physics loop with a small delay to ensure everything is ready
