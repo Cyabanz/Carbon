@@ -1162,12 +1162,12 @@
                     return;
                 }
                 
-                // Join the room
+                // Join the room but keep status as 'waiting' - let host transition to 'playing'
                 await roomRef.update({
                     guestId: currentUser.uid,
                     guestName: currentUser.displayName || currentUser.email || 'Player',
                     guestPhoto: currentUser.photoURL || '',
-                    status: 'playing',
+                    status: 'waiting', // Keep as 'waiting' so both players can see each other first
                     lastActivity: firebase.database.ServerValue.TIMESTAMP
                 });
                 
@@ -1177,7 +1177,7 @@
                 showGameLobby(roomData, roomId, false);
                 await setupRealtimeRoom(roomId, roomData.gameType);
                 
-                showNotification(`Joined ${getGameDisplayName(roomData.gameType)} Room!`, 'Get ready to play!', 'success');
+                showNotification(`Joined ${getGameDisplayName(roomData.gameType)} Room!`, 'Waiting for host to start...', 'success');
             } catch (error) {
                 console.error('Error joining room:', error);
                 showNotification('Error', 'Failed to join room!', 'error');
@@ -1282,11 +1282,20 @@
         }
 
         function handleRoomUpdate(roomData, roomId) {
+            const previousStatus = currentGameData ? currentGameData.status : null;
+            const previousGuestId = currentGameData ? currentGameData.guestId : null;
+            
             currentGameData = roomData;
             
             // Update lobby UI if in lobby
             if (document.getElementById('lobby-content')) {
                 updateLobbyStatus(roomData);
+            }
+            
+            // Handle when second player joins while first is in lobby (for regular games)
+            if (roomData.status === 'waiting' && roomData.guestId && !previousGuestId) {
+                console.log('👥 Second player joined regular game:', roomData.guestName);
+                updateLobbyWithGuest(roomData);
             }
             
             // Start game if status changed to playing
@@ -1881,20 +1890,13 @@
                                 console.error('❌ Error starting pong game:', error);
                             });
                         } else {
-                            const updateRef = db ? db.collection('game-rooms').doc(currentRoom) : realtimeDb.ref(`game-rooms/${currentRoom}`);
-                            if (db) {
-                                updateRef.update(nameUpdate).then(() => {
-                                    console.log('✅ Firestore game status updated to playing with correct names');
-                                }).catch(error => {
-                                    console.error('❌ Error starting firestore game:', error);
-                                });
-                            } else {
-                                updateRef.update(nameUpdate).then(() => {
-                                    console.log('✅ Realtime DB game status updated to playing with correct names');
-                                }).catch(error => {
-                                    console.error('❌ Error starting realtime game:', error);
-                                });
-                            }
+                            // Handle regular games (typing, reaction, racing) - use Realtime DB
+                            realtimeDb.ref(`game-rooms/${currentRoom}`).update(nameUpdate).then(() => {
+                                console.log('✅ Regular game status updated to playing with correct names');
+                                showNotification('Game Starting!', 'Both players connected - game begins now!', 'success');
+                            }).catch(error => {
+                                console.error('❌ Error starting regular game:', error);
+                            });
                         }
                     }, 1000); // Slight delay to ensure name propagation
                 }
