@@ -675,23 +675,12 @@
             }
             
             try {
-                // Try to find an existing waiting room first
-                const waitingRoomsSnapshot = await realtimeDb.ref(`game-rooms`)
-                    .orderByChild('gameType')
-                    .equalTo(gameType)
-                    .once('value');
-
-                if (waitingRoomsSnapshot && waitingRoomsSnapshot.exists()) {
-                    const rooms = waitingRoomsSnapshot.val();
-                    // Look for a waiting room that's not full and not hosted by current user
-                    for (const [roomId, roomData] of Object.entries(rooms)) {
-                        if (roomData.status === 'waiting' && 
-                            !roomData.guestId && 
-                            roomData.hostId !== currentUser.uid) {
-                            await joinRealtimeRoom(roomId);
-                            return;
-                        }
-                    }
+                // Try to find an existing waiting room first (use same logic as findValidRegularRoom)
+                const foundRoom = await findValidRegularRoom(gameType);
+                if (foundRoom) {
+                    console.log('🎯 Found existing room in createRealtimeRoom, joining:', foundRoom.roomId);
+                    await joinRealtimeRoom(foundRoom.roomId);
+                    return;
                 }
 
                 // Create new room if no valid rooms found
@@ -1412,14 +1401,20 @@
                     }
                 } else {
                     // Search for regular game rooms with enhanced validation
+                    console.log('🔍 Finding random opponent for regular game:', gameType);
                     const foundRoom = await findValidRegularRoom(gameType);
                     if (foundRoom) {
+                        console.log('✅ Found room, joining:', foundRoom.roomId);
+                        showNotification('Found Player!', `Joining ${foundRoom.roomData.hostName}'s game`, 'success');
                         await joinRealtimeRoom(foundRoom.roomId);
                         return;
+                    } else {
+                        console.log('❌ No valid rooms found for game type:', gameType);
                     }
                 }
                 
                 // If no rooms found, create a new one
+                console.log('📝 Creating new room for game type:', gameType);
                 showNotification('No Players Found', 'Creating a new room for other players to join!', 'info');
                 selectGame(gameType);
                 
@@ -1496,40 +1491,58 @@
             }
             
             try {
+                console.log('🔍 Searching for waiting rooms of type:', gameType);
+                
                 const waitingRoomsSnapshot = await realtimeDb.ref(`game-rooms`)
-                    .orderByChild('gameType')
-                    .equalTo(gameType)
-                    .limitToFirst(10) // Limit search
+                    .orderByChild('status')
+                    .equalTo('waiting')
+                    .limitToFirst(20) // Increased limit to find more rooms
                     .once('value');
                 
                 if (!waitingRoomsSnapshot || !waitingRoomsSnapshot.exists()) {
+                    console.log('❌ No waiting rooms found in database');
                     return null;
                 }
                 
                 const rooms = waitingRoomsSnapshot.val();
-                const now = Date.now();
-                const fiveMinutesAgo = now - (5 * 60 * 1000);
+                console.log('📋 Found waiting rooms:', Object.keys(rooms).length);
                 
+                // Simplified validation - focus on core requirements
                 for (const [roomId, roomData] of Object.entries(rooms)) {
-                    // Enhanced validation with staleness check
+                    console.log(`🔍 Checking room ${roomId}:`, {
+                        gameType: roomData.gameType,
+                        status: roomData.status,
+                        hasGuest: !!roomData.guestId,
+                        hostId: roomData.hostId,
+                        isOwnRoom: roomData.hostId === currentUser.uid
+                    });
+                    
+                    // Core validation - must match game type, be waiting, no guest, not own room
                     if (roomData.status === 'waiting' && 
                         !roomData.guestId && 
                         roomData.hostId !== currentUser.uid &&
-                        roomData.gameType === gameType &&
-                        roomData.lastActivity && roomData.lastActivity > fiveMinutesAgo) {
+                        roomData.gameType === gameType) {
                         
-                        // Double-check room is still valid
+                        // Double-check room is still valid with fresh data
                         const verifySnapshot = await realtimeDb.ref(`game-rooms/${roomId}`).once('value');
                         if (verifySnapshot && verifySnapshot.exists()) {
                             const currentRoomData = verifySnapshot.val();
                             if (currentRoomData.status === 'waiting' && !currentRoomData.guestId) {
-                                console.log('✅ Found valid regular room:', roomId);
+                                console.log('✅ Found valid regular room:', roomId, 'Host:', currentRoomData.hostName);
                                 return { roomId, roomData: currentRoomData };
+                            } else {
+                                console.log('❌ Room validation failed on double-check:', {
+                                    status: currentRoomData.status,
+                                    hasGuest: !!currentRoomData.guestId
+                                });
                             }
+                        } else {
+                            console.log('❌ Room no longer exists on verification');
                         }
                     }
                 }
                 
+                console.log('❌ No valid rooms found matching criteria');
                 return null;
             } catch (error) {
                 console.error('Error finding valid regular room:', error);
