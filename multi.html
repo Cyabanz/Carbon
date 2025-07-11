@@ -536,9 +536,12 @@
         async function signOut() {
             try {
                 // Clean up current game if any
-                if (currentRoom) {
+                if (currentRoom && currentUser && realtimeDb) {
                     await leaveRoom();
                 }
+                
+                // Clean up all resources before signing out
+                cleanupAllGameResources();
                 
                 await auth.signOut();
                 showNotification('Signed Out', 'You have been signed out', 'info');
@@ -585,20 +588,31 @@
                 return;
             }
 
+            // Check if user is authenticated and database is available
+            if (!currentUser) {
+                showNotification('Authentication Required', 'Please sign in to join a room', 'error');
+                return;
+            }
+            
+            if (!realtimeDb) {
+                showNotification('Database Error', 'Database not available', 'error');
+                return;
+            }
+            
             try {
                 showNotification('Joining Room...', 'Connecting to game', 'info');
                 hideJoinRoomModal();
                 
                 // Try ping pong room first
                 const pongSnapshot = await realtimeDb.ref(`pong-rooms/${roomId}`).once('value');
-                if (pongSnapshot.exists()) {
+                if (pongSnapshot && pongSnapshot.exists()) {
                     await joinPongRoom(roomId);
                     return;
                 }
                 
                 // Try regular game room in realtime database
                 const roomSnapshot = await realtimeDb.ref(`game-rooms/${roomId}`).once('value');
-                if (!roomSnapshot.exists()) {
+                if (!roomSnapshot || !roomSnapshot.exists()) {
                     showNotification('Room Not Found', 'Game room does not exist!', 'error');
                     return;
                 }
@@ -651,6 +665,15 @@
         }
 
         async function createRealtimeRoom(gameType) {
+            // Check if user is authenticated and database is available
+            if (!currentUser) {
+                throw new Error('User not authenticated');
+            }
+            
+            if (!realtimeDb) {
+                throw new Error('Realtime database not initialized');
+            }
+            
             try {
                 // Try to find an existing waiting room first
                 const waitingRoomsSnapshot = await realtimeDb.ref(`game-rooms`)
@@ -658,7 +681,7 @@
                     .equalTo(gameType)
                     .once('value');
 
-                if (waitingRoomsSnapshot.exists()) {
+                if (waitingRoomsSnapshot && waitingRoomsSnapshot.exists()) {
                     const rooms = waitingRoomsSnapshot.val();
                     // Look for a waiting room that's not full and not hosted by current user
                     for (const [roomId, roomData] of Object.entries(rooms)) {
@@ -735,9 +758,20 @@
         }
 
         async function joinPongRoom(roomId) {
+            // Check if user is authenticated and database is available
+            if (!currentUser) {
+                showNotification('Authentication Required', 'Please sign in to join a room', 'error');
+                return;
+            }
+            
+            if (!realtimeDb) {
+                showNotification('Database Error', 'Database not available', 'error');
+                return;
+            }
+            
             try {
                 const roomSnapshot = await realtimeDb.ref(`pong-rooms/${roomId}`).once('value');
-                if (!roomSnapshot.exists()) {
+                if (!roomSnapshot || !roomSnapshot.exists()) {
                     showNotification('Room Not Found', 'Ping pong room does not exist!', 'error');
                     return;
                 }
@@ -1182,11 +1216,11 @@
             
             // Listen to room changes with enhanced error handling
             gameListener = userRef.on('value', (snapshot) => {
-                if (snapshot.exists()) {
+                if (snapshot && snapshot.exists()) {
                     const roomData = snapshot.val();
                     handleRoomUpdate(roomData, roomId);
                 } else {
-                    console.log('❌ Room no longer exists');
+                    console.log('❌ Room no longer exists or snapshot is null');
                     showNotification('Game Ended', 'The game room was closed', 'info');
                     cleanupAndBackToSelection();
                 }
@@ -1398,6 +1432,12 @@
 
         // Enhanced room finding with staleness detection
         async function findValidPongRoom() {
+            // Check if user is authenticated and database is available
+            if (!currentUser || !realtimeDb) {
+                console.error('User not authenticated or database not available');
+                return null;
+            }
+            
             try {
                 const pongRoomsSnapshot = await realtimeDb.ref(`pong-rooms`)
                     .orderByChild('status')
@@ -1405,7 +1445,7 @@
                     .limitToFirst(10) // Limit search to prevent excessive queries
                     .once('value');
                 
-                if (!pongRoomsSnapshot.exists()) {
+                if (!pongRoomsSnapshot || !pongRoomsSnapshot.exists()) {
                     return null;
                 }
                 
@@ -1422,7 +1462,7 @@
                         
                         // Double-check room is still valid by reading it again
                         const verifySnapshot = await realtimeDb.ref(`pong-rooms/${roomId}`).once('value');
-                        if (verifySnapshot.exists()) {
+                        if (verifySnapshot && verifySnapshot.exists()) {
                             const currentRoomData = verifySnapshot.val();
                             if (currentRoomData.status === 'waiting' && !currentRoomData.guestId) {
                                 console.log('✅ Found valid pong room:', roomId);
@@ -1440,6 +1480,12 @@
         }
 
         async function findValidRegularRoom(gameType) {
+            // Check if user is authenticated and database is available
+            if (!currentUser || !realtimeDb) {
+                console.error('User not authenticated or database not available');
+                return null;
+            }
+            
             try {
                 const waitingRoomsSnapshot = await realtimeDb.ref(`game-rooms`)
                     .orderByChild('gameType')
@@ -1447,7 +1493,7 @@
                     .limitToFirst(10) // Limit search
                     .once('value');
                 
-                if (!waitingRoomsSnapshot.exists()) {
+                if (!waitingRoomsSnapshot || !waitingRoomsSnapshot.exists()) {
                     return null;
                 }
                 
@@ -1465,7 +1511,7 @@
                         
                         // Double-check room is still valid
                         const verifySnapshot = await realtimeDb.ref(`game-rooms/${roomId}`).once('value');
-                        if (verifySnapshot.exists()) {
+                        if (verifySnapshot && verifySnapshot.exists()) {
                             const currentRoomData = verifySnapshot.val();
                             if (currentRoomData.status === 'waiting' && !currentRoomData.guestId) {
                                 console.log('✅ Found valid regular room:', roomId);
@@ -3922,9 +3968,15 @@
         }
 
         async function leavePongRoom() {
+            // Check if user and database are available
+            if (!currentUser || !realtimeDb || !currentRoom) {
+                console.warn('Cannot leave pong room: missing user, database, or room');
+                return;
+            }
+            
             try {
                 const roomSnapshot = await realtimeDb.ref(`pong-rooms/${currentRoom}`).once('value');
-                if (roomSnapshot.exists()) {
+                if (roomSnapshot && roomSnapshot.exists()) {
                     const roomData = roomSnapshot.val();
                     const isHostPlayer = roomData.hostId === currentUser.uid;
                     
@@ -3962,9 +4014,15 @@
         }
 
         async function leaveRegularRoom() {
+            // Check if user and database are available
+            if (!currentUser || !realtimeDb || !currentRoom) {
+                console.warn('Cannot leave regular room: missing user, database, or room');
+                return;
+            }
+            
             try {
                 const roomSnapshot = await realtimeDb.ref(`game-rooms/${currentRoom}`).once('value');
-                if (roomSnapshot.exists()) {
+                if (roomSnapshot && roomSnapshot.exists()) {
                     const roomData = roomSnapshot.val();
                     const isHost = roomData.hostId === currentUser.uid;
                     
