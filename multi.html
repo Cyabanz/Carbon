@@ -365,7 +365,8 @@
             <div class="bg-surface border border-highlight-med rounded-xl p-6 max-w-md w-full mx-4">
                 <h3 class="text-xl font-bold text-text mb-4">Join Game Room</h3>
                 <input type="text" id="room-id-input" placeholder="Enter Room ID" 
-                       class="w-full p-3 bg-overlay border border-highlight-med rounded-lg text-text mb-4 focus:outline-none focus:border-foam">
+                       class="w-full p-3 bg-overlay border border-highlight-med rounded-lg text-text mb-4 focus:outline-none focus:border-foam"
+                       onkeypress="if(event.key==='Enter') joinRoomById()">
                 <div class="flex gap-3">
                     <button onclick="joinRoomById()" class="flex-1 px-4 py-2 bg-foam hover:bg-foam/80 text-black rounded-lg transition-colors">
                         Join Room
@@ -373,6 +374,9 @@
                     <button onclick="hideJoinRoomModal()" class="flex-1 px-4 py-2 bg-muted hover:bg-muted/80 text-white rounded-lg transition-colors">
                         Cancel
                     </button>
+                </div>
+                <div class="text-xs text-muted mt-3 text-center">
+                    Room IDs are case-sensitive and typically look like: -AbCdEfGhIjKlMnOp
                 </div>
             </div>
         </div>
@@ -554,12 +558,19 @@
             const games = ['pong', 'typing', 'reaction', 'racing'];
             const randomGame = games[Math.floor(Math.random() * games.length)];
             showNotification('Finding Game...', `Looking for ${getGameDisplayName(randomGame)} opponents`, 'info');
-            selectGame(randomGame);
+            findRandomOpponent(randomGame);
         }
 
         function showJoinRoomModal() {
             document.getElementById('join-room-modal').classList.remove('hidden');
-            document.getElementById('room-id-input').focus();
+            // Focus the input after a small delay to ensure the modal is visible
+            setTimeout(() => {
+                const input = document.getElementById('room-id-input');
+                if (input) {
+                    input.focus();
+                    input.select(); // Select any existing text
+                }
+            }, 100);
         }
 
         function hideJoinRoomModal() {
@@ -1005,7 +1016,9 @@
                                 <h4 class="font-semibold text-text mb-2">Game Status</h4>
                                 <div id="game-status" class="text-sm">
                                     ${roomData.status === 'waiting' ? 
-                                        '<span class="text-gold">Waiting for player...</span>' : 
+                                        (roomData.guestId ? 
+                                            '<span class="text-foam">Both players ready! Starting...</span>' :
+                                            '<span class="text-gold">Waiting for player...</span>') : 
                                         roomData.status === 'playing' ? 
                                         '<span class="text-foam">Game in progress</span>' : 
                                         '<span class="text-love">Game completed</span>'}
@@ -1014,7 +1027,7 @@
                             
                             <!-- Quick Actions -->
                             <div class="space-y-2">
-                                ${roomData.status === 'waiting' ? `
+                                ${roomData.status === 'waiting' && !roomData.guestId ? `
                                     <button onclick="findRandomOpponent('${roomData.gameType}')" 
                                             class="w-full px-4 py-2 bg-iris hover:bg-iris/80 text-white rounded-lg transition-colors text-sm">
                                         <i class="bx bx-shuffle mr-2"></i>Find Random Player
@@ -1096,7 +1109,10 @@
             
             // Handle disconnect
             userRef.onDisconnect().update({
-                status: 'disconnected',
+                status: 'completed',
+                disconnectedPlayer: currentUser.uid,
+                disconnectedPlayerName: currentUser.displayName || currentUser.email || 'Player',
+                disconnectedAt: firebase.database.ServerValue.TIMESTAMP,
                 lastActivity: firebase.database.ServerValue.TIMESTAMP
             });
             
@@ -1105,6 +1121,10 @@
                 if (snapshot.exists()) {
                     const roomData = snapshot.val();
                     handleRoomUpdate(roomData, roomId);
+                } else {
+                    console.log('❌ Room no longer exists');
+                    showNotification('Game Ended', 'The game room was closed', 'info');
+                    backToSelection();
                 }
             });
             
@@ -1144,9 +1164,27 @@
             }
             
             // Handle disconnections
-            if (roomData.status === 'disconnected') {
-                showNotification('Player Disconnected', 'The other player has left the game', 'info');
-                setTimeout(() => backToSelection(), 2000);
+            if (roomData.status === 'disconnected' || (roomData.status === 'completed' && roomData.disconnectedPlayer)) {
+                const disconnectedPlayerName = roomData.disconnectedPlayerName || 
+                    (roomData.disconnectedPlayer === roomData.hostId ? 
+                        (roomData.hostName || 'Host') : 
+                        (roomData.guestName || 'Guest'));
+                
+                const remainingPlayerName = roomData.winnerName || 
+                    (roomData.winner === 'player1' ? roomData.hostName : roomData.guestName);
+                
+                if (roomData.disconnectedPlayer !== currentUser.uid) {
+                    showNotification('Player Left', `${disconnectedPlayerName} left the game. ${remainingPlayerName} wins!`, 'info');
+                    
+                    // Show winner screen for remaining player if game was in progress
+                    if (roomData.status === 'completed' && roomData.winner && !winnerScreenShown) {
+                        setTimeout(() => showWinnerScreen(roomData), 1500);
+                    }
+                } else {
+                    showNotification('Left Game', 'You have left the game', 'info');
+                }
+                
+                setTimeout(() => backToSelection(), 3000);
             }
         }
 
@@ -1155,9 +1193,17 @@
             const guestSlot = document.getElementById('guest-slot');
             
             if (gameStatus) {
-                gameStatus.innerHTML = roomData.status === 'waiting' ? 
-                    '<span class="text-gold">Waiting for player...</span>' : 
-                    '<span class="text-foam">Game starting...</span>';
+                let statusText = '';
+                if (roomData.status === 'waiting') {
+                    statusText = roomData.guestId ? 
+                        '<span class="text-foam">Both players ready! Starting...</span>' :
+                        '<span class="text-gold">Waiting for player...</span>';
+                } else if (roomData.status === 'playing') {
+                    statusText = '<span class="text-foam">Game in progress</span>';
+                } else if (roomData.status === 'completed') {
+                    statusText = '<span class="text-love">Game completed</span>';
+                }
+                gameStatus.innerHTML = statusText;
             }
             
             if (guestSlot && roomData.guestId) {
@@ -1191,31 +1237,50 @@
             showNotification('Searching...', 'Looking for available players', 'info');
             
             try {
-                const waitingRoomsSnapshot = await realtimeDb.ref(`game-rooms`)
-                    .orderByChild('gameType')
-                    .equalTo(gameType)
-                    .once('value');
-                
-                if (waitingRoomsSnapshot.exists()) {
-                    const rooms = waitingRoomsSnapshot.val();
+                // Search for pong rooms first if pong game type
+                if (gameType === 'pong') {
+                    const pongRoomsSnapshot = await realtimeDb.ref(`pong-rooms`)
+                        .orderByChild('status')
+                        .equalTo('waiting')
+                        .once('value');
                     
-                    for (const [roomId, roomData] of Object.entries(rooms)) {
-                        try {
+                    if (pongRoomsSnapshot.exists()) {
+                        const rooms = pongRoomsSnapshot.val();
+                        
+                        for (const [roomId, roomData] of Object.entries(rooms)) {
+                            if (roomData.status === 'waiting' && 
+                                !roomData.guestId && 
+                                roomData.hostId !== currentUser.uid) {
+                                await joinPongRoom(roomId);
+                                return;
+                            }
+                        }
+                    }
+                } else {
+                    // Search for regular game rooms
+                    const waitingRoomsSnapshot = await realtimeDb.ref(`game-rooms`)
+                        .orderByChild('gameType')
+                        .equalTo(gameType)
+                        .once('value');
+                    
+                    if (waitingRoomsSnapshot.exists()) {
+                        const rooms = waitingRoomsSnapshot.val();
+                        
+                        for (const [roomId, roomData] of Object.entries(rooms)) {
                             if (roomData.status === 'waiting' && 
                                 !roomData.guestId && 
                                 roomData.hostId !== currentUser.uid) {
                                 await joinRealtimeRoom(roomId);
                                 return;
                             }
-                        } catch (joinError) {
-                            console.error('Error joining room:', roomId, joinError);
-                            continue;
                         }
                     }
-                    showNotification('No Players Found', 'No waiting games found. Your room is now public for others to join!', 'info');
-                } else {
-                    showNotification('No Players Found', 'No waiting games found. Your room is now public for others to join!', 'info');
                 }
+                
+                // If no rooms found, create a new one
+                showNotification('No Players Found', 'Creating a new room for other players to join!', 'info');
+                selectGame(gameType);
+                
             } catch (error) {
                 console.error('Error finding opponent:', error);
                 showNotification('Error', 'Failed to find opponent', 'error');
@@ -1255,17 +1320,42 @@
         }
 
         function updateGameUI(roomData, roomId) {
-            // Handle disconnections
+            // Handle disconnections - ensure correct winner is shown
             if (roomData.status === 'completed' && roomData.disconnectedPlayer) {
-                const disconnectedPlayerName = roomData.disconnectedPlayer === roomData.hostId ? 
-                    (roomData.hostName || 'Host') : 
-                    (roomData.guestName || 'Guest');
+                const disconnectedPlayerName = roomData.disconnectedPlayerName || 
+                    (roomData.disconnectedPlayer === roomData.hostId ? 
+                        (roomData.hostName || 'Host') : 
+                        (roomData.guestName || 'Guest'));
+                
+                const remainingPlayerName = roomData.winnerName || 
+                    (roomData.winner === 'player1' ? roomData.hostName : roomData.guestName);
                 
                 if (roomData.disconnectedPlayer !== currentUser.uid) {
-                    showNotification('Game Ended', `${disconnectedPlayerName} left the game`, 'info');
+                    showNotification('Player Left', `${disconnectedPlayerName} left the game. ${remainingPlayerName} wins!`, 'info');
+                    
+                    // Show winner screen for the remaining player
+                    if (!winnerScreenShown) {
+                        setTimeout(() => {
+                            // Create a modified room data for winner screen
+                            const winnerRoomData = { ...roomData };
+                            // Ensure the winner is correctly set to the remaining player
+                            if (roomData.winner === 'player1' || roomData.winner === 'player2') {
+                                winnerRoomData.winner = roomData.winner;
+                            }
+                            showWinnerScreen(winnerRoomData);
+                        }, 1500);
+                    }
+                    
                     setTimeout(() => {
                         backToSelection();
-                    }, 2000);
+                    }, 4000);
+                    return;
+                } else {
+                    // Current user is the one who left - just go back
+                    showNotification('Left Game', 'You have left the game', 'info');
+                    setTimeout(() => {
+                        backToSelection();
+                    }, 1000);
                     return;
                 }
             }
@@ -1353,7 +1443,7 @@
                     }
                 }
                 
-                // Show winner screen for normal completions
+                // Show winner screen for normal completions (not disconnections)
                 if (roomData.status === 'completed' && !roomData.disconnectedPlayer && !winnerScreenShown) {
                     setTimeout(() => showWinnerScreen(roomData), 1000);
                 }
@@ -3004,11 +3094,32 @@
             
             winnerScreenShown = true;
             
+            // Determine if current user won
             const didIWin = (
                 (roomData.winner === 'player1' && roomData.hostId === currentUser.uid) ||
                 (roomData.winner === 'player2' && roomData.guestId === currentUser.uid)
             );
             
+            // Handle disconnection cases - if there's a disconnected player, the other player wins
+            if (roomData.disconnectedPlayer) {
+                const amIDisconnected = roomData.disconnectedPlayer === currentUser.uid;
+                // If I disconnected, I lost. If someone else disconnected, I won.
+                const actualDidIWin = !amIDisconnected;
+                
+                // Override the win status for disconnection cases
+                if (actualDidIWin !== didIWin) {
+                    console.log('🔄 Correcting winner status due to disconnection');
+                }
+                const finalDidIWin = actualDidIWin;
+                
+                showWinnerModal(roomData, finalDidIWin, true);
+            } else {
+                // Normal game completion
+                showWinnerModal(roomData, didIWin, false);
+            }
+        }
+
+        function showWinnerModal(roomData, didIWin, wasDisconnection) {
             const isDraw = roomData.winner === 'draw' || roomData.winner === 'tie';
             const gameTitle = getGameDisplayName(roomData.gameType);
             
@@ -3016,29 +3127,51 @@
             winnerModal.id = 'winnerModal';
             winnerModal.className = 'fixed inset-0 bg-black/90 backdrop-blur-md flex items-center justify-center z-[10000]';
             
-            let titleText, titleColor, bgGradient, icon;
+            let titleText, titleColor, bgGradient, icon, subtitleText;
             
             if (isDraw) {
                 titleText = "It's a Draw!";
                 titleColor = 'text-gold';
                 bgGradient = 'from-gold/20 to-gold/10';
                 icon = 'bx-medal';
+                subtitleText = 'Great game!';
             } else if (didIWin) {
-                titleText = "You Won!";
+                titleText = wasDisconnection ? "You Won!" : "You Won!";
                 titleColor = 'text-foam';
                 bgGradient = 'from-foam/20 to-foam/10';
                 icon = 'bx-trophy';
+                subtitleText = wasDisconnection ? 'Opponent left the game' : 'Congratulations!';
             } else {
-                titleText = "You Lost";
+                titleText = wasDisconnection ? "Game Ended" : "You Lost";
                 titleColor = 'text-love';
                 bgGradient = 'from-love/20 to-love/10';
-                icon = 'bx-sad';
+                icon = wasDisconnection ? 'bx-exit' : 'bx-sad';
+                subtitleText = wasDisconnection ? 'You left the game' : 'Better luck next time!';
+            }
+            
+            // Get winner and loser names for display
+            let winnerName = '';
+            let loserName = '';
+            
+            if (!isDraw) {
+                if (roomData.disconnectedPlayer) {
+                    const disconnectedName = roomData.disconnectedPlayerName || 
+                        (roomData.disconnectedPlayer === roomData.hostId ? roomData.hostName : roomData.guestName);
+                    const remainingName = roomData.winnerName || 
+                        (roomData.winner === 'player1' ? roomData.hostName : roomData.guestName);
+                    
+                    winnerName = remainingName;
+                    loserName = disconnectedName;
+                } else {
+                    winnerName = roomData.winner === 'player1' ? roomData.hostName : roomData.guestName;
+                    loserName = roomData.winner === 'player1' ? roomData.guestName : roomData.hostName;
+                }
             }
             
             winnerModal.innerHTML = `
                 <div class="bg-surface border border-highlight-med rounded-2xl shadow-2xl max-w-md w-[90vw] mx-4 overflow-hidden">
                     <div class="bg-gradient-to-br ${bgGradient} p-8 text-center relative">
-                        ${didIWin ? `
+                        ${didIWin && !wasDisconnection ? `
                             <div class="absolute inset-0 overflow-hidden">
                                 <div class="confetti"></div>
                                 <div class="confetti"></div>
@@ -3058,23 +3191,21 @@
                             
                             <h2 class="text-3xl font-bold ${titleColor} mb-2">${titleText}</h2>
                             <p class="text-muted text-lg">${gameTitle} Complete</p>
+                            <p class="text-muted text-sm mt-1">${subtitleText}</p>
                             
-                            ${!isDraw ? `
+                            ${!isDraw && winnerName ? `
                                 <div class="mt-4 flex items-center justify-center gap-4">
-                                    <div class="flex items-center gap-2">
-                                        ${(() => {
-                                            const winnerPhoto = didIWin ? 
-                                                (roomData.hostId === currentUser.uid ? roomData.hostPhoto : roomData.guestPhoto) : 
-                                                (roomData.hostId === currentUser.uid ? roomData.guestPhoto : roomData.hostPhoto);
-                                            return winnerPhoto ? 
-                                                `<img src="${winnerPhoto}" class="w-8 h-8 rounded-full border-2 ${didIWin ? 'border-foam' : 'border-love'}">` :
-                                                `<div class="w-8 h-8 rounded-full border-2 ${didIWin ? 'border-foam' : 'border-love'} ${didIWin ? 'bg-foam/20' : 'bg-love/20'} flex items-center justify-center">
-                                                    <i class="bx bx-user ${didIWin ? 'text-foam' : 'text-love'}"></i>
-                                                </div>`;
-                                        })()}
-                                        <span class="text-text font-semibold">${didIWin ? 'You' : (roomData.hostId === currentUser.uid ? roomData.guestName : roomData.hostName)}</span>
+                                    <div class="text-center">
+                                        <div class="text-sm text-muted">Winner</div>
+                                        <div class="text-foam font-bold">${winnerName}</div>
                                     </div>
-                                    <span class="text-muted">won!</span>
+                                    ${!wasDisconnection ? `
+                                        <div class="text-muted">vs</div>
+                                        <div class="text-center">
+                                            <div class="text-sm text-muted">Runner-up</div>
+                                            <div class="text-love font-bold">${loserName}</div>
+                                        </div>
+                                    ` : ''}
                                 </div>
                             ` : ''}
                         </div>
@@ -3190,13 +3321,18 @@
                             realtimeDb.ref(`pong-players/${currentRoom}`).remove()
                         ]);
                     } else if (roomData.status === 'playing' || roomData.status === 'waiting') {
-                        // Player leaves during game - mark as completed
-                        await realtimeDb.ref(`pong-rooms/${currentRoom}`).update({
+                        // Player leaves during game - mark as completed with remaining player as winner
+                        const updateData = {
                             status: 'completed',
                             winner: isHostPlayer ? 'player2' : 'player1',
+                            winnerName: isHostPlayer ? roomData.guestName : roomData.hostName,
                             disconnectedPlayer: currentUser.uid,
+                            disconnectedPlayerName: isHostPlayer ? roomData.hostName : roomData.guestName,
                             disconnectedAt: firebase.database.ServerValue.TIMESTAMP
-                        });
+                        };
+                        
+                        console.log('🏆 Pong game ended due to disconnect, winner:', updateData.winnerName, '(remaining player)');
+                        await realtimeDb.ref(`pong-rooms/${currentRoom}`).update(updateData);
                     }
                 }
                 
@@ -3225,14 +3361,16 @@
                         const updateData = {
                             status: 'completed',
                             disconnectedPlayer: currentUser.uid,
+                            disconnectedPlayerName: isHost ? roomData.hostName : roomData.guestName,
                             disconnectedAt: firebase.database.ServerValue.TIMESTAMP,
                             lastActivity: firebase.database.ServerValue.TIMESTAMP
                         };
                         
-                        // Determine winner if game was in progress
-                        if (roomData.status === 'playing') {
+                        // Determine winner: the remaining player (NOT the one who left)
+                        if (roomData.status === 'playing' && roomData.guestId) {
                             updateData.winner = isHost ? 'player2' : 'player1';
-                            console.log('🏆 Game ended due to disconnect, winner:', updateData.winner);
+                            updateData.winnerName = isHost ? roomData.guestName : roomData.hostName;
+                            console.log('🏆 Game ended due to disconnect, winner:', updateData.winnerName, '(remaining player)');
                         }
                         
                         await realtimeDb.ref(`game-rooms/${currentRoom}`).update(updateData);
@@ -3388,6 +3526,46 @@
             // Update current game data
             currentGameData = roomData;
             
+            // Handle disconnections first
+            if (roomData.status === 'completed' && roomData.disconnectedPlayer) {
+                const disconnectedPlayerName = roomData.disconnectedPlayerName || 
+                    (roomData.disconnectedPlayer === roomData.hostId ? 
+                        (roomData.hostName || 'Host') : 
+                        (roomData.guestName || 'Guest'));
+                
+                const remainingPlayerName = roomData.winnerName || 
+                    (roomData.winner === 'player1' ? roomData.hostName : roomData.guestName);
+                
+                if (roomData.disconnectedPlayer !== currentUser.uid) {
+                    showNotification('Player Left', `${disconnectedPlayerName} left the game. ${remainingPlayerName} wins!`, 'info');
+                    
+                    // Show winner screen for the remaining player
+                    if (!winnerScreenShown) {
+                        setTimeout(() => {
+                            // Create a modified room data for winner screen
+                            const winnerRoomData = { ...roomData };
+                            // Ensure the winner is correctly set to the remaining player
+                            if (roomData.winner === 'player1' || roomData.winner === 'player2') {
+                                winnerRoomData.winner = roomData.winner;
+                            }
+                            showWinnerScreen(winnerRoomData);
+                        }, 1500);
+                    }
+                    
+                    setTimeout(() => {
+                        backToSelection();
+                    }, 4000);
+                    return;
+                } else {
+                    // Current user is the one who left - just go back
+                    showNotification('Left Game', 'You have left the game', 'info');
+                    setTimeout(() => {
+                        backToSelection();
+                    }, 1000);
+                    return;
+                }
+            }
+            
             // Handle guest joining
             if (roomData.status === 'waiting' && roomData.guestId) {
                 console.log('🎯 Guest joined, updating lobby');
@@ -3409,9 +3587,9 @@
                 initializePongGame(roomData, roomId);
             }
             
-            // Handle game completion
-            if (roomData.status === 'completed') {
-                console.log('🏁 Game completed');
+            // Handle game completion (normal win, not disconnect)
+            if (roomData.status === 'completed' && !roomData.disconnectedPlayer) {
+                console.log('🏁 Game completed normally');
                 if (pongInterval) {
                     clearInterval(pongInterval);
                     pongInterval = null;
