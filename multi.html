@@ -3233,18 +3233,21 @@
         // Add after setupPongRoom function
 
         function handlePongRoomUpdate(roomData, roomId) {
-            console.log('🏓 Pong room update:', roomData.status);
+            console.log('🏓 Pong room update:', roomData.status, 'Host:', roomData.hostName, 'Guest:', roomData.guestName);
             
             // Update current game data
             currentGameData = roomData;
             
             // Handle guest joining
-            if (roomData.status === 'waiting' && roomData.guestId && !document.getElementById('guest-slot').innerHTML.includes('border-iris')) {
+            if (roomData.status === 'waiting' && roomData.guestId) {
+                console.log('🎯 Guest joined, updating lobby');
                 updateLobbyWithGuest(roomData);
                 
-                // Auto-start game if both players present
+                // Auto-start game if both players present and we're the host
                 if (isHost && roomData.guestId) {
+                    console.log('🚀 Host starting game in 2 seconds...');
                     setTimeout(async () => {
+                        console.log('🚀 Host triggering game start');
                         await startPongGame(roomId);
                     }, 2000);
                 }
@@ -3252,14 +3255,20 @@
             
             // Handle game starting
             if (roomData.status === 'playing' && !document.getElementById('pong-canvas')) {
+                console.log('🎮 Game status is playing, initializing UI');
                 initializePongGame(roomData, roomId);
             }
             
             // Handle game completion
             if (roomData.status === 'completed') {
+                console.log('🏁 Game completed');
                 if (pongInterval) {
                     clearInterval(pongInterval);
                     pongInterval = null;
+                }
+                if (guestPhysicsInterval) {
+                    clearInterval(guestPhysicsInterval);
+                    guestPhysicsInterval = null;
                 }
                 
                 if (!winnerScreenShown) {
@@ -3270,6 +3279,8 @@
 
         async function startPongGame(roomId) {
             try {
+                console.log('🎮 Starting pong game initialization...');
+                
                 // Initialize game state in Realtime Database with safe values
                 const gameState = {
                     ball: { 
@@ -3280,7 +3291,8 @@
                     },
                     player1: { y: 175, score: 0 },
                     player2: { y: 175, score: 0 },
-                    lastUpdate: firebase.database.ServerValue.TIMESTAMP
+                    gameStarted: true,
+                    lastUpdate: Date.now()
                 };
 
                 // Validate all values before setting
@@ -3290,15 +3302,19 @@
                     return;
                 }
 
-                await Promise.all([
-                    realtimeDb.ref(`pong-rooms/${roomId}`).update({
-                        status: 'playing',
-                        startedAt: firebase.database.ServerValue.TIMESTAMP
-                    }),
-                    realtimeDb.ref(`pong-physics/${roomId}`).set(gameState)
-                ]);
+                console.log('🎮 Setting initial game state:', gameState);
 
-                console.log('🎮 Pong game started!');
+                // Set physics state first, then update room status
+                await realtimeDb.ref(`pong-physics/${roomId}`).set(gameState);
+                console.log('✅ Physics state set');
+                
+                await realtimeDb.ref(`pong-rooms/${roomId}`).update({
+                    status: 'playing',
+                    startedAt: firebase.database.ServerValue.TIMESTAMP
+                });
+                console.log('✅ Room status updated to playing');
+
+                console.log('🎮 Pong game started successfully!');
             } catch (error) {
                 console.error('Error starting pong game:', error);
             }
@@ -3394,20 +3410,35 @@
                 const mouseY = e.clientY - rect.top;
                 const paddleY = Math.max(0, Math.min(350, mouseY - 25));
                 
-                pongPlayersRef.child(`${currentUser.uid}`).set({
-                    y: paddleY,
-                    lastUpdate: firebase.database.ServerValue.TIMESTAMP
-                });
-                
-                lastPaddleUpdate = now;
+                // Validate paddle position before setting
+                if (isValidNumber(paddleY)) {
+                    pongPlayersRef.child(`${currentUser.uid}`).set({
+                        y: paddleY,
+                        lastUpdate: Date.now()
+                    });
+                    lastPaddleUpdate = now;
+                }
             });
 
-            // Start physics loop
+            // Start physics loop - wait for game state to be ready
             if (isHost) {
-                console.log('🎮 Starting authoritative physics loop for host at 30 FPS');
-                pongInterval = setInterval(() => {
-                    updatePongPhysics(roomId);
-                }, 33); // 30 FPS
+                console.log('🎮 Host waiting for game state before starting physics...');
+                
+                // Wait for game state to be ready before starting physics
+                const waitForGameState = () => {
+                    pongPhysicsRef.once('value', (snapshot) => {
+                        if (snapshot.exists() && snapshot.val().gameStarted) {
+                            console.log('🎮 Game state ready, starting authoritative physics loop at 30 FPS');
+                            pongInterval = setInterval(() => {
+                                updatePongPhysics(roomId);
+                            }, 33); // 30 FPS
+                        } else {
+                            console.log('🎮 Game state not ready, waiting...');
+                            setTimeout(waitForGameState, 100);
+                        }
+                    });
+                };
+                waitForGameState();
             } else {
                 console.log('🎮 Starting guest prediction physics at 60 FPS');
                 guestPhysicsInterval = setInterval(() => {
@@ -3516,11 +3547,20 @@
         async function updatePongPhysics(roomId) {
             try {
                 const snapshot = await pongPhysicsRef.once('value');
-                if (!snapshot.exists()) return;
+                if (!snapshot.exists()) {
+                    console.log('No physics data yet, skipping update');
+                    return;
+                }
 
                 const gameState = snapshot.val();
                 if (!gameState || !gameState.ball || !gameState.player1 || !gameState.player2) {
-                    console.warn('Invalid game state for physics update');
+                    console.warn('Invalid game state for physics update:', gameState);
+                    return;
+                }
+
+                // Check if game is actually started
+                if (!gameState.gameStarted) {
+                    console.log('Game not started yet, skipping physics');
                     return;
                 }
 
@@ -3605,13 +3645,15 @@
                     });
                 }
 
-                // Update physics
-                ball.lastUpdate = firebase.database.ServerValue.TIMESTAMP;
-                await pongPhysicsRef.update({
+                // Update physics - use current timestamp to avoid NaN
+                const updateData = {
                     ball: ball,
                     player1: player1,
-                    player2: player2
-                });
+                    player2: player2,
+                    lastUpdate: Date.now()
+                };
+
+                await pongPhysicsRef.update(updateData);
 
             } catch (error) {
                 console.error('Error updating physics:', error);
@@ -3627,6 +3669,12 @@
             ball.y = 200;
             ball.dx = (Math.random() > 0.5 ? 3 : -3);
             ball.dy = (Math.random() - 0.5) * 4;
+            
+            // Ensure ball speed is valid
+            if (!isValidNumber(ball.dx)) ball.dx = 3;
+            if (!isValidNumber(ball.dy)) ball.dy = 2;
+            
+            console.log('🏐 Ball reset to:', ball);
         }
 
         function renderPongGame(ctx, gameState, roomData) {
