@@ -646,11 +646,9 @@
       transform: scale(1.02);
       box-shadow: 0 0 0 3px rgba(156, 207, 216, 0.2);
     }
-
     .focus-enhanced:focus {
       animation: pulseGlow 1.5s infinite;
     }
-
     .text-consistent {
       word-break: break-word;
       overflow-wrap: break-word;
@@ -1187,15 +1185,15 @@
           </div>
           
           <!-- Quick Chat -->
-          <div id="quickChatSection" class="bg-rp-surface rounded-xl border border-rp-overlay p-4 hidden">
-            <div class="flex items-center justify-between mb-4">
-              <h3 class="text-lg font-semibold text-rp-text flex items-center gap-2">
-                <i class='bx bx-message-dots text-rp-iris'></i>
-                Chat with <span id="chatFriendName">Friend</span>
+          <div id="quickChatSection" class="bg-rp-surface rounded-xl border border-rp-overlay p-4 shadow-lg max-w-xs mx-auto" style="box-shadow: 0 4px 24px 0 rgba(0,0,0,0.18);">
+            <div class="flex items-center justify-between mb-4 bg-rp-overlay/60 rounded-lg px-3 py-2">
+              <h3 class="text-base font-semibold text-rp-text flex items-center gap-2 min-w-0">
+                <i class='bx bx-message-dots text-rp-iris flex-shrink-0'></i>
+                <span id="chatFriendName" class="truncate max-w-[7rem]" title="Friend">Friend</span>
               </h3>
-              <div class="flex items-center gap-2">
-                <button id="chatSettingsBtn" class="text-rp-subtle hover:text-rp-foam transition-colors" title="Chat Settings">
-                  <i class='bx bx-palette text-lg'></i>
+              <div class="flex items-center gap-1 mr-1">
+                <button id="chatSettingsBtn" class="text-rp-subtle hover:text-rp-foam transition-colors p-1 w-7 h-7 flex items-center justify-center" title="Chat Settings">
+                  <i class='bx bx-palette text-base'></i>
                 </button>
                 <button id="closeChatBtn" class="text-rp-subtle hover:text-rp-love transition-colors">
                   <i class='bx bx-x text-xl'></i>
@@ -1240,15 +1238,15 @@
               <!-- Chat background canvas for particles -->
               <canvas id="chatParticlesCanvas" class="absolute inset-0 rounded-lg hidden pointer-events-none"></canvas>
               
-              <div id="chatMessages" class="h-48 overflow-y-auto bg-rp-overlay rounded-lg p-3 mb-3 space-y-2 relative z-10">
+              <div id="chatMessages" class="h-48 overflow-y-auto bg-rp-overlay rounded-lg p-3 mb-3 space-y-3 relative z-10 custom-scrollbar">
                 <!-- Chat messages will be populated here -->
               </div>
             </div>
             
             <div class="flex gap-2">
-              <input id="chatInput" type="text" maxlength="500" placeholder="Type a message..." class="flex-1 px-3 py-2 bg-rp-overlay border border-rp-highlight-med rounded-lg text-rp-text focus:outline-none focus:ring-2 focus:ring-rp-foam/50 text-sm">
-              <button id="sendMessageBtn" class="flex-shrink-0 w-10 h-10 bg-rp-foam hover:bg-rp-foam/90 text-rp-base rounded-lg transition-colors flex items-center justify-center">
-                <i class='bx bx-send text-sm'></i>
+              <input id="chatInput" type="text" maxlength="500" placeholder="Type a message..." class="flex-1 px-3 py-2.5 bg-rp-overlay border border-rp-highlight-med rounded-lg text-rp-text focus:outline-none focus:ring-2 focus:ring-rp-foam/50 text-sm align-middle" style="height:2.5rem; min-height:2.5rem;" />
+              <button id="sendMessageBtn" class="flex-shrink-0 w-8 h-8 bg-rp-foam hover:bg-rp-foam/90 text-rp-base rounded-lg transition-colors flex items-center justify-center">
+                <i class='bx bx-send text-xs'></i>
               </button>
             </div>
           </div>
@@ -1280,7 +1278,6 @@
         </div>
       </div>
     </div>
-
     <!-- PUBLIC PROFILE -->
     <div id="publicProfileContent" class="hidden">
       <!-- Public Profile Header -->
@@ -1525,7 +1522,6 @@
       </div>
     </div>
   </div>
-
   <!-- Followers/Following Modal -->
   <div id="followersModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 hidden">
     <div class="bg-rp-surface rounded-xl border border-rp-overlay p-6 w-full max-w-lg mx-4 max-h-[80vh] overflow-hidden flex flex-col">
@@ -1635,7 +1631,6 @@
       </button>
     </div>
   </div>
-
   <script>
     // FIREBASE INIT
     const firebaseConfig = {
@@ -2272,7 +2267,6 @@
         showNotification('Error', `Failed to decline request: ${error.message}`, 'error');
       }
     }
-
     async function removeFriend(friendUid) {
       if (!currentUser || !confirm('Are you sure you want to remove this friend?')) return;
       
@@ -2299,7 +2293,6 @@
         showNotification('Error', 'Failed to remove friend', 'error');
       }
     }
-
     // Load and display friends
     async function loadFriends() {
       if (!currentUser) return;
@@ -2818,7 +2811,6 @@
         console.error('❌ Error updating chat background UI:', error);
       }
     }
-
     function initChatParticles() {
       console.log('✨ Initializing chat particles');
       
@@ -3075,7 +3067,6 @@
         console.error('Error updating friendship streak:', error);
       }
     }
-
     async function loadFriendshipStreaks() {
       if (!currentUser) return;
       
@@ -3124,17 +3115,19 @@
           
           return `
             <div class="flex items-center justify-between p-3 bg-rp-overlay rounded-lg ${isActive ? 'border border-rp-gold/30' : 'opacity-60'}">
-              <div class="flex items-center gap-3">
-                <img src="${sanitizeText(friendPhoto)}" class="w-10 h-10 rounded-full" alt="${friendName}">
-                <div>
-                  <p class="font-medium text-rp-text">${friendName}</p>
+              <div class="flex items-center gap-3 min-w-0 flex-1">
+                <img src="${sanitizeText(friendPhoto)}" class="w-10 h-10 rounded-full flex-shrink-0" alt="${friendName}">
+                <div class="min-w-0 flex-1">
+                  <p class="font-medium text-rp-text truncate">${friendName}</p>
                   <p class="text-sm text-rp-subtle">${isActive ? 'Active streak' : 'Streak ended'}</p>
                 </div>
               </div>
-              <div class="flex items-center gap-2">
-                <span class="text-lg">${streakEmoji}</span>
-                <span class="text-xl font-bold text-rp-gold">${streak}</span>
-                <span class="text-sm text-rp-subtle">day${streak !== 1 ? 's' : ''}</span>
+              <div class="flex items-center gap-1 flex-shrink-0 ml-2">
+                <span class="text-base">${streakEmoji}</span>
+                <div class="text-center">
+                  <span class="text-lg font-bold text-rp-gold block leading-none">${streak}</span>
+                  <span class="text-xs text-rp-subtle">day${streak !== 1 ? 's' : ''}</span>
+                </div>
               </div>
             </div>
           `;
@@ -3465,7 +3458,6 @@
         `;
       }).join('');
     }
-
     // Initialize game statistics events
     function initializeGameStatsEvents() {
       const leaderboardTypeSelect = document.getElementById('leaderboardType');
@@ -3827,7 +3819,6 @@
         console.error('Error cancelling friend request:', error);
       }
     }
-
     // Activity Feed Functions - only load if element exists
     async function loadActivityFeed() {
       const activityContainer = document.getElementById('activityFeed');
@@ -4110,7 +4101,6 @@
       document.getElementById('bioDisplay').classList.remove('hidden');
       document.getElementById('bioEditor').classList.add('hidden');
     }
-
     // Online friends tracking
     async function updateOnlineFriendsList() {
       if (!currentUser) return;
@@ -4625,7 +4615,6 @@
         counter.textContent = input.value.length;
       }
     }
-
     function updateFriendNoteCharCount() {
       const input = document.getElementById('friendNoteInput');
       const counter = document.getElementById('friendNoteCharCount');
@@ -4646,7 +4635,6 @@
         return '';
       }
     }
-
     // Initialize friend system event listeners
     function initializeFriendSystemEvents() {
       // Status Notes Event Listeners
@@ -5483,7 +5471,6 @@
         `;
       }
     }
-
     function renderGamesList(listId, gameIds, label) {
       const listEl = document.getElementById(listId);
       if (!Array.isArray(gameIds) || gameIds.length === 0) {
@@ -5603,7 +5590,6 @@
       if (minutes > 0) return `${minutes}m ago`;
       return 'Just now';
     }
-
     function renderActivityFeed(activities, feedId = 'activityFeed') {
       // If feedId is not provided or is undefined, use default
       if (!feedId || feedId === 'undefined') {
@@ -6123,7 +6109,6 @@
         }
       }
     }
-
     function handleCustomBackground(file) {
       if (!file.type.startsWith('image/')) {
         alert('Please select an image file');
@@ -6395,7 +6380,6 @@
         console.error('Error ensuring user follower fields:', error);
       }
     }
-
     // Clean up duplicate followers in the database
     async function cleanupDuplicateFollowers(uid) {
       try {
@@ -6802,7 +6786,6 @@
         }
       }
     }
-
     // Update all follow button states across the entire page
     function updateAllFollowButtonStates() {
       console.log('🔄 Updating all follow button states...');
@@ -7262,7 +7245,6 @@
         };
       }
     }
-
     // Search followers/following
     function searchFollowers() {
       const query = document.getElementById('followerSearchInput').value.toLowerCase();
@@ -7513,7 +7495,6 @@
       
       return suggestions;
     }
-    
     // Get users with similar games
     async function getUsersWithSimilarGames(currentUserData) {
       const suggestions = [];
