@@ -3055,6 +3055,7 @@
       
       try {
         const searchResults = [];
+        const seenUids = new Set();
         
         // Search by username
         const usernameQuery = await db.collection('users')
@@ -3065,8 +3066,9 @@
         
         usernameQuery.forEach(doc => {
           const data = doc.data();
-          if (doc.id !== currentUser.uid) {
+          if (doc.id !== currentUser.uid && !seenUids.has(doc.id)) {
             searchResults.push({ uid: doc.id, ...data });
+            seenUids.add(doc.id);
           }
         });
         
@@ -3074,12 +3076,10 @@
         if (query.length > 10) {
           try {
             const uidDoc = await db.collection('users').doc(query).get();
-            if (uidDoc.exists && query !== currentUser.uid) {
+            if (uidDoc.exists && query !== currentUser.uid && !seenUids.has(query)) {
               const data = uidDoc.data();
-              const alreadyIncluded = searchResults.some(user => user.uid === query);
-              if (!alreadyIncluded) {
-                searchResults.push({ uid: query, ...data });
-              }
+              searchResults.push({ uid: query, ...data });
+              seenUids.add(query);
             }
           } catch (error) {
             // Ignore UID search errors
@@ -3105,16 +3105,23 @@
       
       document.getElementById('noSearchResults').classList.add('hidden');
       
-      resultsContainer.innerHTML = users.map(user => {
+      // Filter out users that are already being followed to avoid suggesting them
+      const filteredUsers = users.filter(user => {
+        return !followerSystemState.currentUserFollowing.includes(user.uid);
+      });
+      
+      resultsContainer.innerHTML = filteredUsers.map(user => {
         // Check if already friends
         let isAlreadyFriend = false;
+        let isAlreadyFollowing = followerSystemState.currentUserFollowing.includes(user.uid);
+        
         if (currentUser) {
           // We need to check the current user's friends list
           const currentUserData = currentUser.userData || {};
           isAlreadyFriend = currentUserData.friends && currentUserData.friends.includes(user.uid);
         }
         
-        console.log('👤 Rendering user:', user.displayName, 'Already friend:', isAlreadyFriend);
+        console.log('👤 Rendering user:', user.displayName, 'Already friend:', isAlreadyFriend, 'Already following:', isAlreadyFollowing);
         
         // Sanitize user data to prevent XSS
         const safeDisplayName = sanitizeText(user.displayName || 'Unknown User');
@@ -3124,7 +3131,7 @@
         const safeUid = sanitizeText(user.uid || '');
         
         return `
-          <div class="flex items-center gap-3 p-3 bg-rp-overlay rounded-lg">
+          <div class="flex items-center gap-3 p-3 bg-rp-overlay rounded-lg" data-user-id="${safeUid}">
             <img src="${safePhotoURL}" 
                  alt="${safeDisplayName}" 
                  class="w-10 h-10 rounded-full">
@@ -3134,17 +3141,26 @@
               ${safeBio ? `<p class="text-xs text-rp-muted truncate">${safeBio}</p>` : ''}
             </div>
             <div class="flex gap-2">
+              ${isAlreadyFollowing ? `
+                <button onclick="unfollowUser('${safeUid}')" class="px-3 py-1 bg-rp-love/20 text-rp-love border border-rp-love/30 rounded text-xs hover:bg-rp-love/30 transition-colors">
+                  Unfollow
+                </button>
+              ` : `
+                <button onclick="followUser('${safeUid}')" class="px-3 py-1 bg-rp-foam text-rp-base rounded text-xs hover:bg-rp-foam/90 transition-colors">
+                  Follow
+                </button>
+              `}
               ${isAlreadyFriend ? `
-                <span class="px-3 py-1 bg-rp-foam/20 text-rp-foam rounded text-xs">Friends</span>
+                <span class="px-3 py-1 bg-rp-iris/20 text-rp-iris rounded text-xs">Friends</span>
               ` : `
                 <button onclick="window.sendFriendRequest('${safeUid}')" 
-                        class="px-3 py-1 bg-rp-foam hover:bg-rp-foam/90 text-rp-base rounded text-xs transition-colors"
+                        class="px-3 py-1 bg-rp-iris/20 text-rp-iris rounded text-xs hover:bg-rp-iris/30 transition-colors"
                         data-uid="${safeUid}">
                   Add Friend
                 </button>
               `}
               <button onclick="window.viewUserProfile('${safeUid}')" 
-                      class="px-3 py-1 bg-rp-iris/20 text-rp-iris rounded text-xs hover:bg-rp-iris/30 transition-colors">
+                      class="px-3 py-1 bg-rp-subtle/20 text-rp-subtle rounded text-xs hover:bg-rp-subtle/30 transition-colors">
                 View
               </button>
             </div>
@@ -5171,6 +5187,9 @@
         // Load current user's follower data
         await loadFollowerData(currentUser.uid);
         
+        // Clean up duplicates in database
+        await cleanupDuplicateFollowers();
+        
         // Load privacy settings
         await loadFollowerPrivacySettings();
         
@@ -5194,13 +5213,13 @@
           const userData = userDoc.data();
           
           if (uid === currentUser.uid) {
-            // Load current user's data
-            followerSystemState.currentUserFollowers = userData.followers || [];
-            followerSystemState.currentUserFollowing = userData.following || [];
+            // Load current user's data with deduplication
+            followerSystemState.currentUserFollowers = [...new Set(userData.followers || [])];
+            followerSystemState.currentUserFollowing = [...new Set(userData.following || [])];
           } else {
-            // Load viewing user's data
-            followerSystemState.viewingUserFollowers = userData.followers || [];
-            followerSystemState.viewingUserFollowing = userData.following || [];
+            // Load viewing user's data with deduplication
+            followerSystemState.viewingUserFollowers = [...new Set(userData.followers || [])];
+            followerSystemState.viewingUserFollowing = [...new Set(userData.following || [])];
           }
         }
       } catch (error) {
@@ -5290,8 +5309,10 @@
         
         await batch.commit();
         
-        // Update local state
-        followerSystemState.currentUserFollowing.push(targetUid);
+        // Update local state - only add if not already present
+        if (!followerSystemState.currentUserFollowing.includes(targetUid)) {
+          followerSystemState.currentUserFollowing.push(targetUid);
+        }
         
         // Update UI
         updateFollowButtons(targetUid, true);
@@ -5407,9 +5428,13 @@
         followerSystemState.currentUserFollowing : 
         followerSystemState.viewingUserFollowing;
       
+      // Remove duplicates and filter out current user
+      const uniqueFollowers = [...new Set(followers)].filter(id => id !== currentUser.uid);
+      const uniqueFollowing = [...new Set(following)].filter(id => id !== currentUser.uid);
+      
       // Update counts
-      followersTabCount.textContent = followers.length;
-      followingTabCount.textContent = following.length;
+      followersTabCount.textContent = uniqueFollowers.length;
+      followingTabCount.textContent = uniqueFollowing.length;
       
       // Set active tab
       if (type === 'followers') {
@@ -5420,7 +5445,7 @@
         followingTab.classList.add('bg-rp-highlight-med', 'text-rp-text');
         followersList.classList.remove('hidden');
         followingList.classList.add('hidden');
-        await renderFollowersList(followers, 'followers');
+        await renderFollowersList(uniqueFollowers, 'followers');
       } else {
         title.textContent = 'Following';
         followingTab.classList.add('bg-rp-foam/20', 'text-rp-foam', 'border-rp-foam/30');
@@ -5429,7 +5454,7 @@
         followersTab.classList.add('bg-rp-highlight-med', 'text-rp-text');
         followingList.classList.remove('hidden');
         followersList.classList.add('hidden');
-        await renderFollowersList(following, 'following');
+        await renderFollowersList(uniqueFollowing, 'following');
       }
       
       modal.classList.remove('hidden');
@@ -5445,7 +5470,10 @@
       
       container.innerHTML = '';
       
-      if (userIds.length === 0) {
+      // Remove duplicates from userIds
+      const uniqueUserIds = [...new Set(userIds)];
+      
+      if (uniqueUserIds.length === 0) {
         const emptyState = document.createElement('div');
         emptyState.className = 'text-center py-8 text-rp-subtle text-sm';
         emptyState.innerHTML = `
@@ -5456,8 +5484,8 @@
         return;
       }
       
-      // Load user data for each ID
-      for (const uid of userIds) {
+      // Load user data for each unique ID
+      for (const uid of uniqueUserIds) {
         try {
           const userDoc = await db.collection('users').doc(uid).get();
           if (userDoc.exists) {
@@ -5475,6 +5503,7 @@
     function createFollowerUserItem(userData, uid, listType) {
       const div = document.createElement('div');
       div.className = 'flex items-center justify-between p-3 bg-rp-overlay rounded-lg hover:bg-rp-highlight-med transition-colors';
+      div.setAttribute('data-user-id', uid); // Add data attribute for deduplication
       
       const isCurrentUser = uid === currentUser.uid;
       const isFollowing = followerSystemState.currentUserFollowing.includes(uid);
@@ -5513,11 +5542,11 @@
         <div class="flex items-center gap-2">
           ${!isCurrentUser ? `
             ${isFollowing ? `
-              <button onclick="unfollowUser('${uid}')" class="px-3 py-1 bg-rp-love/20 text-rp-love border border-rp-love/30 rounded text-xs hover:bg-rp-love/30 transition-colors">
+              <button onclick="unfollowUser('${uid}')" class="px-3 py-1 bg-rp-love/20 text-rp-love border border-rp-love/30 rounded text-xs hover:bg-rp-love/30 transition-colors" data-action="unfollow" data-uid="${uid}">
                 Unfollow
               </button>
             ` : `
-              <button onclick="followUser('${uid}')" class="px-3 py-1 bg-rp-foam text-rp-base rounded text-xs hover:bg-rp-foam/90 transition-colors">
+              <button onclick="followUser('${uid}')" class="px-3 py-1 bg-rp-foam text-rp-base rounded text-xs hover:bg-rp-foam/90 transition-colors" data-action="follow" data-uid="${uid}">
                 Follow
               </button>
             `}
@@ -5674,6 +5703,39 @@
         clearTimeout(timeout);
         timeout = setTimeout(later, wait);
       };
+    }
+
+    // Clean up duplicate followers in database
+    async function cleanupDuplicateFollowers() {
+      if (!currentUser) return;
+      
+      try {
+        const userRef = db.collection('users').doc(currentUser.uid);
+        const userDoc = await userRef.get();
+        
+        if (userDoc.exists) {
+          const userData = userDoc.data();
+          const followers = userData.followers || [];
+          const following = userData.following || [];
+          
+          // Remove duplicates
+          const uniqueFollowers = [...new Set(followers)];
+          const uniqueFollowing = [...new Set(following)];
+          
+          // Only update if there were duplicates
+          if (uniqueFollowers.length !== followers.length || uniqueFollowing.length !== following.length) {
+            await userRef.update({
+              followers: uniqueFollowers,
+              following: uniqueFollowing,
+              followersCount: uniqueFollowers.length,
+              followingCount: uniqueFollowing.length
+            });
+            console.log('✅ Cleaned up duplicate followers/following');
+          }
+        }
+      } catch (error) {
+        console.error('❌ Error cleaning up duplicate followers:', error);
+      }
     }
 
     // Enhanced XSS Protection for follower content
