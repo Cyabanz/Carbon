@@ -4839,6 +4839,20 @@
     window.viewUserProfile = viewUserProfile;
     window.followUser = followUser;
     window.unfollowUser = unfollowUser;
+    
+    // Debug function to test follower system
+    window.testFollowerSystem = function() {
+      console.log('🔍 Follower System Debug Info:');
+      console.log('Current User:', currentUser ? currentUser.uid : 'Not logged in');
+      console.log('Follower System State:', followerSystemState);
+      
+      if (currentUser) {
+        console.log('Running follower data reload...');
+        loadFollowerData(currentUser.uid).then(() => {
+          console.log('Updated Follower System State:', followerSystemState);
+        });
+      }
+    };
 
     async function clearRecentGames() {
       const user = auth.currentUser;
@@ -5028,7 +5042,12 @@
       return 'Just now';
     }
 
-    function renderActivityFeed(activities, feedId) {
+    function renderActivityFeed(activities, feedId = 'activityFeed') {
+      // If feedId is not provided or is undefined, use default
+      if (!feedId || feedId === 'undefined') {
+        feedId = 'activityFeed';
+      }
+      
       const feed = document.getElementById(feedId);
       
       // If feed element doesn't exist, don't try to render
@@ -5299,6 +5318,9 @@
         await loadGameStatistics();
         await loadFriendLeaderboard();
         await loadStatusNote();
+        
+        // Initialize follower system
+        await initializeFollowerSystem();
         
         // Load suggested users
         await loadSuggestedUsers();
@@ -5742,6 +5764,9 @@
       if (!currentUser) return;
       
       try {
+        // Ensure user document has follower fields
+        await ensureUserFollowerFields(currentUser.uid);
+        
         // Load current user's follower data
         await loadFollowerData(currentUser.uid);
         
@@ -5760,22 +5785,65 @@
       }
     }
 
-    // Load follower data for a user
-    async function loadFollowerData(uid) {
+    // Ensure user document has follower fields
+    async function ensureUserFollowerFields(uid) {
       try {
         const userDoc = await db.collection('users').doc(uid).get();
         if (userDoc.exists) {
           const userData = userDoc.data();
+          const updates = {};
+          
+          // Add missing follower fields
+          if (!userData.hasOwnProperty('followers')) {
+            updates.followers = [];
+          }
+          if (!userData.hasOwnProperty('following')) {
+            updates.following = [];
+          }
+          if (!userData.hasOwnProperty('followersCount')) {
+            updates.followersCount = 0;
+          }
+          if (!userData.hasOwnProperty('followingCount')) {
+            updates.followingCount = 0;
+          }
+          
+          // Update document if needed
+          if (Object.keys(updates).length > 0) {
+            await db.collection('users').doc(uid).update(updates);
+            console.log('✅ Added missing follower fields to user document', updates);
+          }
+        } else {
+          console.log('❌ User document does not exist for uid:', uid);
+        }
+      } catch (error) {
+        console.error('Error ensuring user follower fields:', error);
+      }
+    }
+
+    // Load follower data for a user
+    async function loadFollowerData(uid) {
+      try {
+        console.log('🔍 Loading follower data for uid:', uid);
+        const userDoc = await db.collection('users').doc(uid).get();
+        if (userDoc.exists) {
+          const userData = userDoc.data();
+          console.log('📊 User data loaded:', userData);
           
           if (uid === currentUser.uid) {
             // Load current user's data
             followerSystemState.currentUserFollowers = userData.followers || [];
             followerSystemState.currentUserFollowing = userData.following || [];
+            console.log('👤 Current user followers:', followerSystemState.currentUserFollowers);
+            console.log('👤 Current user following:', followerSystemState.currentUserFollowing);
           } else {
             // Load viewing user's data
             followerSystemState.viewingUserFollowers = userData.followers || [];
             followerSystemState.viewingUserFollowing = userData.following || [];
+            console.log('👁️ Viewing user followers:', followerSystemState.viewingUserFollowers);
+            console.log('👁️ Viewing user following:', followerSystemState.viewingUserFollowing);
           }
+        } else {
+          console.log('❌ User document does not exist for uid:', uid);
         }
       } catch (error) {
         console.error('Error loading follower data:', error);
@@ -5832,6 +5900,12 @@
       if (!currentUser || targetUid === currentUser.uid) return;
       
       try {
+        console.log('📝 Starting to follow user:', targetUid);
+        
+        // Ensure both users have follower fields
+        await ensureUserFollowerFields(currentUser.uid);
+        await ensureUserFollowerFields(targetUid);
+        
         // Use batch write for atomic operation
         const batch = db.batch();
         
@@ -5863,9 +5937,12 @@
         });
         
         await batch.commit();
+        console.log('✅ Batch write completed successfully');
         
         // Update local state
-        followerSystemState.currentUserFollowing.push(targetUid);
+        if (!followerSystemState.currentUserFollowing.includes(targetUid)) {
+          followerSystemState.currentUserFollowing.push(targetUid);
+        }
         
         // Update UI
         updateFollowButtons(targetUid, true);
@@ -5892,6 +5969,12 @@
       if (!currentUser || targetUid === currentUser.uid) return;
       
       try {
+        console.log('📝 Starting to unfollow user:', targetUid);
+        
+        // Ensure both users have follower fields
+        await ensureUserFollowerFields(currentUser.uid);
+        await ensureUserFollowerFields(targetUid);
+        
         // Use batch write for atomic operation
         const batch = db.batch();
         
@@ -5910,6 +5993,7 @@
         });
         
         await batch.commit();
+        console.log('✅ Batch write completed successfully');
         
         // Update local state
         const index = followerSystemState.currentUserFollowing.indexOf(targetUid);
