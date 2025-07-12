@@ -4842,6 +4842,141 @@
     window.followUser = followUser;
     window.unfollowUser = unfollowUser;
     
+    // Manual cleanup function for duplicate followers
+    window.cleanupMyDuplicateFollowers = async function() {
+      if (!currentUser) {
+        console.log('❌ Please sign in first');
+        return;
+      }
+      
+      try {
+        console.log('🧹 Starting manual cleanup of your duplicate followers...');
+        
+        // Clean up duplicates
+        await cleanupDuplicateFollowers(currentUser.uid);
+        
+        // Reload data
+        await loadFollowerData(currentUser.uid);
+        updateFollowerCounts();
+        
+        // Refresh the modal if it's open
+        const followersModal = document.getElementById('followersModal');
+        if (!followersModal.classList.contains('hidden')) {
+          const activeTab = document.querySelector('#followersTab.bg-rp-foam\\/20') ? 'followers' : 'following';
+          await showFollowersModal(activeTab);
+        }
+        
+        window.createEnhancedNotification('Cleanup Complete', 'Duplicate followers have been removed', 'success');
+        console.log('✅ Manual cleanup completed successfully');
+        
+      } catch (error) {
+        console.error('❌ Error during cleanup:', error);
+        window.createEnhancedNotification('Cleanup Failed', 'Failed to cleanup duplicates', 'error');
+      }
+    };
+    
+    // Analyze duplicate users issue
+    window.analyzeDuplicateUsers = async function(displayName = 'SpawnCamperKid') {
+      if (!currentUser) {
+        console.log('❌ Please sign in first');
+        return;
+      }
+      
+      try {
+        console.log(`🔍 Analyzing duplicate users with display name: "${displayName}"`);
+        
+        // Get current user's data
+        const userDoc = await db.collection('users').doc(currentUser.uid).get();
+        if (!userDoc.exists) {
+          console.log('❌ Current user document not found');
+          return;
+        }
+        
+        const userData = userDoc.data();
+        const followers = userData.followers || [];
+        const following = userData.following || [];
+        
+        console.log('📊 Current user stats:');
+        console.log(`- Followers: ${followers.length}`);
+        console.log(`- Following: ${following.length}`);
+        
+        // Check for users with the specified display name
+        const matchingFollowers = [];
+        const matchingFollowing = [];
+        
+        // Check followers
+        for (const uid of followers) {
+          try {
+            const doc = await db.collection('users').doc(uid).get();
+            if (doc.exists) {
+              const data = doc.data();
+              if (data.displayName === displayName) {
+                matchingFollowers.push({
+                  uid: uid,
+                  displayName: data.displayName,
+                  username: data.username || 'none',
+                  email: data.email || 'none'
+                });
+              }
+            }
+          } catch (error) {
+            console.error(`Error checking follower ${uid}:`, error);
+          }
+        }
+        
+        // Check following
+        for (const uid of following) {
+          try {
+            const doc = await db.collection('users').doc(uid).get();
+            if (doc.exists) {
+              const data = doc.data();
+              if (data.displayName === displayName) {
+                matchingFollowing.push({
+                  uid: uid,
+                  displayName: data.displayName,
+                  username: data.username || 'none',
+                  email: data.email || 'none'
+                });
+              }
+            }
+          } catch (error) {
+            console.error(`Error checking following ${uid}:`, error);
+          }
+        }
+        
+        console.log(`\n🎯 Users with display name "${displayName}":`);
+        
+        if (matchingFollowers.length > 0) {
+          console.log('\n📥 In your FOLLOWERS list:');
+          matchingFollowers.forEach((user, index) => {
+            console.log(`${index + 1}. UID: ${user.uid}`);
+            console.log(`   Username: ${user.username}`);
+            console.log(`   Email: ${user.email}`);
+          });
+        }
+        
+        if (matchingFollowing.length > 0) {
+          console.log('\n📤 In your FOLLOWING list:');
+          matchingFollowing.forEach((user, index) => {
+            console.log(`${index + 1}. UID: ${user.uid}`);
+            console.log(`   Username: ${user.username}`);
+            console.log(`   Email: ${user.email}`);
+          });
+        }
+        
+        if (matchingFollowers.length === 0 && matchingFollowing.length === 0) {
+          console.log(`✅ No users found with display name "${displayName}"`);
+        } else {
+          console.log(`\n⚠️ Found ${matchingFollowers.length + matchingFollowing.length} users with the same display name`);
+          console.log('This might indicate duplicate accounts or users with the same display name.');
+          console.log('\n💡 To fix this issue, run: cleanupMyDuplicateFollowers()');
+        }
+        
+      } catch (error) {
+        console.error('❌ Error analyzing duplicate users:', error);
+      }
+    };
+    
     // Debug function to test follower system
     window.testFollowerSystem = function() {
       console.log('🔍 Follower System Debug Info:');
@@ -6197,6 +6332,12 @@
               updates.followers = uniqueFollowers;
               updates.followersCount = uniqueFollowers.length;
               console.log(`🧹 Cleaned up followers: ${userData.followers.length} → ${uniqueFollowers.length}`);
+              
+              // Log duplicate UIDs that were found
+              const duplicates = userData.followers.filter((uid, index) => userData.followers.indexOf(uid) !== index);
+              if (duplicates.length > 0) {
+                console.log('🔍 Duplicate follower UIDs removed:', duplicates);
+              }
             }
           }
           
@@ -6207,6 +6348,12 @@
               updates.following = uniqueFollowing;
               updates.followingCount = uniqueFollowing.length;
               console.log(`🧹 Cleaned up following: ${userData.following.length} → ${uniqueFollowing.length}`);
+              
+              // Log duplicate UIDs that were found
+              const duplicates = userData.following.filter((uid, index) => userData.following.indexOf(uid) !== index);
+              if (duplicates.length > 0) {
+                console.log('🔍 Duplicate following UIDs removed:', duplicates);
+              }
             }
           }
           
@@ -6827,6 +6974,9 @@
       // Clear container
       container.innerHTML = '';
       
+      // Track users by displayName to prevent showing the same user twice
+      const seenDisplayNames = new Map();
+      
       // Load user data for each unique ID
       for (const uid of uniqueUserIds) {
         try {
@@ -6835,6 +6985,15 @@
           if (userDoc.exists) {
             const userData = userDoc.data();
             console.log(`✅ User data loaded:`, userData);
+            
+            // Check if we've already shown a user with this display name
+            const displayName = userData.displayName || 'Unknown User';
+            if (seenDisplayNames.has(displayName)) {
+              console.warn(`⚠️ Duplicate user detected: ${displayName} (${uid}) - already shown as ${seenDisplayNames.get(displayName)}`);
+              continue; // Skip this duplicate
+            }
+            seenDisplayNames.set(displayName, uid);
+            
             const userItem = createFollowerUserItem(userData, uid, type);
             container.appendChild(userItem);
           } else {
@@ -6846,6 +7005,7 @@
       }
       
       console.log(`✅ Finished rendering ${type} list`);
+      console.log(`📊 Rendered ${container.children.length} users (from ${uniqueUserIds.length} UIDs)`);
     }
 
     // Create follower user item
@@ -6882,14 +7042,26 @@
       
       const safePhotoURL = DOMPurify.sanitize(userData.photoURL || '/default-avatar.png');
       const safeDisplayName = DOMPurify.sanitize(userData.displayName || 'Unknown User');
-      const safeUsername = DOMPurify.sanitize(userData.username || uid.substring(0, 8));
+      
+      // Show more unique identifier information
+      let userIdentifier = '';
+      if (userData.username && userData.username.trim()) {
+        userIdentifier = DOMPurify.sanitize(userData.username);
+      } else if (userData.email && userData.email.includes('@')) {
+        // Show partial email for identification
+        const emailParts = userData.email.split('@');
+        userIdentifier = emailParts[0].substring(0, 3) + '***@' + emailParts[1];
+      } else {
+        // Show partial UID as last resort
+        userIdentifier = uid.substring(0, 8);
+      }
       
       div.innerHTML = `
         <div class="flex items-center gap-3 flex-1 min-w-0">
           <img src="${safePhotoURL}" alt="Avatar" class="w-10 h-10 rounded-full carbon-profile-avatar">
           <div class="flex-1 min-w-0">
             <div class="font-medium text-rp-text truncate">${safeDisplayName}</div>
-            <div class="text-xs text-rp-subtle truncate">${safeUsername}</div>
+            <div class="text-xs text-rp-subtle truncate">${userIdentifier}</div>
             ${statusInfo}
             ${gameInfo}
           </div>
