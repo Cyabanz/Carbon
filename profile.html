@@ -4975,6 +4975,28 @@
       console.log('✅ Suggested users test completed');
     };
 
+    // Manual validation and cleanup of suggestions
+    window.validateSuggestions = function() {
+      console.log('🧹 Manual validation of suggestions...');
+      validateAndCleanupSuggestions();
+    };
+
+    // Force remove a specific user from suggestions
+    window.removeFromSuggestions = function(uid) {
+      if (!uid) {
+        console.log('❌ No UID provided');
+        return;
+      }
+      
+      const suggestionCard = document.querySelector(`.suggestion-card[data-user-id="${uid}"]`);
+      if (suggestionCard) {
+        console.log(`🗑️ Removing user ${uid} from suggestions`);
+        suggestionCard.remove();
+      } else {
+        console.log(`❌ User ${uid} not found in suggestions`);
+      }
+    };
+
     // Global cleanup function to fix all users' duplicate followers
     window.cleanupAllDuplicateFollowers = async function() {
       if (!currentUser) {
@@ -6304,11 +6326,27 @@
       
       // Prevent multiple rapid clicks by disabling all follow buttons for this user
       const followButtons = document.querySelectorAll(`button[onclick*="followUser('${targetUid}')"]`);
+      const specificFollowBtn = document.querySelector(`.follow-btn-${targetUid}`);
+      
+      // Disable all follow buttons for this user
       followButtons.forEach(btn => {
         btn.disabled = true;
         btn.textContent = 'Following...';
         btn.classList.add('opacity-50', 'cursor-not-allowed');
       });
+      
+      // Also disable the specific button if found
+      if (specificFollowBtn) {
+        specificFollowBtn.disabled = true;
+        specificFollowBtn.textContent = 'Following...';
+        specificFollowBtn.classList.add('opacity-50', 'cursor-not-allowed');
+      }
+      
+      // Immediately remove the user from suggestions to prevent double-following
+      const suggestionCard = document.querySelector(`.suggestion-card[data-user-id="${targetUid}"]`);
+      if (suggestionCard) {
+        suggestionCard.style.display = 'none';
+      }
       
       try {
         console.log('📝 Starting to follow user:', targetUid);
@@ -6378,11 +6416,26 @@
       } finally {
         // Reset operation flag and re-enable buttons
         followerSystemState.isOperationInProgress = false;
+        
+        // Re-enable all follow buttons for this user
         followButtons.forEach(btn => {
           btn.disabled = false;
           btn.textContent = 'Follow';
           btn.classList.remove('opacity-50', 'cursor-not-allowed');
         });
+        
+        // Also re-enable the specific button if found
+        if (specificFollowBtn) {
+          specificFollowBtn.disabled = false;
+          specificFollowBtn.textContent = 'Follow';
+          specificFollowBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+        }
+        
+        // Show the suggestion card again if the operation failed
+        const suggestionCard = document.querySelector(`.suggestion-card[data-user-id="${targetUid}"]`);
+        if (suggestionCard && !followerSystemState.currentUserFollowing.includes(targetUid)) {
+          suggestionCard.style.display = 'flex';
+        }
       }
     }
 
@@ -7063,10 +7116,13 @@
         const latestFollowing = followerSystemState.currentUserFollowing || [];
         console.log('Latest following data:', latestFollowing);
         
+        // Create a Set to track seen UIDs for better duplicate removal
+        const seenUids = new Set();
+        
         const uniqueSuggestions = suggestions
-          .filter((user, index, self) => {
+          .filter((user) => {
             // Must have a valid uid
-            if (!user.uid) return false;
+            if (!user.uid || typeof user.uid !== 'string') return false;
             
             // Can't suggest current user
             if (user.uid === currentUser.uid) return false;
@@ -7077,8 +7133,9 @@
             // Can't suggest users already being followed (check both arrays)
             if (currentUserFollowing.includes(user.uid) || latestFollowing.includes(user.uid)) return false;
             
-            // Remove duplicates
-            if (index !== self.findIndex(u => u.uid === user.uid)) return false;
+            // Remove duplicates using Set
+            if (seenUids.has(user.uid)) return false;
+            seenUids.add(user.uid);
             
             return true;
           })
@@ -7257,7 +7314,58 @@
       // Reload suggestions with fresh data
       await loadSuggestedUsers();
       
+      // Validate and clean up suggestions
+      validateAndCleanupSuggestions();
+      
       console.log('✅ Suggested users refreshed with latest follower data');
+    }
+
+    // Validate and clean up suggestions to ensure no duplicates or invalid data
+    function validateAndCleanupSuggestions() {
+      const suggestedUsersList = document.getElementById('suggestedUsersList');
+      if (!suggestedUsersList) return;
+      
+      const suggestionCards = suggestedUsersList.querySelectorAll('.suggestion-card');
+      const seenUids = new Set();
+      const currentFollowing = followerSystemState.currentUserFollowing || [];
+      
+      console.log('🧹 Validating suggestions...');
+      console.log('Current following:', currentFollowing);
+      
+      suggestionCards.forEach(card => {
+        const uid = card.getAttribute('data-user-id');
+        
+        // Remove if no valid UID
+        if (!uid) {
+          console.log('❌ Removing card with no UID');
+          card.remove();
+          return;
+        }
+        
+        // Remove if already following
+        if (currentFollowing.includes(uid)) {
+          console.log(`❌ Removing card for already followed user: ${uid}`);
+          card.remove();
+          return;
+        }
+        
+        // Remove if duplicate
+        if (seenUids.has(uid)) {
+          console.log(`❌ Removing duplicate card for user: ${uid}`);
+          card.remove();
+          return;
+        }
+        
+        seenUids.add(uid);
+        
+        // Validate display name
+        const nameElement = card.querySelector('h4');
+        if (nameElement && (nameElement.textContent === 'Unknown User' || !nameElement.textContent.trim())) {
+          console.log(`⚠️ User ${uid} has no display name`);
+        }
+      });
+      
+      console.log(`✅ Validation complete. ${suggestionCards.length} valid suggestions remaining.`);
     }
 
     // Render suggested users list
@@ -7265,8 +7373,21 @@
       const suggestedUsersList = document.getElementById('suggestedUsersList');
       if (!suggestedUsersList) return;
       
-            suggestedUsersList.innerHTML = suggestions.map(user => {
-        const safeDisplayName = sanitizeText(user.displayName || 'Unknown User');
+      // Ensure we have the latest following data
+      const currentFollowing = followerSystemState.currentUserFollowing || [];
+      
+      suggestedUsersList.innerHTML = suggestions.map(user => {
+        // Better display name handling
+        let displayName = 'Unknown User';
+        if (user.displayName && user.displayName.trim()) {
+          displayName = user.displayName.trim();
+        } else if (user.username && user.username.trim()) {
+          displayName = user.username.trim();
+        } else if (user.email && user.email.includes('@')) {
+          displayName = user.email.split('@')[0];
+        }
+        
+        const safeDisplayName = sanitizeText(displayName);
         const safeUsername = sanitizeText(user.username || '');
         const safePhotoURL = user.photoURL || '/default-avatar.png';
         const safeUid = sanitizeText(user.uid || '');
@@ -7283,7 +7404,12 @@
         }
         
         // Check if already following this user (use latest data)
-        const isFollowing = followerSystemState.currentUserFollowing && followerSystemState.currentUserFollowing.includes(safeUid);
+        const isFollowing = currentFollowing.includes(safeUid);
+        
+        // If already following, don't show this user in suggestions
+        if (isFollowing) {
+          return '';
+        }
         
         return `
           <div class="flex items-center gap-4 p-4 bg-rp-overlay rounded-lg hover:bg-rp-highlight-med transition-colors suggestion-card" data-user-id="${safeUid}">
@@ -7296,19 +7422,11 @@
               <p class="text-xs text-rp-iris text-consistent font-medium">${safeReason}</p>
             </div>
             <div class="flex flex-col gap-2 min-w-0">
-              ${isFollowing ? `
-                <button onclick="window.unfollowUser('${safeUid}')" 
-                        class="px-4 py-2 bg-rp-love/20 text-rp-love hover:bg-rp-love/30 border border-rp-love/30 rounded-lg text-xs font-medium transition-colors btn-enhanced flex items-center justify-center gap-2 whitespace-nowrap">
-                  <i class='bx bx-user-minus'></i>
-                  Unfollow
-                </button>
-              ` : `
-                <button onclick="window.followUser('${safeUid}')" 
-                        class="px-4 py-2 bg-rp-iris hover:bg-rp-iris/90 text-white rounded-lg text-xs font-medium transition-colors btn-enhanced flex items-center justify-center gap-2 whitespace-nowrap">
-                  <i class='bx bx-user-plus'></i>
-                  Follow
-                </button>
-              `}
+              <button onclick="window.followUser('${safeUid}')" 
+                      class="px-4 py-2 bg-rp-iris hover:bg-rp-iris/90 text-white rounded-lg text-xs font-medium transition-colors btn-enhanced flex items-center justify-center gap-2 whitespace-nowrap follow-btn-${safeUid}">
+                <i class='bx bx-user-plus'></i>
+                Follow
+              </button>
               <button onclick="window.viewUserProfile('${safeUid}')" 
                       class="px-4 py-2 bg-rp-gold/20 text-rp-gold hover:bg-rp-gold/30 rounded-lg text-xs font-medium transition-colors btn-enhanced flex items-center justify-center gap-2 whitespace-nowrap">
                 <i class='bx bx-show'></i>
@@ -7318,6 +7436,10 @@
           </div>
         `;
       }).join('');
+      
+      // Remove any empty divs that resulted from filtered out users
+      const emptyCards = suggestedUsersList.querySelectorAll('.suggestion-card:empty');
+      emptyCards.forEach(card => card.remove());
     }
 
     // ===== ENHANCED GAMING NOTIFICATIONS =====
