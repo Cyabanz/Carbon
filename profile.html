@@ -2354,10 +2354,23 @@
           ? `Playing ${getGameTitle(friend.currentGame)}` 
           : '';
         
+        // Better display name handling to prevent "Unknown User"
+        let displayName = '';
+        if (friend.displayName && friend.displayName.trim()) {
+          displayName = friend.displayName.trim();
+        } else if (friend.username && friend.username.trim()) {
+          displayName = '@' + friend.username.trim();
+        } else if (friend.email && friend.email.includes('@')) {
+          const emailName = friend.email.split('@')[0];
+          displayName = emailName.charAt(0).toUpperCase() + emailName.slice(1);
+        } else {
+          displayName = 'User ' + friend.uid.substring(0, 6).toUpperCase();
+        }
+        
         // Sanitize friend data to prevent XSS
-        const safeDisplayName = sanitizeText(friend.displayName || 'Unknown User');
+        const safeDisplayName = sanitizeText(displayName);
         const safeUsername = sanitizeText(friend.username || '');
-        const safePhotoURL = friend.photoURL || '/default-avatar.png';
+        const safePhotoURL = friend.photoURL || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(displayName) + '&background=6e6a86&color=e0def4';
         const safeUid = sanitizeText(friend.uid || '');
         const safeCurrentGame = sanitizeText(friend.currentGame || '');
         
@@ -3570,11 +3583,24 @@
         
         console.log('👤 Rendering user:', user.displayName, 'Already friend:', isAlreadyFriend, 'Already following:', isAlreadyFollowing);
         
+        // Better display name handling to prevent "Unknown User"
+        let displayName = '';
+        if (user.displayName && user.displayName.trim()) {
+          displayName = user.displayName.trim();
+        } else if (user.username && user.username.trim()) {
+          displayName = '@' + user.username.trim();
+        } else if (user.email && user.email.includes('@')) {
+          const emailName = user.email.split('@')[0];
+          displayName = emailName.charAt(0).toUpperCase() + emailName.slice(1);
+        } else {
+          displayName = 'User ' + user.uid.substring(0, 6).toUpperCase();
+        }
+        
         // Sanitize user data to prevent XSS
-        const safeDisplayName = sanitizeText(user.displayName || 'Unknown User');
+        const safeDisplayName = sanitizeText(displayName);
         const safeUsername = sanitizeText(user.username || '');
         const safeBio = sanitizeText(user.bio || '');
-        const safePhotoURL = user.photoURL || '/default-avatar.png';
+        const safePhotoURL = user.photoURL || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(displayName) + '&background=6e6a86&color=e0def4';
         const safeUid = sanitizeText(user.uid || '');
         
         return `
@@ -4543,7 +4569,7 @@
       activeFriendForNote = friendUid;
       
       // Set friend info in modal
-      document.getElementById('friendNoteAvatar').src = friendPhoto || '/default-avatar.png';
+      document.getElementById('friendNoteAvatar').src = friendPhoto || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(friendName) + '&background=6e6a86&color=e0def4';
       document.getElementById('friendNoteName').textContent = friendName;
       
       // Load existing notes
@@ -4875,6 +4901,51 @@
       }
     };
     
+    // Function to manually remove a specific user from following list
+    window.unfollowSpecificUser = async function(uid) {
+      if (!currentUser || !uid) {
+        console.log('❌ Please provide a valid user ID');
+        return;
+      }
+      
+      try {
+        console.log(`🔄 Attempting to unfollow user: ${uid}`);
+        
+        // Check if actually following
+        const userDoc = await db.collection('users').doc(currentUser.uid).get();
+        const userData = userDoc.data();
+        const following = userData.following || [];
+        
+        if (!following.includes(uid)) {
+          console.log('❌ You are not following this user');
+          return;
+        }
+        
+        // Get info about the user being unfollowed
+        const targetDoc = await db.collection('users').doc(uid).get();
+        const targetData = targetDoc.exists ? targetDoc.data() : {};
+        const targetName = targetData.displayName || 'User ' + uid.substring(0, 6);
+        
+        if (!confirm(`Are you sure you want to unfollow ${targetName} (${uid})?`)) {
+          return;
+        }
+        
+        // Perform unfollow
+        await unfollowUser(uid);
+        
+        console.log(`✅ Successfully unfollowed ${targetName}`);
+        
+        // Refresh the modal if open
+        const followersModal = document.getElementById('followersModal');
+        if (!followersModal.classList.contains('hidden')) {
+          await showFollowersModal('following');
+        }
+        
+      } catch (error) {
+        console.error('❌ Error unfollowing user:', error);
+      }
+    };
+    
     // Analyze duplicate users issue
     window.analyzeDuplicateUsers = async function(displayName = 'SpawnCamperKid') {
       if (!currentUser) {
@@ -4969,7 +5040,16 @@
         } else {
           console.log(`\n⚠️ Found ${matchingFollowers.length + matchingFollowing.length} users with the same display name`);
           console.log('This might indicate duplicate accounts or users with the same display name.');
-          console.log('\n💡 To fix this issue, run: cleanupMyDuplicateFollowers()');
+          
+          if (matchingFollowing.length > 1) {
+            console.log('\n💡 You are following multiple users with the same display name.');
+            console.log('To unfollow one of them, run:');
+            matchingFollowing.forEach(user => {
+              console.log(`   unfollowSpecificUser('${user.uid}')`);
+            });
+          }
+          
+          console.log('\n💡 To clean up any duplicate UIDs, run: cleanupMyDuplicateFollowers()');
         }
         
       } catch (error) {
@@ -7040,20 +7120,33 @@
         gameInfo = `<div class="text-xs text-rp-gold">🎮 ${DOMPurify.sanitize(userData.currentGame)}</div>`;
       }
       
-      const safePhotoURL = DOMPurify.sanitize(userData.photoURL || '/default-avatar.png');
-      const safeDisplayName = DOMPurify.sanitize(userData.displayName || 'Unknown User');
+      // Better display name handling to prevent "Unknown User"
+      let displayName = '';
+      if (userData.displayName && userData.displayName.trim()) {
+        displayName = userData.displayName.trim();
+      } else if (userData.username && userData.username.trim()) {
+        displayName = '@' + userData.username.trim();
+      } else if (userData.email && userData.email.includes('@')) {
+        const emailName = userData.email.split('@')[0];
+        displayName = emailName.charAt(0).toUpperCase() + emailName.slice(1);
+      } else {
+        displayName = 'User ' + uid.substring(0, 6).toUpperCase();
+      }
+      
+      const safeDisplayName = DOMPurify.sanitize(displayName);
+      const safePhotoURL = DOMPurify.sanitize(userData.photoURL || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(displayName) + '&background=6e6a86&color=e0def4');
       
       // Show more unique identifier information
       let userIdentifier = '';
       if (userData.username && userData.username.trim()) {
-        userIdentifier = DOMPurify.sanitize(userData.username);
+        userIdentifier = '@' + DOMPurify.sanitize(userData.username);
       } else if (userData.email && userData.email.includes('@')) {
         // Show partial email for identification
         const emailParts = userData.email.split('@');
         userIdentifier = emailParts[0].substring(0, 3) + '***@' + emailParts[1];
       } else {
-        // Show partial UID as last resort
-        userIdentifier = uid.substring(0, 8);
+        // Show partial UID as identifier
+        userIdentifier = 'ID: ' + uid.substring(0, 8);
       }
       
       div.innerHTML = `
@@ -7639,30 +7732,44 @@
       }
       
       suggestedUsersList.innerHTML = filteredSuggestions.map(user => {
-        // Better display name handling
-        let displayName = 'Unknown User';
+        // Better display name handling - prevent "Unknown User"
+        let displayName = '';
+        let isUnknownUser = false;
+        
         if (user.displayName && user.displayName.trim()) {
           displayName = user.displayName.trim();
         } else if (user.username && user.username.trim()) {
-          displayName = user.username.trim();
+          displayName = '@' + user.username.trim();
         } else if (user.email && user.email.includes('@')) {
-          displayName = user.email.split('@')[0];
+          const emailName = user.email.split('@')[0];
+          displayName = emailName.charAt(0).toUpperCase() + emailName.slice(1);
+        } else {
+          // Generate a friendly name from UID
+          displayName = 'User ' + user.uid.substring(0, 6).toUpperCase();
+          isUnknownUser = true;
         }
         
         const safeDisplayName = sanitizeText(displayName);
         const safeUsername = sanitizeText(user.username || '');
-        const safePhotoURL = user.photoURL || '/default-avatar.png';
+        const safePhotoURL = user.photoURL || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(displayName) + '&background=6e6a86&color=e0def4';
         const safeUid = sanitizeText(user.uid || '');
         const safeReason = sanitizeText(user.reason || '');
         
-        // Better username display logic
+        // Better username/identifier display logic
         let usernameDisplay = '';
-        if (safeUsername && safeUsername.trim()) {
-          usernameDisplay = '@' + safeUsername;
-        } else if (user.email && user.email.includes('@')) {
-          usernameDisplay = user.email.split('@')[0];
+        if (!isUnknownUser) {
+          if (safeUsername && safeUsername.trim()) {
+            usernameDisplay = '@' + safeUsername;
+          } else if (user.email && user.email.includes('@')) {
+            // Show domain for context
+            const emailParts = user.email.split('@');
+            usernameDisplay = emailParts[0].substring(0, 3) + '***@' + emailParts[1];
+          } else {
+            usernameDisplay = 'ID: ' + safeUid.substring(0, 8);
+          }
         } else {
-          usernameDisplay = 'User ID: ' + safeUid.substring(0, 8) + '...';
+          // For unknown users, show more of the UID
+          usernameDisplay = 'New user • ID: ' + safeUid.substring(0, 10);
         }
         
         // Check if already following this user (use latest data)
