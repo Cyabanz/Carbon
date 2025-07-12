@@ -5018,6 +5018,125 @@
       console.log('✅ Duplicate prevention test completed');
     };
 
+    // Force refresh follower data and UI state
+    window.refreshFollowerState = async function() {
+      if (!currentUser) {
+        console.log('❌ No current user logged in');
+        return;
+      }
+      
+      try {
+        console.log('🔄 Force refreshing follower state...');
+        
+        // Clean up any duplicates
+        await cleanupDuplicateFollowers(currentUser.uid);
+        
+        // Reload data from database
+        await loadFollowerData(currentUser.uid);
+        
+        // Update all UI elements
+        updateFollowerCounts();
+        updateAllFollowButtonStates();
+        
+        console.log('✅ Follower state refreshed successfully');
+        console.log('Current state:', {
+          followers: followerSystemState.currentUserFollowers,
+          following: followerSystemState.currentUserFollowing
+        });
+        
+        window.createEnhancedNotification('State Refreshed', 'Follower state has been refreshed', 'success');
+        
+      } catch (error) {
+        console.error('Error refreshing follower state:', error);
+        window.createEnhancedNotification('Refresh Failed', 'Failed to refresh follower state', 'error');
+      }
+    };
+
+    // Comprehensive test for duplicate follower prevention
+    window.testDuplicateFollowerFix = async function() {
+      if (!currentUser) {
+        console.log('❌ No current user logged in');
+        return;
+      }
+      
+      console.log('🧪 Comprehensive duplicate follower prevention test...');
+      
+      // Test 1: Check current state
+      console.log('📊 Current follower state:');
+      console.log('- Followers:', followerSystemState.currentUserFollowers);
+      console.log('- Following:', followerSystemState.currentUserFollowing);
+      console.log('- Operation in progress:', followerSystemState.isOperationInProgress);
+      
+      // Test 2: Check for duplicates in current state
+      const followerDuplicates = followerSystemState.currentUserFollowers.filter((item, index) => followerSystemState.currentUserFollowers.indexOf(item) !== index);
+      const followingDuplicates = followerSystemState.currentUserFollowing.filter((item, index) => followerSystemState.currentUserFollowing.indexOf(item) !== index);
+      
+      console.log('🔍 Duplicate check:');
+      console.log('- Follower duplicates:', followerDuplicates);
+      console.log('- Following duplicates:', followingDuplicates);
+      
+      // Test 3: Check UI button states
+      const followButtons = document.querySelectorAll('button[onclick*="followUser"]');
+      const unfollowButtons = document.querySelectorAll('button[onclick*="unfollowUser"]');
+      console.log('🔘 UI Button check:');
+      console.log('- Follow buttons:', followButtons.length);
+      console.log('- Unfollow buttons:', unfollowButtons.length);
+      
+      // Test 4: Check if any buttons are disabled
+      const disabledButtons = document.querySelectorAll('button[disabled]');
+      console.log('- Disabled buttons:', disabledButtons.length);
+      
+      // Test 5: Verify counts match
+      const followersCountEl = document.getElementById('followersCount');
+      const followingCountEl = document.getElementById('followingCount');
+      console.log('📈 Count verification:');
+      console.log('- Followers count element:', followersCountEl ? followersCountEl.textContent : 'Not found');
+      console.log('- Following count element:', followingCountEl ? followingCountEl.textContent : 'Not found');
+      console.log('- Expected followers count:', followerSystemState.currentUserFollowers.length);
+      console.log('- Expected following count:', followerSystemState.currentUserFollowing.length);
+      
+      // Test 6: Check database consistency
+      try {
+        const userDoc = await db.collection('users').doc(currentUser.uid).get();
+        if (userDoc.exists) {
+          const userData = userDoc.data();
+          const dbFollowers = userData.followers || [];
+          const dbFollowing = userData.following || [];
+          
+          console.log('🗄️ Database consistency check:');
+          console.log('- DB followers count:', dbFollowers.length);
+          console.log('- DB following count:', dbFollowing.length);
+          console.log('- Local followers count:', followerSystemState.currentUserFollowers.length);
+          console.log('- Local following count:', followerSystemState.currentUserFollowing.length);
+          
+          const followersMatch = dbFollowers.length === followerSystemState.currentUserFollowers.length;
+          const followingMatch = dbFollowing.length === followerSystemState.currentUserFollowing.length;
+          
+          console.log('- Followers match:', followersMatch);
+          console.log('- Following match:', followingMatch);
+        }
+      } catch (error) {
+        console.error('Error checking database consistency:', error);
+      }
+      
+      console.log('✅ Comprehensive test completed');
+      
+      // Summary
+      const hasDuplicates = followerDuplicates.length > 0 || followingDuplicates.length > 0;
+      const hasDisabledButtons = disabledButtons.length > 0;
+      
+      if (hasDuplicates) {
+        console.log('⚠️ ISSUES FOUND: Duplicates detected');
+        window.createEnhancedNotification('Test Results', 'Duplicates found - run refreshFollowerState() to fix', 'warning');
+      } else if (hasDisabledButtons) {
+        console.log('⚠️ ISSUES FOUND: Buttons are disabled');
+        window.createEnhancedNotification('Test Results', 'Buttons are disabled - operation in progress', 'info');
+      } else {
+        console.log('✅ NO ISSUES FOUND: System is working correctly');
+        window.createEnhancedNotification('Test Results', 'No issues found - system is working correctly', 'success');
+      }
+    };
+
     async function clearRecentGames() {
       const user = auth.currentUser;
       if (!user) return;
@@ -5930,7 +6049,8 @@
         allowFollowersToSeeNotes: true,
         allowFollowersToSeeActivity: true,
         allowFollowersToChat: true
-      }
+      },
+      isOperationInProgress: false // Flag to prevent multiple simultaneous operations
     };
 
     // Initialize follower system
@@ -6124,12 +6244,21 @@
     async function followUser(targetUid) {
       if (!currentUser || targetUid === currentUser.uid) return;
       
+      // Prevent multiple simultaneous operations
+      if (followerSystemState.isOperationInProgress) {
+        console.log('⚠️ Operation already in progress, ignoring follow request');
+        return;
+      }
+      
       // Check if already following to prevent duplicates
       if (followerSystemState.currentUserFollowing.includes(targetUid)) {
         console.log('⚠️ Already following user:', targetUid);
         window.createEnhancedNotification('Already Following', 'You are already following this user', 'info');
         return;
       }
+      
+      // Set operation flag
+      followerSystemState.isOperationInProgress = true;
       
       // Prevent multiple rapid clicks by disabling all follow buttons for this user
       const followButtons = document.querySelectorAll(`button[onclick*="followUser('${targetUid}')"]`);
@@ -6179,11 +6308,9 @@
         await batch.commit();
         console.log('✅ Batch write completed successfully');
         
-        // Update local state with deduplication
-        if (!followerSystemState.currentUserFollowing.includes(targetUid)) {
-          followerSystemState.currentUserFollowing.push(targetUid);
-        }
-        console.log('📊 Updated following list:', followerSystemState.currentUserFollowing);
+        // Reload current user's follower data from database to ensure consistency
+        await loadFollowerData(currentUser.uid);
+        console.log('📊 Reloaded following list from database:', followerSystemState.currentUserFollowing);
         
         // Update UI everywhere
         updateFollowButtons(targetUid, true);
@@ -6202,12 +6329,13 @@
         const targetUserName = targetUserDoc.exists ? targetUserDoc.data().displayName || 'User' : 'User';
         window.createEnhancedNotification('Following', `You are now following ${sanitizeText(targetUserName)}`, 'follow');
         
-        console.log(`✅ Successfully followed user ${targetUid}`);
+                console.log(`✅ Successfully followed user ${targetUid}`);
       } catch (error) {
         console.error('❌ Error following user:', error);
         showNotification('Follow Failed', 'Failed to follow user. Please try again.', 'error');
-        
-        // Re-enable buttons on error
+      } finally {
+        // Reset operation flag and re-enable buttons
+        followerSystemState.isOperationInProgress = false;
         followButtons.forEach(btn => {
           btn.disabled = false;
           btn.textContent = 'Follow';
@@ -6220,12 +6348,21 @@
     async function unfollowUser(targetUid) {
       if (!currentUser || targetUid === currentUser.uid) return;
       
+      // Prevent multiple simultaneous operations
+      if (followerSystemState.isOperationInProgress) {
+        console.log('⚠️ Operation already in progress, ignoring unfollow request');
+        return;
+      }
+      
       // Check if actually following to prevent issues
       if (!followerSystemState.currentUserFollowing.includes(targetUid)) {
         console.log('⚠️ Not following user:', targetUid);
         window.createEnhancedNotification('Not Following', 'You are not following this user', 'info');
         return;
       }
+      
+      // Set operation flag
+      followerSystemState.isOperationInProgress = true;
       
       // Prevent multiple rapid clicks by disabling all unfollow buttons for this user
       const unfollowButtons = document.querySelectorAll(`button[onclick*="unfollowUser('${targetUid}')"]`);
@@ -6262,12 +6399,9 @@
         await batch.commit();
         console.log('✅ Batch write completed successfully');
         
-        // Update local state
-        const index = followerSystemState.currentUserFollowing.indexOf(targetUid);
-        if (index > -1) {
-          followerSystemState.currentUserFollowing.splice(index, 1);
-        }
-        console.log('📊 Updated following list:', followerSystemState.currentUserFollowing);
+        // Reload current user's follower data from database to ensure consistency
+        await loadFollowerData(currentUser.uid);
+        console.log('📊 Reloaded following list from database:', followerSystemState.currentUserFollowing);
         
         // Update UI everywhere
         updateFollowButtons(targetUid, false);
@@ -6290,8 +6424,9 @@
       } catch (error) {
         console.error('❌ Error unfollowing user:', error);
         showNotification('Unfollow Failed', 'Failed to unfollow user. Please try again.', 'error');
-        
-        // Re-enable buttons on error
+      } finally {
+        // Reset operation flag and re-enable buttons
+        followerSystemState.isOperationInProgress = false;
         unfollowButtons.forEach(btn => {
           btn.disabled = false;
           btn.textContent = 'Unfollow';
@@ -6354,6 +6489,22 @@
           }
         }
       });
+      
+      // Also update the main profile follow buttons
+      const mainFollowBtn = document.getElementById('followUserBtn');
+      const mainUnfollowBtn = document.getElementById('unfollowUserBtn');
+      const viewingUid = getUidFromUrl();
+      
+      if (mainFollowBtn && mainUnfollowBtn && viewingUid && viewingUid !== currentUser.uid) {
+        const isFollowing = followerSystemState.currentUserFollowing.includes(viewingUid);
+        if (isFollowing) {
+          mainFollowBtn.classList.add('hidden');
+          mainUnfollowBtn.classList.remove('hidden');
+        } else {
+          mainFollowBtn.classList.remove('hidden');
+          mainUnfollowBtn.classList.add('hidden');
+        }
+      }
       
       console.log('✅ All follow button states updated');
     }
