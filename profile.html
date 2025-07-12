@@ -813,17 +813,7 @@
             </button>
           </div>
           
-          <!-- Debug buttons (temporary) -->
-          <div class="mb-4 space-y-2">
-            <button onclick="testFollowerModal()" class="w-full px-4 py-2 bg-rp-gold/20 hover:bg-rp-gold/30 text-rp-gold border border-rp-gold/30 rounded-lg transition-all duration-200 text-sm font-medium flex items-center justify-center gap-2">
-              <i class='bx bx-bug'></i>
-              Debug Modal (Click to test)
-            </button>
-            <button onclick="testWithSampleData()" class="w-full px-4 py-2 bg-rp-iris/20 hover:bg-rp-iris/30 text-rp-iris border border-rp-iris/30 rounded-lg transition-all duration-200 text-sm font-medium flex items-center justify-center gap-2">
-              <i class='bx bx-test-tube'></i>
-              Test with Sample Data
-            </button>
-          </div>
+
           
           <!-- Follower Privacy Settings -->
           <div class="p-3 bg-rp-overlay rounded-lg mb-4">
@@ -4917,6 +4907,18 @@
       console.log('Now try clicking View Followers or View Following');
     };
 
+    // Direct test of modal with real data
+    window.testModalDirectly = function() {
+      console.log('🚀 Testing modal directly with real data...');
+      console.log('Current follower data:', {
+        followers: followerSystemState.currentUserFollowers,
+        following: followerSystemState.currentUserFollowing
+      });
+      
+      // Open followers modal directly
+      showFollowersModal('followers', null);
+    };
+
     async function clearRecentGames() {
       const user = auth.currentUser;
       if (!user) return;
@@ -6171,25 +6173,32 @@
       const followingTabCount = document.getElementById('followingTabCount');
       
       const targetUid = uid || currentUser.uid;
+      console.log('🎯 Modal opening for:', { type, uid, targetUid, currentUserUid: currentUser.uid });
       
       // Load data if needed
       if (uid && uid !== currentUser.uid) {
+        console.log('📥 Loading data for different user:', uid);
         await loadFollowerData(uid);
       } else {
-        // Ensure current user data is loaded
+        console.log('📥 Ensuring current user data is loaded');
         await loadFollowerData(currentUser.uid);
       }
       
-      const followers = targetUid === currentUser.uid ? 
-        followerSystemState.currentUserFollowers : 
-        followerSystemState.viewingUserFollowers;
-      const following = targetUid === currentUser.uid ? 
-        followerSystemState.currentUserFollowing : 
-        followerSystemState.viewingUserFollowing;
+      // Determine which data to use - simplified logic
+      let followers, following;
+      if (!uid || uid === currentUser.uid) {
+        // Show current user's followers/following
+        followers = followerSystemState.currentUserFollowers || [];
+        following = followerSystemState.currentUserFollowing || [];
+        console.log('📊 Using CURRENT USER data:', { followers: followers.length, following: following.length });
+      } else {
+        // Show another user's followers/following
+        followers = followerSystemState.viewingUserFollowers || [];
+        following = followerSystemState.viewingUserFollowing || [];
+        console.log('📊 Using VIEWING USER data:', { followers: followers.length, following: following.length });
+      }
       
-      console.log('🔍 Showing followers modal:', { type, uid, targetUid, followers, following });
-      console.log('📊 Using targetUid === currentUser.uid?', targetUid === currentUser.uid);
-      console.log('📊 Available data - currentUserFollowers:', followerSystemState.currentUserFollowers.length, 'currentUserFollowing:', followerSystemState.currentUserFollowing.length);
+      console.log('🔍 Final data for modal:', { type, followers, following });
       
       // Update counts
       followersTabCount.textContent = followers.length;
