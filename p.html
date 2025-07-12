@@ -1,303 +1,12 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Movie Player</title>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-  <style>
-    :root {
-      --primary-bg: #1a1a1a;
-      --secondary-bg: #2d2d2d;
-      --tertiary-bg: #3d3d3d;
-      --quaternary-bg: #4d4d4d;
-      --text-primary: #ffffff;
-      --text-secondary: #aaaaaa;
-      --accent: #a4b8db;
-      --hover-bg: rgba(255, 255, 255, 0.1);
-      --favorite-color: #ff6b6b;
-      --favorite-hover: #ff5252;
+      transform: translateX(0);
     }
 
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
+    .notification.success {
+      border-left: 4px solid #4caf50;
     }
 
-    body, html {
-      width: 100%;
-      height: 100%;
-      overflow: hidden;
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background-color: var(--primary-bg);
-      color: var(--text-primary);
-    }
-
-    .player-container {
-      width: 100%;
-      height: 100%;
-      position: relative;
-    }
-
-    .player-iframe {
-      width: 100%;
-      height: 100%;
-      border: none;
-      background-color: var(--primary-bg);
-    }
-
-    .controls-overlay {
-      position: absolute;
-      top: 16px;
-      left: 16px;
-      z-index: 1000;
-      display: flex;
-      gap: 12px;
-      align-items: flex-start;
-    }
-
-    .control-group {
-      position: relative;
-      display: inline-block;
-    }
-
-    .control-button {
-      background-color: var(--quaternary-bg);
-      color: var(--text-primary);
-      border: none;
-      padding: 12px 16px;
-      border-radius: 12px;
-      font-size: 14px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      transition: all 0.2s ease;
-      opacity: 0.7;
-      backdrop-filter: blur(10px);
-      min-width: 44px;
-      justify-content: center;
-    }
-
-    .control-button:hover {
-      background-color: var(--tertiary-bg);
-      opacity: 1;
-      transform: translateY(-1px);
-    }
-
-    .control-button.favorite {
-      background-color: var(--favorite-color);
-      opacity: 1;
-    }
-
-    .control-button.favorite:hover {
-      background-color: var(--favorite-hover);
-    }
-
-    .control-button i {
-      font-size: 16px;
-    }
-
-    .dropdown-menu {
-      position: absolute;
-      top: calc(100% + 8px);
-      left: 0;
-      background-color: var(--quaternary-bg);
-      min-width: 200px;
-      border-radius: 12px;
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-      opacity: 0;
-      visibility: hidden;
-      transform: translateY(-10px) scale(0.95);
-      transition: all 0.2s ease;
-      backdrop-filter: blur(20px);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      max-height: 400px;
-      overflow-y: auto;
-    }
-
-    .dropdown-menu.show {
-      opacity: 1;
-      visibility: visible;
-      transform: translateY(0) scale(1);
-    }
-
-    .dropdown-option {
-      padding: 12px 16px;
-      cursor: pointer;
-      transition: background-color 0.2s ease;
-      border-radius: 8px;
-      margin: 4px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-
-    .dropdown-option:hover {
-      background-color: var(--tertiary-bg);
-    }
-
-    .dropdown-option.active {
-      background-color: var(--hover-bg);
-      font-weight: 600;
-    }
-
-    .option-content {
-      flex: 1;
-    }
-
-    .option-title {
-      font-size: 14px;
-      font-weight: 500;
-      margin-bottom: 2px;
-    }
-
-    .option-description {
-      font-size: 11px;
-      color: var(--text-secondary);
-      line-height: 1.3;
-    }
-
-    .favorites-menu {
-      min-width: 300px;
-      max-width: 400px;
-    }
-
-    .favorites-header {
-      padding: 16px;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-      font-weight: 600;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .favorites-list {
-      max-height: 300px;
-      overflow-y: auto;
-    }
-
-    .favorite-item {
-      padding: 12px 16px;
-      cursor: pointer;
-      transition: background-color 0.2s ease;
-      border-radius: 8px;
-      margin: 4px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-
-    .favorite-item:hover {
-      background-color: var(--tertiary-bg);
-    }
-
-    .favorite-info {
-      flex: 1;
-    }
-
-    .favorite-title {
-      font-size: 14px;
-      font-weight: 500;
-      margin-bottom: 2px;
-    }
-
-    .favorite-id {
-      font-size: 11px;
-      color: var(--text-secondary);
-    }
-
-    .favorite-actions {
-      display: flex;
-      gap: 8px;
-    }
-
-    .action-btn {
-      background: none;
-      border: none;
-      color: var(--text-secondary);
-      cursor: pointer;
-      padding: 4px;
-      border-radius: 4px;
-      transition: all 0.2s ease;
-    }
-
-    .action-btn:hover {
-      background-color: var(--hover-bg);
-      color: var(--text-primary);
-    }
-
-    .action-btn.remove:hover {
-      color: var(--favorite-color);
-    }
-
-    .empty-favorites {
-      padding: 32px 16px;
-      text-align: center;
-      color: var(--text-secondary);
-      font-size: 14px;
-    }
-
-    .add-favorite-form {
-      padding: 16px;
-      border-top: 1px solid rgba(255, 255, 255, 0.1);
-    }
-
-    .form-group {
-      margin-bottom: 12px;
-    }
-
-    .form-label {
-      display: block;
-      font-size: 12px;
-      color: var(--text-secondary);
-      margin-bottom: 4px;
-    }
-
-    .form-input {
-      width: 100%;
-      padding: 8px 12px;
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      border-radius: 6px;
-      background-color: var(--tertiary-bg);
-      color: var(--text-primary);
-      font-size: 14px;
-    }
-
-    .form-input:focus {
-      outline: none;
-      border-color: var(--accent);
-    }
-
-    .form-btn {
-      width: 100%;
-      padding: 8px 16px;
-      background-color: var(--accent);
-      color: var(--text-primary);
-      border: none;
-      border-radius: 6px;
-      font-size: 14px;
-      cursor: pointer;
-      transition: all 0.2s ease;
-    }
-
-    .form-btn:hover {
-      background-color: #95a9d3;
-    }
-
-    .loading-indicator {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      color: var(--text-secondary);
-      font-size: 18px;
-      z-index: 999;
-    }
-
-    .loading-indicator.hidden {
-      display: none;
+    .notification.error {
+      border-left: 4px solid #f44336;
     }
 
     @media (max-width: 768px) {
@@ -413,15 +122,41 @@
         this.currentSource = 'vidsrc';
         this.currentMovieId = null;
         this.favorites = this.loadFavorites();
+        this.carbonTheme = null;
         
         this.init();
       }
       
       init() {
+        this.initializeTheme();
         this.bindEvents();
         this.loadMovieFromHash();
         this.updateFavoriteButton();
         this.renderFavoritesList();
+      }
+      
+      initializeTheme() {
+        // Initialize Carbon Theme System
+        if (typeof CarbonTheme !== 'undefined') {
+          this.carbonTheme = new CarbonTheme();
+          // Apply the current theme
+          const currentTheme = this.carbonTheme.getCurrentTheme();
+          this.applyTheme(currentTheme);
+          
+          // Listen for theme changes
+          window.addEventListener('themeChanged', (event) => {
+            this.applyTheme(event.detail.theme);
+          });
+        }
+      }
+      
+      applyTheme(themeName) {
+        document.documentElement.setAttribute('data-theme', themeName);
+        // Update body background
+        const theme = this.carbonTheme.getTheme(themeName);
+        if (theme) {
+          document.body.style.background = `linear-gradient(135deg, ${theme.base} 0%, ${theme.surface} 50%, ${theme.overlay} 100%)`;
+        }
       }
       
       bindEvents() {
@@ -462,215 +197,3 @@
         document.addEventListener('click', () => {
           this.closeAllDropdowns();
         });
-        
-        // Hash change listener
-        window.addEventListener('hashchange', () => {
-          this.loadMovieFromHash();
-        });
-        
-        // Iframe load event
-        document.getElementById('playerFrame').addEventListener('load', () => {
-          this.hideLoading();
-        });
-      }
-      
-      toggleDropdown(menuId) {
-        const menu = document.getElementById(menuId);
-        const isOpen = menu.classList.contains('show');
-        
-        this.closeAllDropdowns();
-        
-        if (!isOpen) {
-          menu.classList.add('show');
-        }
-      }
-      
-      closeAllDropdowns() {
-        document.querySelectorAll('.dropdown-menu').forEach(menu => {
-          menu.classList.remove('show');
-        });
-      }
-      
-      changeSource(source) {
-        if (this.sources[source]) {
-          this.currentSource = source;
-          
-          // Update UI
-          document.getElementById('currentSource').textContent = 
-            document.querySelector(`[data-source="${source}"] .option-title`).textContent;
-          
-          // Update active state
-          document.querySelectorAll('.dropdown-option').forEach(opt => {
-            opt.classList.remove('active');
-          });
-          document.querySelector(`[data-source="${source}"]`).classList.add('active');
-          
-          // Reload current movie with new source
-          if (this.currentMovieId) {
-            this.loadMovie(this.currentMovieId);
-          }
-          
-          this.closeAllDropdowns();
-        }
-      }
-      
-      loadMovieFromHash() {
-        const hash = window.location.hash.substring(1);
-        if (hash) {
-          this.loadMovie(hash);
-        }
-      }
-      
-      loadMovie(movieId) {
-        if (!movieId || !this.sources[this.currentSource]) {
-          console.error('Invalid movie ID or source configuration');
-          return;
-        }
-        
-        this.currentMovieId = movieId;
-        this.showLoading();
-        this.updateFavoriteButton();
-        
-        const url = this.sources[this.currentSource].replace('MOVIE_ID', movieId);
-        document.getElementById('playerFrame').src = url;
-        
-        // Update the movie ID in the form
-        document.getElementById('movieId').value = movieId;
-      }
-      
-      showLoading() {
-        document.getElementById('loadingIndicator').classList.remove('hidden');
-      }
-      
-      hideLoading() {
-        document.getElementById('loadingIndicator').classList.add('hidden');
-      }
-      
-      // Favorites functionality
-      loadFavorites() {
-        const stored = {};
-        const keys = Object.keys(sessionStorage);
-        keys.forEach(key => {
-          if (key.startsWith('fav_')) {
-            const movieId = key.substring(4);
-            stored[movieId] = JSON.parse(sessionStorage.getItem(key));
-          }
-        });
-        return stored;
-      }
-      
-      saveFavorites() {
-        Object.keys(this.favorites).forEach(movieId => {
-          sessionStorage.setItem(`fav_${movieId}`, JSON.stringify(this.favorites[movieId]));
-        });
-      }
-      
-      toggleFavorite() {
-        if (!this.currentMovieId) {
-          alert('Please load a movie first');
-          return;
-        }
-        
-        if (this.favorites[this.currentMovieId]) {
-          this.removeFavorite(this.currentMovieId);
-        } else {
-          const title = prompt('Enter movie title:') || `Movie ${this.currentMovieId}`;
-          this.addFavorite(this.currentMovieId, title);
-        }
-      }
-      
-      addFavorite(movieId, title) {
-        this.favorites[movieId] = {
-          title: title,
-          id: movieId,
-          addedAt: new Date().toISOString()
-        };
-        this.saveFavorites();
-        this.updateFavoriteButton();
-        this.renderFavoritesList();
-      }
-      
-      removeFavorite(movieId) {
-        delete this.favorites[movieId];
-        sessionStorage.removeItem(`fav_${movieId}`);
-        this.updateFavoriteButton();
-        this.renderFavoritesList();
-      }
-      
-      updateFavoriteButton() {
-        const button = document.getElementById('favoriteButton');
-        if (this.currentMovieId && this.favorites[this.currentMovieId]) {
-          button.classList.add('favorite');
-          button.querySelector('i').className = 'fas fa-heart';
-        } else {
-          button.classList.remove('favorite');
-          button.querySelector('i').className = 'far fa-heart';
-        }
-      }
-      
-      renderFavoritesList() {
-        const container = document.getElementById('favoritesList');
-        const favoriteIds = Object.keys(this.favorites);
-        
-        if (favoriteIds.length === 0) {
-          container.innerHTML = `
-            <div class="empty-favorites">
-              <i class="fas fa-heart" style="font-size: 24px; margin-bottom: 8px; opacity: 0.5;"></i>
-              <div>No favorites yet</div>
-              <div style="font-size: 12px; margin-top: 4px;">Add movies below to get started</div>
-            </div>
-          `;
-          return;
-        }
-        
-        container.innerHTML = favoriteIds.map(movieId => {
-          const fav = this.favorites[movieId];
-          return `
-            <div class="favorite-item">
-              <div class="favorite-info">
-                <div class="favorite-title">${fav.title}</div>
-                <div class="favorite-id">ID: ${fav.id}</div>
-              </div>
-              <div class="favorite-actions">
-                <button class="action-btn play" onclick="moviePlayer.playFavorite('${movieId}')" title="Play">
-                  <i class="fas fa-play"></i>
-                </button>
-                <button class="action-btn remove" onclick="moviePlayer.removeFavorite('${movieId}')" title="Remove">
-                  <i class="fas fa-trash"></i>
-                </button>
-              </div>
-            </div>
-          `;
-        }).join('');
-      }
-      
-      playFavorite(movieId) {
-        window.location.hash = movieId;
-        this.closeAllDropdowns();
-      }
-      
-      addFavoriteFromForm() {
-        const title = document.getElementById('movieTitle').value.trim();
-        const movieId = document.getElementById('movieId').value.trim();
-        
-        if (!title || !movieId) {
-          alert('Please fill in both title and movie ID');
-          return;
-        }
-        
-        this.addFavorite(movieId, title);
-        
-        // Clear form
-        document.getElementById('movieTitle').value = '';
-        document.getElementById('movieId').value = '';
-      }
-    }
-    
-    // Initialize the player when DOM is ready
-    let moviePlayer;
-    document.addEventListener('DOMContentLoaded', () => {
-      moviePlayer = new MoviePlayer();
-    });
-  </script>
-</body>
-</html>
