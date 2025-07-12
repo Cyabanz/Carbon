@@ -1974,6 +1974,23 @@
                 Do Not Disturb
               </span>
             `}
+          </div>
+          
+          <!-- Follow/Social Actions Row -->
+          <div class="flex gap-2 mt-2">
+            ${followerSystemState.currentUserFollowing && followerSystemState.currentUserFollowing.includes(friend.uid) ? `
+              <button onclick="window.unfollowUser('${safeUid}')" 
+                      class="flex-1 px-3 py-2 bg-rp-love/20 hover:bg-rp-love/30 text-rp-love border border-rp-love/30 rounded-lg text-xs transition-colors">
+                <i class='bx bx-user-minus mr-1'></i>
+                Unfollow
+              </button>
+            ` : `
+              <button onclick="window.followUser('${safeUid}')" 
+                      class="flex-1 px-3 py-2 bg-rp-foam hover:bg-rp-foam/90 text-rp-base rounded-lg text-xs transition-colors">
+                <i class='bx bx-user-plus mr-1'></i>
+                Follow
+              </button>
+            `}
             <button onclick="openFriendNotes('${safeUid}', '${safeDisplayName}', '${safePhotoURL}')" 
                     class="px-3 py-2 bg-rp-gold hover:bg-rp-gold/90 text-rp-base rounded-lg text-xs transition-colors"
                     title="Private Notes">
@@ -3108,13 +3125,18 @@
       resultsContainer.innerHTML = users.map(user => {
         // Check if already friends
         let isAlreadyFriend = false;
+        let isAlreadyFollowing = false;
         if (currentUser) {
           // We need to check the current user's friends list
           const currentUserData = currentUser.userData || {};
           isAlreadyFriend = currentUserData.friends && currentUserData.friends.includes(user.uid);
+          
+          // Check if already following
+          isAlreadyFollowing = followerSystemState.currentUserFollowing && 
+                             followerSystemState.currentUserFollowing.includes(user.uid);
         }
         
-        console.log('👤 Rendering user:', user.displayName, 'Already friend:', isAlreadyFriend);
+        console.log('👤 Rendering user:', user.displayName, 'Already friend:', isAlreadyFriend, 'Already following:', isAlreadyFollowing);
         
         // Sanitize user data to prevent XSS
         const safeDisplayName = sanitizeText(user.displayName || 'Unknown User');
@@ -3143,8 +3165,21 @@
                   Add Friend
                 </button>
               `}
+              ${isAlreadyFollowing ? `
+                <button onclick="window.unfollowUser('${safeUid}')" 
+                        class="px-3 py-1 bg-rp-love/20 hover:bg-rp-love/30 text-rp-love border border-rp-love/30 rounded text-xs transition-colors"
+                        data-uid="${safeUid}">
+                  Unfollow
+                </button>
+              ` : `
+                <button onclick="window.followUser('${safeUid}')" 
+                        class="px-3 py-1 bg-rp-iris hover:bg-rp-iris/90 text-white rounded text-xs transition-colors"
+                        data-uid="${safeUid}">
+                  Follow
+                </button>
+              `}
               <button onclick="window.viewUserProfile('${safeUid}')" 
-                      class="px-3 py-1 bg-rp-iris/20 text-rp-iris rounded text-xs hover:bg-rp-iris/30 transition-colors">
+                      class="px-3 py-1 bg-rp-gold/20 text-rp-gold rounded text-xs hover:bg-rp-gold/30 transition-colors">
                 View
               </button>
             </div>
@@ -4271,6 +4306,8 @@
     window.startChat = startChat;
     window.inviteToGame = inviteToGame;
     window.viewUserProfile = viewUserProfile;
+    window.followUser = followUser;
+    window.unfollowUser = unfollowUser;
 
     async function clearRecentGames() {
       const user = auth.currentUser;
@@ -5297,6 +5334,10 @@
         updateFollowButtons(targetUid, true);
         updateFollowerCounts();
         
+        // Refresh search results and friends list if they exist
+        refreshSearchResults();
+        refreshFriendsList();
+        
         console.log(`✅ Successfully followed user ${targetUid}`);
       } catch (error) {
         console.error('❌ Error following user:', error);
@@ -5337,6 +5378,10 @@
         // Update UI
         updateFollowButtons(targetUid, false);
         updateFollowerCounts();
+        
+        // Refresh search results and friends list if they exist
+        refreshSearchResults();
+        refreshFriendsList();
         
         console.log(`✅ Successfully unfollowed user ${targetUid}`);
       } catch (error) {
@@ -5379,6 +5424,44 @@
       }
       if (publicFollowingCount) {
         publicFollowingCount.textContent = followerSystemState.viewingUserFollowing.length;
+      }
+    }
+
+    // Refresh search results to update follow button states
+    function refreshSearchResults() {
+      const searchInput = document.getElementById('userSearchInput');
+      const searchResults = document.getElementById('searchResults');
+      
+      if (searchInput && searchResults && searchInput.value.trim()) {
+        // Re-run the search with the current query to refresh button states
+        const query = searchInput.value.trim();
+        setTimeout(async () => {
+          const results = await searchUsers(query);
+          renderUserSearchResults(results);
+        }, 100);
+      }
+    }
+
+    // Refresh friends list to update follow button states
+    function refreshFriendsList() {
+      if (currentUser && currentUser.userData && currentUser.userData.friends) {
+        setTimeout(async () => {
+          const friendUids = currentUser.userData.friends || [];
+          const friendsData = [];
+          
+          for (const friendUid of friendUids) {
+            try {
+              const friendDoc = await db.collection('users').doc(friendUid).get();
+              if (friendDoc.exists) {
+                friendsData.push({ uid: friendUid, ...friendDoc.data() });
+              }
+            } catch (error) {
+              console.error('Error loading friend data:', error);
+            }
+          }
+          
+          await renderFriendsList(friendsData);
+        }, 100);
       }
     }
 
