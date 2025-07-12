@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>CARBON</title>
   <script src="carbon-theme.js"></script>
+  <script src="platform-detector.js"></script>
   <style>
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -187,7 +188,11 @@
 
     async function getCsrfToken() {
       try {
-        const res = await fetch('/api/vm/csrf-token');
+        const platform = window.platformDetector.detectPlatform();
+        const csrfPath = window.platformDetector.getFunctionPath('vm/csrf-token');
+        console.log(`🔍 Platform detected: ${platform}, CSRF path: ${csrfPath}`);
+        
+        const res = await fetch(csrfPath);
         if (!res.ok) throw new Error('Failed to get CSRF token');
         const json = await res.json();
         csrfToken = json.csrfToken;
@@ -245,8 +250,11 @@
 
         setStatus("Creating session...", "info");
         
-        console.log('🔍 Making API request to /api/vm...');
-        const res = await fetch('/api/vm', {
+        const platform = window.platformDetector.detectPlatform();
+        const vmPath = window.platformDetector.getFunctionPath('vm');
+        console.log(`🔍 Platform detected: ${platform}, VM API path: ${vmPath}`);
+        console.log('🔍 Making API request to', vmPath, '...');
+        const res = await fetch(vmPath, {
           method: "POST",
           headers: {
             "x-csrf-token": csrfToken,
@@ -271,6 +279,12 @@
           } else if (res.status === 500) {
             if (data.error === "Invalid API key") {
               setStatus("Configuration error: Invalid Hyperbeam API key. Please check your setup.", "error");
+            } else if (data.error === "Service temporarily unavailable") {
+              if (data.details && data.details.includes("HYPERBEAM_API_KEY")) {
+                setStatus("Configuration error: HYPERBEAM_API_KEY environment variable is not set. Please check the deployment guide.", "error");
+              } else {
+                setStatus("Service temporarily unavailable. Please try again in a few minutes.", "error");
+              }
             } else if (data.error === "Service temporarily overloaded") {
               setStatus("Service temporarily overloaded. Please try again in a few minutes.", "error");
             } else {
@@ -401,8 +415,10 @@
     function startPing() {
       pingInterval = setInterval(async () => {
         try {
-          console.log('🔍 Making ping request to /api/vm...');
-          const res = await fetch('/api/vm', {
+          const platform = window.platformDetector.detectPlatform();
+          const vmPath = window.platformDetector.getFunctionPath('vm');
+          console.log('🔍 Making ping request to', vmPath, '...');
+          const res = await fetch(vmPath, {
             method: "PATCH",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ sessionId })
@@ -437,7 +453,9 @@
         
         setStatus("Terminating session...", "info");
         
-        const res = await fetch('/api/vm', {
+        const platform = window.platformDetector.detectPlatform();
+        const vmPath = window.platformDetector.getFunctionPath('vm');
+        const res = await fetch(vmPath, {
           method: "DELETE",
           headers: {
             "x-csrf-token": csrfToken,
