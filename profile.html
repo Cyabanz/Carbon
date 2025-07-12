@@ -320,6 +320,25 @@
       100% { filter: hue-rotate(360deg); }
     }
 
+    /* Loading animation for buttons */
+    .bx-loader-alt {
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    /* Additional utility classes for better button states */
+    .animate-spin {
+      animation: spin 1s linear infinite;
+    }
+
+    .cursor-not-allowed {
+      cursor: not-allowed !important;
+    }
+
     /* Chat message container with custom backgrounds */
     .chat-bg-gradient {
       background: linear-gradient(135deg, rgba(156, 207, 216, 0.1) 0%, rgba(196, 167, 231, 0.1) 100%);
@@ -2142,19 +2161,45 @@
     }
 
     // Friend management functions
+    async function handleFriendRequest(targetUid, buttonElement) {
+      // Prevent multiple clicks by disabling the button
+      if (buttonElement.disabled) {
+        return;
+      }
+      
+      buttonElement.disabled = true;
+      buttonElement.innerHTML = '<i class="bx bx-loader-alt animate-spin"></i> Sending...';
+      buttonElement.classList.add('opacity-50', 'cursor-not-allowed');
+      
+      try {
+        await sendFriendRequest(targetUid);
+        
+        // On success, update button to show "Sent" state
+        buttonElement.innerHTML = '<i class="bx bx-check"></i> Sent';
+        buttonElement.classList.remove('bg-rp-foam', 'hover:bg-rp-foam/90');
+        buttonElement.classList.add('bg-rp-gold/20', 'text-rp-gold');
+        
+      } catch (error) {
+        // On error, re-enable the button
+        buttonElement.disabled = false;
+        buttonElement.innerHTML = 'Add Friend';
+        buttonElement.classList.remove('opacity-50', 'cursor-not-allowed');
+      }
+    }
+
     async function sendFriendRequest(targetUid) {
       console.log('🔄 Attempting to send friend request to:', targetUid);
       
       if (!currentUser) {
         console.error('❌ No current user');
         showNotification('Error', 'Please sign in first', 'error');
-        return;
+        throw new Error('No current user');
       }
       
       if (targetUid === currentUser.uid) {
         console.error('❌ Cannot send friend request to self');
         showNotification('Error', 'Cannot send friend request to yourself', 'error');
-        return;
+        throw new Error('Cannot send friend request to self');
       }
       
       try {
@@ -2168,7 +2213,7 @@
         if (!existingRequest.empty) {
           console.log('⚠️ Friend request already exists');
           showNotification('Already Sent', 'Friend request already sent', 'warning');
-          return;
+          throw new Error('Friend request already exists');
         }
         
         // Check if already friends
@@ -2177,7 +2222,7 @@
         if (userData.friends && userData.friends.includes(targetUid)) {
           console.log('⚠️ Already friends');
           showNotification('Already Friends', 'You are already friends with this user', 'info');
-          return;
+          throw new Error('Already friends');
         }
         
         const requestData = {
@@ -2204,6 +2249,7 @@
       } catch (error) {
         console.error('❌ Error sending friend request:', error);
         showNotification('Error', `Failed to send friend request: ${error.message}`, 'error');
+        throw error;
       }
     }
 
@@ -3110,18 +3156,20 @@
           const streakEmoji = getStreakEmoji(streak);
           
           return `
-            <div class="flex items-center justify-between p-3 bg-rp-overlay rounded-lg ${isActive ? 'border border-rp-gold/30' : 'opacity-60'}">
-              <div class="flex items-center gap-3">
-                <img src="${sanitizeText(friendPhoto)}" class="w-10 h-10 rounded-full" alt="${friendName}">
-                <div>
-                  <p class="font-medium text-rp-text">${friendName}</p>
-                  <p class="text-sm text-rp-subtle">${isActive ? 'Active streak' : 'Streak ended'}</p>
+            <div class="flex items-center justify-between p-3 bg-rp-overlay rounded-lg ${isActive ? 'border border-rp-gold/30' : 'opacity-60'} transition-all duration-200 hover:bg-rp-highlight-med">
+              <div class="flex items-center gap-3 min-w-0 flex-1">
+                <img src="${sanitizeText(friendPhoto)}" class="w-10 h-10 rounded-full ring-2 ring-rp-overlay" alt="${friendName}">
+                <div class="min-w-0 flex-1">
+                  <p class="font-medium text-rp-text truncate">${friendName}</p>
+                  <p class="text-sm ${isActive ? 'text-rp-gold' : 'text-rp-subtle'}">${isActive ? 'Active streak' : 'Streak ended'}</p>
                 </div>
               </div>
-              <div class="flex items-center gap-2">
+              <div class="flex items-center gap-2 flex-shrink-0">
                 <span class="text-lg">${streakEmoji}</span>
-                <span class="text-xl font-bold text-rp-gold">${streak}</span>
-                <span class="text-sm text-rp-subtle">day${streak !== 1 ? 's' : ''}</span>
+                <div class="text-right">
+                  <span class="text-xl font-bold text-rp-gold block">${streak}</span>
+                  <span class="text-xs text-rp-subtle">day${streak !== 1 ? 's' : ''}</span>
+                </div>
               </div>
             </div>
           `;
@@ -3591,7 +3639,7 @@
               ${isAlreadyFriend ? `
                 <span class="px-3 py-1 bg-rp-foam/20 text-rp-foam rounded text-xs">Friends</span>
               ` : `
-                <button onclick="window.sendFriendRequest('${safeUid}')" 
+                <button onclick="handleFriendRequest('${safeUid}', this)" 
                         class="px-3 py-1 bg-rp-foam hover:bg-rp-foam/90 text-rp-base rounded text-xs transition-colors"
                         data-uid="${safeUid}">
                   Add Friend
@@ -4832,6 +4880,7 @@
 
     // Make functions globally available - direct assignment to avoid recursion
     window.sendFriendRequest = sendFriendRequest;
+    window.handleFriendRequest = handleFriendRequest;
     window.acceptFriendRequest = acceptFriendRequest;
     window.declineFriendRequest = declineFriendRequest;
     window.cancelFriendRequest = cancelFriendRequest;
@@ -5296,7 +5345,7 @@
           
           addBtn.onclick = () => acceptFriendRequest(pendingIncoming.docs[0].id, uid);
         } else {
-          addBtn.onclick = () => sendFriendRequest(uid);
+          addBtn.onclick = () => handleFriendRequest(uid, addBtn);
         }
         
       } catch (error) {
