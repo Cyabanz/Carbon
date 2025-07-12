@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Movies - CARBON</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <!-- XSS Protection Headers -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' https:; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://www.gstatic.com https://cdn.jsdelivr.net https://apis.google.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://unpkg.com; font-src 'self' https://fonts.gstatic.com https://unpkg.com; img-src 'self' data: https:; media-src 'self' blob: https:; connect-src 'self' https:; frame-src 'self' https:;">
+  <meta http-equiv="X-Content-Type-Options" content="nosniff">
+  <meta http-equiv="X-Frame-Options" content="SAMEORIGIN">
+  <meta http-equiv="X-XSS-Protection" content="1; mode=block">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
+  <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+  <script src="carbon-theme.js"></script>
+  
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <script>
+    // FIREBASE INIT
+    const firebaseConfig = {
+      apiKey: "AIzaSyC4ilHYP1T-kdXbWPoHJHhD2aj0pNWmMec",
+      authDomain: "carbon-services.firebaseapp.com",
+      projectId: "carbon-services",
+      storageBucket: "carbon-services.firebasestorage.app",
+      messagingSenderId: "288385472070",
+      appId: "1:288385472070:web:c4be3ff186e248fc645c47",
+      measurementId: "G-Y2K1RQYE74"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+  </script>
+  
+  <script>
+    function setConfig() {
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        inter: ["Inter", "sans-serif"],
+                    },
+                    colors: {
+                        base: "#191724",
+                        surface: "#1f1d2e",
+                        overlay: "#26233a",
+                        muted: "#6e6a86",
+                        subtle: "#908caa",
+                        text: "#e0def4",
+                        love: "#eb6f92",
+                        gold: "#f6c177",
+                        rose: "#ebbcba",
+                        pine: "#31748f",
+                        foam: "#9ccfd8",
+                        iris: "#c4a7e7",
+                        "highlight-low": "#21202e",
+                        "highlight-med": "#403d52",
+                        "highlight-high": "#524f67",
+                    },
+                },
+            },
+        };
+    }
+    setConfig();
+  </script>
+  
+  <style>
+    :root {
+      --theme-base: #191724;
+      --theme-surface: #1f1d2e;
+      --theme-overlay: #26233a;
+      --theme-muted: #6e6a86;
+      --theme-subtle: #908caa;
+      --theme-text: #e0def4;
+      --theme-love: #eb6f92;
+      --theme-gold: #f6c177;
+      --theme-rose: #ebbcba;
+      --theme-pine: #31748f;
+      --theme-foam: #9ccfd8;
+      --theme-iris: #c4a7e7;
+      --theme-highlight-low: #21202e;
+      --theme-highlight-med: #403d52;
+      --theme-highlight-high: #524f67;
+    }
+
+    body {
+      background: var(--theme-base);
+      color: var(--theme-text);
+      font-family: 'Inter', sans-serif;
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+    }
+
+    .movie-card {
+      background: var(--theme-surface);
+      border-radius: 12px;
+      overflow: hidden;
+      transition: all 0.3s ease;
+      border: 1px solid var(--theme-highlight-low);
+    }
+
+    .movie-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+      border-color: var(--theme-iris);
+    }
+
+    .movie-poster {
+      width: 100%;
+      height: 300px;
+      object-fit: cover;
+      background: var(--theme-highlight-low);
+    }
+
+    .favorite-btn {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: rgba(0,0,0,0.7);
+      border: none;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      color: var(--theme-text);
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .favorite-btn:hover {
+      background: var(--theme-love);
+      transform: scale(1.1);
+    }
+
+    .favorite-btn.active {
+      background: var(--theme-love);
+      color: white;
+    }
+
+    .section-title {
+      font-size: 1.5rem;
+      font-weight: 800;
+      margin-bottom: 1rem;
+      color: var(--theme-text);
+      border-left: 4px solid var(--theme-iris);
+      padding-left: 1rem;
+    }
+
+    .loading {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 200px;
+      color: var(--theme-muted);
+    }
+
+    .error {
+      background: var(--theme-love);
+      color: white;
+      padding: 1rem;
+      border-radius: 8px;
+      margin: 1rem 0;
+    }
+
+    .search-container {
+      background: var(--theme-surface);
+      padding: 1rem;
+      border-radius: 12px;
+      margin-bottom: 2rem;
+      border: 1px solid var(--theme-highlight-low);
+    }
+
+    .search-input {
+      width: 100%;
+      padding: 0.75rem 1rem;
+      border: 1px solid var(--theme-highlight-med);
+      border-radius: 8px;
+      background: var(--theme-overlay);
+      color: var(--theme-text);
+      font-size: 1rem;
+    }
+
+    .search-input:focus {
+      outline: none;
+      border-color: var(--theme-iris);
+    }
+
+    .movie-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+    }
+
+    .movie-info {
+      padding: 1rem;
+    }
+
+    .movie-title {
+      font-weight: 600;
+      font-size: 1.1rem;
+      margin-bottom: 0.5rem;
+      color: var(--theme-text);
+    }
+
+    .movie-year {
+      color: var(--theme-muted);
+      font-size: 0.9rem;
+    }
+
+    .movie-rating {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-top: 0.5rem;
+    }
+
+    .rating-stars {
+      color: var(--theme-gold);
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 3rem;
+      color: var(--theme-muted);
+    }
+
+    .empty-state i {
+      font-size: 3rem;
+      margin-bottom: 1rem;
+      opacity: 0.5;
+    }
+  </style>
+</head>
+<body>
+  <div class="min-h-screen bg-base">
+    <!-- Header -->
+    <header class="bg-surface border-b border-highlight-low p-4">
+      <div class="max-w-7xl mx-auto flex items-center justify-between">
+        <h1 class="text-2xl font-bold text-text">
+          <i class='bx bx-movie-play text-iris'></i>
+          CARBON Movies
+        </h1>
+        <div class="flex items-center gap-4">
+          <button id="theme-toggle" class="p-2 rounded-lg bg-overlay hover:bg-highlight-med transition-colors">
+            <i class='bx bx-moon text-text'></i>
+          </button>
+          <button id="back-btn" onclick="window.history.back()" class="px-4 py-2 bg-iris text-white rounded-lg hover:bg-opacity-80 transition-colors">
+            <i class='bx bx-arrow-back'></i>
+            Back
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto p-4">
+      <!-- Search Section -->
+      <div class="search-container">
+        <div class="flex gap-2">
+          <input 
+            type="text" 
+            id="search-input" 
+            class="search-input flex-1" 
+            placeholder="Search for movies..."
+          >
+          <button id="search-btn" class="px-6 py-3 bg-iris text-white rounded-lg hover:bg-opacity-80 transition-colors">
+            <i class='bx bx-search'></i>
+            Search
+          </button>
+        </div>
+      </div>
+
+      <!-- Favorite Movies Section -->
+      <section id="favorites-section">
+        <h2 class="section-title">
+          <i class='bx bx-heart text-love'></i>
+          Favorite Movies
+        </h2>
+        <div id="favorites-container" class="movie-grid">
+          <div class="loading">
+            <i class='bx bx-loader-alt bx-spin'></i>
+            Loading favorites...
+          </div>
+        </div>
+      </section>
+
+      <!-- Recommended Movies Section -->
+      <section id="recommended-section">
+        <h2 class="section-title">
+          <i class='bx bx-star text-gold'></i>
+          Recommended Movies
+        </h2>
+        <div id="recommended-container" class="movie-grid">
+          <div class="loading">
+            <i class='bx bx-loader-alt bx-spin'></i>
+            Loading recommendations...
+          </div>
+        </div>
+      </section>
+
+      <!-- Search Results Section -->
+      <section id="search-results-section" class="hidden">
+        <h2 class="section-title">
+          <i class='bx bx-search text-foam'></i>
+          Search Results
+        </h2>
+        <div id="search-results-container" class="movie-grid">
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    // Global variables
+    let currentUser = null;
+    let favorites = [];
+    let recommendations = [];
+
+    // Initialize the app
+    document.addEventListener('DOMContentLoaded', function() {
+      initializeAuth();
+      setupEventListeners();
+      loadInitialData();
+    });
+
+    // Authentication
+    function initializeAuth() {
+      auth.onAuthStateChanged(function(user) {
+        currentUser = user;
+        if (user) {
+          loadFavorites();
+          loadRecommendations();
+        } else {
+          // Handle anonymous user or redirect to login
+          console.log('No user authenticated');
+        }
+      });
+    }
+
+    // Event listeners
+    function setupEventListeners() {
+      const searchBtn = document.getElementById('search-btn');
+      const searchInput = document.getElementById('search-input');
+      const themeToggle = document.getElementById('theme-toggle');
+
+      searchBtn.addEventListener('click', performSearch);
+      searchInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+          performSearch();
+        }
+      });
+
+      themeToggle.addEventListener('click', toggleTheme);
+    }
+
+    // Load initial data
+    function loadInitialData() {
+      // Load some default recommendations if no user
+      if (!currentUser) {
+        loadDefaultRecommendations();
+      }
+    }
+
+    // Firebase operations
+    async function loadFavorites() {
+      if (!currentUser) return;
+
+      try {
+        const userDoc = await db.collection('user-preferences').doc(currentUser.uid).get();
+        if (userDoc.exists) {
+          const data = userDoc.data();
+          favorites = data.favoriteMovies || [];
+          displayFavorites();
+        } else {
+          favorites = [];
+          displayFavorites();
+        }
+      } catch (error) {
+        console.error('Error loading favorites:', error);
+        showError('Failed to load favorite movies');
+      }
+    }
+
+    async function saveFavorites() {
+      if (!currentUser) return;
+
+      try {
+        await db.collection('user-preferences').doc(currentUser.uid).set({
+          favoriteMovies: favorites,
+          lastUpdated: Date.now()
+        }, { merge: true });
+      } catch (error) {
+        console.error('Error saving favorites:', error);
+        showError('Failed to save favorite movies');
+      }
+    }
+
+    async function loadRecommendations() {
+      if (!currentUser) {
+        loadDefaultRecommendations();
+        return;
+      }
+
+      try {
+        // Get user preferences and generate recommendations
+        const userDoc = await db.collection('user-preferences').doc(currentUser.uid).get();
+        if (userDoc.exists) {
+          const data = userDoc.data();
+          // Generate recommendations based on favorites and preferences
+          recommendations = generateRecommendations(data.favoriteMovies || []);
+        } else {
+          recommendations = getDefaultRecommendations();
+        }
+        displayRecommendations();
+      } catch (error) {
+        console.error('Error loading recommendations:', error);
+        recommendations = getDefaultRecommendations();
+        displayRecommendations();
+      }
+    }
+
+    function loadDefaultRecommendations() {
+      recommendations = getDefaultRecommendations();
+      displayRecommendations();
+    }
+
+    // Movie data and operations
+    function getDefaultRecommendations() {
+      return [
+        {
+          id: 1,
+          title: "Inception",
+          year: 2010,
+          poster: "https://image.tmdb.org/t/p/w500/9gk7adHYeDvHkCSEqAvQNLV5Uge.jpg",
+          rating: 8.8,
+          genre: "Sci-Fi"
+        },
+        {
+          id: 2,
+          title: "The Shawshank Redemption",
+          year: 1994,
+          poster: "https://image.tmdb.org/t/p/w500/q6y0Go1tsGEsmtFryDOJo3dEmqu.jpg",
+          rating: 9.3,
+          genre: "Drama"
+        },
+        {
+          id: 3,
+          title: "Pulp Fiction",
+          year: 1994,
+          poster: "https://image.tmdb.org/t/p/w500/d5iIlFn5s0ImszYzBPb8JPIfbXD.jpg",
+          rating: 8.9,
+          genre: "Crime"
+        },
+        {
+          id: 4,
+          title: "The Dark Knight",
+          year: 2008,
+          poster: "https://image.tmdb.org/t/p/w500/qJ2tW6WMUDux911r6m7haRef0WH.jpg",
+          rating: 9.0,
+          genre: "Action"
+        },
+        {
+          id: 5,
+          title: "Fight Club",
+          year: 1999,
+          poster: "https://image.tmdb.org/t/p/w500/pB8BM7pdSp6B6Ih7QZ4DrQ3PmJK.jpg",
+          rating: 8.8,
+          genre: "Drama"
+        },
+        {
+          id: 6,
+          title: "Forrest Gump",
+          year: 1994,
+          poster: "https://image.tmdb.org/t/p/w500/saHP97rTPS5eLmrLQEcANmKrsFl.jpg",
+          rating: 8.8,
+          genre: "Drama"
+        }
+      ];
+    }
+
+    function generateRecommendations(favoriteMovies) {
+      // Simple recommendation algorithm based on genres
+      const allMovies = getDefaultRecommendations();
+      const favoriteGenres = favoriteMovies.map(movie => movie.genre);
+      
+      return allMovies
+        .filter(movie => !favorites.some(fav => fav.id === movie.id))
+        .sort((a, b) => {
+          const aScore = favoriteGenres.includes(a.genre) ? 1 : 0;
+          const bScore = favoriteGenres.includes(b.genre) ? 1 : 0;
+          return bScore - aScore || b.rating - a.rating;
+        })
+        .slice(0, 6);
+    }
+
+    // Display functions
+    function displayFavorites() {
+      const container = document.getElementById('favorites-container');
+      
+      if (favorites.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state col-span-full">
+            <i class='bx bx-heart'></i>
+            <h3 class="text-xl font-semibold mb-2">No favorite movies yet</h3>
+            <p class="text-muted">Start adding movies to your favorites to see them here!</p>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = favorites.map(movie => createMovieCard(movie, true)).join('');
+    }
+
+    function displayRecommendations() {
+      const container = document.getElementById('recommended-container');
+      
+      if (recommendations.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state col-span-full">
+            <i class='bx bx-star'></i>
+            <h3 class="text-xl font-semibold mb-2">No recommendations available</h3>
+            <p class="text-muted">Try adding some favorite movies to get personalized recommendations!</p>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = recommendations.map(movie => createMovieCard(movie, false)).join('');
+    }
+
+    function createMovieCard(movie, isFavorite = false) {
+      const isInFavorites = favorites.some(fav => fav.id === movie.id);
+      
+      return `
+        <div class="movie-card relative">
+          <div class="relative">
+            <img src="${movie.poster}" alt="${movie.title}" class="movie-poster" 
+                 onerror="this.src='https://via.placeholder.com/300x450/2a2a2a/666666?text=No+Image'">
+            <button class="favorite-btn ${isInFavorites ? 'active' : ''}" 
+                    onclick="toggleFavorite(${movie.id})">
+              <i class='bx ${isInFavorites ? 'bxs-heart' : 'bx-heart'}'></i>
+            </button>
+          </div>
+          <div class="movie-info">
+            <h3 class="movie-title">${movie.title}</h3>
+            <p class="movie-year">${movie.year} • ${movie.genre}</p>
+            <div class="movie-rating">
+              <div class="rating-stars">
+                ${'★'.repeat(Math.floor(movie.rating / 2))}${'☆'.repeat(5 - Math.floor(movie.rating / 2))}
+              </div>
+              <span class="text-muted">${movie.rating}/10</span>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    // Movie operations
+    function toggleFavorite(movieId) {
+      const movie = [...getDefaultRecommendations(), ...recommendations].find(m => m.id === movieId);
+      if (!movie) return;
+
+      const index = favorites.findIndex(fav => fav.id === movieId);
+      
+      if (index > -1) {
+        favorites.splice(index, 1);
+      } else {
+        favorites.push(movie);
+      }
+
+      displayFavorites();
+      saveFavorites();
+      
+      // Update recommendations if user is logged in
+      if (currentUser) {
+        loadRecommendations();
+      }
+    }
+
+    // Search functionality
+    async function performSearch() {
+      const query = document.getElementById('search-input').value.trim();
+      if (!query) return;
+
+      const searchSection = document.getElementById('search-results-section');
+      const searchContainer = document.getElementById('search-results-container');
+      
+      searchSection.classList.remove('hidden');
+      searchContainer.innerHTML = `
+        <div class="loading col-span-full">
+          <i class='bx bx-loader-alt bx-spin'></i>
+          Searching for "${query}"...
+        </div>
+      `;
+
+      try {
+        // Simulate API search - in real implementation, you'd call a movie API
+        const results = await searchMovies(query);
+        displaySearchResults(results);
+      } catch (error) {
+        console.error('Search error:', error);
+        searchContainer.innerHTML = `
+          <div class="error col-span-full">
+            <i class='bx bx-error-circle'></i>
+            Failed to search for movies. Please try again.
+          </div>
+        `;
+      }
+    }
+
+    async function searchMovies(query) {
+      // Simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      const allMovies = getDefaultRecommendations();
+      return allMovies.filter(movie => 
+        movie.title.toLowerCase().includes(query.toLowerCase()) ||
+        movie.genre.toLowerCase().includes(query.toLowerCase())
+      );
+    }
+
+    function displaySearchResults(results) {
+      const container = document.getElementById('search-results-container');
+      
+      if (results.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state col-span-full">
+            <i class='bx bx-search'></i>
+            <h3 class="text-xl font-semibold mb-2">No movies found</h3>
+            <p class="text-muted">Try searching with different keywords</p>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = results.map(movie => createMovieCard(movie, false)).join('');
+    }
+
+    // Utility functions
+    function showError(message) {
+      // Create a temporary error message
+      const errorDiv = document.createElement('div');
+      errorDiv.className = 'error';
+      errorDiv.innerHTML = `<i class='bx bx-error-circle'></i> ${message}`;
+      
+      document.querySelector('main').insertBefore(errorDiv, document.querySelector('main').firstChild);
+      
+      setTimeout(() => {
+        errorDiv.remove();
+      }, 5000);
+    }
+
+    function toggleTheme() {
+      const body = document.body;
+      const currentTheme = body.getAttribute('data-theme') || 'rose-pine';
+      
+      const themes = ['rose-pine', 'dark', 'light', 'catppuccin', 'nord'];
+      const currentIndex = themes.indexOf(currentTheme);
+      const nextIndex = (currentIndex + 1) % themes.length;
+      const nextTheme = themes[nextIndex];
+      
+      body.setAttribute('data-theme', nextTheme);
+      
+      // Update theme icon
+      const themeIcon = document.querySelector('#theme-toggle i');
+      const icons = ['bx-moon', 'bx-sun', 'bx-palette', 'bx-adjust'];
+      themeIcon.className = `bx ${icons[nextIndex % icons.length]} text-text`;
+    }
+  </script>
+</body>
+</html>
