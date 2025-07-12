@@ -3578,7 +3578,7 @@
         const safeUid = sanitizeText(user.uid || '');
         
         return `
-          <div class="flex items-center gap-3 p-3 bg-rp-overlay rounded-lg">
+          <div class="flex items-center gap-3 p-3 bg-rp-overlay rounded-lg" data-user-id="${safeUid}">
             <img src="${safePhotoURL}" 
                  alt="${safeDisplayName}" 
                  class="w-10 h-10 rounded-full">
@@ -4919,6 +4919,20 @@
       showFollowersModal('followers', null);
     };
 
+    // Test follow/unfollow functionality
+    window.testFollowSystem = function() {
+      console.log('🧪 Testing follow system...');
+      console.log('Current following list:', followerSystemState.currentUserFollowing);
+      
+      // Update all button states
+      updateAllFollowButtonStates();
+      
+      // Refresh suggested users to remove already followed users
+      loadSuggestedUsers();
+      
+      console.log('✅ Follow system updated and refreshed');
+    };
+
     async function clearRecentGames() {
       const user = auth.currentUser;
       if (!user) return;
@@ -5964,6 +5978,13 @@
     async function followUser(targetUid) {
       if (!currentUser || targetUid === currentUser.uid) return;
       
+      // Check if already following to prevent duplicates
+      if (followerSystemState.currentUserFollowing.includes(targetUid)) {
+        console.log('⚠️ Already following user:', targetUid);
+        window.createEnhancedNotification('Already Following', 'You are already following this user', 'info');
+        return;
+      }
+      
       try {
         console.log('📝 Starting to follow user:', targetUid);
         
@@ -6005,17 +6026,20 @@
         console.log('✅ Batch write completed successfully');
         
         // Update local state
-        if (!followerSystemState.currentUserFollowing.includes(targetUid)) {
-          followerSystemState.currentUserFollowing.push(targetUid);
-        }
+        followerSystemState.currentUserFollowing.push(targetUid);
+        console.log('📊 Updated following list:', followerSystemState.currentUserFollowing);
         
-        // Update UI
+        // Update UI everywhere
         updateFollowButtons(targetUid, true);
+        updateAllFollowButtonStates();
         updateFollowerCounts();
         
         // Refresh search results and friends list if they exist
         refreshSearchResults();
         refreshFriendsList();
+        
+        // Refresh suggested users to remove the followed user
+        await loadSuggestedUsers();
         
         // Show success notification
         const targetUserDoc = await db.collection('users').doc(targetUid).get();
@@ -6032,6 +6056,13 @@
     // Unfollow a user
     async function unfollowUser(targetUid) {
       if (!currentUser || targetUid === currentUser.uid) return;
+      
+      // Check if actually following to prevent issues
+      if (!followerSystemState.currentUserFollowing.includes(targetUid)) {
+        console.log('⚠️ Not following user:', targetUid);
+        window.createEnhancedNotification('Not Following', 'You are not following this user', 'info');
+        return;
+      }
       
       try {
         console.log('📝 Starting to unfollow user:', targetUid);
@@ -6065,14 +6096,19 @@
         if (index > -1) {
           followerSystemState.currentUserFollowing.splice(index, 1);
         }
+        console.log('📊 Updated following list:', followerSystemState.currentUserFollowing);
         
-        // Update UI
+        // Update UI everywhere
         updateFollowButtons(targetUid, false);
+        updateAllFollowButtonStates();
         updateFollowerCounts();
         
         // Refresh search results and friends list if they exist
         refreshSearchResults();
         refreshFriendsList();
+        
+        // Refresh suggested users to potentially re-add the unfollowed user
+        await loadSuggestedUsers();
         
         // Show success notification
         const targetUserDoc = await db.collection('users').doc(targetUid).get();
@@ -6100,6 +6136,48 @@
           unfollowBtn.classList.add('hidden');
         }
       }
+    }
+
+    // Update all follow button states across the entire page
+    function updateAllFollowButtonStates() {
+      console.log('🔄 Updating all follow button states...');
+      
+      // Update buttons in search results
+      document.querySelectorAll('[data-user-id]').forEach(element => {
+        const uid = element.getAttribute('data-user-id');
+        if (uid && uid !== currentUser.uid) {
+          const isFollowing = followerSystemState.currentUserFollowing.includes(uid);
+          const followBtn = element.querySelector(`button[onclick*="followUser('${uid}')"]`);
+          const unfollowBtn = element.querySelector(`button[onclick*="unfollowUser('${uid}')"]`);
+          
+          if (followBtn && unfollowBtn) {
+            if (isFollowing) {
+              followBtn.style.display = 'none';
+              unfollowBtn.style.display = 'inline-flex';
+              followBtn.textContent = 'Following';
+              followBtn.className = followBtn.className.replace('bg-rp-iris', 'bg-rp-love/20').replace('text-white', 'text-rp-love');
+            } else {
+              followBtn.style.display = 'inline-flex';
+              unfollowBtn.style.display = 'none';
+              followBtn.textContent = 'Follow';
+              followBtn.className = followBtn.className.replace('bg-rp-love/20', 'bg-rp-iris').replace('text-rp-love', 'text-white');
+            }
+          } else if (followBtn) {
+            // Single button - update text and style
+            if (isFollowing) {
+              followBtn.textContent = 'Following';
+              followBtn.className = followBtn.className.replace('bg-rp-iris', 'bg-rp-love/20').replace('text-white', 'text-rp-love');
+              followBtn.setAttribute('onclick', `unfollowUser('${uid}')`);
+            } else {
+              followBtn.textContent = 'Follow';
+              followBtn.className = followBtn.className.replace('bg-rp-love/20', 'bg-rp-iris').replace('text-rp-love', 'text-white');
+              followBtn.setAttribute('onclick', `followUser('${uid}')`);
+            }
+          }
+        }
+      });
+      
+      console.log('✅ All follow button states updated');
     }
 
     // Update follower counts in UI
@@ -6601,15 +6679,34 @@
         const activeUsers = await getRecentlyActiveUsers();
         suggestions.push(...activeUsers);
         
-        // Remove duplicates and current user
+        // Remove duplicates, current user, friends, and already followed users
+        console.log('🔍 Filtering suggestions...');
+        console.log('Total suggestions before filtering:', suggestions.length);
+        console.log('Current user friends:', currentUserFriends);
+        console.log('Current user following:', currentUserFollowing);
+        
         const uniqueSuggestions = suggestions
-          .filter((user, index, self) => 
-            user.uid !== currentUser.uid &&
-            !currentUserFriends.includes(user.uid) &&
-            !currentUserFollowing.includes(user.uid) &&
-            index === self.findIndex(u => u.uid === user.uid)
-          )
+          .filter((user, index, self) => {
+            // Must have a valid uid
+            if (!user.uid) return false;
+            
+            // Can't suggest current user
+            if (user.uid === currentUser.uid) return false;
+            
+            // Can't suggest existing friends
+            if (currentUserFriends.includes(user.uid)) return false;
+            
+            // Can't suggest users already being followed
+            if (currentUserFollowing.includes(user.uid)) return false;
+            
+            // Remove duplicates
+            if (index !== self.findIndex(u => u.uid === user.uid)) return false;
+            
+            return true;
+          })
           .slice(0, 5); // Limit to 5 suggestions
+          
+        console.log('Suggestions after filtering:', uniqueSuggestions.length);
         
         // Add suggestion reasons
         return uniqueSuggestions.map(user => ({
@@ -6788,8 +6885,11 @@
           usernameDisplay = 'User ID: ' + safeUid.substring(0, 8) + '...';
         }
         
+        // Check if already following this user
+        const isFollowing = followerSystemState.currentUserFollowing.includes(safeUid);
+        
         return `
-          <div class="flex items-center gap-4 p-4 bg-rp-overlay rounded-lg hover:bg-rp-highlight-med transition-colors suggestion-card">
+          <div class="flex items-center gap-4 p-4 bg-rp-overlay rounded-lg hover:bg-rp-highlight-med transition-colors suggestion-card" data-user-id="${safeUid}">
             <img src="${safePhotoURL}" 
                  alt="${safeDisplayName}" 
                  class="w-12 h-12 rounded-full ring-2 ring-rp-overlay group-hover:ring-rp-iris/50 transition-all">
@@ -6799,11 +6899,19 @@
               <p class="text-xs text-rp-iris text-consistent font-medium">${safeReason}</p>
             </div>
             <div class="flex flex-col gap-2 min-w-0">
-              <button onclick="window.followUser('${safeUid}')" 
-                      class="px-4 py-2 bg-rp-iris hover:bg-rp-iris/90 text-white rounded-lg text-xs font-medium transition-colors btn-enhanced flex items-center justify-center gap-2 whitespace-nowrap">
-                <i class='bx bx-user-plus'></i>
-                Follow
-              </button>
+              ${isFollowing ? `
+                <button onclick="window.unfollowUser('${safeUid}')" 
+                        class="px-4 py-2 bg-rp-love/20 text-rp-love hover:bg-rp-love/30 border border-rp-love/30 rounded-lg text-xs font-medium transition-colors btn-enhanced flex items-center justify-center gap-2 whitespace-nowrap">
+                  <i class='bx bx-user-minus'></i>
+                  Unfollow
+                </button>
+              ` : `
+                <button onclick="window.followUser('${safeUid}')" 
+                        class="px-4 py-2 bg-rp-iris hover:bg-rp-iris/90 text-white rounded-lg text-xs font-medium transition-colors btn-enhanced flex items-center justify-center gap-2 whitespace-nowrap">
+                  <i class='bx bx-user-plus'></i>
+                  Follow
+                </button>
+              `}
               <button onclick="window.viewUserProfile('${safeUid}')" 
                       class="px-4 py-2 bg-rp-gold/20 text-rp-gold hover:bg-rp-gold/30 rounded-lg text-xs font-medium transition-colors btn-enhanced flex items-center justify-center gap-2 whitespace-nowrap">
                 <i class='bx bx-show'></i>
