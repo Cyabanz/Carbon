@@ -3,165 +3,276 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>CARBON</title>
+  <title>CARBON VM</title>
   <script src="carbon-theme.js"></script>
   <script src="platform-detector.js"></script>
+  <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
   <style>
+    :root {
+      --text-color: #e0def4;
+      --surface-color: #1f1d2e;
+      --overlay-color: #26233a;
+      --highlight-med: #403d52;
+      --highlight-high: #524f67;
+      --foam: #9ccfd8;
+      --love: #eb6f92;
+      --gold: #f6c177;
+      --pine: #31748f;
+      --iris: #c4a7e7;
+      --muted: #6e6a86;
+      --subtle: #908caa;
+      --base: #191724;
+
+      /* Theme variables - Rose Pine (default) */
+      --theme-base: #191724;
+      --theme-surface: #1f1d2e;
+      --theme-overlay: #26233a;
+      --theme-muted: #6e6a86;
+      --theme-subtle: #908caa;
+      --theme-text: #e0def4;
+      --theme-love: #eb6f92;
+      --theme-gold: #f6c177;
+      --theme-rose: #ebbcba;
+      --theme-pine: #31748f;
+      --theme-foam: #9ccfd8;
+      --theme-iris: #c4a7e7;
+      --theme-highlight-low: #21202e;
+      --theme-highlight-med: #403d52;
+      --theme-highlight-high: #524f67;
+      --theme-gradient: linear-gradient(135deg, #191724 0%, #1f1d2e 50%, #26233a 100%);
+    }
+    
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      margin: 2rem auto;
-      max-width: 600px;
-      background: #f6f8fa;
-      color: #222;
+      margin: 0;
+      padding: 2rem;
+      background: var(--theme-gradient);
+      background-attachment: fixed;
+      color: var(--theme-text);
       line-height: 1.6;
+      min-height: 100vh;
     }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
     .hidden { display: none; }
+    
     .notice { 
-      background: #fff8c4; 
-      padding: 0.7em 1em; 
-      border-radius: 8px; 
-      margin-bottom: 1em; 
-      border-left: 4px solid #f0ad4e;
+      background: rgba(246, 193, 119, 0.1); 
+      padding: 1rem; 
+      border-radius: 12px; 
+      margin-bottom: 1.5rem; 
+      border-left: 4px solid var(--theme-gold);
+      color: var(--theme-text);
     }
+    
     .error-notice {
-      background: #ffe6e6;
-      border-left: 4px solid #d73a49;
-      color: #d73a49;
+      background: rgba(235, 111, 146, 0.1);
+      border-left: 4px solid var(--theme-love);
+      color: var(--theme-love);
     }
+    
     .rate-limit-notice {
-      background: #fff3cd;
-      border-left: 4px solid #856404;
-      color: #856404;
+      background: rgba(156, 207, 216, 0.1);
+      border-left: 4px solid var(--theme-foam);
+      color: var(--theme-foam);
     }
+    
     #timer-bar {
-      background: #e0e0e0;
-      border-radius: 8px;
-      height: 20px;
-      margin-bottom: 1em;
+      background: var(--theme-overlay);
+      border-radius: 12px;
+      height: 24px;
+      margin-bottom: 1.5rem;
       overflow: hidden;
       width: 100%;
-      box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
+      box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);
     }
+    
     #timer-progress {
-      background: linear-gradient(90deg, #4caf50, #8bc34a);
+      background: linear-gradient(90deg, var(--theme-foam), var(--theme-iris));
       height: 100%;
       width: 100%;
       transition: width 1s linear;
-      border-radius: 8px 0 0 8px;
+      border-radius: 12px 0 0 12px;
     }
+    
     button { 
-      margin: 0.5em 0.5em 0.5em 0; 
-      padding: 0.75em 1.5em;
+      margin: 0.5rem 0.5rem 0.5rem 0; 
+      padding: 0.75rem 1.5rem;
       border: none;
-      border-radius: 6px;
+      border-radius: 12px;
       cursor: pointer;
-      font-size: 0.9em;
+      font-size: 0.9rem;
       font-weight: 500;
       transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
     }
+    
     #create-btn {
-      background: #28a745;
-      color: white;
+      background: linear-gradient(135deg, var(--theme-foam), var(--theme-iris));
+      color: var(--theme-base);
     }
+    
     #create-btn:hover:not(:disabled) {
-      background: #218838;
-      transform: translateY(-1px);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(156, 207, 216, 0.3);
     }
+    
     #create-btn:disabled {
-      background: #6c757d;
+      background: var(--theme-muted);
       cursor: not-allowed;
       transform: none;
     }
+    
     #terminate-btn {
-      background: #dc3545;
+      background: linear-gradient(135deg, var(--theme-love), #d63384);
       color: white;
     }
+    
     #terminate-btn:hover {
-      background: #c82333;
-      transform: translateY(-1px);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(235, 111, 146, 0.3);
     }
+    
     #fullscreen-btn {
-      background: #17a2b8;
+      background: linear-gradient(135deg, var(--theme-gold), #e6a700);
+      color: var(--theme-base);
+    }
+    
+    #fullscreen-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(246, 193, 119, 0.3);
+    }
+
+    #test-btn {
+      background: linear-gradient(135deg, var(--theme-pine), #2d5a6b);
       color: white;
     }
-    #fullscreen-btn:hover {
-      background: #138496;
-      transform: translateY(-1px);
+
+    #test-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(49, 116, 143, 0.3);
     }
+    
     #hb-container { 
       width: 100%; 
-      height: 400px; 
+      height: 600px; 
       border: none; 
       display: block; 
-      border-radius: 8px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-      background: #f8f9fa;
+      border-radius: 16px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+      background: var(--theme-surface);
+      margin: 1.5rem 0;
     }
+    
     #status { 
-      font-size: 1.1em; 
-      margin: 1em 0; 
-      padding: 0.5em;
-      border-radius: 6px;
+      font-size: 1.1rem; 
+      margin: 1rem 0; 
+      padding: 1rem;
+      border-radius: 12px;
       transition: all 0.3s ease;
     }
+    
     .status-error {
-      background: #f8d7da;
-      color: #721c24;
-      border: 1px solid #f5c6cb;
+      background: rgba(235, 111, 146, 0.1);
+      color: var(--theme-love);
+      border: 1px solid rgba(235, 111, 146, 0.3);
     }
+    
     .status-success {
-      background: #d4edda;
-      color: #155724;
-      border: 1px solid #c3e6cb;
+      background: rgba(156, 207, 216, 0.1);
+      color: var(--theme-foam);
+      border: 1px solid rgba(156, 207, 216, 0.3);
     }
+    
     .status-info {
-      background: #d1ecf1;
-      color: #0c5460;
-      border: 1px solid #bee5eb;
+      background: rgba(196, 167, 231, 0.1);
+      color: var(--theme-iris);
+      border: 1px solid rgba(196, 167, 231, 0.3);
     }
+    
     .countdown {
       font-weight: bold;
       font-family: 'Courier New', monospace;
     }
+    
     .session-info {
-      background: white;
-      padding: 1em;
-      border-radius: 8px;
-      margin: 1em 0;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      background: var(--theme-surface);
+      padding: 1.5rem;
+      border-radius: 16px;
+      margin: 1.5rem 0;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+      border: 1px solid var(--theme-overlay);
     }
+    
     h1 {
-      color: #2c3e50;
-      margin-bottom: 0.5em;
+      color: var(--theme-text);
+      margin-bottom: 1rem;
+      font-size: 2.5rem;
+      font-weight: 700;
+      text-align: center;
+      background: linear-gradient(135deg, var(--theme-foam), var(--theme-iris));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
     }
+
+
   </style>
 </head>
 <body>
-  <h1>🚀 Hyperbeam Session Demo</h1>
-  <div class="notice">
-    <strong>Session Limits:</strong><br>
-    • Maximum duration: <strong>4 minutes</strong><br>
-    • Auto-terminate after <strong>30 seconds</strong> of inactivity<br>
-    • Rate limit: <strong>2 sessions per IP address</strong>
+  <div class="container">
+    <h1><i class='bx bx-rocket'></i> CARBON VM</h1>
+    
+
+    
+    <!-- Particles Canvas -->
+    <canvas id="particles-canvas" class="fixed inset-0 pointer-events-none hidden z-0"></canvas>
+    
+    <div class="notice">
+      <strong><i class='bx bx-info-circle'></i> Session Limits:</strong><br>
+      • Maximum duration: <strong>4 minutes</strong><br>
+      • Auto-terminate after <strong>30 seconds</strong> of inactivity<br>
+      • Rate limit: <strong>2 sessions per IP address</strong>
+    </div>
+    
+    <div class="flex flex-wrap gap-3 mb-4">
+      <button id="create-btn">
+        <i class='bx bx-plus-circle'></i>
+        Create New Session
+      </button>
+      <button id="terminate-btn" class="hidden">
+        <i class='bx bx-stop-circle'></i>
+        Terminate Session
+      </button>
+      <button id="fullscreen-btn" class="hidden" onclick="toggleFullscreen()">
+        <i class='bx bx-fullscreen'></i>
+        Fullscreen
+      </button>
+      <button id="test-btn" onclick="testHyperbeam()">
+        <i class='bx bx-test-tube'></i>
+        Test Hyperbeam SDK
+      </button>
+    </div>
+    
+    <div id="timer-bar" class="hidden">
+      <div id="timer-progress"></div>
+    </div>
+    
+    <div id="status"></div>
+    
+    <div id="session-info" class="session-info hidden">
+      <strong><i class='bx bx-check-circle'></i> Session Active</strong><br>
+      <span id="session-details"></span>
+    </div>
+    
+    <div id="hb-container" class="hidden"></div>
   </div>
-  
-  <button id="create-btn">Create New Session</button>
-  <button id="terminate-btn" class="hidden">Terminate Session</button>
-  <button id="fullscreen-btn" class="hidden" onclick="toggleFullscreen()">Fullscreen</button>
-  <button id="test-btn" onclick="testHyperbeam()">Test Hyperbeam SDK</button>
-  
-  <div id="timer-bar" class="hidden">
-    <div id="timer-progress"></div>
-  </div>
-  
-  <div id="status"></div>
-  
-  <div id="session-info" class="session-info hidden">
-    <strong>Session Active</strong><br>
-    <span id="session-details"></span>
-  </div>
-  
-  <div id="hb-container" class="hidden"></div>
 
   <script type="module">
     try {
@@ -185,6 +296,161 @@
     let csrfToken = null;
     let isCreatingSession = false;
     let hyperbeamSession = null;
+    let particlesAnimation = null;
+
+    // Sync background from profile.html
+    function syncBackgroundFromProfile() {
+      // Get background setting from localStorage (same as profile.html)
+      const background = localStorage.getItem('carbon-background-global') || 'gradient';
+      applyBackground(background);
+    }
+
+    function applyBackground(background) {
+      console.log('🎨 Applying background:', background);
+      
+      const body = document.body;
+      const particlesCanvas = document.getElementById('particles-canvas');
+      
+      // Stop any existing particles animation
+      if (particlesAnimation) {
+        cancelAnimationFrame(particlesAnimation);
+        particlesAnimation = null;
+      }
+      
+      // Hide particles canvas by default
+      particlesCanvas.classList.add('hidden');
+      
+      // Reset body background
+      body.style.background = '';
+      body.style.backgroundAttachment = '';
+      
+      switch (background) {
+        case 'gradient':
+          body.style.background = 'linear-gradient(135deg, rgba(156, 207, 216, 0.1) 0%, rgba(196, 167, 231, 0.1) 100%)';
+          body.style.backgroundAttachment = 'fixed';
+          console.log('✅ Gradient background applied');
+          break;
+          
+        case 'solid':
+          body.style.background = '#31748f'; // Use hex instead of CSS variable for reliability
+          console.log('✅ Solid background applied');
+          break;
+          
+        case 'particles':
+          body.style.background = '#191724'; // Use hex instead of CSS variable
+          particlesCanvas.classList.remove('hidden');
+          
+          try {
+            initParticles();
+            console.log('✅ Particles background applied');
+          } catch (particlesError) {
+            console.error('❌ Error initializing particles:', particlesError);
+            // Fallback to solid background
+            body.style.background = '#191724';
+            particlesCanvas.classList.add('hidden');
+          }
+          break;
+          
+        case 'default':
+        default:
+          body.style.background = 'var(--theme-gradient)';
+          body.style.backgroundAttachment = 'fixed';
+          console.log('✅ Default background applied');
+          break;
+      }
+    }
+
+    function initParticles() {
+      console.log('✨ Initializing particles');
+      
+      const canvas = document.getElementById('particles-canvas');
+      if (!canvas) {
+        console.error('❌ Particles canvas not found');
+        return;
+      }
+      
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        console.error('❌ Could not get 2D context');
+        return;
+      }
+      
+      // Set canvas size to match window
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      
+      const particlesArray = [];
+      const particleCount = 50;
+      
+      class Particle {
+        constructor() {
+          this.x = Math.random() * canvas.width;
+          this.y = Math.random() * canvas.height;
+          this.vx = (Math.random() - 0.5) * 2;
+          this.vy = (Math.random() - 0.5) * 2;
+          this.radius = Math.random() * 3 + 1;
+          this.opacity = Math.random() * 0.5 + 0.2;
+          this.color = this.getRandomColor();
+        }
+        
+        getRandomColor() {
+          const colors = [
+            'rgba(156, 207, 216, ', // foam
+            'rgba(196, 167, 231, ', // iris
+            'rgba(246, 193, 119, ', // gold
+            'rgba(235, 188, 186, '  // love
+          ];
+          return colors[Math.floor(Math.random() * colors.length)];
+        }
+        
+        update() {
+          this.x += this.vx;
+          this.y += this.vy;
+          
+          if (this.x < 0 || this.x > canvas.width) this.vx *= -1;
+          if (this.y < 0 || this.y > canvas.height) this.vy *= -1;
+        }
+        
+        draw() {
+          ctx.beginPath();
+          ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+          ctx.fillStyle = this.color + this.opacity + ')';
+          ctx.fill();
+        }
+      }
+      
+      function createParticles() {
+        particlesArray.length = 0;
+        for (let i = 0; i < particleCount; i++) {
+          particlesArray.push(new Particle());
+        }
+      }
+      
+      function animate() {
+        if (canvas.classList.contains('hidden')) {
+          return;
+        }
+        
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        particlesArray.forEach(particle => {
+          particle.update();
+          particle.draw();
+        });
+        
+        particlesAnimation = requestAnimationFrame(animate);
+      }
+      
+      createParticles();
+      animate();
+      
+      // Handle window resize
+      window.addEventListener('resize', () => {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        createParticles();
+      });
+    }
 
     async function getCsrfToken() {
       try {
@@ -241,7 +507,7 @@
       isCreatingSession = true;
       const createBtn = document.getElementById('create-btn');
       createBtn.disabled = true;
-      createBtn.textContent = "Creating Session...";
+      createBtn.innerHTML = '<i class="bx bx-loader-alt bx-spin"></i> Creating Session...';
       
       try {
         if (!(await getCsrfToken())) {
@@ -340,7 +606,7 @@
       } finally {
         isCreatingSession = false;
         createBtn.disabled = false;
-        createBtn.textContent = "Create New Session";
+        createBtn.innerHTML = '<i class="bx bx-plus-circle"></i> Create New Session';
       }
     }
 
@@ -348,7 +614,7 @@
       const notice = document.createElement('div');
       notice.className = 'notice rate-limit-notice';
       notice.innerHTML = `
-        <strong>Rate Limit Reached</strong><br>
+        <strong><i class='bx bx-time'></i> Rate Limit Reached</strong><br>
         You have reached the maximum of 2 sessions per IP address. 
         Please wait ${Math.ceil(retryAfter / 60)} minutes before creating a new session.
       `;
@@ -379,9 +645,9 @@
         
         // Update color based on remaining time
         if (percent < 25) {
-          bar.style.background = "linear-gradient(90deg, #dc3545, #fd7e14)";
+          bar.style.background = "linear-gradient(90deg, var(--theme-love), #d63384)";
         } else if (percent < 50) {
-          bar.style.background = "linear-gradient(90deg, #ffc107, #fd7e14)";
+          bar.style.background = "linear-gradient(90deg, var(--theme-gold), #e6a700)";
         }
         
         // Update countdown in session info
@@ -539,6 +805,11 @@
         }
       }
     }
+
+    // Initialize background sync when page loads
+    document.addEventListener('DOMContentLoaded', () => {
+      syncBackgroundFromProfile();
+    });
 
     // Event listeners
     document.getElementById('create-btn').onclick = createSession;
