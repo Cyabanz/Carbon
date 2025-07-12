@@ -279,6 +279,12 @@
           } else if (res.status === 500) {
             if (data.error === "Invalid API key") {
               setStatus("Configuration error: Invalid Hyperbeam API key. Please check your setup.", "error");
+            } else if (data.error === "Service temporarily unavailable") {
+              if (data.details && data.details.includes("HYPERBEAM_API_KEY")) {
+                setStatus("Configuration error: HYPERBEAM_API_KEY environment variable is not set. Please check the deployment guide.", "error");
+              } else {
+                setStatus("Service temporarily unavailable. Please try again in a few minutes.", "error");
+              }
             } else if (data.error === "Service temporarily overloaded") {
               setStatus("Service temporarily overloaded. Please try again in a few minutes.", "error");
             } else {
