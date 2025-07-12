@@ -6314,7 +6314,26 @@
         return;
       }
       
-      // Check if already following to prevent duplicates
+      // Double-check against the database to ensure we're not already following
+      try {
+        const currentUserDoc = await db.collection('users').doc(currentUser.uid).get();
+        if (currentUserDoc.exists) {
+          const userData = currentUserDoc.data();
+          const dbFollowing = userData.following || [];
+          if (dbFollowing.includes(targetUid)) {
+            console.log('⚠️ Database check: Already following user:', targetUid);
+            // Update local state to match database
+            followerSystemState.currentUserFollowing = [...new Set(dbFollowing)];
+            window.createEnhancedNotification('Already Following', 'You are already following this user', 'info');
+            updateAllFollowButtonStates();
+            return;
+          }
+        }
+      } catch (error) {
+        console.error('Error checking follow status:', error);
+      }
+      
+      // Check if already following to prevent duplicates (local state check)
       if (followerSystemState.currentUserFollowing.includes(targetUid)) {
         console.log('⚠️ Already following user:', targetUid);
         window.createEnhancedNotification('Already Following', 'You are already following this user', 'info');
@@ -6401,15 +6420,26 @@
         refreshSearchResults();
         refreshFriendsList();
         
-        // Force refresh suggested users to remove the followed user
-        await forceRefreshSuggestedUsers();
+        // Immediately hide the suggestion card for better UX
+        const allSuggestionCards = document.querySelectorAll(`.suggestion-card[data-user-id="${targetUid}"]`);
+        allSuggestionCards.forEach(card => {
+          card.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+          card.style.opacity = '0';
+          card.style.transform = 'scale(0.9)';
+          setTimeout(() => card.remove(), 300);
+        });
+        
+        // Force refresh suggested users to get new suggestions
+        setTimeout(async () => {
+          await forceRefreshSuggestedUsers();
+        }, 400);
         
         // Show success notification
         const targetUserDoc = await db.collection('users').doc(targetUid).get();
         const targetUserName = targetUserDoc.exists ? targetUserDoc.data().displayName || 'User' : 'User';
         window.createEnhancedNotification('Following', `You are now following ${sanitizeText(targetUserName)}`, 'follow');
         
-                console.log(`✅ Successfully followed user ${targetUid}`);
+        console.log(`✅ Successfully followed user ${targetUid}`);
       } catch (error) {
         console.error('❌ Error following user:', error);
         showNotification('Follow Failed', 'Failed to follow user. Please try again.', 'error');
@@ -7058,12 +7088,33 @@
         suggestionsLoading.classList.remove('hidden');
         noSuggestedUsers.classList.add('hidden');
         
+        // Ensure we have the latest follower data
+        await loadFollowerData(currentUser.uid);
+        
         // Get suggestions based on various criteria
         const suggestions = await generateUserSuggestions();
         
         suggestionsLoading.classList.add('hidden');
         
         if (suggestions.length === 0) {
+          // Check if we're following a lot of users already
+          const followingCount = followerSystemState.currentUserFollowing.length;
+          
+          // Update the no suggestions message based on context
+          if (followingCount > 10) {
+            noSuggestedUsers.innerHTML = `
+              <i class='bx bx-check-circle text-2xl mb-2 block text-rp-foam'></i>
+              <p class="text-rp-text font-medium">You're all caught up!</p>
+              <p class="text-rp-subtle text-xs mt-1">You're already following ${followingCount} users</p>
+            `;
+          } else {
+            noSuggestedUsers.innerHTML = `
+              <i class='bx bx-user-circle text-2xl mb-2 block'></i>
+              <p class="text-rp-text">No suggestions available</p>
+              <p class="text-rp-subtle text-xs mt-1">Check back later for new users to follow</p>
+            `;
+          }
+          
           noSuggestedUsers.classList.remove('hidden');
           suggestedUsersList.innerHTML = '';
           return;
@@ -7084,11 +7135,20 @@
       const suggestions = [];
       
       try {
-        // Get current user's data
+        // Get current user's fresh data from database
         const currentUserDoc = await db.collection('users').doc(currentUser.uid).get();
         const currentUserData = currentUserDoc.data() || {};
         const currentUserFriends = currentUserData.friends || [];
-        const currentUserFollowing = followerSystemState.currentUserFollowing || [];
+        
+        // Get the absolute latest following data from database
+        const dbFollowing = [...new Set(currentUserData.following || [])];
+        
+        // Update local state to match database
+        followerSystemState.currentUserFollowing = dbFollowing;
+        
+        console.log('📊 Fresh data from database:');
+        console.log('- Friends:', currentUserFriends.length);
+        console.log('- Following:', dbFollowing.length);
         
         // Algorithm 1: Friends of friends
         const friendsOfFriends = await getFriendsOfFriends(currentUserFriends);
@@ -7110,14 +7170,14 @@
         console.log('🔍 Filtering suggestions...');
         console.log('Total suggestions before filtering:', suggestions.length);
         console.log('Current user friends:', currentUserFriends);
-        console.log('Current user following:', currentUserFollowing);
-        
-        // Ensure we have the latest following data
-        const latestFollowing = followerSystemState.currentUserFollowing || [];
-        console.log('Latest following data:', latestFollowing);
+        console.log('Current user following (from DB):', dbFollowing);
         
         // Create a Set to track seen UIDs for better duplicate removal
         const seenUids = new Set();
+        
+        // Create Sets for faster lookup
+        const friendsSet = new Set(currentUserFriends);
+        const followingSet = new Set(dbFollowing);
         
         const uniqueSuggestions = suggestions
           .filter((user) => {
@@ -7127,11 +7187,11 @@
             // Can't suggest current user
             if (user.uid === currentUser.uid) return false;
             
-            // Can't suggest existing friends
-            if (currentUserFriends.includes(user.uid)) return false;
+            // Can't suggest existing friends (use Set for O(1) lookup)
+            if (friendsSet.has(user.uid)) return false;
             
-            // Can't suggest users already being followed (check both arrays)
-            if (currentUserFollowing.includes(user.uid) || latestFollowing.includes(user.uid)) return false;
+            // Can't suggest users already being followed (use Set for O(1) lookup)
+            if (followingSet.has(user.uid)) return false;
             
             // Remove duplicates using Set
             if (seenUids.has(user.uid)) return false;
@@ -7142,6 +7202,7 @@
           .slice(0, 5); // Limit to 5 suggestions
           
         console.log('Suggestions after filtering:', uniqueSuggestions.length);
+        console.log('Filtered out:', suggestions.length - uniqueSuggestions.length, 'users');
         
         // Add suggestion reasons
         return uniqueSuggestions.map(user => ({
@@ -7376,7 +7437,36 @@
       // Ensure we have the latest following data
       const currentFollowing = followerSystemState.currentUserFollowing || [];
       
-      suggestedUsersList.innerHTML = suggestions.map(user => {
+      // Filter out any users that are already being followed (final check)
+      const filteredSuggestions = suggestions.filter(user => {
+        return user.uid && !currentFollowing.includes(user.uid);
+      });
+      
+      // If all suggestions are filtered out, show no suggestions message
+      if (filteredSuggestions.length === 0) {
+        const noSuggestedUsers = document.getElementById('noSuggestedUsers');
+        if (noSuggestedUsers) {
+          const followingCount = currentFollowing.length;
+          if (followingCount > 10) {
+            noSuggestedUsers.innerHTML = `
+              <i class='bx bx-check-circle text-2xl mb-2 block text-rp-foam'></i>
+              <p class="text-rp-text font-medium">You're all caught up!</p>
+              <p class="text-rp-subtle text-xs mt-1">You're already following ${followingCount} users</p>
+            `;
+          } else {
+            noSuggestedUsers.innerHTML = `
+              <i class='bx bx-user-circle text-2xl mb-2 block'></i>
+              <p class="text-rp-text">No suggestions available</p>
+              <p class="text-rp-subtle text-xs mt-1">Check back later for new users to follow</p>
+            `;
+          }
+          noSuggestedUsers.classList.remove('hidden');
+        }
+        suggestedUsersList.innerHTML = '';
+        return;
+      }
+      
+      suggestedUsersList.innerHTML = filteredSuggestions.map(user => {
         // Better display name handling
         let displayName = 'Unknown User';
         if (user.displayName && user.displayName.trim()) {
