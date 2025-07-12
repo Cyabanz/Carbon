@@ -4933,6 +4933,91 @@
       console.log('✅ Follow system updated and refreshed');
     };
 
+    // Global cleanup function to fix all users' duplicate followers
+    window.cleanupAllDuplicateFollowers = async function() {
+      if (!currentUser) {
+        console.log('❌ No current user logged in');
+        return;
+      }
+      
+      try {
+        console.log('🧹 Starting global duplicate follower cleanup...');
+        
+        // Get all users
+        const usersSnapshot = await db.collection('users').get();
+        let cleanedCount = 0;
+        
+        for (const userDoc of usersSnapshot.docs) {
+          try {
+            const userData = userDoc.data();
+            const updates = {};
+            
+            // Deduplicate followers array
+            if (userData.followers && Array.isArray(userData.followers)) {
+              const uniqueFollowers = [...new Set(userData.followers)].filter(uid => uid && typeof uid === 'string');
+              if (uniqueFollowers.length !== userData.followers.length) {
+                updates.followers = uniqueFollowers;
+                updates.followersCount = uniqueFollowers.length;
+                console.log(`🧹 User ${userData.displayName || userDoc.id}: cleaned followers ${userData.followers.length} → ${uniqueFollowers.length}`);
+              }
+            }
+            
+            // Deduplicate following array
+            if (userData.following && Array.isArray(userData.following)) {
+              const uniqueFollowing = [...new Set(userData.following)].filter(uid => uid && typeof uid === 'string');
+              if (uniqueFollowing.length !== userData.following.length) {
+                updates.following = uniqueFollowing;
+                updates.followingCount = uniqueFollowing.length;
+                console.log(`🧹 User ${userData.displayName || userDoc.id}: cleaned following ${userData.following.length} → ${uniqueFollowing.length}`);
+              }
+            }
+            
+            // Update document if cleanup was needed
+            if (Object.keys(updates).length > 0) {
+              await userDoc.ref.update(updates);
+              cleanedCount++;
+            }
+          } catch (error) {
+            console.error(`Error cleaning up user ${userDoc.id}:`, error);
+          }
+        }
+        
+        console.log(`✅ Global cleanup completed. Cleaned ${cleanedCount} users.`);
+        window.createEnhancedNotification('Cleanup Complete', `Cleaned up duplicate followers for ${cleanedCount} users`, 'success');
+        
+      } catch (error) {
+        console.error('Error during global cleanup:', error);
+        window.createEnhancedNotification('Cleanup Failed', 'Error during cleanup process', 'error');
+      }
+    };
+
+    // Test duplicate follower prevention
+    window.testDuplicatePrevention = function() {
+      console.log('🧪 Testing duplicate follower prevention...');
+      
+      if (!currentUser) {
+        console.log('❌ No current user logged in');
+        return;
+      }
+      
+      console.log('Current follower state:');
+      console.log('- Followers:', followerSystemState.currentUserFollowers);
+      console.log('- Following:', followerSystemState.currentUserFollowing);
+      
+      // Test deduplication function
+      const testArray = ['user1', 'user2', 'user1', 'user3', 'user2'];
+      const deduplicated = [...new Set(testArray)].filter(uid => uid && typeof uid === 'string');
+      console.log('Deduplication test:', testArray, '→', deduplicated);
+      
+      // Test button state
+      const followButtons = document.querySelectorAll('button[onclick*="followUser"]');
+      const unfollowButtons = document.querySelectorAll('button[onclick*="unfollowUser"]');
+      console.log('Follow buttons found:', followButtons.length);
+      console.log('Unfollow buttons found:', unfollowButtons.length);
+      
+      console.log('✅ Duplicate prevention test completed');
+    };
+
     async function clearRecentGames() {
       const user = auth.currentUser;
       if (!user) return;
@@ -5824,6 +5909,16 @@
     // =============================================
     // FOLLOWER SYSTEM - Instagram-like follow functionality
     // =============================================
+    // 
+    // DUPLICATE FOLLOWER PREVENTION:
+    // - Database level: Uses arrayUnion/arrayRemove to prevent duplicates
+    // - Client level: Checks if already following before attempting to follow
+    // - UI level: Disables buttons during operations to prevent rapid clicks
+    // - Data loading: Deduplicates arrays when loading from database
+    // - UI rendering: Deduplicates UIDs before rendering follower lists
+    // - Cleanup: Automatically cleans up existing duplicates on initialization
+    // - Global cleanup: Function to fix all users' duplicate followers
+    //
     
     let followerSystemState = {
       currentUserFollowers: [],
@@ -5845,6 +5940,9 @@
       try {
         // Ensure user document has follower fields
         await ensureUserFollowerFields(currentUser.uid);
+        
+        // Clean up any existing duplicate data
+        await cleanupDuplicateFollowers(currentUser.uid);
         
         // Load current user's follower data
         await loadFollowerData(currentUser.uid);
@@ -5899,6 +5997,48 @@
       }
     }
 
+    // Clean up duplicate followers in the database
+    async function cleanupDuplicateFollowers(uid) {
+      try {
+        console.log('🧹 Cleaning up duplicate followers for user:', uid);
+        const userDoc = await db.collection('users').doc(uid).get();
+        if (userDoc.exists) {
+          const userData = userDoc.data();
+          const updates = {};
+          
+          // Deduplicate followers array
+          if (userData.followers && Array.isArray(userData.followers)) {
+            const uniqueFollowers = [...new Set(userData.followers)].filter(uid => uid && typeof uid === 'string');
+            if (uniqueFollowers.length !== userData.followers.length) {
+              updates.followers = uniqueFollowers;
+              updates.followersCount = uniqueFollowers.length;
+              console.log(`🧹 Cleaned up followers: ${userData.followers.length} → ${uniqueFollowers.length}`);
+            }
+          }
+          
+          // Deduplicate following array
+          if (userData.following && Array.isArray(userData.following)) {
+            const uniqueFollowing = [...new Set(userData.following)].filter(uid => uid && typeof uid === 'string');
+            if (uniqueFollowing.length !== userData.following.length) {
+              updates.following = uniqueFollowing;
+              updates.followingCount = uniqueFollowing.length;
+              console.log(`🧹 Cleaned up following: ${userData.following.length} → ${uniqueFollowing.length}`);
+            }
+          }
+          
+          // Update document if cleanup was needed
+          if (Object.keys(updates).length > 0) {
+            await db.collection('users').doc(uid).update(updates);
+            console.log('✅ Duplicate followers cleaned up successfully');
+          } else {
+            console.log('✅ No duplicate followers found');
+          }
+        }
+      } catch (error) {
+        console.error('Error cleaning up duplicate followers:', error);
+      }
+    }
+
     // Load follower data for a user
     async function loadFollowerData(uid) {
       try {
@@ -5908,16 +6048,22 @@
           const userData = userDoc.data();
           console.log('📊 User data loaded:', userData);
           
+          // Deduplicate arrays to prevent duplicate followers
+          const deduplicateArray = (arr) => {
+            if (!Array.isArray(arr)) return [];
+            return [...new Set(arr)].filter(uid => uid && typeof uid === 'string');
+          };
+          
           if (uid === currentUser.uid) {
-            // Load current user's data
-            followerSystemState.currentUserFollowers = userData.followers || [];
-            followerSystemState.currentUserFollowing = userData.following || [];
+            // Load current user's data with deduplication
+            followerSystemState.currentUserFollowers = deduplicateArray(userData.followers);
+            followerSystemState.currentUserFollowing = deduplicateArray(userData.following);
             console.log('👤 Current user followers:', followerSystemState.currentUserFollowers);
             console.log('👤 Current user following:', followerSystemState.currentUserFollowing);
           } else {
-            // Load viewing user's data
-            followerSystemState.viewingUserFollowers = userData.followers || [];
-            followerSystemState.viewingUserFollowing = userData.following || [];
+            // Load viewing user's data with deduplication
+            followerSystemState.viewingUserFollowers = deduplicateArray(userData.followers);
+            followerSystemState.viewingUserFollowing = deduplicateArray(userData.following);
             console.log('👁️ Viewing user followers:', followerSystemState.viewingUserFollowers);
             console.log('👁️ Viewing user following:', followerSystemState.viewingUserFollowing);
           }
@@ -5985,6 +6131,14 @@
         return;
       }
       
+      // Prevent multiple rapid clicks by disabling all follow buttons for this user
+      const followButtons = document.querySelectorAll(`button[onclick*="followUser('${targetUid}')"]`);
+      followButtons.forEach(btn => {
+        btn.disabled = true;
+        btn.textContent = 'Following...';
+        btn.classList.add('opacity-50', 'cursor-not-allowed');
+      });
+      
       try {
         console.log('📝 Starting to follow user:', targetUid);
         
@@ -6025,8 +6179,10 @@
         await batch.commit();
         console.log('✅ Batch write completed successfully');
         
-        // Update local state
-        followerSystemState.currentUserFollowing.push(targetUid);
+        // Update local state with deduplication
+        if (!followerSystemState.currentUserFollowing.includes(targetUid)) {
+          followerSystemState.currentUserFollowing.push(targetUid);
+        }
         console.log('📊 Updated following list:', followerSystemState.currentUserFollowing);
         
         // Update UI everywhere
@@ -6050,6 +6206,13 @@
       } catch (error) {
         console.error('❌ Error following user:', error);
         showNotification('Follow Failed', 'Failed to follow user. Please try again.', 'error');
+        
+        // Re-enable buttons on error
+        followButtons.forEach(btn => {
+          btn.disabled = false;
+          btn.textContent = 'Follow';
+          btn.classList.remove('opacity-50', 'cursor-not-allowed');
+        });
       }
     }
 
@@ -6063,6 +6226,14 @@
         window.createEnhancedNotification('Not Following', 'You are not following this user', 'info');
         return;
       }
+      
+      // Prevent multiple rapid clicks by disabling all unfollow buttons for this user
+      const unfollowButtons = document.querySelectorAll(`button[onclick*="unfollowUser('${targetUid}')"]`);
+      unfollowButtons.forEach(btn => {
+        btn.disabled = true;
+        btn.textContent = 'Unfollowing...';
+        btn.classList.add('opacity-50', 'cursor-not-allowed');
+      });
       
       try {
         console.log('📝 Starting to unfollow user:', targetUid);
@@ -6119,6 +6290,13 @@
       } catch (error) {
         console.error('❌ Error unfollowing user:', error);
         showNotification('Unfollow Failed', 'Failed to unfollow user. Please try again.', 'error');
+        
+        // Re-enable buttons on error
+        unfollowButtons.forEach(btn => {
+          btn.disabled = false;
+          btn.textContent = 'Unfollow';
+          btn.classList.remove('opacity-50', 'cursor-not-allowed');
+        });
       }
     }
 
@@ -6256,6 +6434,7 @@
       // Load data if needed
       if (uid && uid !== currentUser.uid) {
         console.log('📥 Loading data for different user:', uid);
+        await cleanupDuplicateFollowers(uid); // Clean up duplicates for viewed user
         await loadFollowerData(uid);
       } else {
         console.log('📥 Ensuring current user data is loaded');
@@ -6365,13 +6544,15 @@
         return;
       }
       
-      console.log(`📋 Loading ${userIds.length} users for ${type}`);
+      // Deduplicate UIDs to prevent duplicate rendering
+      const uniqueUserIds = [...new Set(userIds)].filter(uid => uid && typeof uid === 'string');
+      console.log(`📋 Loading ${uniqueUserIds.length} unique users for ${type} (original: ${userIds.length})`);
       
       // Clear container
       container.innerHTML = '';
       
-      // Load user data for each ID
-      for (const uid of userIds) {
+      // Load user data for each unique ID
+      for (const uid of uniqueUserIds) {
         try {
           console.log(`👤 Loading user data for: ${uid}`);
           const userDoc = await db.collection('users').doc(uid).get();
