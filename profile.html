@@ -2354,10 +2354,23 @@
           ? `Playing ${getGameTitle(friend.currentGame)}` 
           : '';
         
+        // Better display name handling to prevent "Unknown User"
+        let displayName = '';
+        if (friend.displayName && friend.displayName.trim()) {
+          displayName = friend.displayName.trim();
+        } else if (friend.username && friend.username.trim()) {
+          displayName = '@' + friend.username.trim();
+        } else if (friend.email && friend.email.includes('@')) {
+          const emailName = friend.email.split('@')[0];
+          displayName = emailName.charAt(0).toUpperCase() + emailName.slice(1);
+        } else {
+          displayName = 'User ' + friend.uid.substring(0, 6).toUpperCase();
+        }
+        
         // Sanitize friend data to prevent XSS
-        const safeDisplayName = sanitizeText(friend.displayName || 'Unknown User');
+        const safeDisplayName = sanitizeText(displayName);
         const safeUsername = sanitizeText(friend.username || '');
-        const safePhotoURL = friend.photoURL || '/default-avatar.png';
+        const safePhotoURL = friend.photoURL || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(displayName) + '&background=6e6a86&color=e0def4';
         const safeUid = sanitizeText(friend.uid || '');
         const safeCurrentGame = sanitizeText(friend.currentGame || '');
         
@@ -3570,11 +3583,24 @@
         
         console.log('👤 Rendering user:', user.displayName, 'Already friend:', isAlreadyFriend, 'Already following:', isAlreadyFollowing);
         
+        // Better display name handling to prevent "Unknown User"
+        let displayName = '';
+        if (user.displayName && user.displayName.trim()) {
+          displayName = user.displayName.trim();
+        } else if (user.username && user.username.trim()) {
+          displayName = '@' + user.username.trim();
+        } else if (user.email && user.email.includes('@')) {
+          const emailName = user.email.split('@')[0];
+          displayName = emailName.charAt(0).toUpperCase() + emailName.slice(1);
+        } else {
+          displayName = 'User ' + user.uid.substring(0, 6).toUpperCase();
+        }
+        
         // Sanitize user data to prevent XSS
-        const safeDisplayName = sanitizeText(user.displayName || 'Unknown User');
+        const safeDisplayName = sanitizeText(displayName);
         const safeUsername = sanitizeText(user.username || '');
         const safeBio = sanitizeText(user.bio || '');
-        const safePhotoURL = user.photoURL || '/default-avatar.png';
+        const safePhotoURL = user.photoURL || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(displayName) + '&background=6e6a86&color=e0def4';
         const safeUid = sanitizeText(user.uid || '');
         
         return `
@@ -4543,7 +4569,7 @@
       activeFriendForNote = friendUid;
       
       // Set friend info in modal
-      document.getElementById('friendNoteAvatar').src = friendPhoto || '/default-avatar.png';
+      document.getElementById('friendNoteAvatar').src = friendPhoto || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(friendName) + '&background=6e6a86&color=e0def4';
       document.getElementById('friendNoteName').textContent = friendName;
       
       // Load existing notes
@@ -4841,6 +4867,195 @@
     window.viewUserProfile = viewUserProfile;
     window.followUser = followUser;
     window.unfollowUser = unfollowUser;
+    
+    // Manual cleanup function for duplicate followers
+    window.cleanupMyDuplicateFollowers = async function() {
+      if (!currentUser) {
+        console.log('❌ Please sign in first');
+        return;
+      }
+      
+      try {
+        console.log('🧹 Starting manual cleanup of your duplicate followers...');
+        
+        // Clean up duplicates
+        await cleanupDuplicateFollowers(currentUser.uid);
+        
+        // Reload data
+        await loadFollowerData(currentUser.uid);
+        updateFollowerCounts();
+        
+        // Refresh the modal if it's open
+        const followersModal = document.getElementById('followersModal');
+        if (!followersModal.classList.contains('hidden')) {
+          const activeTab = document.querySelector('#followersTab.bg-rp-foam\\/20') ? 'followers' : 'following';
+          await showFollowersModal(activeTab);
+        }
+        
+        window.createEnhancedNotification('Cleanup Complete', 'Duplicate followers have been removed', 'success');
+        console.log('✅ Manual cleanup completed successfully');
+        
+      } catch (error) {
+        console.error('❌ Error during cleanup:', error);
+        window.createEnhancedNotification('Cleanup Failed', 'Failed to cleanup duplicates', 'error');
+      }
+    };
+    
+    // Function to manually remove a specific user from following list
+    window.unfollowSpecificUser = async function(uid) {
+      if (!currentUser || !uid) {
+        console.log('❌ Please provide a valid user ID');
+        return;
+      }
+      
+      try {
+        console.log(`🔄 Attempting to unfollow user: ${uid}`);
+        
+        // Check if actually following
+        const userDoc = await db.collection('users').doc(currentUser.uid).get();
+        const userData = userDoc.data();
+        const following = userData.following || [];
+        
+        if (!following.includes(uid)) {
+          console.log('❌ You are not following this user');
+          return;
+        }
+        
+        // Get info about the user being unfollowed
+        const targetDoc = await db.collection('users').doc(uid).get();
+        const targetData = targetDoc.exists ? targetDoc.data() : {};
+        const targetName = targetData.displayName || 'User ' + uid.substring(0, 6);
+        
+        if (!confirm(`Are you sure you want to unfollow ${targetName} (${uid})?`)) {
+          return;
+        }
+        
+        // Perform unfollow
+        await unfollowUser(uid);
+        
+        console.log(`✅ Successfully unfollowed ${targetName}`);
+        
+        // Refresh the modal if open
+        const followersModal = document.getElementById('followersModal');
+        if (!followersModal.classList.contains('hidden')) {
+          await showFollowersModal('following');
+        }
+        
+      } catch (error) {
+        console.error('❌ Error unfollowing user:', error);
+      }
+    };
+    
+    // Analyze duplicate users issue
+    window.analyzeDuplicateUsers = async function(displayName = 'SpawnCamperKid') {
+      if (!currentUser) {
+        console.log('❌ Please sign in first');
+        return;
+      }
+      
+      try {
+        console.log(`🔍 Analyzing duplicate users with display name: "${displayName}"`);
+        
+        // Get current user's data
+        const userDoc = await db.collection('users').doc(currentUser.uid).get();
+        if (!userDoc.exists) {
+          console.log('❌ Current user document not found');
+          return;
+        }
+        
+        const userData = userDoc.data();
+        const followers = userData.followers || [];
+        const following = userData.following || [];
+        
+        console.log('📊 Current user stats:');
+        console.log(`- Followers: ${followers.length}`);
+        console.log(`- Following: ${following.length}`);
+        
+        // Check for users with the specified display name
+        const matchingFollowers = [];
+        const matchingFollowing = [];
+        
+        // Check followers
+        for (const uid of followers) {
+          try {
+            const doc = await db.collection('users').doc(uid).get();
+            if (doc.exists) {
+              const data = doc.data();
+              if (data.displayName === displayName) {
+                matchingFollowers.push({
+                  uid: uid,
+                  displayName: data.displayName,
+                  username: data.username || 'none',
+                  email: data.email || 'none'
+                });
+              }
+            }
+          } catch (error) {
+            console.error(`Error checking follower ${uid}:`, error);
+          }
+        }
+        
+        // Check following
+        for (const uid of following) {
+          try {
+            const doc = await db.collection('users').doc(uid).get();
+            if (doc.exists) {
+              const data = doc.data();
+              if (data.displayName === displayName) {
+                matchingFollowing.push({
+                  uid: uid,
+                  displayName: data.displayName,
+                  username: data.username || 'none',
+                  email: data.email || 'none'
+                });
+              }
+            }
+          } catch (error) {
+            console.error(`Error checking following ${uid}:`, error);
+          }
+        }
+        
+        console.log(`\n🎯 Users with display name "${displayName}":`);
+        
+        if (matchingFollowers.length > 0) {
+          console.log('\n📥 In your FOLLOWERS list:');
+          matchingFollowers.forEach((user, index) => {
+            console.log(`${index + 1}. UID: ${user.uid}`);
+            console.log(`   Username: ${user.username}`);
+            console.log(`   Email: ${user.email}`);
+          });
+        }
+        
+        if (matchingFollowing.length > 0) {
+          console.log('\n📤 In your FOLLOWING list:');
+          matchingFollowing.forEach((user, index) => {
+            console.log(`${index + 1}. UID: ${user.uid}`);
+            console.log(`   Username: ${user.username}`);
+            console.log(`   Email: ${user.email}`);
+          });
+        }
+        
+        if (matchingFollowers.length === 0 && matchingFollowing.length === 0) {
+          console.log(`✅ No users found with display name "${displayName}"`);
+        } else {
+          console.log(`\n⚠️ Found ${matchingFollowers.length + matchingFollowing.length} users with the same display name`);
+          console.log('This might indicate duplicate accounts or users with the same display name.');
+          
+          if (matchingFollowing.length > 1) {
+            console.log('\n💡 You are following multiple users with the same display name.');
+            console.log('To unfollow one of them, run:');
+            matchingFollowing.forEach(user => {
+              console.log(`   unfollowSpecificUser('${user.uid}')`);
+            });
+          }
+          
+          console.log('\n💡 To clean up any duplicate UIDs, run: cleanupMyDuplicateFollowers()');
+        }
+        
+      } catch (error) {
+        console.error('❌ Error analyzing duplicate users:', error);
+      }
+    };
     
     // Debug function to test follower system
     window.testFollowerSystem = function() {
@@ -6197,6 +6412,12 @@
               updates.followers = uniqueFollowers;
               updates.followersCount = uniqueFollowers.length;
               console.log(`🧹 Cleaned up followers: ${userData.followers.length} → ${uniqueFollowers.length}`);
+              
+              // Log duplicate UIDs that were found
+              const duplicates = userData.followers.filter((uid, index) => userData.followers.indexOf(uid) !== index);
+              if (duplicates.length > 0) {
+                console.log('🔍 Duplicate follower UIDs removed:', duplicates);
+              }
             }
           }
           
@@ -6207,6 +6428,12 @@
               updates.following = uniqueFollowing;
               updates.followingCount = uniqueFollowing.length;
               console.log(`🧹 Cleaned up following: ${userData.following.length} → ${uniqueFollowing.length}`);
+              
+              // Log duplicate UIDs that were found
+              const duplicates = userData.following.filter((uid, index) => userData.following.indexOf(uid) !== index);
+              if (duplicates.length > 0) {
+                console.log('🔍 Duplicate following UIDs removed:', duplicates);
+              }
             }
           }
           
@@ -6314,7 +6541,26 @@
         return;
       }
       
-      // Check if already following to prevent duplicates
+      // Double-check against the database to ensure we're not already following
+      try {
+        const currentUserDoc = await db.collection('users').doc(currentUser.uid).get();
+        if (currentUserDoc.exists) {
+          const userData = currentUserDoc.data();
+          const dbFollowing = userData.following || [];
+          if (dbFollowing.includes(targetUid)) {
+            console.log('⚠️ Database check: Already following user:', targetUid);
+            // Update local state to match database
+            followerSystemState.currentUserFollowing = [...new Set(dbFollowing)];
+            window.createEnhancedNotification('Already Following', 'You are already following this user', 'info');
+            updateAllFollowButtonStates();
+            return;
+          }
+        }
+      } catch (error) {
+        console.error('Error checking follow status:', error);
+      }
+      
+      // Check if already following to prevent duplicates (local state check)
       if (followerSystemState.currentUserFollowing.includes(targetUid)) {
         console.log('⚠️ Already following user:', targetUid);
         window.createEnhancedNotification('Already Following', 'You are already following this user', 'info');
@@ -6401,15 +6647,26 @@
         refreshSearchResults();
         refreshFriendsList();
         
-        // Force refresh suggested users to remove the followed user
-        await forceRefreshSuggestedUsers();
+        // Immediately hide the suggestion card for better UX
+        const allSuggestionCards = document.querySelectorAll(`.suggestion-card[data-user-id="${targetUid}"]`);
+        allSuggestionCards.forEach(card => {
+          card.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+          card.style.opacity = '0';
+          card.style.transform = 'scale(0.9)';
+          setTimeout(() => card.remove(), 300);
+        });
+        
+        // Force refresh suggested users to get new suggestions
+        setTimeout(async () => {
+          await forceRefreshSuggestedUsers();
+        }, 400);
         
         // Show success notification
         const targetUserDoc = await db.collection('users').doc(targetUid).get();
         const targetUserName = targetUserDoc.exists ? targetUserDoc.data().displayName || 'User' : 'User';
         window.createEnhancedNotification('Following', `You are now following ${sanitizeText(targetUserName)}`, 'follow');
         
-                console.log(`✅ Successfully followed user ${targetUid}`);
+        console.log(`✅ Successfully followed user ${targetUid}`);
       } catch (error) {
         console.error('❌ Error following user:', error);
         showNotification('Follow Failed', 'Failed to follow user. Please try again.', 'error');
@@ -6797,6 +7054,9 @@
       // Clear container
       container.innerHTML = '';
       
+      // Track users by displayName to prevent showing the same user twice
+      const seenDisplayNames = new Map();
+      
       // Load user data for each unique ID
       for (const uid of uniqueUserIds) {
         try {
@@ -6805,6 +7065,15 @@
           if (userDoc.exists) {
             const userData = userDoc.data();
             console.log(`✅ User data loaded:`, userData);
+            
+            // Check if we've already shown a user with this display name
+            const displayName = userData.displayName || 'Unknown User';
+            if (seenDisplayNames.has(displayName)) {
+              console.warn(`⚠️ Duplicate user detected: ${displayName} (${uid}) - already shown as ${seenDisplayNames.get(displayName)}`);
+              continue; // Skip this duplicate
+            }
+            seenDisplayNames.set(displayName, uid);
+            
             const userItem = createFollowerUserItem(userData, uid, type);
             container.appendChild(userItem);
           } else {
@@ -6816,6 +7085,7 @@
       }
       
       console.log(`✅ Finished rendering ${type} list`);
+      console.log(`📊 Rendered ${container.children.length} users (from ${uniqueUserIds.length} UIDs)`);
     }
 
     // Create follower user item
@@ -6850,16 +7120,41 @@
         gameInfo = `<div class="text-xs text-rp-gold">🎮 ${DOMPurify.sanitize(userData.currentGame)}</div>`;
       }
       
-      const safePhotoURL = DOMPurify.sanitize(userData.photoURL || '/default-avatar.png');
-      const safeDisplayName = DOMPurify.sanitize(userData.displayName || 'Unknown User');
-      const safeUsername = DOMPurify.sanitize(userData.username || uid.substring(0, 8));
+      // Better display name handling to prevent "Unknown User"
+      let displayName = '';
+      if (userData.displayName && userData.displayName.trim()) {
+        displayName = userData.displayName.trim();
+      } else if (userData.username && userData.username.trim()) {
+        displayName = '@' + userData.username.trim();
+      } else if (userData.email && userData.email.includes('@')) {
+        const emailName = userData.email.split('@')[0];
+        displayName = emailName.charAt(0).toUpperCase() + emailName.slice(1);
+      } else {
+        displayName = 'User ' + uid.substring(0, 6).toUpperCase();
+      }
+      
+      const safeDisplayName = DOMPurify.sanitize(displayName);
+      const safePhotoURL = DOMPurify.sanitize(userData.photoURL || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(displayName) + '&background=6e6a86&color=e0def4');
+      
+      // Show more unique identifier information
+      let userIdentifier = '';
+      if (userData.username && userData.username.trim()) {
+        userIdentifier = '@' + DOMPurify.sanitize(userData.username);
+      } else if (userData.email && userData.email.includes('@')) {
+        // Show partial email for identification
+        const emailParts = userData.email.split('@');
+        userIdentifier = emailParts[0].substring(0, 3) + '***@' + emailParts[1];
+      } else {
+        // Show partial UID as identifier
+        userIdentifier = 'ID: ' + uid.substring(0, 8);
+      }
       
       div.innerHTML = `
         <div class="flex items-center gap-3 flex-1 min-w-0">
           <img src="${safePhotoURL}" alt="Avatar" class="w-10 h-10 rounded-full carbon-profile-avatar">
           <div class="flex-1 min-w-0">
             <div class="font-medium text-rp-text truncate">${safeDisplayName}</div>
-            <div class="text-xs text-rp-subtle truncate">${safeUsername}</div>
+            <div class="text-xs text-rp-subtle truncate">${userIdentifier}</div>
             ${statusInfo}
             ${gameInfo}
           </div>
@@ -7058,12 +7353,33 @@
         suggestionsLoading.classList.remove('hidden');
         noSuggestedUsers.classList.add('hidden');
         
+        // Ensure we have the latest follower data
+        await loadFollowerData(currentUser.uid);
+        
         // Get suggestions based on various criteria
         const suggestions = await generateUserSuggestions();
         
         suggestionsLoading.classList.add('hidden');
         
         if (suggestions.length === 0) {
+          // Check if we're following a lot of users already
+          const followingCount = followerSystemState.currentUserFollowing.length;
+          
+          // Update the no suggestions message based on context
+          if (followingCount > 10) {
+            noSuggestedUsers.innerHTML = `
+              <i class='bx bx-check-circle text-2xl mb-2 block text-rp-foam'></i>
+              <p class="text-rp-text font-medium">You're all caught up!</p>
+              <p class="text-rp-subtle text-xs mt-1">You're already following ${followingCount} users</p>
+            `;
+          } else {
+            noSuggestedUsers.innerHTML = `
+              <i class='bx bx-user-circle text-2xl mb-2 block'></i>
+              <p class="text-rp-text">No suggestions available</p>
+              <p class="text-rp-subtle text-xs mt-1">Check back later for new users to follow</p>
+            `;
+          }
+          
           noSuggestedUsers.classList.remove('hidden');
           suggestedUsersList.innerHTML = '';
           return;
@@ -7084,11 +7400,20 @@
       const suggestions = [];
       
       try {
-        // Get current user's data
+        // Get current user's fresh data from database
         const currentUserDoc = await db.collection('users').doc(currentUser.uid).get();
         const currentUserData = currentUserDoc.data() || {};
         const currentUserFriends = currentUserData.friends || [];
-        const currentUserFollowing = followerSystemState.currentUserFollowing || [];
+        
+        // Get the absolute latest following data from database
+        const dbFollowing = [...new Set(currentUserData.following || [])];
+        
+        // Update local state to match database
+        followerSystemState.currentUserFollowing = dbFollowing;
+        
+        console.log('📊 Fresh data from database:');
+        console.log('- Friends:', currentUserFriends.length);
+        console.log('- Following:', dbFollowing.length);
         
         // Algorithm 1: Friends of friends
         const friendsOfFriends = await getFriendsOfFriends(currentUserFriends);
@@ -7110,14 +7435,14 @@
         console.log('🔍 Filtering suggestions...');
         console.log('Total suggestions before filtering:', suggestions.length);
         console.log('Current user friends:', currentUserFriends);
-        console.log('Current user following:', currentUserFollowing);
-        
-        // Ensure we have the latest following data
-        const latestFollowing = followerSystemState.currentUserFollowing || [];
-        console.log('Latest following data:', latestFollowing);
+        console.log('Current user following (from DB):', dbFollowing);
         
         // Create a Set to track seen UIDs for better duplicate removal
         const seenUids = new Set();
+        
+        // Create Sets for faster lookup
+        const friendsSet = new Set(currentUserFriends);
+        const followingSet = new Set(dbFollowing);
         
         const uniqueSuggestions = suggestions
           .filter((user) => {
@@ -7127,11 +7452,11 @@
             // Can't suggest current user
             if (user.uid === currentUser.uid) return false;
             
-            // Can't suggest existing friends
-            if (currentUserFriends.includes(user.uid)) return false;
+            // Can't suggest existing friends (use Set for O(1) lookup)
+            if (friendsSet.has(user.uid)) return false;
             
-            // Can't suggest users already being followed (check both arrays)
-            if (currentUserFollowing.includes(user.uid) || latestFollowing.includes(user.uid)) return false;
+            // Can't suggest users already being followed (use Set for O(1) lookup)
+            if (followingSet.has(user.uid)) return false;
             
             // Remove duplicates using Set
             if (seenUids.has(user.uid)) return false;
@@ -7142,6 +7467,7 @@
           .slice(0, 5); // Limit to 5 suggestions
           
         console.log('Suggestions after filtering:', uniqueSuggestions.length);
+        console.log('Filtered out:', suggestions.length - uniqueSuggestions.length, 'users');
         
         // Add suggestion reasons
         return uniqueSuggestions.map(user => ({
@@ -7376,31 +7702,74 @@
       // Ensure we have the latest following data
       const currentFollowing = followerSystemState.currentUserFollowing || [];
       
-      suggestedUsersList.innerHTML = suggestions.map(user => {
-        // Better display name handling
-        let displayName = 'Unknown User';
+      // Filter out any users that are already being followed (final check)
+      const filteredSuggestions = suggestions.filter(user => {
+        return user.uid && !currentFollowing.includes(user.uid);
+      });
+      
+      // If all suggestions are filtered out, show no suggestions message
+      if (filteredSuggestions.length === 0) {
+        const noSuggestedUsers = document.getElementById('noSuggestedUsers');
+        if (noSuggestedUsers) {
+          const followingCount = currentFollowing.length;
+          if (followingCount > 10) {
+            noSuggestedUsers.innerHTML = `
+              <i class='bx bx-check-circle text-2xl mb-2 block text-rp-foam'></i>
+              <p class="text-rp-text font-medium">You're all caught up!</p>
+              <p class="text-rp-subtle text-xs mt-1">You're already following ${followingCount} users</p>
+            `;
+          } else {
+            noSuggestedUsers.innerHTML = `
+              <i class='bx bx-user-circle text-2xl mb-2 block'></i>
+              <p class="text-rp-text">No suggestions available</p>
+              <p class="text-rp-subtle text-xs mt-1">Check back later for new users to follow</p>
+            `;
+          }
+          noSuggestedUsers.classList.remove('hidden');
+        }
+        suggestedUsersList.innerHTML = '';
+        return;
+      }
+      
+      suggestedUsersList.innerHTML = filteredSuggestions.map(user => {
+        // Better display name handling - prevent "Unknown User"
+        let displayName = '';
+        let isUnknownUser = false;
+        
         if (user.displayName && user.displayName.trim()) {
           displayName = user.displayName.trim();
         } else if (user.username && user.username.trim()) {
-          displayName = user.username.trim();
+          displayName = '@' + user.username.trim();
         } else if (user.email && user.email.includes('@')) {
-          displayName = user.email.split('@')[0];
+          const emailName = user.email.split('@')[0];
+          displayName = emailName.charAt(0).toUpperCase() + emailName.slice(1);
+        } else {
+          // Generate a friendly name from UID
+          displayName = 'User ' + user.uid.substring(0, 6).toUpperCase();
+          isUnknownUser = true;
         }
         
         const safeDisplayName = sanitizeText(displayName);
         const safeUsername = sanitizeText(user.username || '');
-        const safePhotoURL = user.photoURL || '/default-avatar.png';
+        const safePhotoURL = user.photoURL || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(displayName) + '&background=6e6a86&color=e0def4';
         const safeUid = sanitizeText(user.uid || '');
         const safeReason = sanitizeText(user.reason || '');
         
-        // Better username display logic
+        // Better username/identifier display logic
         let usernameDisplay = '';
-        if (safeUsername && safeUsername.trim()) {
-          usernameDisplay = '@' + safeUsername;
-        } else if (user.email && user.email.includes('@')) {
-          usernameDisplay = user.email.split('@')[0];
+        if (!isUnknownUser) {
+          if (safeUsername && safeUsername.trim()) {
+            usernameDisplay = '@' + safeUsername;
+          } else if (user.email && user.email.includes('@')) {
+            // Show domain for context
+            const emailParts = user.email.split('@');
+            usernameDisplay = emailParts[0].substring(0, 3) + '***@' + emailParts[1];
+          } else {
+            usernameDisplay = 'ID: ' + safeUid.substring(0, 8);
+          }
         } else {
-          usernameDisplay = 'User ID: ' + safeUid.substring(0, 8) + '...';
+          // For unknown users, show more of the UID
+          usernameDisplay = 'New user • ID: ' + safeUid.substring(0, 10);
         }
         
         // Check if already following this user (use latest data)
