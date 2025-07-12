@@ -4784,7 +4784,7 @@
       
       // Suggested users refresh
       document.getElementById('refreshSuggestionsBtn').addEventListener('click', async () => {
-        await loadSuggestedUsers();
+        await forceRefreshSuggestedUsers();
       });
       
       // Modal click outside to close
@@ -4920,7 +4920,7 @@
     };
 
     // Test follow/unfollow functionality
-    window.testFollowSystem = function() {
+    window.testFollowSystem = async function() {
       console.log('🧪 Testing follow system...');
       console.log('Current following list:', followerSystemState.currentUserFollowing);
       
@@ -4928,9 +4928,51 @@
       updateAllFollowButtonStates();
       
       // Refresh suggested users to remove already followed users
-      loadSuggestedUsers();
+      await forceRefreshSuggestedUsers();
       
       console.log('✅ Follow system updated and refreshed');
+    };
+
+    // Test suggested users system
+    window.testSuggestedUsers = async function() {
+      console.log('🧪 Testing suggested users system...');
+      
+      if (!currentUser) {
+        console.log('❌ No current user logged in');
+        return;
+      }
+      
+      console.log('Current follower state:', {
+        followers: followerSystemState.currentUserFollowers,
+        following: followerSystemState.currentUserFollowing
+      });
+      
+      // Force refresh suggested users
+      await forceRefreshSuggestedUsers();
+      
+      // Check if any suggested users are already being followed
+      const suggestedUsersList = document.getElementById('suggestedUsersList');
+      if (suggestedUsersList) {
+        const suggestedCards = suggestedUsersList.querySelectorAll('.suggestion-card');
+        console.log('Suggested users found:', suggestedCards.length);
+        
+        suggestedCards.forEach(card => {
+          const uid = card.getAttribute('data-user-id');
+          const isFollowing = followerSystemState.currentUserFollowing && followerSystemState.currentUserFollowing.includes(uid);
+          const followBtn = card.querySelector('button[onclick*="followUser"]');
+          const unfollowBtn = card.querySelector('button[onclick*="unfollowUser"]');
+          
+          console.log(`User ${uid}:`, {
+            isFollowing,
+            hasFollowBtn: !!followBtn,
+            hasUnfollowBtn: !!unfollowBtn,
+            shouldShowFollow: !isFollowing,
+            shouldShowUnfollow: isFollowing
+          });
+        });
+      }
+      
+      console.log('✅ Suggested users test completed');
     };
 
     // Global cleanup function to fix all users' duplicate followers
@@ -6321,8 +6363,8 @@
         refreshSearchResults();
         refreshFriendsList();
         
-        // Refresh suggested users to remove the followed user
-        await loadSuggestedUsers();
+        // Force refresh suggested users to remove the followed user
+        await forceRefreshSuggestedUsers();
         
         // Show success notification
         const targetUserDoc = await db.collection('users').doc(targetUid).get();
@@ -6412,8 +6454,8 @@
         refreshSearchResults();
         refreshFriendsList();
         
-        // Refresh suggested users to potentially re-add the unfollowed user
-        await loadSuggestedUsers();
+        // Force refresh suggested users to potentially re-add the unfollowed user
+        await forceRefreshSuggestedUsers();
         
         // Show success notification
         const targetUserDoc = await db.collection('users').doc(targetUid).get();
@@ -7017,6 +7059,10 @@
         console.log('Current user friends:', currentUserFriends);
         console.log('Current user following:', currentUserFollowing);
         
+        // Ensure we have the latest following data
+        const latestFollowing = followerSystemState.currentUserFollowing || [];
+        console.log('Latest following data:', latestFollowing);
+        
         const uniqueSuggestions = suggestions
           .filter((user, index, self) => {
             // Must have a valid uid
@@ -7028,8 +7074,8 @@
             // Can't suggest existing friends
             if (currentUserFriends.includes(user.uid)) return false;
             
-            // Can't suggest users already being followed
-            if (currentUserFollowing.includes(user.uid)) return false;
+            // Can't suggest users already being followed (check both arrays)
+            if (currentUserFollowing.includes(user.uid) || latestFollowing.includes(user.uid)) return false;
             
             // Remove duplicates
             if (index !== self.findIndex(u => u.uid === user.uid)) return false;
@@ -7195,6 +7241,25 @@
       }
     }
     
+    // Force refresh suggested users with latest follower data
+    async function forceRefreshSuggestedUsers() {
+      console.log('🔄 Force refreshing suggested users...');
+      
+      // Ensure we have the latest follower data
+      await loadFollowerData(currentUser.uid);
+      
+      // Clear current suggestions
+      const suggestedUsersList = document.getElementById('suggestedUsersList');
+      if (suggestedUsersList) {
+        suggestedUsersList.innerHTML = '';
+      }
+      
+      // Reload suggestions with fresh data
+      await loadSuggestedUsers();
+      
+      console.log('✅ Suggested users refreshed with latest follower data');
+    }
+
     // Render suggested users list
     function renderSuggestedUsers(suggestions) {
       const suggestedUsersList = document.getElementById('suggestedUsersList');
@@ -7217,8 +7282,8 @@
           usernameDisplay = 'User ID: ' + safeUid.substring(0, 8) + '...';
         }
         
-        // Check if already following this user
-        const isFollowing = followerSystemState.currentUserFollowing.includes(safeUid);
+        // Check if already following this user (use latest data)
+        const isFollowing = followerSystemState.currentUserFollowing && followerSystemState.currentUserFollowing.includes(safeUid);
         
         return `
           <div class="flex items-center gap-4 p-4 bg-rp-overlay rounded-lg hover:bg-rp-highlight-med transition-colors suggestion-card" data-user-id="${safeUid}">
