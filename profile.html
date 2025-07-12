@@ -6180,14 +6180,16 @@
         await loadFollowerData(currentUser.uid);
       }
       
-      const followers = uid === currentUser.uid ? 
+      const followers = targetUid === currentUser.uid ? 
         followerSystemState.currentUserFollowers : 
         followerSystemState.viewingUserFollowers;
-      const following = uid === currentUser.uid ? 
+      const following = targetUid === currentUser.uid ? 
         followerSystemState.currentUserFollowing : 
         followerSystemState.viewingUserFollowing;
       
-      console.log('🔍 Showing followers modal:', { type, uid, followers, following });
+      console.log('🔍 Showing followers modal:', { type, uid, targetUid, followers, following });
+      console.log('📊 Using targetUid === currentUser.uid?', targetUid === currentUser.uid);
+      console.log('📊 Available data - currentUserFollowers:', followerSystemState.currentUserFollowers.length, 'currentUserFollowing:', followerSystemState.currentUserFollowing.length);
       
       // Update counts
       followersTabCount.textContent = followers.length;
