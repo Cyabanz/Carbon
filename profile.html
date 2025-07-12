@@ -813,6 +813,18 @@
             </button>
           </div>
           
+          <!-- Debug buttons (temporary) -->
+          <div class="mb-4 space-y-2">
+            <button onclick="testFollowerModal()" class="w-full px-4 py-2 bg-rp-gold/20 hover:bg-rp-gold/30 text-rp-gold border border-rp-gold/30 rounded-lg transition-all duration-200 text-sm font-medium flex items-center justify-center gap-2">
+              <i class='bx bx-bug'></i>
+              Debug Modal (Click to test)
+            </button>
+            <button onclick="testWithSampleData()" class="w-full px-4 py-2 bg-rp-iris/20 hover:bg-rp-iris/30 text-rp-iris border border-rp-iris/30 rounded-lg transition-all duration-200 text-sm font-medium flex items-center justify-center gap-2">
+              <i class='bx bx-test-tube'></i>
+              Test with Sample Data
+            </button>
+          </div>
+          
           <!-- Follower Privacy Settings -->
           <div class="p-3 bg-rp-overlay rounded-lg mb-4">
             <h4 class="text-sm font-medium text-rp-text mb-2 flex items-center gap-2">
@@ -4854,6 +4866,57 @@
       }
     };
 
+    // Debug function to test modal elements
+    window.testFollowerModal = function() {
+      console.log('🔍 Follower Modal Debug Info:');
+      
+      // Check if modal exists
+      const modal = document.getElementById('followersModal');
+      console.log('Modal element:', modal ? 'Found' : 'Not found');
+      
+      // Check containers
+      const followersList = document.getElementById('followersList');
+      const followingList = document.getElementById('followingList');
+      console.log('Followers container:', followersList ? 'Found' : 'Not found');
+      console.log('Following container:', followingList ? 'Found' : 'Not found');
+      
+      // Check buttons
+      const viewFollowersBtn = document.getElementById('viewFollowersBtn');
+      const viewFollowingBtn = document.getElementById('viewFollowingBtn');
+      console.log('View Followers button:', viewFollowersBtn ? 'Found' : 'Not found');
+      console.log('View Following button:', viewFollowingBtn ? 'Found' : 'Not found');
+      
+      // Check data
+      console.log('Follower System State:', followerSystemState);
+      console.log('Current User Followers:', followerSystemState.currentUserFollowers);
+      console.log('Current User Following:', followerSystemState.currentUserFollowing);
+      
+      // Test opening modal
+      console.log('Testing modal opening...');
+      if (modal) {
+        showFollowersModal('followers');
+      }
+    };
+
+    // Manual test with sample data
+    window.testWithSampleData = function() {
+      console.log('🧪 Testing with sample data...');
+      
+      // Create sample follower data
+      const sampleFollowers = ['user1', 'user2'];
+      const sampleFollowing = ['user3', 'user4', 'user5', 'user6'];
+      
+      // Update state
+      followerSystemState.currentUserFollowers = sampleFollowers;
+      followerSystemState.currentUserFollowing = sampleFollowing;
+      
+      // Update UI counts
+      updateFollowerCounts();
+      
+      console.log('Sample data set:', followerSystemState);
+      console.log('Now try clicking View Followers or View Following');
+    };
+
     async function clearRecentGames() {
       const user = auth.currentUser;
       if (!user) return;
@@ -6132,22 +6195,52 @@
       
       // Set active tab
       if (type === 'followers') {
+        console.log('🔄 Setting up followers tab');
         title.textContent = 'Followers';
         followersTab.classList.add('bg-rp-foam/20', 'text-rp-foam', 'border-rp-foam/30');
         followersTab.classList.remove('bg-rp-highlight-med', 'text-rp-text');
         followingTab.classList.remove('bg-rp-foam/20', 'text-rp-foam', 'border-rp-foam/30');
         followingTab.classList.add('bg-rp-highlight-med', 'text-rp-text');
-        followersList.classList.remove('hidden');
-        followingList.classList.add('hidden');
+        
+        // Show followers list, hide following list
+        if (followersList) {
+          followersList.classList.remove('hidden');
+          console.log('✅ Followers list shown');
+        } else {
+          console.log('❌ Followers list element not found');
+        }
+        
+        if (followingList) {
+          followingList.classList.add('hidden');
+          console.log('✅ Following list hidden');
+        } else {
+          console.log('❌ Following list element not found');
+        }
+        
         await renderFollowersList(followers, 'followers');
       } else {
+        console.log('🔄 Setting up following tab');
         title.textContent = 'Following';
         followingTab.classList.add('bg-rp-foam/20', 'text-rp-foam', 'border-rp-foam/30');
         followingTab.classList.remove('bg-rp-highlight-med', 'text-rp-text');
         followersTab.classList.remove('bg-rp-foam/20', 'text-rp-foam', 'border-rp-foam/30');
         followersTab.classList.add('bg-rp-highlight-med', 'text-rp-text');
-        followingList.classList.remove('hidden');
-        followersList.classList.add('hidden');
+        
+        // Show following list, hide followers list
+        if (followingList) {
+          followingList.classList.remove('hidden');
+          console.log('✅ Following list shown');
+        } else {
+          console.log('❌ Following list element not found');
+        }
+        
+        if (followersList) {
+          followersList.classList.add('hidden');
+          console.log('✅ Followers list hidden');
+        } else {
+          console.log('❌ Followers list element not found');
+        }
+        
         await renderFollowersList(following, 'following');
       }
       
@@ -6156,44 +6249,66 @@
 
     // Render followers/following list
     async function renderFollowersList(userIds, type) {
+      console.log('🔄 Rendering followers list:', { userIds, type });
+      
       const container = type === 'followers' ? 
         document.getElementById('followersList') : 
         document.getElementById('followingList');
       
-      if (!container) return;
+      if (!container) {
+        console.log('❌ Container not found:', type === 'followers' ? 'followersList' : 'followingList');
+        return;
+      }
       
-      container.innerHTML = '';
+      // Show loading state
+      container.innerHTML = '<div class="text-center py-4"><div class="inline-block w-6 h-6 border-2 border-rp-foam border-t-transparent rounded-full animate-spin"></div><p class="text-rp-foam mt-2 text-sm">Loading users...</p></div>';
       
-      if (userIds.length === 0) {
+      if (!userIds || userIds.length === 0) {
+        console.log('📭 No users to display');
         const emptyState = document.createElement('div');
         emptyState.className = 'text-center py-8 text-rp-subtle text-sm';
         emptyState.innerHTML = `
           <i class='bx bx-user${type === 'following' ? '-check' : ''} text-2xl mb-2 block'></i>
           ${type === 'followers' ? 'No followers yet' : 'Not following anyone yet'}
         `;
+        container.innerHTML = '';
         container.appendChild(emptyState);
         return;
       }
       
+      console.log(`📋 Loading ${userIds.length} users for ${type}`);
+      
+      // Clear container
+      container.innerHTML = '';
+      
       // Load user data for each ID
       for (const uid of userIds) {
         try {
+          console.log(`👤 Loading user data for: ${uid}`);
           const userDoc = await db.collection('users').doc(uid).get();
           if (userDoc.exists) {
             const userData = userDoc.data();
+            console.log(`✅ User data loaded:`, userData);
             const userItem = createFollowerUserItem(userData, uid, type);
             container.appendChild(userItem);
+          } else {
+            console.log(`❌ User document not found for: ${uid}`);
           }
         } catch (error) {
           console.error('Error loading user data:', error);
         }
       }
+      
+      console.log(`✅ Finished rendering ${type} list`);
     }
 
     // Create follower user item
     function createFollowerUserItem(userData, uid, listType) {
+      console.log('🔨 Creating user item for:', { uid, userData, listType });
+      
       const div = document.createElement('div');
       div.className = 'flex items-center justify-between p-3 bg-rp-overlay rounded-lg hover:bg-rp-highlight-med transition-colors';
+      div.setAttribute('data-user-id', uid);
       
       const isCurrentUser = uid === currentUser.uid;
       const isFollowing = followerSystemState.currentUserFollowing.includes(uid);
@@ -6219,12 +6334,16 @@
         gameInfo = `<div class="text-xs text-rp-gold">🎮 ${DOMPurify.sanitize(userData.currentGame)}</div>`;
       }
       
+      const safePhotoURL = DOMPurify.sanitize(userData.photoURL || '/default-avatar.png');
+      const safeDisplayName = DOMPurify.sanitize(userData.displayName || 'Unknown User');
+      const safeUsername = DOMPurify.sanitize(userData.username || uid.substring(0, 8));
+      
       div.innerHTML = `
         <div class="flex items-center gap-3 flex-1 min-w-0">
-          <img src="${DOMPurify.sanitize(userData.photoURL || '/default-avatar.png')}" alt="Avatar" class="w-10 h-10 rounded-full carbon-profile-avatar">
+          <img src="${safePhotoURL}" alt="Avatar" class="w-10 h-10 rounded-full carbon-profile-avatar">
           <div class="flex-1 min-w-0">
-            <div class="font-medium text-rp-text truncate">${DOMPurify.sanitize(userData.displayName || 'Unknown User')}</div>
-            <div class="text-xs text-rp-subtle truncate">${DOMPurify.sanitize(userData.username || uid.substring(0, 8))}</div>
+            <div class="font-medium text-rp-text truncate">${safeDisplayName}</div>
+            <div class="text-xs text-rp-subtle truncate">${safeUsername}</div>
             ${statusInfo}
             ${gameInfo}
           </div>
@@ -6249,6 +6368,7 @@
         </div>
       `;
       
+      console.log('✅ User item created successfully');
       return div;
     }
 
