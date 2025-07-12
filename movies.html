@@ -4,16 +4,186 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="/styles/defaults.css">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script src="carbon-theme.js"></script>
   
   <style>
-    /* Base Styles */
-    body, html {
+    :root {
+      --text-color: #e0def4;
+      --surface-color: #1f1d2e;
+      --overlay-color: #26233a;
+      --highlight-med: #403d52;
+      --highlight-high: #524f67;
+      --foam: #9ccfd8;
+      --love: #eb6f92;
+      --gold: #f6c177;
+      --pine: #31748f;
+      --iris: #c4a7e7;
+      --muted: #6e6a86;
+      --subtle: #908caa;
+
+      /* Theme variables - Rose Pine (default) */
+      --theme-base: #191724;
+      --theme-surface: #1f1d2e;
+      --theme-overlay: #26233a;
+      --theme-muted: #6e6a86;
+      --theme-subtle: #908caa;
+      --theme-text: #e0def4;
+      --theme-love: #eb6f92;
+      --theme-gold: #f6c177;
+      --theme-rose: #ebbcba;
+      --theme-pine: #31748f;
+      --theme-foam: #9ccfd8;
+      --theme-iris: #c4a7e7;
+      --theme-highlight-low: #21202e;
+      --theme-highlight-med: #403d52;
+      --theme-highlight-high: #524f67;
+      --theme-gradient: linear-gradient(135deg, #191724 0%, #1f1d2e 50%, #26233a 100%);
+    }
+    
+    body {
+      background: var(--theme-gradient);
+      background-attachment: fixed;
       margin: 0;
       padding: 0;
       height: 100%;
       font-family: "Inter", Arial, sans-serif;
-      background: #121212;
-      color: #ffffff;
+      color: var(--theme-text);
+    }
+
+    /* Add all theme variations */
+    [data-theme="dark"] {
+      --theme-base: #0f172a;
+      --theme-surface: #1e293b;
+      --theme-overlay: #334155;
+      --theme-muted: #64748b;
+      --theme-subtle: #94a3b8;
+      --theme-text: #f1f5f9;
+      --theme-love: #ef4444;
+      --theme-gold: #f59e0b;
+      --theme-rose: #f97316;
+      --theme-pine: #059669;
+      --theme-foam: #06b6d4;
+      --theme-iris: #8b5cf6;
+      --theme-highlight-low: #1e293b;
+      --theme-highlight-med: #475569;
+      --theme-highlight-high: #64748b;
+      --theme-gradient: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
+    }
+    
+    [data-theme="light"] {
+      --theme-base: #f8fafc;
+      --theme-surface: #e2e8f0;
+      --theme-overlay: #cbd5e1;
+      --theme-muted: #64748b;
+      --theme-subtle: #475569;
+      --theme-text: #0f172a;
+      --theme-love: #dc2626;
+      --theme-gold: #d97706;
+      --theme-rose: #ea580c;
+      --theme-pine: #047857;
+      --theme-foam: #0891b2;
+      --theme-iris: #7c3aed;
+      --theme-highlight-low: #f1f5f9;
+      --theme-highlight-med: #e2e8f0;
+      --theme-highlight-high: #cbd5e1;
+      --theme-gradient: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 50%, #cbd5e1 100%);
+    }
+    
+    [data-theme="catppuccin"] {
+      --theme-base: #1e1e2e;
+      --theme-surface: #313244;
+      --theme-overlay: #45475a;
+      --theme-muted: #6c7086;
+      --theme-subtle: #9399b2;
+      --theme-text: #cdd6f4;
+      --theme-love: #f38ba8;
+      --theme-gold: #f9e2af;
+      --theme-rose: #fab387;
+      --theme-pine: #a6e3a1;
+      --theme-foam: #89dceb;
+      --theme-iris: #cba6f7;
+      --theme-highlight-low: #181825;
+      --theme-highlight-med: #313244;
+      --theme-highlight-high: #45475a;
+      --theme-gradient: linear-gradient(135deg, #1e1e2e 0%, #313244 50%, #45475a 100%);
+    }
+    
+    [data-theme="nord"] {
+      --theme-base: #2e3440;
+      --theme-surface: #3b4252;
+      --theme-overlay: #434c5e;
+      --theme-muted: #4c566a;
+      --theme-subtle: #d8dee9;
+      --theme-text: #eceff4;
+      --theme-love: #bf616a;
+      --theme-gold: #ebcb8b;
+      --theme-rose: #d08770;
+      --theme-pine: #a3be8c;
+      --theme-foam: #88c0d0;
+      --theme-iris: #b48ead;
+      --theme-highlight-low: #2e3440;
+      --theme-highlight-med: #434c5e;
+      --theme-highlight-high: #4c566a;
+      --theme-gradient: linear-gradient(135deg, #2e3440 0%, #3b4252 50%, #434c5e 100%);
+    }
+    
+    [data-theme="gruvbox"] {
+      --theme-base: #282828;
+      --theme-surface: #3c3836;
+      --theme-overlay: #504945;
+      --theme-muted: #665c54;
+      --theme-subtle: #a89984;
+      --theme-text: #ebdbb2;
+      --theme-love: #fb4934;
+      --theme-gold: #fabd2f;
+      --theme-rose: #fe8019;
+      --theme-pine: #b8bb26;
+      --theme-foam: #8ec07c;
+      --theme-iris: #d3869b;
+      --theme-highlight-low: #1d2021;
+      --theme-highlight-med: #3c3836;
+      --theme-highlight-high: #504945;
+      --theme-gradient: linear-gradient(135deg, #282828 0%, #3c3836 50%, #504945 100%);
+    }
+    
+    [data-theme="tokyo-night"] {
+      --theme-base: #1a1b26;
+      --theme-surface: #24283b;
+      --theme-overlay: #414868;
+      --theme-muted: #565f89;
+      --theme-subtle: #a9b1d6;
+      --theme-text: #c0caf5;
+      --theme-love: #f7768e;
+      --theme-gold: #e0af68;
+      --theme-rose: #ff9e64;
+      --theme-pine: #9ece6a;
+      --theme-foam: #7dcfff;
+      --theme-iris: #bb9af7;
+      --theme-highlight-low: #16161e;
+      --theme-highlight-med: #24283b;
+      --theme-highlight-high: #414868;
+      --theme-gradient: linear-gradient(135deg, #1a1b26 0%, #24283b 50%, #414868 100%);
+    }
+    
+    [data-theme="dracula"] {
+      --theme-base: #282a36;
+      --theme-surface: #44475a;
+      --theme-overlay: #6272a4;
+      --theme-muted: #6272a4;
+      --theme-subtle: #f8f8f2;
+      --theme-text: #f8f8f2;
+      --theme-love: #ff5555;
+      --theme-gold: #f1fa8c;
+      --theme-rose: #ffb86c;
+      --theme-pine: #50fa7b;
+      --theme-foam: #8be9fd;
+      --theme-iris: #bd93f9;
+      --theme-highlight-low: #21222c;
+      --theme-highlight-med: #44475a;
+      --theme-highlight-high: #6272a4;
+      --theme-gradient: linear-gradient(135deg, #282a36 0%, #44475a 50%, #6272a4 100%);
     }
 
     /* Layout Styles */
@@ -24,6 +194,39 @@
       display: flex;
       flex-direction: column;
       text-align: center;
+    }
+
+    /* Tab Navigation */
+    .tab-container {
+      display: flex;
+      justify-content: center;
+      margin: 20px 0 30px;
+      gap: 8px;
+    }
+
+    .tab-button {
+      background-color: rgba(var(--theme-overlay-rgb, 38, 35, 58), 0.9);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: rgba(255, 255, 255, 0.7);
+      padding: 12px 24px;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      font-size: 16px;
+      font-weight: 500;
+      backdrop-filter: blur(8px);
+    }
+
+    .tab-button:hover {
+      background-color: rgba(var(--theme-highlight-med-rgb, 64, 61, 82), 0.9);
+      color: var(--theme-text);
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    .tab-button.active {
+      background-color: var(--theme-foam);
+      color: var(--theme-base);
+      border-color: var(--theme-foam);
     }
 
     .filter-container {
@@ -49,11 +252,11 @@
       width: 500px;
       padding: 14px 20px;
       border-radius: 12px;
-      background-color: rgba(30, 30, 30, 0.9);
+      background-color: rgba(var(--theme-overlay-rgb, 38, 35, 58), 0.9);
       border: 1px solid rgba(255, 255, 255, 0.1);
       font-size: 18px;
       outline: none;
-      color: #ffffff;
+      color: var(--theme-text);
       transition: all 0.3s ease;
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
       backdrop-filter: blur(8px);
@@ -62,7 +265,7 @@
     .search-input:focus {
       border-color: rgba(255, 255, 255, 0.3);
       box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
-      background-color: rgba(40, 40, 40, 0.9);
+      background-color: rgba(var(--theme-highlight-med-rgb, 64, 61, 82), 0.9);
       transform: scale(1.02);
     }
 
@@ -111,10 +314,10 @@
       display: flex;
       flex-direction: column;
       justify-content: flex-end;
-      align-items: center; /* Added for center alignment */
+      align-items: center;
       padding: 20px;
       transition: all 0.3s ease;
-      text-align: center; /* Added for center alignment */
+      text-align: center;
     }
 
     .game:hover .overlay {
@@ -130,7 +333,7 @@
       transform: translateY(10px);
       opacity: 1;
       transition: all 0.3s ease;
-      width: 100%; /* Ensure full width for centering */
+      width: 100%;
     }
 
     .game:hover .movie-info {
@@ -143,20 +346,20 @@
       font-weight: 600;
       margin-bottom: 10px;
       text-shadow: 0 2px 4px rgba(0, 0, 0, 0.7);
-      color: #ffffff;
-      width: 100%; /* Ensure full width for centering */
+      color: var(--theme-text);
+      width: 100%;
     }
 
     .movie-meta {
       display: flex;
       align-items: center;
-      justify-content: center; /* Center meta information */
+      justify-content: center;
       font-size: 0.95rem;
       opacity: 0.9;
       gap: 12px;
       color: rgba(255, 255, 255, 0.9);
-      width: 100%; /* Ensure full width for centering */
-      flex-wrap: wrap; /* Allow items to wrap if needed */
+      width: 100%;
+      flex-wrap: wrap;
     }
 
     .rating {
@@ -171,13 +374,54 @@
       fill: #ffd700;
     }
 
-    /* Particles Background */
-    #particles-js {
+    /* Favorite Button */
+    .favorite-btn {
       position: absolute;
-      width: 100%;
-      height: 100%;
-      z-index: -99;
-      background: #121212;
+      top: 12px;
+      right: 12px;
+      background-color: rgba(0, 0, 0, 0.7);
+      border: none;
+      color: var(--theme-text);
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: blur(8px);
+      z-index: 10;
+    }
+
+    .favorite-btn:hover {
+      background-color: rgba(255, 107, 107, 0.9);
+      transform: scale(1.1);
+    }
+
+    .favorite-btn.favorited {
+      background-color: var(--theme-love);
+      color: var(--theme-text);
+    }
+
+    .favorite-btn.favorited:hover {
+      background-color: #ff5252;
+    }
+
+    /* Section Headers */
+    .section-header {
+      text-align: center;
+      margin: 40px 0 20px;
+      font-size: 2rem;
+      font-weight: 600;
+      color: var(--theme-text);
+    }
+
+    .section-subtitle {
+      text-align: center;
+      margin-bottom: 30px;
+      color: rgba(255, 255, 255, 0.7);
+      font-size: 1.1rem;
     }
 
     /* Loading State */
@@ -186,6 +430,70 @@
       font-size: 1.2rem;
       margin-top: 40px;
       grid-column: 1 / -1;
+    }
+
+    /* Empty State */
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: rgba(255, 255, 255, 0.6);
+    }
+
+    .empty-state i {
+      font-size: 48px;
+      margin-bottom: 16px;
+      opacity: 0.5;
+    }
+
+    .empty-state h3 {
+      font-size: 1.5rem;
+      margin-bottom: 8px;
+      color: rgba(255, 255, 255, 0.8);
+    }
+
+    .empty-state p {
+      font-size: 1rem;
+      line-height: 1.5;
+    }
+
+    /* Responsive Design */
+    @media (max-width: 768px) {
+      .tab-container {
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+      
+      .tab-button {
+        padding: 10px 16px;
+        font-size: 14px;
+      }
+      
+      .search-input {
+        width: 90%;
+        max-width: 400px;
+      }
+      
+      .game-grid {
+        grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+        gap: 20px;
+        padding: 15px;
+      }
+    }
+
+    /* Theme-aware RGB values for better blending */
+    [data-theme="rose-pine"] {
+      --theme-overlay-rgb: 38, 35, 58;
+      --theme-highlight-med-rgb: 64, 61, 82;
+    }
+    
+    [data-theme="dark"] {
+      --theme-overlay-rgb: 51, 65, 85;
+      --theme-highlight-med-rgb: 71, 85, 105;
+    }
+    
+    [data-theme="light"] {
+      --theme-overlay-rgb: 203, 213, 225;
+      --theme-highlight-med-rgb: 226, 232, 240;
     }
   </style>
 
@@ -198,13 +506,26 @@
 
   <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
   <script src="/scripts/particle.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 
 <body>
-  <div id="particles-js"></div>
-  
   <div class="content">
-    <div class="filter-container">
+    <!-- Tab Navigation -->
+    <div class="tab-container">
+      <button class="tab-button active" data-tab="popular">
+        <i class="fas fa-fire"></i> Popular Movies
+      </button>
+      <button class="tab-button" data-tab="favorites">
+        <i class="fas fa-heart"></i> My Favorites
+      </button>
+      <button class="tab-button" data-tab="recommended">
+        <i class="fas fa-star"></i> Recommended
+      </button>
+    </div>
+
+    <!-- Search Container (only show for popular tab) -->
+    <div class="filter-container" id="searchContainer">
       <input 
         type="text" 
         class="search-input" 
@@ -214,6 +535,10 @@
       >
     </div>
     
+    <!-- Section Headers -->
+    <div id="sectionHeader" class="section-header">Popular Movies</div>
+    <div id="sectionSubtitle" class="section-subtitle">Discover the latest trending movies</div>
+    
     <div class="game-grid" id="gameGrid">
       <div class="loading">Loading movies...</div>
     </div>
@@ -221,118 +546,324 @@
 
   <script src="movies.js"></script>
   <script>
-    const searchInput = document.getElementById("searchInput");
-    const gameGrid = document.getElementById("gameGrid");
-
-    // Improved loading state
-    let isLoading = false;
-
-    async function getPopularMovies() {
-      if (isLoading) return;
-      isLoading = true;
-      
-      try {
-        const response = await fetch(
-          `https://api.themoviedb.org/3/movie/popular?api_key=${movSec}`
-        );
-        const data = await response.json();
-        displayMovies(data.results);
-      } catch (error) {
-        console.error("Error fetching movies:", error);
-        gameGrid.innerHTML = `<div class="loading">Failed to load movies. Please try again.</div>`;
-      } finally {
-        isLoading = false;
+    // Initialize Carbon Theme System
+    let carbonTheme;
+    
+    class MovieManager {
+      constructor() {
+        this.currentTab = 'popular';
+        this.isLoading = false;
+        this.favorites = this.loadFavorites();
+        this.searchInput = document.getElementById("searchInput");
+        this.gameGrid = document.getElementById("gameGrid");
+        this.sectionHeader = document.getElementById("sectionHeader");
+        this.sectionSubtitle = document.getElementById("sectionSubtitle");
+        this.searchContainer = document.getElementById("searchContainer");
+        
+        this.init();
       }
-    }
-
-    async function searchMovies(query) {
-      if (isLoading) return;
-      isLoading = true;
       
-      try {
-        if (!query.trim()) {
-          getPopularMovies();
+      init() {
+        this.bindEvents();
+        this.loadPopularMovies();
+        this.initializeTheme();
+      }
+      
+      initializeTheme() {
+        // Initialize Carbon Theme System
+        if (typeof CarbonTheme !== 'undefined') {
+          carbonTheme = new CarbonTheme();
+          // Apply the current theme
+          const currentTheme = carbonTheme.getCurrentTheme();
+          this.applyTheme(currentTheme);
+          
+          // Listen for theme changes
+          window.addEventListener('themeChanged', (event) => {
+            this.applyTheme(event.detail.theme);
+          });
+        }
+      }
+      
+      applyTheme(themeName) {
+        document.documentElement.setAttribute('data-theme', themeName);
+        // Update body background
+        const theme = carbonTheme.getTheme(themeName);
+        if (theme) {
+          document.body.style.background = `linear-gradient(135deg, ${theme.base} 0%, ${theme.surface} 50%, ${theme.overlay} 100%)`;
+        }
+      }
+      
+      bindEvents() {
+        // Tab navigation
+        document.querySelectorAll('.tab-button').forEach(button => {
+          button.addEventListener('click', () => {
+            const tab = button.getAttribute('data-tab');
+            this.switchTab(tab);
+          });
+        });
+        
+        // Search functionality
+        let searchTimeout;
+        this.searchInput.addEventListener("input", (event) => {
+          clearTimeout(searchTimeout);
+          searchTimeout = setTimeout(() => {
+            const query = this.searchInput.value.trim();
+            if (this.currentTab === 'popular') {
+              query ? this.searchMovies(query) : this.loadPopularMovies();
+            }
+          }, 500);
+        });
+        
+        this.searchInput.addEventListener("keypress", (event) => {
+          if (event.key === "Enter") {
+            clearTimeout(searchTimeout);
+            const query = this.searchInput.value.trim();
+            if (this.currentTab === 'popular') {
+              query ? this.searchMovies(query) : this.loadPopularMovies();
+            }
+          }
+        });
+      }
+      
+      switchTab(tab) {
+        this.currentTab = tab;
+        
+        // Update tab buttons
+        document.querySelectorAll('.tab-button').forEach(button => {
+          button.classList.remove('active');
+        });
+        document.querySelector(`[data-tab="${tab}"]`).classList.add('active');
+        
+        // Update search visibility
+        this.searchContainer.style.display = tab === 'popular' ? 'flex' : 'none';
+        
+        // Update section headers
+        switch(tab) {
+          case 'popular':
+            this.sectionHeader.textContent = 'Popular Movies';
+            this.sectionSubtitle.textContent = 'Discover the latest trending movies';
+            this.loadPopularMovies();
+            break;
+          case 'favorites':
+            this.sectionHeader.textContent = 'My Favorites';
+            this.sectionSubtitle.textContent = 'Your personal movie collection';
+            this.loadFavoritesMovies();
+            break;
+          case 'recommended':
+            this.sectionHeader.textContent = 'Recommended Movies';
+            this.sectionSubtitle.textContent = 'Based on your favorites and preferences';
+            this.loadRecommendedMovies();
+            break;
+        }
+      }
+      
+      async loadPopularMovies() {
+        if (this.isLoading) return;
+        this.isLoading = true;
+        
+        try {
+          const response = await fetch(
+            `https://api.themoviedb.org/3/movie/popular?api_key=${movSec}`
+          );
+          const data = await response.json();
+          this.displayMovies(data.results);
+        } catch (error) {
+          console.error("Error fetching movies:", error);
+          this.gameGrid.innerHTML = `<div class="loading">Failed to load movies. Please try again.</div>`;
+        } finally {
+          this.isLoading = false;
+        }
+      }
+      
+      async searchMovies(query) {
+        if (this.isLoading) return;
+        this.isLoading = true;
+        
+        try {
+          const response = await fetch(
+            `https://api.themoviedb.org/3/search/movie?api_key=${movSec}&query=${encodeURIComponent(query)}`
+          );
+          const data = await response.json();
+          this.displayMovies(data.results);
+        } catch (error) {
+          console.error("Error searching movies:", error);
+          this.gameGrid.innerHTML = `<div class="loading">Search failed. Please try again.</div>`;
+        } finally {
+          this.isLoading = false;
+        }
+      }
+      
+      loadFavoritesMovies() {
+        const favoriteIds = Object.keys(this.favorites);
+        
+        if (favoriteIds.length === 0) {
+          this.gameGrid.innerHTML = `
+            <div class="empty-state">
+              <i class="fas fa-heart"></i>
+              <h3>No favorites yet</h3>
+              <p>Start adding movies to your favorites to see them here!</p>
+            </div>
+          `;
           return;
         }
         
-        const response = await fetch(
-          `https://api.themoviedb.org/3/search/movie?api_key=${movSec}&query=${encodeURIComponent(query)}`
-        );
-        const data = await response.json();
-        displayMovies(data.results);
-      } catch (error) {
-        console.error("Error searching movies:", error);
-        gameGrid.innerHTML = `<div class="loading">Search failed. Please try again.</div>`;
-      } finally {
-        isLoading = false;
-      }
-    }
-
-    function displayMovies(movies) {
-      if (!movies || movies.length === 0) {
-        gameGrid.innerHTML = `<div class="loading">No movies found</div>`;
-        return;
+        // Fetch movie details for each favorite
+        Promise.all(
+          favoriteIds.map(id => 
+            fetch(`https://api.themoviedb.org/3/movie/${id}?api_key=${movSec}`)
+              .then(response => response.json())
+              .catch(() => null)
+          )
+        ).then(movies => {
+          const validMovies = movies.filter(movie => movie !== null);
+          this.displayMovies(validMovies);
+        });
       }
       
-      gameGrid.innerHTML = "";
+      async loadRecommendedMovies() {
+        const favoriteIds = Object.keys(this.favorites);
+        
+        if (favoriteIds.length === 0) {
+          this.gameGrid.innerHTML = `
+            <div class="empty-state">
+              <i class="fas fa-star"></i>
+              <h3>No recommendations yet</h3>
+              <p>Add some movies to your favorites to get personalized recommendations!</p>
+            </div>
+          `;
+          return;
+        }
+        
+        // Get recommendations based on first favorite movie
+        const firstFavoriteId = favoriteIds[0];
+        
+        try {
+          const response = await fetch(
+            `https://api.themoviedb.org/3/movie/${firstFavoriteId}/recommendations?api_key=${movSec}`
+          );
+          const data = await response.json();
+          this.displayMovies(data.results.slice(0, 20)); // Limit to 20 recommendations
+        } catch (error) {
+          console.error("Error fetching recommendations:", error);
+          this.gameGrid.innerHTML = `<div class="loading">Failed to load recommendations. Please try again.</div>`;
+        }
+      }
       
-      movies.forEach(movie => {
-        const gameCard = document.createElement("div");
-        gameCard.classList.add("game");
-        gameCard.style.backgroundImage = `url(https://image.tmdb.org/t/p/w500${movie.poster_path || ''})`;
+      displayMovies(movies) {
+        if (!movies || movies.length === 0) {
+          this.gameGrid.innerHTML = `<div class="loading">No movies found</div>`;
+          return;
+        }
         
-        const releaseYear = movie.release_date ? new Date(movie.release_date).getFullYear() : 'N/A';
-        const rating = Math.round((movie.vote_average || 0) / 2);
+        this.gameGrid.innerHTML = "";
         
-        gameCard.innerHTML = `
-          <div class="overlay">
-            <div class="movie-info">
-              <h3 class="movie-title">${movie.title || 'Untitled'}</h3>
-              <div class="movie-meta">
-                <span>${releaseYear}</span>
-                ${movie.vote_average ? `
-                <span class="rating">
-                  ${'<svg><use xlink:href="#star"/></svg>'.repeat(rating)}
-                  ${'<svg style="opacity:0.3"><use xlink:href="#star"/></svg>'.repeat(5 - rating)}
-                  <span style="margin-left:4px">${movie.vote_average.toFixed(1)}</span>
-                </span>
-                ` : ''}
+        movies.forEach(movie => {
+          const gameCard = document.createElement("div");
+          gameCard.classList.add("game");
+          gameCard.style.backgroundImage = `url(https://image.tmdb.org/t/p/w500${movie.poster_path || ''})`;
+          
+          const releaseYear = movie.release_date ? new Date(movie.release_date).getFullYear() : 'N/A';
+          const rating = Math.round((movie.vote_average || 0) / 2);
+          const isFavorited = this.favorites[movie.id];
+          
+          gameCard.innerHTML = `
+            <button class="favorite-btn ${isFavorited ? 'favorited' : ''}" onclick="event.stopPropagation(); movieManager.toggleFavorite(${movie.id}, '${movie.title}')">
+              <i class="fas fa-heart"></i>
+            </button>
+            <div class="overlay">
+              <div class="movie-info">
+                <h3 class="movie-title">${movie.title || 'Untitled'}</h3>
+                <div class="movie-meta">
+                  <span>${releaseYear}</span>
+                  ${movie.vote_average ? `
+                  <span class="rating">
+                    ${'<svg><use xlink:href="#star"/></svg>'.repeat(rating)}
+                    ${'<svg style="opacity:0.3"><use xlink:href="#star"/></svg>'.repeat(5 - rating)}
+                    <span style="margin-left:4px">${movie.vote_average.toFixed(1)}</span>
+                  </span>
+                  ` : ''}
+                </div>
               </div>
             </div>
-          </div>
-        `;
-        
-        gameCard.addEventListener("click", () => {
-          if (movie.id) {
-            window.location.href = `p.html#${movie.id}`;
+          `;
+          
+          gameCard.addEventListener("click", () => {
+            if (movie.id) {
+              window.location.href = `p.html#${movie.id}`;
+            }
+          });
+          
+          this.gameGrid.appendChild(gameCard);
+        });
+      }
+      
+      // Favorites functionality
+      loadFavorites() {
+        const stored = {};
+        const keys = Object.keys(sessionStorage);
+        keys.forEach(key => {
+          if (key.startsWith('fav_')) {
+            const movieId = key.substring(4);
+            stored[movieId] = JSON.parse(sessionStorage.getItem(key));
           }
         });
-        
-        gameGrid.appendChild(gameCard);
-      });
-    }
-
-    // Debounce search input
-    let searchTimeout;
-    searchInput.addEventListener("input", function(event) {
-      clearTimeout(searchTimeout);
-      searchTimeout = setTimeout(() => {
-        const query = searchInput.value.trim();
-        query ? searchMovies(query) : getPopularMovies();
-      }, 500);
-    });
-
-    // Also search on Enter key
-    searchInput.addEventListener("keypress", function(event) {
-      if (event.key === "Enter") {
-        clearTimeout(searchTimeout);
-        const query = searchInput.value.trim();
-        query ? searchMovies(query) : getPopularMovies();
+        return stored;
       }
+      
+      saveFavorites() {
+        Object.keys(this.favorites).forEach(movieId => {
+          sessionStorage.setItem(`fav_${movieId}`, JSON.stringify(this.favorites[movieId]));
+        });
+      }
+      
+      toggleFavorite(movieId, title) {
+        if (this.favorites[movieId]) {
+          this.removeFavorite(movieId);
+        } else {
+          this.addFavorite(movieId, title);
+        }
+        
+        // Refresh current view if needed
+        if (this.currentTab === 'favorites') {
+          this.loadFavoritesMovies();
+        } else if (this.currentTab === 'recommended') {
+          this.loadRecommendedMovies();
+        }
+      }
+      
+      addFavorite(movieId, title) {
+        this.favorites[movieId] = {
+          title: title,
+          id: movieId,
+          addedAt: new Date().toISOString()
+        };
+        this.saveFavorites();
+        this.updateFavoriteButtons();
+      }
+      
+      removeFavorite(movieId) {
+        delete this.favorites[movieId];
+        sessionStorage.removeItem(`fav_${movieId}`);
+        this.updateFavoriteButtons();
+      }
+      
+      updateFavoriteButtons() {
+        document.querySelectorAll('.favorite-btn').forEach(btn => {
+          const movieId = btn.getAttribute('onclick').match(/\d+/)[0];
+          if (this.favorites[movieId]) {
+            btn.classList.add('favorited');
+          } else {
+            btn.classList.remove('favorited');
+          }
+        });
+      }
+    }
+    
+    // Initialize the movie manager when DOM is ready
+    let movieManager;
+    document.addEventListener('DOMContentLoaded', () => {
+      movieManager = new MovieManager();
     });
-
-    // Initial load
-    getPopularMovies();
   </script>
 </body>
 </html>
