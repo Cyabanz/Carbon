@@ -265,6 +265,60 @@
         transform: translateY(0);
       }
     }
+    
+    /* Custom scrollbar for chat messages */
+    #chatMessages::-webkit-scrollbar {
+      width: 6px;
+    }
+    
+    #chatMessages::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    
+    #chatMessages::-webkit-scrollbar-thumb {
+      background: var(--rp-overlay);
+      border-radius: 3px;
+    }
+    
+    #chatMessages::-webkit-scrollbar-thumb:hover {
+      background: var(--rp-highlight-med);
+    }
+    
+    /* Message bubble animations */
+    @keyframes messageSlideIn {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    
+    #chatMessages > div {
+      animation: messageSlideIn 0.3s ease-out;
+    }
+    
+    /* Typing indicator animation */
+    @keyframes typingDots {
+      0%, 20% {
+        opacity: 0;
+        transform: translateY(0);
+      }
+      50% {
+        opacity: 1;
+        transform: translateY(-2px);
+      }
+      100% {
+        opacity: 0;
+        transform: translateY(0);
+      }
+    }
+    
+    #typingIndicator {
+      animation: typingDots 1.4s infinite;
+    }
 
     /* Profile Frame Styles */
     .profile-frame-red {
@@ -1186,70 +1240,100 @@
             </div>
           </div>
           
-          <!-- Quick Chat -->
-          <div id="quickChatSection" class="bg-rp-surface rounded-xl border border-rp-overlay p-4 hidden">
-            <div class="flex items-center justify-between mb-4">
-              <h3 class="text-lg font-semibold text-rp-text flex items-center gap-2">
-                <i class='bx bx-message-dots text-rp-iris'></i>
-                Chat with <span id="chatFriendName">Friend</span>
-              </h3>
+          <!-- Modern Chat Interface -->
+          <div id="quickChatSection" class="bg-rp-surface rounded-2xl border border-rp-overlay shadow-xl backdrop-blur-sm hidden">
+            <!-- Chat Header -->
+            <div class="flex items-center justify-between p-4 border-b border-rp-overlay/50">
+              <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-gradient-to-br from-rp-foam to-rp-iris rounded-full flex items-center justify-center">
+                  <i class='bx bx-message-dots text-rp-base text-lg'></i>
+                </div>
+                <div>
+                  <h3 class="text-lg font-semibold text-rp-text">Chat with <span id="chatFriendName" class="text-rp-foam">Friend</span></h3>
+                  <p class="text-xs text-rp-subtle">Real-time messaging</p>
+                </div>
+              </div>
               <div class="flex items-center gap-2">
-                <button id="chatSettingsBtn" class="text-rp-subtle hover:text-rp-foam transition-colors" title="Chat Settings">
+                <button id="chatSettingsBtn" class="p-2 text-rp-subtle hover:text-rp-foam hover:bg-rp-overlay/50 rounded-lg transition-all duration-200" title="Chat Settings">
                   <i class='bx bx-palette text-lg'></i>
                 </button>
-                <button id="closeChatBtn" class="text-rp-subtle hover:text-rp-love transition-colors">
+                <button id="closeChatBtn" class="p-2 text-rp-subtle hover:text-rp-love hover:bg-rp-love/10 rounded-lg transition-all duration-200">
                   <i class='bx bx-x text-xl'></i>
                 </button>
               </div>
             </div>
             
             <!-- Chat Background Settings -->
-            <div id="chatBackgroundSettings" class="mb-4 p-3 bg-rp-overlay rounded-lg hidden">
+            <div id="chatBackgroundSettings" class="p-4 border-b border-rp-overlay/50 hidden">
               <h4 class="text-sm font-medium text-rp-text mb-3 flex items-center gap-2">
-                <i class='bx bx-palette'></i>
-                Chat Background
+                <i class='bx bx-palette text-rp-iris'></i>
+                Chat Theme
               </h4>
-              <div class="grid grid-cols-4 gap-2">
-                <button class="chat-bg-option w-full h-12 rounded-lg border-2 border-transparent hover:border-rp-foam/50 transition-all relative" 
+              <div class="grid grid-cols-4 gap-3">
+                <button class="chat-bg-option group relative overflow-hidden rounded-xl border-2 border-transparent hover:border-rp-foam/50 transition-all duration-200" 
                         data-bg="default" title="Default">
-                  <div class="w-full h-full bg-rp-overlay rounded-lg flex items-center justify-center">
+                  <div class="w-full h-12 bg-rp-overlay rounded-lg flex items-center justify-center group-hover:bg-rp-overlay/80">
                     <i class='bx bx-square text-rp-text'></i>
                   </div>
+                  <span class="absolute bottom-1 left-1/2 transform -translate-x-1/2 text-xs text-rp-subtle opacity-0 group-hover:opacity-100 transition-opacity">Default</span>
                 </button>
-                <button class="chat-bg-option w-full h-12 rounded-lg border-2 border-transparent hover:border-rp-foam/50 transition-all relative" 
+                <button class="chat-bg-option group relative overflow-hidden rounded-xl border-2 border-transparent hover:border-rp-foam/50 transition-all duration-200" 
                         data-bg="gradient" title="Gradient">
-                  <div class="w-full h-full rounded-lg" style="background: linear-gradient(135deg, #9ccfd8 0%, #c4a7e7 100%)"></div>
+                  <div class="w-full h-12 rounded-lg bg-gradient-to-br from-rp-foam via-rp-iris to-rp-pine group-hover:scale-105 transition-transform"></div>
+                  <span class="absolute bottom-1 left-1/2 transform -translate-x-1/2 text-xs text-rp-subtle opacity-0 group-hover:opacity-100 transition-opacity">Gradient</span>
                 </button>
-                <button class="chat-bg-option w-full h-12 rounded-lg border-2 border-transparent hover:border-rp-foam/50 transition-all relative" 
+                <button class="chat-bg-option group relative overflow-hidden rounded-xl border-2 border-transparent hover:border-rp-foam/50 transition-all duration-200" 
                         data-bg="solid" title="Solid Color">
-                  <div class="w-full h-full bg-rp-pine rounded-lg"></div>
+                  <div class="w-full h-12 bg-rp-pine rounded-lg group-hover:bg-rp-pine/80 transition-colors"></div>
+                  <span class="absolute bottom-1 left-1/2 transform -translate-x-1/2 text-xs text-rp-subtle opacity-0 group-hover:opacity-100 transition-opacity">Solid</span>
                 </button>
-                <button class="chat-bg-option w-full h-12 rounded-lg border-2 border-transparent hover:border-rp-foam/50 transition-all relative" 
+                <button class="chat-bg-option group relative overflow-hidden rounded-xl border-2 border-transparent hover:border-rp-foam/50 transition-all duration-200" 
                         data-bg="particles" title="Particles">
-                  <div class="w-full h-full bg-rp-base rounded-lg flex items-center justify-center">
-                    <div class="w-2 h-2 bg-rp-foam rounded-full animate-pulse"></div>
-                    <div class="w-1 h-1 bg-rp-gold rounded-full ml-1 animate-bounce"></div>
-                    <div class="w-1.5 h-1.5 bg-rp-iris rounded-full ml-1 animate-pulse" style="animation-delay: 0.5s;"></div>
+                  <div class="w-full h-12 bg-rp-base rounded-lg flex items-center justify-center group-hover:bg-rp-base/80">
+                    <div class="flex items-center gap-1">
+                      <div class="w-2 h-2 bg-rp-foam rounded-full animate-pulse"></div>
+                      <div class="w-1 h-1 bg-rp-gold rounded-full animate-bounce"></div>
+                      <div class="w-1.5 h-1.5 bg-rp-iris rounded-full animate-pulse" style="animation-delay: 0.5s;"></div>
+                    </div>
                   </div>
+                  <span class="absolute bottom-1 left-1/2 transform -translate-x-1/2 text-xs text-rp-subtle opacity-0 group-hover:opacity-100 transition-opacity">Particles</span>
                 </button>
               </div>
-              <p class="text-xs text-rp-subtle mt-2">Background changes are visible to both you and your friend</p>
+              <p class="text-xs text-rp-subtle mt-3 text-center">Theme changes are visible to both you and your friend</p>
             </div>
             
-            <div id="chatMessagesContainer" class="relative">
+            <!-- Chat Messages Area -->
+            <div id="chatMessagesContainer" class="relative flex-1 min-h-0">
               <!-- Chat background canvas for particles -->
               <canvas id="chatParticlesCanvas" class="absolute inset-0 rounded-lg hidden pointer-events-none"></canvas>
               
-              <div id="chatMessages" class="h-48 overflow-y-auto bg-rp-overlay rounded-lg p-3 mb-3 space-y-2 relative z-10">
+              <div id="chatMessages" class="h-64 overflow-y-auto p-4 space-y-3 relative z-10 scrollbar-thin scrollbar-thumb-rp-overlay scrollbar-track-transparent">
                 <!-- Chat messages will be populated here -->
+                <div class="text-center text-rp-subtle text-sm py-4">
+                  <i class='bx bx-message-dots text-2xl mb-2 block'></i>
+                  Start a conversation with <span id="chatFriendNamePlaceholder" class="text-rp-foam">your friend</span>
+                </div>
               </div>
             </div>
             
-            <div class="flex gap-2">
-              <input id="chatInput" type="text" maxlength="500" placeholder="Type a message..." class="flex-1 px-3 py-2 bg-rp-overlay border border-rp-highlight-med rounded-lg text-rp-text focus:outline-none focus:ring-2 focus:ring-rp-foam/50 text-sm">
-              <button id="sendMessageBtn" class="flex-shrink-0 w-10 h-10 bg-rp-foam hover:bg-rp-foam/90 text-rp-base rounded-lg transition-colors flex items-center justify-center">
-                <i class='bx bx-send text-sm'></i>
-              </button>
+            <!-- Chat Input Area -->
+            <div class="p-4 border-t border-rp-overlay/50 bg-rp-surface/50">
+              <div class="flex gap-3 items-end">
+                <div class="flex-1 relative">
+                  <input id="chatInput" type="text" maxlength="500" placeholder="Type your message..." 
+                         class="w-full px-4 py-3 bg-rp-overlay border border-rp-highlight-med rounded-xl text-rp-text placeholder-rp-subtle focus:outline-none focus:ring-2 focus:ring-rp-foam/50 focus:border-rp-foam transition-all duration-200 text-sm resize-none">
+                  <div class="absolute right-3 top-1/2 transform -translate-y-1/2 text-xs text-rp-subtle">
+                    <span id="charCount">0</span>/500
+                  </div>
+                </div>
+                <button id="sendMessageBtn" class="flex-shrink-0 w-12 h-12 bg-gradient-to-r from-rp-foam to-rp-iris hover:from-rp-foam/90 hover:to-rp-iris/90 text-rp-base rounded-xl transition-all duration-200 flex items-center justify-center shadow-lg hover:shadow-xl transform hover:scale-105">
+                  <i class='bx bx-send text-lg'></i>
+                </button>
+              </div>
+              <div class="flex items-center justify-between mt-2 text-xs text-rp-subtle">
+                <span>Press Enter to send</span>
+                <span id="typingIndicator" class="hidden">Friend is typing...</span>
+              </div>
             </div>
           </div>
         </div>
@@ -2960,26 +3044,69 @@
     function renderChatMessages(messages) {
       const chatContainer = document.getElementById('chatMessages');
       
+      if (messages.length === 0) {
+        chatContainer.innerHTML = `
+          <div class="text-center text-rp-subtle text-sm py-8">
+            <i class='bx bx-message-dots text-3xl mb-3 block'></i>
+            Start a conversation with <span class="text-rp-foam">${activeChatUser?.name || 'your friend'}</span>
+          </div>
+        `;
+        return;
+      }
+      
       chatContainer.innerHTML = messages.map(message => {
         const isOwn = message.sender === currentUser.uid;
-        const messageTime = message.timestamp?.toDate()?.toLocaleTimeString() || '';
+        const messageTime = message.timestamp?.toDate()?.toLocaleTimeString('en-US', { 
+          hour: 'numeric', 
+          minute: '2-digit',
+          hour12: true 
+        }) || '';
         
         // Sanitize message content to prevent XSS
         const safeMessageText = sanitizeHTMLWithBasicTags(message.text || '');
         
         return `
-          <div class="flex ${isOwn ? 'justify-end' : 'justify-start'} mb-2">
-            <div class="max-w-xs ${isOwn ? 'bg-rp-foam text-rp-base' : 'bg-rp-highlight-med text-rp-text'} 
-                        rounded-lg px-3 py-2 text-sm">
-              <p>${safeMessageText}</p>
-              <p class="text-xs opacity-70 mt-1">${messageTime}</p>
+          <div class="flex ${isOwn ? 'justify-end' : 'justify-start'} group">
+            <div class="flex items-end gap-2 max-w-xs lg:max-w-md">
+              ${!isOwn ? `
+                <div class="w-8 h-8 bg-gradient-to-br from-rp-foam to-rp-iris rounded-full flex items-center justify-center flex-shrink-0 mb-1">
+                  <i class='bx bx-user text-rp-base text-sm'></i>
+                </div>
+              ` : ''}
+              <div class="relative">
+                <div class="${isOwn 
+                  ? 'bg-gradient-to-r from-rp-foam to-rp-iris text-rp-base' 
+                  : 'bg-rp-overlay border border-rp-highlight-med text-rp-text'
+                } rounded-2xl px-4 py-3 text-sm shadow-sm hover:shadow-md transition-all duration-200">
+                  <p class="leading-relaxed">${safeMessageText}</p>
+                  <div class="flex items-center justify-between mt-2">
+                    <span class="text-xs opacity-60">${messageTime}</span>
+                    ${isOwn ? '<i class="bx bx-check-double text-xs opacity-60"></i>' : ''}
+                  </div>
+                </div>
+                ${isOwn ? `
+                  <div class="absolute -bottom-1 right-0 w-3 h-3 bg-gradient-to-r from-rp-foam to-rp-iris transform rotate-45"></div>
+                ` : `
+                  <div class="absolute -bottom-1 left-0 w-3 h-3 bg-rp-overlay border-l border-b border-rp-highlight-med transform rotate-45"></div>
+                `}
+              </div>
+              ${isOwn ? `
+                <div class="w-8 h-8 bg-gradient-to-br from-rp-foam to-rp-iris rounded-full flex items-center justify-center flex-shrink-0 mb-1">
+                  <i class='bx bx-user text-rp-base text-sm'></i>
+                </div>
+              ` : ''}
             </div>
           </div>
         `;
       }).join('');
       
-      // Scroll to bottom
-      chatContainer.scrollTop = chatContainer.scrollHeight;
+      // Scroll to bottom with smooth animation
+      setTimeout(() => {
+        chatContainer.scrollTo({
+          top: chatContainer.scrollHeight,
+          behavior: 'smooth'
+        });
+      }, 100);
     }
 
     async function sendMessage() {
@@ -4800,6 +4927,37 @@
         if (e.key === 'Enter' && !e.shiftKey) {
           e.preventDefault();
           sendMessage();
+        }
+      });
+      
+      // Character count and typing indicator
+      document.getElementById('chatInput').addEventListener('input', (e) => {
+        const text = e.target.value;
+        const charCount = document.getElementById('charCount');
+        const typingIndicator = document.getElementById('typingIndicator');
+        
+        // Update character count
+        charCount.textContent = text.length;
+        
+        // Show/hide typing indicator
+        if (text.length > 0) {
+          charCount.classList.remove('text-rp-subtle');
+          charCount.classList.add('text-rp-foam');
+        } else {
+          charCount.classList.remove('text-rp-foam');
+          charCount.classList.add('text-rp-subtle');
+        }
+        
+        // Simulate typing indicator (in a real app, you'd send this to the other user)
+        if (text.length > 0 && activeChatUser) {
+          typingIndicator.classList.remove('hidden');
+          setTimeout(() => {
+            if (e.target.value.length === 0) {
+              typingIndicator.classList.add('hidden');
+            }
+          }, 2000);
+        } else {
+          typingIndicator.classList.add('hidden');
         }
       });
       
