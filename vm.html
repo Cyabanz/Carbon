@@ -513,43 +513,70 @@
       
       switch (background) {
         case 'gradient':
-          body.style.background = 'var(--theme-gradient)';
+          body.style.background = 'linear-gradient(135deg, rgba(156, 207, 216, 0.1) 0%, rgba(196, 167, 231, 0.1) 100%)';
           body.style.backgroundAttachment = 'fixed';
+          console.log('✅ Gradient background applied');
           break;
           
         case 'solid':
-          body.style.background = 'var(--theme-base)';
-          break;
-          
-        case 'pattern':
-          body.style.background = `var(--theme-base) url('data:image/svg+xml,<svg width="20" height="20" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><circle cx="10" cy="10" r="2" fill="%23ffffff" fill-opacity="0.2"/></svg>') repeat`;
+          body.style.background = '#31748f'; // Use hex instead of CSS variable for reliability
+          console.log('✅ Solid background applied');
           break;
           
         case 'particles':
-          body.style.background = 'var(--theme-base)';
+          body.style.background = '#191724'; // Use hex instead of CSS variable
           particlesCanvas.classList.remove('hidden');
-          initParticles();
+          
+          try {
+            initParticles();
+            console.log('✅ Particles background applied');
+          } catch (particlesError) {
+            console.error('❌ Error initializing particles:', particlesError);
+            // Fallback to solid background
+            body.style.background = '#191724';
+            particlesCanvas.classList.add('hidden');
+          }
           break;
           
         case 'default':
         default:
           body.style.background = 'var(--theme-gradient)';
           body.style.backgroundAttachment = 'fixed';
+          console.log('✅ Default background applied');
           break;
       }
     }
 
     function updateBackgroundUI() {
-      // Update active state of background options
-      document.querySelectorAll('.bg-option').forEach(option => {
-        option.classList.remove('border-foam');
-        option.classList.add('border-transparent');
-      });
+      console.log('🔄 Updating background UI for:', currentBackground);
       
-      const activeOption = document.querySelector(`[data-bg="${currentBackground}"]`);
-      if (activeOption) {
-        activeOption.classList.remove('border-transparent');
-        activeOption.classList.add('border-foam');
+      try {
+        // Update active state of background options
+        const backgroundOptions = document.querySelectorAll('.chat-bg-option');
+        console.log('📍 Found background options:', backgroundOptions.length);
+        
+        backgroundOptions.forEach(option => {
+          if (option && option.classList) {
+            option.classList.remove('border-rp-foam');
+            option.classList.add('border-transparent');
+          }
+        });
+        
+        const activeOption = document.querySelector(`[data-bg="${currentBackground}"]`);
+        console.log('📍 Active option found:', !!activeOption);
+        
+        if (activeOption && activeOption.classList) {
+          activeOption.classList.remove('border-transparent');
+          activeOption.classList.add('border-rp-foam');
+          console.log('✅ Active option updated');
+        } else {
+          console.warn('⚠️ Active option not found for background:', currentBackground);
+        }
+        
+        console.log('✅ Background UI updated successfully');
+        
+      } catch (error) {
+        console.error('❌ Error updating background UI:', error);
       }
     }
 
