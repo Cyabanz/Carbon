@@ -51,11 +51,14 @@
       color: var(--theme-text);
       line-height: 1.6;
       min-height: 100vh;
+      position: relative;
     }
 
     .container {
       max-width: 1200px;
       margin: 0 auto;
+      position: relative;
+      z-index: 1;
     }
 
     .hidden { display: none; }
@@ -168,6 +171,8 @@
       box-shadow: 0 8px 32px rgba(0,0,0,0.3);
       background: var(--theme-surface);
       margin: 1.5rem 0;
+      position: relative;
+      z-index: 2;
     }
     
     #status { 
@@ -232,7 +237,7 @@
 
     
     <!-- Particles Canvas -->
-    <canvas id="particles-canvas" class="fixed inset-0 pointer-events-none hidden z-0"></canvas>
+    <canvas id="particles-canvas" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0;" class="hidden"></canvas>
     
     <div class="notice">
       <strong><i class='bx bx-info-circle'></i> Session Limits:</strong><br>
@@ -340,6 +345,15 @@
           body.style.background = '#191724'; // Use hex instead of CSS variable
           particlesCanvas.classList.remove('hidden');
           
+          // Ensure particles canvas is properly positioned
+          particlesCanvas.style.position = 'fixed';
+          particlesCanvas.style.top = '0';
+          particlesCanvas.style.left = '0';
+          particlesCanvas.style.width = '100%';
+          particlesCanvas.style.height = '100%';
+          particlesCanvas.style.pointerEvents = 'none';
+          particlesCanvas.style.zIndex = '0';
+          
           try {
             initParticles();
             console.log('✅ Particles background applied');
@@ -374,6 +388,15 @@
         console.error('❌ Could not get 2D context');
         return;
       }
+      
+      // Ensure canvas is properly positioned and sized
+      canvas.style.position = 'fixed';
+      canvas.style.top = '0';
+      canvas.style.left = '0';
+      canvas.style.width = '100%';
+      canvas.style.height = '100%';
+      canvas.style.pointerEvents = 'none';
+      canvas.style.zIndex = '0';
       
       // Set canvas size to match window
       canvas.width = window.innerWidth;
