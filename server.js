@@ -4,6 +4,7 @@ const Tokens = require("csrf");
 const cookie = require("cookie");
 const NodeCache = require("node-cache");
 const fetch = require("node-fetch");
+const openRouterHandler = require('./api/openrouter.js');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -323,14 +324,48 @@ app.all('/api/vm', async (req, res) => {
   }
 });
 
-// Serve vm.html at root for easy access
+// OpenRouter API endpoint
+app.post('/api/openrouter', async (req, res) => {
+  try {
+    await openRouterHandler(req, res);
+  } catch (error) {
+    console.error('Error in OpenRouter handler:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+// Serve static files
 app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'vm.html'));
+  res.sendFile(path.join(__dirname, 'index.html'));
+});
+
+app.get('/ai', (req, res) => {
+  res.sendFile(path.join(__dirname, 'ai.html'));
+});
+
+app.get('/settings', (req, res) => {
+  res.sendFile(path.join(__dirname, 'settings.html'));
+});
+
+app.get('/test-ai', (req, res) => {
+  res.sendFile(path.join(__dirname, 'test-ai.html'));
+});
+
+// Catch-all route for SPA
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'index.html'));
 });
 
 app.listen(PORT, () => {
   console.log(`🚀 Local development server running on http://localhost:${PORT}`);
   console.log(`📝 VM demo available at http://localhost:${PORT}`);
+  console.log(`AI Chat available at: http://localhost:${PORT}/ai`);
+  console.log(`Settings available at: http://localhost:${PORT}/settings`);
   
   if (!process.env.HYPERBEAM_API_KEY) {
     console.log(`⚠️  Warning: HYPERBEAM_API_KEY environment variable is not set`);
