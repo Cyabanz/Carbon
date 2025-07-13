@@ -1,0 +1,677 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>History - Carbon</title>
+    <script defer async>
+      function setConfig() {
+        tailwind.config = {
+          theme: {
+            extend: {
+              fontFamily: {
+                display: ["Switzer", "Helvetica", "sans-serif"],
+                inter: ["Inter", "sans-serif"],
+              },
+              colors: {
+                base: "#191724",
+                surface: "#1f1d2e",
+                overlay: "#26233a",
+                muted: "#6e6a86",
+                subtle: "#908caa",
+                text: "#e0def4",
+                love: "#eb6f92",
+                gold: "#f6c177",
+                rose: "#ebbcba",
+                pine: "#31748f",
+                foam: "#9ccfd8",
+                iris: "#c4a7e7",
+                "highlight-low": "#21202e",
+                "highlight-med": "#403d52",
+                "highlight-high": "#524f67",
+              },
+            },
+          },
+        };
+      }
+    </script>
+    <link rel="preconnect" href="https://unpkg.com" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://cdn.tailwindcss.com" />
+    <script
+      defer
+      async
+      src="https://cdn.tailwindcss.com"
+      onload="setConfig()"
+    ></script>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet" />
+    <!-- Theme System -->
+    <script src="/carbon-theme.js"></script>
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <style>
+      .history-item {
+        border-bottom: 1px solid rgba(38, 35, 58, 0.5);
+        transition: all 0.2s ease;
+      }
+      .history-item:hover {
+        background: rgba(38, 35, 58, 0.3);
+      }
+      .history-item:last-child {
+        border-bottom: none;
+      }
+      .search-bar {
+        background: rgba(31, 29, 46, 0.8);
+        backdrop-filter: blur(12px);
+        border: 1px solid rgba(38, 35, 58, 0.6);
+      }
+      .search-bar:focus-within {
+        border-color: #9ccfd8;
+        box-shadow: 0 0 0 3px rgba(156, 207, 216, 0.1);
+      }
+      .filter-pill {
+        background: rgba(38, 35, 58, 0.4);
+        border: 1px solid rgba(38, 35, 58, 0.6);
+        transition: all 0.2s ease;
+      }
+      .filter-pill:hover {
+        background: rgba(38, 35, 58, 0.6);
+        border-color: rgba(156, 207, 216, 0.5);
+      }
+      .filter-pill.active {
+        background: rgba(156, 207, 216, 0.15);
+        border-color: #9ccfd8;
+        color: #9ccfd8;
+      }
+      .fade-in {
+        animation: fadeIn 0.3s ease-out;
+      }
+      @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+    </style>
+  </head>
+  <body class="font-inter bg-base min-h-screen text-text">
+    <!-- Particles Canvas -->
+    <canvas id="particles-canvas" class="fixed inset-0 pointer-events-none hidden"></canvas>
+    
+    <div class="min-h-screen max-w-4xl mx-auto">
+      <!-- Header -->
+      <header class="px-6 py-8 text-center">
+        <div class="inline-flex items-center gap-3 mb-2">
+          <div class="w-8 h-8 rounded-full bg-iris/20 flex items-center justify-center">
+            <i class="bx bx-history text-iris text-lg"></i>
+          </div>
+          <h1 class="text-2xl font-semibold text-text">History</h1>
+        </div>
+      </header>
+
+      <!-- Search and Controls -->
+      <div class="px-6 mb-8">
+        <div class="mb-6">
+          <div class="search-bar rounded-xl p-4 flex items-center gap-3">
+            <i class="bx bx-search text-muted text-lg"></i>
+            <input
+              id="history-search"
+              type="text"
+              placeholder="Search history..."
+              class="flex-1 bg-transparent border-none outline-none text-text placeholder-muted"
+            />
+            <button
+              id="clear-all-history"
+              class="px-4 py-2 bg-love/10 hover:bg-love/20 text-love rounded-lg transition-colors text-sm font-medium"
+            >
+              Clear All
+            </button>
+          </div>
+        </div>
+
+        <!-- Filter Pills -->
+        <div class="flex gap-2 overflow-x-auto pb-2">
+          <button class="filter-pill active px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap" data-filter="all">
+            All
+          </button>
+          <button class="filter-pill px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap" data-filter="today">
+            Today
+          </button>
+          <button class="filter-pill px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap" data-filter="week">
+            This Week
+          </button>
+          <button class="filter-pill px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap" data-filter="month">
+            This Month
+          </button>
+        </div>
+      </div>
+
+      <!-- History Content -->
+      <main class="px-6 pb-8">
+        <div id="history-list" class="space-y-8">
+          <!-- History items will be populated here -->
+        </div>
+        <div id="no-history" class="text-center py-16 hidden">
+          <div class="w-16 h-16 rounded-full bg-muted/10 flex items-center justify-center mx-auto mb-4">
+            <i class="bx bx-history text-muted text-2xl"></i>
+          </div>
+          <h3 class="text-lg font-medium text-text mb-2">No History Found</h3>
+          <p class="text-muted text-sm">Your browsing history will appear here</p>
+        </div>
+      </main>
+    </div>
+
+    <script type="module">
+      import { makeURL, getProxied } from '/lethal.mjs';
+      // Firebase config and init
+      const firebaseConfig = {
+        apiKey: "AIzaSyC4ilHYP1T-kdXbWPoHJHhD2aj0pNWmMec",
+        authDomain: "carbon-services.firebaseapp.com",
+        projectId: "carbon-services",
+        storageBucket: "carbon-services.firebasestorage.app",
+        messagingSenderId: "288385472070",
+        appId: "1:288385472070:web:c4be3ff186e248fc645c47",
+        measurementId: "G-Y2K1RQYE74"
+      };
+      if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+      const auth = firebase.auth();
+      const db = firebase.firestore();
+      // DOM
+      const historyList = document.getElementById('history-list');
+      const noHistory = document.getElementById('no-history');
+      const historySearch = document.getElementById('history-search');
+      const clearAllBtn = document.getElementById('clear-all-history');
+      const filterTabs = document.querySelectorAll('.filter-pill');
+      // State
+      let allHistory = [];
+      let filteredHistory = [];
+      let currentFilter = 'all';
+      let currentUser = null;
+
+      // Robust sanitizer: also removes the literal "undefined"
+      function sanitizeHistoryItem(item) {
+        function clean(val) {
+          return (typeof val === "string" && val.trim() && val !== "undefined") ? val.trim() : "";
+        }
+        const url = clean(item.url);
+        let title = clean(item.title);
+        if (!title) title = url;
+        let timestamp = "";
+        if (typeof item.timestamp === "string" && !isNaN(Date.parse(item.timestamp))) {
+          timestamp = item.timestamp;
+        } else {
+          timestamp = new Date().toISOString();
+        }
+        let visits = 1;
+        if (typeof item.visits === "number" && Number.isFinite(item.visits) && item.visits > 0) {
+          visits = Math.floor(item.visits);
+        }
+        let id = (typeof item.id === "number" && Number.isFinite(item.id)) ? item.id : (Date.now() + Math.random());
+        return { id, url, title, timestamp, visits };
+      }
+
+      // Merge and deduplicate two history arrays, most recent timestamp wins.
+      function mergeHistories(histA, histB) {
+        const map = new Map();
+        [...histA, ...histB].forEach(item => {
+          const sanitized = sanitizeHistoryItem(item);
+          if (!sanitized.url) return;
+          const existing = map.get(sanitized.url);
+          if (!existing || new Date(sanitized.timestamp) > new Date(existing.timestamp)) {
+            map.set(sanitized.url, sanitized);
+          }
+        });
+        // Sort by most recent timestamp
+        return Array.from(map.values()).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+      }
+
+      // Load and merge from Firebase and localStorage
+      async function loadAndMergeHistory() {
+        let localHist = [];
+        try {
+          const raw = localStorage.getItem('carbon-history');
+          if (raw) {
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed)) {
+              localHist = parsed.map(sanitizeHistoryItem).filter(item => item.url);
+            }
+          }
+        } catch (e) {
+          localHist = [];
+        }
+        let firebaseHist = [];
+        if (currentUser) {
+          try {
+            const userDoc = await db.collection('users').doc(currentUser.uid).get();
+            if (userDoc.exists) {
+              const userData = userDoc.data();
+              if (userData.history && Array.isArray(userData.history)) {
+                firebaseHist = userData.history.map(sanitizeHistoryItem).filter(item => item.url);
+              }
+            }
+          } catch (error) {
+            firebaseHist = [];
+          }
+        }
+        // Merge and dedupe all history
+        allHistory = mergeHistories(localHist, firebaseHist);
+        localStorage.setItem('carbon-history', JSON.stringify(allHistory));
+        if (currentUser) {
+          await db.collection('users').doc(currentUser.uid).set({history: allHistory, lastUpdated: firebase.firestore.FieldValue.serverTimestamp()}, {merge: true});
+        }
+        filterHistory();
+        renderHistory();
+      }
+
+      // Save to both storage and firebase
+      async function saveHistory() {
+        localStorage.setItem('carbon-history', JSON.stringify(allHistory.map(sanitizeHistoryItem).filter(item => item.url)));
+        if (currentUser) {
+          await db.collection('users').doc(currentUser.uid).set({
+            history: allHistory.map(sanitizeHistoryItem).filter(item => item.url),
+            lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+          }, { merge: true });
+        }
+      }
+
+      async function addToHistory(url, title) {
+        if (typeof url !== 'string' || !url.trim() || url === "undefined" || url.startsWith('carbon://')) return;
+        let safeTitle = (typeof title === 'string' && title.trim() && title !== "undefined") ? title.trim() : url;
+        const now = new Date().toISOString();
+        const id = Date.now() + Math.random();
+        const existingIndex = allHistory.findIndex(h => h.url === url);
+        if (existingIndex !== -1) {
+          allHistory[existingIndex].timestamp = now;
+          allHistory[existingIndex].visits = (allHistory[existingIndex].visits || 1) + 1;
+          allHistory[existingIndex].title = safeTitle;
+        } else {
+          allHistory.unshift({
+            id: id,
+            url: url,
+            title: safeTitle,
+            timestamp: now,
+            visits: 1
+          });
+        }
+        if (allHistory.length > 1000) {
+          allHistory = allHistory.slice(0, 1000);
+        }
+        await saveHistory();
+        filterHistory();
+        renderHistory();
+      }
+
+      function filterHistory() {
+        const searchTerm = historySearch.value.toLowerCase();
+        const now = new Date();
+        let filtered = allHistory;
+        if (currentFilter === 'today') {
+          const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+          filtered = allHistory.filter(item => new Date(item.timestamp) >= today);
+        } else if (currentFilter === 'week') {
+          const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+          filtered = allHistory.filter(item => new Date(item.timestamp) >= weekAgo);
+        } else if (currentFilter === 'month') {
+          const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+          filtered = allHistory.filter(item => new Date(item.timestamp) >= monthAgo);
+        }
+        if (searchTerm) {
+          filtered = filtered.filter(item =>
+            (item.url && item.url.toLowerCase().includes(searchTerm)) ||
+            (item.title && item.title.toLowerCase().includes(searchTerm))
+          );
+        }
+        filteredHistory = filtered;
+      }
+
+      function renderHistory() {
+        if (filteredHistory.length === 0) {
+          historyList.classList.add('hidden');
+          noHistory.classList.remove('hidden');
+          return;
+        }
+        historyList.classList.remove('hidden');
+        noHistory.classList.add('hidden');
+        
+        const groupedHistory = {};
+        filteredHistory.forEach(item => {
+          // Always sanitize just in case
+          const url = (typeof item.url === 'string' && item.url.trim() && item.url !== "undefined") ? item.url.trim() : '';
+          const title = (typeof item.title === 'string' && item.title.trim() && item.title !== "undefined") ? item.title.trim() : url;
+          const displayUrl = url ? url : 'Unknown URL';
+          const displayTitle = title ? title : 'Unknown';
+          const date = new Date(item.timestamp).toDateString();
+          if (!groupedHistory[date]) groupedHistory[date] = [];
+          groupedHistory[date].push({...item, displayUrl, displayTitle});
+        });
+        
+        historyList.innerHTML = Object.entries(groupedHistory).map(([date, items]) => {
+          const isToday = date === new Date().toDateString();
+          const isYesterday = date === new Date(Date.now() - 24 * 60 * 60 * 1000).toDateString();
+          let displayDate = date;
+          if (isToday) displayDate = 'Today';
+          else if (isYesterday) displayDate = 'Yesterday';
+          else {
+            const dateObj = new Date(date);
+            displayDate = dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+          }
+          
+          return `
+            <div class="fade-in">
+              <div class="mb-4">
+                <h3 class="text-sm font-medium text-subtle px-4 py-2">${displayDate}</h3>
+              </div>
+              <div class="bg-surface/30 rounded-xl overflow-hidden">
+                ${items.map(item => `
+                  <div class="history-item px-4 py-4 cursor-pointer" data-url="${item.displayUrl}">
+                    <div class="flex items-center justify-between">
+                      <div class="flex-1 min-w-0">
+                        <div class="flex items-center gap-3 mb-1">
+                          <div class="w-5 h-5 rounded bg-foam/20 flex items-center justify-center flex-shrink-0">
+                            <i class="bx bx-world text-foam text-xs"></i>
+                          </div>
+                          <h4 class="font-medium text-text truncate">${item.displayTitle}</h4>
+                          ${(item.visits || 1) > 1 ? `<span class="text-xs bg-highlight-med/50 px-2 py-1 rounded-full text-muted">${item.visits}</span>` : ''}
+                        </div>
+                        <div class="flex items-center gap-3 ml-8">
+                          <p class="text-sm text-muted truncate flex-1">${item.displayUrl}</p>
+                          <p class="text-xs text-subtle whitespace-nowrap">${formatTime(item.timestamp || new Date().toISOString())}</p>
+                        </div>
+                      </div>
+                      <button class="delete-item w-8 h-8 rounded-lg hover:bg-love/10 flex items-center justify-center text-muted hover:text-love transition-colors ml-4" data-id="${item.id}">
+                        <i class="bx bx-x text-lg"></i>
+                      </button>
+                    </div>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          `;
+        }).join('');
+        
+        document.querySelectorAll('.history-item').forEach(item => {
+          item.addEventListener('click', async (e) => {
+            if (e.target.closest('.delete-item')) return;
+            const url = item.dataset.url;
+            if (!url) return;
+            if (window.parent && window.parent !== window) {
+              window.parent.postMessage({
+                type: 'carbon-navigate',
+                url: url
+              }, '*');
+            } else {
+              const proxiedUrl = await getProxied(makeURL(url));
+              window.location.href = proxiedUrl;
+            }
+          });
+        });
+        
+        document.querySelectorAll('.delete-item').forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const id = parseFloat(btn.dataset.id);
+            deleteHistoryItem(id);
+          });
+        });
+      }
+
+      function formatTime(timestamp) {
+        const date = new Date(timestamp);
+        const now = new Date();
+        const diff = now - date;
+        if (diff < 60000) {
+          return 'Just now';
+        } else if (diff < 3600000) {
+          const minutes = Math.floor(diff / 60000);
+          return `${minutes}m ago`;
+        } else if (diff < 86400000) {
+          return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+        } else {
+          return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        }
+      }
+
+      async function deleteHistoryItem(id) {
+        allHistory = allHistory.filter(item => item.id !== id);
+        await saveHistory();
+        filterHistory();
+        renderHistory();
+      }
+      
+      async function clearAllHistory() {
+        if (confirm('Are you sure you want to clear all history? This action cannot be undone.')) {
+          allHistory = [];
+          await saveHistory();
+          filterHistory();
+          renderHistory();
+        }
+      }
+      
+      historySearch.addEventListener('input', () => {
+        filterHistory();
+        renderHistory();
+      });
+      
+      clearAllBtn.addEventListener('click', clearAllHistory);
+      
+      filterTabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+          filterTabs.forEach(t => t.classList.remove('active'));
+          tab.classList.add('active');
+          currentFilter = tab.dataset.filter;
+          filterHistory();
+          renderHistory();
+        });
+      });
+      
+      window.addEventListener('message', (event) => {
+        if (event.data && event.data.type === 'carbon-add-history') {
+          addToHistory(event.data.url, event.data.title);
+        }
+      });
+      
+      window.addToHistory = addToHistory;
+      
+      function initThemeSync() {
+        if (window.carbonTheme) {
+          const savedTheme = localStorage.getItem('carbon-theme-global') || 'rose-pine';
+          window.carbonTheme.setTheme(savedTheme);
+          console.log('🎨 Theme applied:', savedTheme);
+        } else {
+          setTimeout(initThemeSync, 100);
+        }
+      }
+      initThemeSync();
+      
+      window.addEventListener('storage', (e) => {
+        if (e.key === 'carbon-theme-global') {
+          if (window.carbonTheme) {
+            window.carbonTheme.setTheme(e.newValue);
+            console.log('🎨 Theme updated from storage:', e.newValue);
+          }
+        }
+      });
+
+      // Auth observer: on load, always merge and show all history from both sources
+      auth.onAuthStateChanged((user) => {
+        currentUser = user;
+        loadAndMergeHistory();
+        if (user) {
+          loadBackgroundFromFirebase(user.uid);
+        }
+      });
+
+      // On initial load, show all history even if not logged in
+      loadAndMergeHistory();
+
+      // Background System - Apply settings from settings.html
+      let currentBackground = 'gradient';
+      const validBackgrounds = ['gradient', 'solid', 'pattern', 'particles', 'custom'];
+
+      function initializeBackgroundSystem() {
+        // Load saved background preference
+        const savedBg = localStorage.getItem('carbon-background-global') || 'gradient';
+        if (validBackgrounds.includes(savedBg)) {
+          currentBackground = savedBg;
+          applyBackground();
+        }
+
+        // Listen for background changes from settings page
+        window.addEventListener('storage', (event) => {
+          if (event.key === 'carbon-background-global' && event.newValue) {
+            currentBackground = event.newValue;
+            applyBackground();
+          }
+        });
+
+        // Listen for theme broadcast messages
+        window.addEventListener('message', (event) => {
+          if (event.data && event.data.type === 'carbon-settings-updated') {
+            if (event.data.settings.background) {
+              currentBackground = event.data.settings.background;
+              applyBackground();
+            }
+          }
+        });
+      }
+
+      function applyBackground() {
+        const body = document.body;
+        const particlesCanvas = document.getElementById('particles-canvas');
+        const baseColor = getComputedStyle(document.documentElement).getPropertyValue('--theme-base') || '#191724';
+        
+        // Hide particles canvas by default
+        if (particlesCanvas) particlesCanvas.classList.add('hidden');
+        
+        // Reset body background
+        body.style.background = '';
+        
+        const customBg = localStorage.getItem('carbon-custom-bg-global');
+        
+        if (currentBackground === 'custom' && customBg) {
+          body.style.background = `url(${customBg}) center/cover fixed`;
+        } else {
+          switch (currentBackground) {
+            case 'solid':
+              body.style.background = baseColor;
+              break;
+            case 'pattern':
+              body.style.background = `${baseColor} url('data:image/svg+xml,<svg width="20" height="20" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><circle cx="10" cy="10" r="2" fill="%23ffffff" fill-opacity="0.2"/></svg>') repeat`;
+              break;
+            case 'particles':
+              body.style.background = baseColor;
+              if (particlesCanvas) {
+                particlesCanvas.classList.remove('hidden');
+                initParticles();
+              }
+              break;
+            case 'gradient':
+            default:
+              body.style.background = 'linear-gradient(135deg, #191724 0%, #1f1d2e 50%, #26233a 100%)';
+              body.style.backgroundAttachment = 'fixed';
+              break;
+          }
+        }
+      }
+
+      function initParticles() {
+        const canvas = document.getElementById('particles-canvas');
+        if (!canvas) return;
+        
+        const ctx = canvas.getContext('2d');
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        
+        const particlesArray = [];
+        const particleCount = 50;
+        
+        class Particle {
+          constructor() {
+            this.x = Math.random() * canvas.width;
+            this.y = Math.random() * canvas.height;
+            this.vx = (Math.random() - 0.5) * 2;
+            this.vy = (Math.random() - 0.5) * 2;
+            this.radius = Math.random() * 3 + 1;
+            this.opacity = Math.random() * 0.5 + 0.2;
+          }
+          
+          update() {
+            this.x += this.vx;
+            this.y += this.vy;
+            
+            if (this.x < 0 || this.x > canvas.width) this.vx *= -1;
+            if (this.y < 0 || this.y > canvas.height) this.vy *= -1;
+          }
+          
+          draw() {
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(156, 207, 216, ${this.opacity})`;
+            ctx.fill();
+          }
+        }
+        
+        function createParticles() {
+          particlesArray.length = 0;
+          for (let i = 0; i < particleCount; i++) {
+            particlesArray.push(new Particle());
+          }
+        }
+        
+        function animate() {
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          
+          particlesArray.forEach(particle => {
+            particle.update();
+            particle.draw();
+          });
+          
+          if (!canvas.classList.contains('hidden')) {
+            requestAnimationFrame(animate);
+          }
+        }
+        
+        createParticles();
+        animate();
+        
+        window.addEventListener('resize', () => {
+          canvas.width = window.innerWidth;
+          canvas.height = window.innerHeight;
+          createParticles();
+        });
+      }
+
+      async function loadBackgroundFromFirebase(uid) {
+        try {
+          const userDoc = await db.collection('users').doc(uid).get();
+          if (userDoc.exists) {
+            const userData = userDoc.data();
+            const settings = userData.settings || {};
+            
+            if (settings.background && validBackgrounds.includes(settings.background)) {
+              currentBackground = settings.background;
+              localStorage.setItem('carbon-background-global', currentBackground);
+            }
+            
+            if (settings.customBackground) {
+              localStorage.setItem('carbon-custom-bg-global', settings.customBackground);
+            }
+            
+            applyBackground();
+          }
+        } catch (error) {
+          console.error('Error loading background from Firebase:', error);
+        }
+      }
+
+      // Initialize background system when DOM is loaded
+      document.addEventListener('DOMContentLoaded', () => {
+        setTimeout(initializeBackgroundSystem, 100);
+      });
+    </script>
+  </body>
+</html>

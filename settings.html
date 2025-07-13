@@ -1,0 +1,1420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Settings - Carbon</title>
+    <script defer async>
+        function setConfig() {
+            tailwind.config = {
+                theme: {
+                    extend: {
+                        fontFamily: {
+                            inter: ["Inter", "sans-serif"],
+                        },
+                        colors: {
+                            base: "#191724",
+                            surface: "#1f1d2e",
+                            overlay: "#26233a",
+                            muted: "#6e6a86",
+                            subtle: "#908caa",
+                            text: "#e0def4",
+                            love: "#eb6f92",
+                            gold: "#f6c177",
+                            rose: "#ebbcba",
+                            pine: "#31748f",
+                            foam: "#9ccfd8",
+                            iris: "#c4a7e7",
+                            "highlight-low": "#21202e",
+                            "highlight-med": "#403d52",
+                            "highlight-high": "#524f67",
+                        },
+                    },
+                },
+            };
+        }
+    </script>
+    <script defer async src="https://cdn.tailwindcss.com" onload="setConfig()"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet" />
+    <style>
+        :root {
+            --theme-gradient: linear-gradient(135deg, #191724 0%, #1f1d2e 50%, #26233a 100%);
+        }
+    </style>
+</head>
+<body class="font-inter min-h-screen bg-[var(--theme-base)] text-[var(--theme-text)] transition-all duration-300">
+    <!-- Theme color schemes -->
+    <script>
+        document.documentElement.setAttribute('data-theme', 'rose-pine');
+    </script>
+
+    <!-- Particles Canvas -->
+    <canvas id="particles-canvas" class="fixed inset-0 pointer-events-none hidden"></canvas>
+
+    <!-- Login Screen -->
+    <div id="login-screen" class="min-h-screen flex items-center justify-center px-4">
+        <div class="bg-[var(--theme-surface)] rounded-xl p-6 max-w-sm w-full shadow-lg">
+            <div class="text-center mb-6">
+                <i class="bx bx-cog text-4xl text-[var(--theme-foam)] mb-3"></i>
+                <h1 class="text-xl font-semibold">Carbon Settings</h1>
+                <p class="text-[var(--theme-muted)] text-sm">Sign in to customize and sync settings</p>
+            </div>
+            <button id="google-signin-btn" class="w-full flex items-center justify-center gap-2 bg-[var(--theme-foam)] text-[var(--theme-base)] font-medium py-2 rounded-lg hover:bg-[var(--theme-foam)]/80 transition-all duration-200">
+                <i class='bx bxl-google text-lg'></i>
+                Sign in with Google
+            </button>
+            <div id="login-error" class="text-[var(--theme-love)] mt-3 text-sm text-center hidden"></div>
+        </div>
+    </div>
+
+    <!-- Settings Content -->
+    <div id="settings-content" class="max-w-3xl mx-auto p-4 hidden">
+        <!-- Header with User Info -->
+        <header class="flex justify-between items-center mb-8">
+            <h1 class="text-2xl font-semibold flex items-center gap-2">
+                <i class="bx bx-cog text-[var(--theme-foam)]"></i>
+                Settings
+            </h1>
+            <div id="user-info" class="flex items-center gap-2">
+                <p id="user-name" class="text-sm font-medium"></p>
+                <img id="user-photo" class="w-8 h-8 rounded-full border border-[var(--theme-foam)]/50" src="" alt="Profile">
+                <button id="sign-out-btn" class="text-[var(--theme-muted)] hover:text-[var(--theme-love)] text-sm">Sign Out</button>
+            </div>
+        </header>
+
+        <!-- Panic Key -->
+        <div class="bg-[var(--theme-surface)] rounded-xl p-5 mb-4 shadow-sm hover:shadow-md transition-shadow duration-200">
+            <h2 class="text-lg font-medium flex items-center gap-2 mb-3">
+                <i class="bx bx-shield-alt-2 text-[var(--theme-love)]"></i>
+                Panic Key
+                <span id="panic-status" class="w-2 h-2 rounded-full bg-[var(--theme-muted)]"></span>
+            </h2>
+            <p class="text-[var(--theme-muted)] text-sm mb-3">Set a key to close Carbon and redirect</p>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-medium text-[var(--theme-subtle)] mb-1">Current Key</label>
+                    <div id="panic-key-display" class="bg-[var(--theme-overlay)] text-[var(--theme-foam)] rounded-lg p-3 text-center text-sm font-medium">Press "Set Key" to configure</div>
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-[var(--theme-subtle)] mb-1">Actions</label>
+                    <div class="flex gap-2">
+                        <button id="set-panic-key" class="flex items-center gap-1 px-3 py-2 bg-[var(--theme-foam)] text-[var(--theme-base)] rounded-lg text-sm hover:bg-[var(--theme-foam)]/80 transition-all duration-200">
+                            <i class="bx bx-key"></i>
+                            Set Key
+                        </button>
+                        <button id="clear-panic-key" class="flex items-center gap-1 px-3 py-2 bg-[var(--theme-love)] text-white rounded-lg text-sm hover:bg-[var(--theme-love)]/80 transition-all duration-200">
+                            <i class="bx bx-trash"></i>
+                            Clear
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="mt-4">
+                <label class="block text-xs font-medium text-[var(--theme-subtle)] mb-1">Redirect URL</label>
+                <input type="url" id="panic-url" placeholder="https://classroom.google.com" class="w-full px-3 py-2 bg-[var(--theme-overlay)] border border-[var(--theme-highlight-med)] text-[var(--theme-text)] rounded-lg text-sm focus:border-[var(--theme-foam)] focus:ring-1 focus:ring-[var(--theme-foam)]/30 transition-all duration-200">
+            </div>
+        </div>
+
+        <!-- Theme & Background -->
+        <div class="bg-[var(--theme-surface)] rounded-xl p-5 mb-4 shadow-sm hover:shadow-md transition-shadow duration-200">
+            <h2 class="text-lg font-medium flex items-center gap-2 mb-3">
+                <i class="bx bx-palette text-[var(--theme-iris)]"></i>
+                Theme & Background
+            </h2>
+            <p class="text-[var(--theme-muted)] text-sm mb-3">Customize appearance</p>
+            <div class="mb-4">
+                <label class="block text-xs font-medium text-[var(--theme-subtle)] mb-2">Themes</label>
+                <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    <div class="theme-preview active rounded-lg p-2 cursor-pointer border border-transparent hover:border-[var(--theme-foam)] transition-all duration-200" data-theme="rose-pine" style="background: linear-gradient(135deg, #191724 0%, #1f1d2e 50%, #26233a 100%);">
+                        <div class="text-center text-xs text-white">Rose Pine</div>
+                    </div>
+                    <div class="theme-preview rounded-lg p-2 cursor-pointer border border-transparent hover:border-[var(--theme-foam)] transition-all duration-200" data-theme="dark" style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);">
+                        <div class="text-center text-xs text-white">Dark</div>
+                    </div>
+                    <div class="theme-preview rounded-lg p-2 cursor-pointer border border-transparent hover:border-[var(--theme-foam)] transition-all duration-200" data-theme="light" style="background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 50%, #cbd5e1 100%);">
+                        <div class="text-center text-xs text-black">Light</div>
+                    </div>
+                    <div class="theme-preview rounded-lg p-2 cursor-pointer border border-transparent hover:border-[var(--theme-foam)] transition-all duration-200" data-theme="catppuccin" style="background: linear-gradient(135deg, #1e1e2e 0%, #313244 50%, #45475a 100%);">
+                        <div class="text-center text-xs text-white">Catppuccin</div>
+                    </div>
+                    <div class="theme-preview rounded-lg p-2 cursor-pointer border border-transparent hover:border-[var(--theme-foam)] transition-all duration-200" data-theme="nord" style="background: linear-gradient(135deg, #2e3440 0%, #3b4252 50%, #434c5e 100%);">
+                        <div class="text-center text-xs text-white">Nord</div>
+                    </div>
+                    <div class="theme-preview rounded-lg p-2 cursor-pointer border border-transparent hover:border-[var(--theme-foam)] transition-all duration-200" data-theme="dracula" style="background: linear-gradient(135deg, #282a36 0%, #44475a 50%, #6272a4 100%);">
+                        <div class="text-center text-xs text-white">Dracula</div>
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <button id="create-custom-theme-btn" class="w-full px-4 py-2 bg-[var(--theme-iris)] text-white rounded-lg text-sm hover:bg-[var(--theme-iris)]/80 transition-all duration-200">
+                        <i class="bx bx-palette mr-2"></i>
+                        Create Custom Theme
+                    </button>
+                </div>
+                <div id="custom-themes-section" class="mt-4 hidden">
+                    <h4 class="text-xs font-medium text-[var(--theme-subtle)] mb-2">Custom Themes</h4>
+                    <div id="custom-themes-grid" class="grid grid-cols-2 sm:grid-cols-3 gap-3"></div>
+                </div>
+                <div id="color-wheel-container" class="mt-4 hidden">
+                    <div class="bg-[var(--theme-overlay)] rounded-lg p-4 border border-[var(--theme-highlight-med)]">
+                        <div class="flex items-center justify-between mb-4">
+                            <h4 class="text-sm font-medium text-[var(--theme-text)]">Create Custom Theme</h4>
+                            <button id="close-color-wheel" class="text-[var(--theme-muted)] hover:text-[var(--theme-love)] transition-colors">
+                                <i class="bx bx-x text-lg"></i>
+                            </button>
+                        </div>
+                        
+                        <div class="space-y-4">
+                            <!-- Theme Name Input -->
+                            <div>
+                                <label class="block text-xs font-medium text-[var(--theme-subtle)] mb-1">Theme Name</label>
+                                <input type="text" id="custom-theme-name" placeholder="My Custom Theme" maxlength="20" class="w-full px-3 py-2 bg-[var(--theme-surface)] border border-[var(--theme-highlight-med)] text-[var(--theme-text)] rounded-lg text-sm focus:border-[var(--theme-foam)] focus:ring-1 focus:ring-[var(--theme-foam)]/30 transition-all duration-200">
+                            </div>
+                            
+                            <!-- Color Pickers Grid -->
+                            <div class="grid grid-cols-2 gap-4">
+                                <!-- Primary Colors -->
+                                <div>
+                                    <h5 class="text-xs font-medium text-[var(--theme-subtle)] mb-2">Primary Colors</h5>
+                                    <div class="space-y-2">
+                                        <div class="flex items-center gap-2">
+                                            <input type="color" id="color-base" value="#191724" class="w-8 h-8 border border-[var(--theme-highlight-med)] rounded cursor-pointer">
+                                            <label class="text-xs text-[var(--theme-text)]">Base</label>
+                                        </div>
+                                        <div class="flex items-center gap-2">
+                                            <input type="color" id="color-surface" value="#1f1d2e" class="w-8 h-8 border border-[var(--theme-highlight-med)] rounded cursor-pointer">
+                                            <label class="text-xs text-[var(--theme-text)]">Surface</label>
+                                        </div>
+                                        <div class="flex items-center gap-2">
+                                            <input type="color" id="color-overlay" value="#26233a" class="w-8 h-8 border border-[var(--theme-highlight-med)] rounded cursor-pointer">
+                                            <label class="text-xs text-[var(--theme-text)]">Overlay</label>
+                                        </div>
+                                        <div class="flex items-center gap-2">
+                                            <input type="color" id="color-text" value="#e0def4" class="w-8 h-8 border border-[var(--theme-highlight-med)] rounded cursor-pointer">
+                                            <label class="text-xs text-[var(--theme-text)]">Text</label>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Accent Colors -->
+                                <div>
+                                    <h5 class="text-xs font-medium text-[var(--theme-subtle)] mb-2">Accent Colors</h5>
+                                    <div class="space-y-2">
+                                        <div class="flex items-center gap-2">
+                                            <input type="color" id="color-foam" value="#9ccfd8" class="w-8 h-8 border border-[var(--theme-highlight-med)] rounded cursor-pointer">
+                                            <label class="text-xs text-[var(--theme-text)]">Primary</label>
+                                        </div>
+                                        <div class="flex items-center gap-2">
+                                            <input type="color" id="color-love" value="#eb6f92" class="w-8 h-8 border border-[var(--theme-highlight-med)] rounded cursor-pointer">
+                                            <label class="text-xs text-[var(--theme-text)]">Love</label>
+                                        </div>
+                                        <div class="flex items-center gap-2">
+                                            <input type="color" id="color-gold" value="#f6c177" class="w-8 h-8 border border-[var(--theme-highlight-med)] rounded cursor-pointer">
+                                            <label class="text-xs text-[var(--theme-text)]">Gold</label>
+                                        </div>
+                                        <div class="flex items-center gap-2">
+                                            <input type="color" id="color-iris" value="#c4a7e7" class="w-8 h-8 border border-[var(--theme-highlight-med)] rounded cursor-pointer">
+                                            <label class="text-xs text-[var(--theme-text)]">Iris</label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Preview -->
+                            <div class="mt-4">
+                                <label class="block text-xs font-medium text-[var(--theme-subtle)] mb-2">Preview</label>
+                                <div id="theme-preview" class="w-full h-16 rounded-lg border border-[var(--theme-highlight-med)] relative overflow-hidden">
+                                    <div class="absolute inset-0 flex items-center justify-center">
+                                        <span class="text-sm font-medium text-white">Preview Theme</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Actions -->
+                            <div class="flex gap-2 pt-2">
+                                <button id="save-custom-theme" class="flex-1 px-4 py-2 bg-[var(--theme-foam)] text-[var(--theme-base)] rounded-lg text-sm hover:bg-[var(--theme-foam)]/80 transition-all duration-200">
+                                    <i class="bx bx-save mr-1"></i>
+                                    Save Theme
+                                </button>
+                                <button id="random-colors" class="px-4 py-2 bg-[var(--theme-iris)] text-white rounded-lg text-sm hover:bg-[var(--theme-iris)]/80 transition-all duration-200">
+                                    <i class="bx bx-shuffle mr-1"></i>
+                                    Random
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="mb-4">
+                <label class="block text-xs font-medium text-[var(--theme-subtle)] mb-2">Backgrounds</label>
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <div class="bg-preview active rounded-lg p-2 cursor-pointer border border-[var(--theme-foam)] transition-all duration-200" data-bg="gradient" style="background: var(--theme-gradient);">
+                        <div class="text-center text-xs text-white">Gradient</div>
+                    </div>
+                    <div class="bg-preview rounded-lg p-2 cursor-pointer border border-transparent hover:border-[var(--theme-foam)] transition-all duration-200" data-bg="solid">
+                        <div class="text-center text-xs text-white">Solid</div>
+                    </div>
+                    <div class="bg-preview rounded-lg p-2 cursor-pointer border border-transparent hover:border-[var(--theme-foam)] transition-all duration-200" data-bg="pattern">
+                        <div class="text-center text-xs text-white">Pattern</div>
+                    </div>
+                    <div class="bg-preview rounded-lg p-2 cursor-pointer border border-transparent hover:border-[var(--theme-foam)] transition-all duration-200" data-bg="particles">
+                        <div class="text-center text-xs text-white">Particles</div>
+                    </div>
+                </div>
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-[var(--theme-subtle)] mb-2">Custom Background</label>
+                <div id="bg-upload" class="border-2 border-dashed border-[var(--theme-highlight-med)] rounded-lg p-4 text-center cursor-pointer hover:bg-[var(--theme-overlay)] transition-all duration-200">
+                    <i class="bx bx-cloud-upload text-2xl text-[var(--theme-muted)] mb-1"></i>
+                    <p class="text-[var(--theme-muted)] text-sm">Upload or drag and drop an image</p>
+                    <p class="text-xs text-[var(--theme-subtle)]">JPG, PNG, WebP</p>
+                </div>
+                <input type="file" id="bg-file-input" accept="image/*" class="hidden">
+                <div id="custom-bg-preview" class="mt-4 hidden">
+                    <div id="bg-preview-image" class="w-full h-40 rounded-lg bg-cover bg-center border border-[var(--theme-highlight-med)] hover:border-[var(--theme-foam)] transition-all duration-200"></div>
+                    <div class="flex gap-2 mt-2">
+                        <button id="remove-bg" class="px-3 py-1 bg-[var(--theme-love)] text-white rounded-lg text-sm hover:bg-[var(--theme-love)]/80 transition-all duration-200">Remove</button>
+                        <button id="change-bg" class="px-3 py-1 bg-[var(--theme-foam)] text-[var(--theme-base)] rounded-lg text-sm hover:bg-[var(--theme-foam)]/80 transition-all duration-200">Change</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab Cloaking -->
+        <div class="bg-[var(--theme-surface)] rounded-xl p-5 mb-4 shadow-sm hover:shadow-md transition-shadow duration-200">
+            <h2 class="text-lg font-medium flex items-center gap-2 mb-3">
+                <i class="bx bx-mask text-[var(--theme-gold)]"></i>
+                Tab Cloaking
+            </h2>
+            <p class="text-[var(--theme-muted)] text-sm mb-3">Disguise tab title and favicon</p>
+            <label class="flex items-center gap-2 mb-3">
+                <input type="checkbox" id="tab-cloaking-enabled" class="w-4 h-4 border border-[var(--theme-highlight-med)] rounded bg-[var(--theme-surface)] checked:bg-[var(--theme-foam)] focus:ring-[var(--theme-foam)] focus:ring-1 transition-all duration-200">
+                <span class="text-[var(--theme-subtle)] text-sm">Enable</span>
+            </label>
+            <div id="cloaking-options" class="space-y-3 opacity-50 transition-opacity duration-200">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-medium text-[var(--theme-subtle)] mb-1">Fake Title</label>
+                        <input type="text" id="cloak-title" placeholder="Google Classroom" class="w-full px-3 py-2 bg-[var(--theme-overlay)] border border-[var(--theme-highlight-med)] text-[var(--theme-text)] rounded-lg text-sm focus:border-[var(--theme-foam)] focus:ring-1 focus:ring-[var(--theme-foam)]/30 transition-all duration-200">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-[var(--theme-subtle)] mb-1">Fake Favicon URL</label>
+                        <input type="url" id="cloak-favicon" placeholder="https://classroom.google.com/favicon.ico" class="w-full px-3 py-2 bg-[var(--theme-overlay)] border border-[var(--theme-highlight-med)] text-[var(--theme-text)] rounded-lg text-sm focus:border-[var(--theme-foam)] focus:ring-1 focus:ring-[var(--theme-foam)]/30 transition-all duration-200">
+                    </div>
+                </div>
+                <div class="bg-[var(--theme-overlay)] p-3 rounded-lg">
+                    <h4 class="text-xs font-medium text-[var(--theme-subtle)] mb-2">Presets</h4>
+                    <div class="flex flex-wrap gap-2">
+                        <button class="cloak-preset px-2 py-1 bg-[var(--theme-foam)] text-[var(--theme-base)] rounded text-xs hover:bg-[var(--theme-foam)]/80 transition-all duration-200" data-title="Google Classroom" data-favicon="https://classroom.google.com/favicon.ico">Google Classroom</button>
+                        <button class="cloak-preset px-2 py-1 bg-[var(--theme-foam)] text-[var(--theme-base)] rounded text-xs hover:bg-[var(--theme-foam)]/80 transition-all duration-200" data-title="Google Docs" data-favicon="https://docs.google.com/favicon.ico">Google Docs</button>
+                        <button class="cloak-preset px-2 py-1 bg-[var(--theme-foam)] text-[var(--theme-base)] rounded text-xs hover:bg-[var(--theme-foam)]/80 transition-all duration-200" data-title="Khan Academy" data-favicon="https://www.khanacademy.org/favicon.ico">Khan Academy</button>
+                        <button class="cloak-preset px-2 py-1 bg-[var(--theme-foam)] text-[var(--theme-base)] rounded text-xs hover:bg-[var(--theme-foam)]/80 transition-all duration-200" data-title="Schoology" data-favicon="https://www.schoology.com/favicon.ico">Schoology</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Privacy Settings -->
+        <div class="bg-[var(--theme-surface)] rounded-xl p-5 mb-4 shadow-sm hover:shadow-md transition-shadow duration-200">
+            <h2 class="text-lg font-medium flex items-center gap-2 mb-3">
+                <i class="bx bx-lock-alt text-[var(--theme-pine)]"></i>
+                Privacy Controls
+            </h2>
+            <p class="text-[var(--theme-muted)] text-sm mb-3">Enhance privacy and prevent detection</p>
+            <div class="space-y-2">
+                <label class="flex items-center gap-2">
+                    <input type="checkbox" id="disable-right-click" class="w-4 h-4 border border-[var(--theme-highlight-med)] rounded bg-[var(--theme-surface)] checked:bg-[var(--theme-foam)] focus:ring-[var(--theme-foam)] focus:ring-1 transition-all duration-200">
+                    <span class="text-[var(--theme-subtle)] text-sm">Disable right-click</span>
+                </label>
+                <label class="flex items-center gap-2">
+                    <input type="checkbox" id="disable-devtools" class="w-4 h-4 border border-[var(--theme-highlight-med)] rounded bg-[var(--theme-surface)] checked:bg-[var(--theme-foam)] focus:ring-[var(--theme-foam)] focus:ring-1 transition-all duration-200">
+                    <span class="text-[var(--theme-subtle)] text-sm">Disable developer tools</span>
+                </label>
+                <label class="flex items-center gap-2">
+                    <input type="checkbox" id="disable-select" class="w-4 h-4 border border-[var(--theme-highlight-med)] rounded bg-[var(--theme-surface)] checked:bg-[var(--theme-foam)] focus:ring-[var(--theme-foam)] focus:ring-1 transition-all duration-200">
+                    <span class="text-[var(--theme-subtle)] text-sm">Disable text selection</span>
+                </label>
+                <label class="flex items-center gap-2">
+                    <input type="checkbox" id="hide-cursor" class="w-4 h-4 border border-[var(--theme-highlight-med)] rounded bg-[var(--theme-surface)] checked:bg-[var(--theme-foam)] focus:ring-[var(--theme-foam)] focus:ring-1 transition-all duration-200">
+                    <span class="text-[var(--theme-subtle)] text-sm">Hide cursor when idle</span>
+                </label>
+                <label class="flex items-center gap-2">
+                    <input type="checkbox" id="blur-on-unfocus" class="w-4 h-4 border border-[var(--theme-highlight-med)] rounded bg-[var(--theme-surface)] checked:bg-[var(--theme-foam)] focus:ring-[var(--theme-foam)] focus:ring-1 transition-all duration-200">
+                    <span class="text-[var(--theme-subtle)] text-sm">Blur screen when unfocused</span>
+                </label>
+            </div>
+        </div>
+
+        <!-- About Blank Tool -->
+        <div class="bg-[var(--theme-surface)] rounded-xl p-5 mb-4 shadow-sm hover:shadow-md transition-shadow duration-200">
+            <h2 class="text-lg font-medium flex items-center gap-2 mb-3">
+                <i class="bx bx-window-open text-[var(--theme-gold)]"></i>
+                About Blank Tool
+            </h2>
+            <p class="text-[var(--theme-muted)] text-sm mb-3">Open Carbon in a new window disguised as about:blank</p>
+            <div class="space-y-3">
+                <div class="bg-[var(--theme-overlay)] p-3 rounded-lg">
+                    <p class="text-[var(--theme-subtle)] text-xs mb-2">This tool opens Carbon in a new window that appears as "about:blank" in the browser tab, providing an additional layer of privacy.</p>
+                </div>
+                <div class="flex gap-2">
+                    <button id="open-about-blank" class="flex items-center gap-2 px-4 py-2 bg-[var(--theme-foam)] text-[var(--theme-base)] rounded-lg text-sm hover:bg-[var(--theme-foam)]/80 transition-all duration-200">
+                        <i class="bx bx-window-open"></i>
+                        Open About Blank
+                    </button>
+                    <button id="create-blob" class="flex items-center gap-2 px-4 py-2 bg-[var(--theme-gold)] text-[var(--theme-base)] rounded-lg text-sm hover:bg-[var(--theme-gold)]/80 transition-all duration-200">
+                        <i class="bx bx-shape-circle"></i>
+                        Create Blob
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Save Settings -->
+        <div class="text-center">
+            <button id="save-settings" class="px-6 py-2 bg-[var(--theme-foam)] text-[var(--theme-base)] rounded-lg text-sm font-medium hover:bg-[var(--theme-foam)]/80 transition-all duration-200">
+                <i class="bx bx-check mr-1"></i>
+                Auto-Save Enabled
+            </button>
+        </div>
+    </div>
+
+    <script src="carbon-theme.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyC4ilHYP1T-kdXbWPoHJHhD2aj0pNWmMec",
+            authDomain: "carbon-services.firebaseapp.com",
+            projectId: "carbon-services",
+            storageBucket: "carbon-services.firebasestorage.app",
+            messagingSenderId: "288385472070",
+            appId: "1:288385472070:web:c4be3ff186e248fc645c47",
+            measurementId: "G-Y2K1RQYE74"
+        };
+        
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+        
+        let panicKey = null;
+        let isRecordingPanicKey = false;
+        let currentTheme = 'rose-pine';
+        let currentBackground = 'gradient';
+        let currentUser = null;
+        const validBackgrounds = ['gradient', 'solid', 'pattern', 'particles', 'custom'];
+
+        async function googleSignIn() {
+            try {
+                const provider = new firebase.auth.GoogleAuthProvider();
+                await auth.signInWithPopup(provider);
+            } catch (error) {
+                console.error('Sign in error:', error);
+                document.getElementById('login-error').innerText = error.message;
+                document.getElementById('login-error').classList.remove('hidden');
+            }
+        }
+        
+        async function signOut() {
+            try {
+                await auth.signOut();
+            } catch (error) {
+                console.error('Sign out error:', error);
+            }
+        }
+        
+        auth.onAuthStateChanged((user) => {
+            currentUser = user;
+            if (user) {
+                document.getElementById('login-screen').classList.add('hidden');
+                document.getElementById('settings-content').classList.remove('hidden');
+                document.getElementById('user-photo').src = user.photoURL || '';
+                document.getElementById('user-name').textContent = user.displayName || 'User';
+                loadSettingsFromFirebase();
+            } else {
+                document.getElementById('login-screen').classList.remove('hidden');
+                document.getElementById('settings-content').classList.add('hidden');
+                loadSettings();
+            }
+        });
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            initParticles();
+        });
+
+        async function loadSettingsFromFirebase() {
+            if (!currentUser) {
+                loadSettings();
+                return;
+            }
+            try {
+                console.log('Loading settings from Firebase for user:', currentUser.uid);
+                const userSettingsDoc = await db.collection('users').doc(currentUser.uid).get();
+                if (userSettingsDoc.exists) {
+                    const userData = userSettingsDoc.data();
+                    const settings = userData.settings || {};
+                    if (settings.panicKey) {
+                        panicKey = settings.panicKey;
+                        document.getElementById('panic-key-display').textContent = panicKey.toUpperCase();
+                    }
+                    if (settings.panicUrl) {
+                        document.getElementById('panic-url').value = settings.panicUrl;
+                    }
+                    if (settings.theme) {
+                        currentTheme = settings.theme;
+                        document.querySelectorAll('.theme-preview').forEach(el => el.classList.remove('active', 'border-[var(--theme-foam)]'));
+                        document.querySelector(`[data-theme="${settings.theme}"]`)?.classList.add('active', 'border-[var(--theme-foam)]');
+                    }
+                    if (settings.background && validBackgrounds.includes(settings.background)) {
+                        currentBackground = settings.background;
+                        console.log('Loaded background from Firebase:', currentBackground);
+                        updateBackgroundUI();
+                    } else {
+                        console.warn('Invalid or missing background in Firebase, defaulting to gradient');
+                        currentBackground = 'gradient';
+                        updateBackgroundUI();
+                    }
+                    if (settings.customBackground && currentBackground === 'custom') {
+                        localStorage.setItem('carbon-custom-bg-global', settings.customBackground);
+                        showCustomBgPreview(settings.customBackground);
+                    }
+                    document.getElementById('tab-cloaking-enabled').checked = settings.cloakingEnabled || false;
+                    document.getElementById('cloak-title').value = settings.cloakTitle || '';
+                    document.getElementById('cloak-favicon').value = settings.cloakFavicon || '';
+                    document.getElementById('disable-right-click').checked = settings.disableRightClick || false;
+                    document.getElementById('disable-devtools').checked = settings.disableDevtools || false;
+                    document.getElementById('disable-select').checked = settings.disableSelect || false;
+                    document.getElementById('hide-cursor').checked = settings.hideCursor || false;
+                    document.getElementById('blur-on-unfocus').checked = settings.blurOnUnfocus || false;
+                    applySettings();
+                    toggleCloakingOptions();
+                    updateStatusIndicators();
+                    loadCustomThemes();
+                } else {
+                    console.log('No Firebase settings found, falling back to localStorage');
+                    loadSettings();
+                }
+            } catch (error) {
+                console.error('Error loading settings from Firebase:', error);
+                loadSettings();
+            }
+        }
+        
+        async function saveSettingsToFirebase() {
+            if (!currentUser) return;
+            try {
+                const settings = {
+                    panicKey: panicKey || '',
+                    panicUrl: document.getElementById('panic-url').value,
+                    theme: currentTheme,
+                    background: currentBackground,
+                    customBackground: localStorage.getItem('carbon-custom-bg-global') || '',
+                    cloakingEnabled: document.getElementById('tab-cloaking-enabled').checked,
+                    cloakTitle: document.getElementById('cloak-title').value,
+                    cloakFavicon: document.getElementById('cloak-favicon').value,
+                    disableRightClick: document.getElementById('disable-right-click').checked,
+                    disableDevtools: document.getElementById('disable-devtools').checked,
+                    disableSelect: document.getElementById('disable-select').checked,
+                    hideCursor: document.getElementById('hide-cursor').checked,
+                    blurOnUnfocus: document.getElementById('blur-on-unfocus').checked,
+                    lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+                };
+                await db.collection('users').doc(currentUser.uid).set({ settings }, { merge: true });
+                console.log('Settings saved to Firebase, background:', currentBackground);
+            } catch (error) {
+                console.error('Error saving settings to Firebase:', error);
+            }
+        }
+
+        function loadSettings() {
+            console.log('Loading settings from localStorage');
+            const savedPanicKey = localStorage.getItem('carbon-panic-key');
+            if (savedPanicKey) {
+                panicKey = savedPanicKey;
+                document.getElementById('panic-key-display').textContent = panicKey.toUpperCase();
+            }
+            const savedPanicUrl = localStorage.getItem('carbon-panic-url');
+            if (savedPanicUrl) {
+                document.getElementById('panic-url').value = savedPanicUrl;
+            }
+            const savedTheme = localStorage.getItem('carbon-theme-global') || 'rose-pine';
+            currentTheme = savedTheme;
+            document.querySelectorAll('.theme-preview').forEach(el => el.classList.remove('active', 'border-[var(--theme-foam)]'));
+            document.querySelector(`[data-theme="${savedTheme}"]`)?.classList.add('active', 'border-[var(--theme-foam)]');
+            const savedBg = localStorage.getItem('carbon-background-global') || 'gradient';
+            if (validBackgrounds.includes(savedBg)) {
+                currentBackground = savedBg;
+                console.log('Loaded background from localStorage:', currentBackground);
+                updateBackgroundUI();
+            } else {
+                console.warn('Invalid or missing background in localStorage, defaulting to gradient');
+                currentBackground = 'gradient';
+                updateBackgroundUI();
+            }
+            const savedCustomBg = localStorage.getItem('carbon-custom-bg-global');
+            if (savedCustomBg && currentBackground === 'custom') {
+                showCustomBgPreview(savedCustomBg);
+            }
+            document.getElementById('tab-cloaking-enabled').checked = localStorage.getItem('carbon-cloak-enabled') === 'true';
+            document.getElementById('cloak-title').value = localStorage.getItem('carbon-cloak-title') || '';
+            document.getElementById('cloak-favicon').value = localStorage.getItem('carbon-cloak-favicon') || '';
+            document.getElementById('disable-right-click').checked = localStorage.getItem('carbon-disable-right-click') === 'true';
+            document.getElementById('disable-devtools').checked = localStorage.getItem('carbon-disable-devtools') === 'true';
+            document.getElementById('disable-select').checked = localStorage.getItem('carbon-disable-select') === 'true';
+            document.getElementById('hide-cursor').checked = localStorage.getItem('carbon-hide-cursor') === 'true';
+            document.getElementById('blur-on-unfocus').checked = localStorage.getItem('carbon-blur-unfocus') === 'true';
+            toggleCloakingOptions();
+            updateStatusIndicators();
+            applySettings();
+        }
+
+        function updateBackgroundUI() {
+            console.log('Updating background UI for:', currentBackground);
+            document.querySelectorAll('.bg-preview').forEach(el => el.classList.remove('active', 'border-[var(--theme-foam)]'));
+            if (currentBackground !== 'custom') {
+                const bgElement = document.querySelector(`[data-bg="${currentBackground}"]`);
+                if (bgElement) {
+                    bgElement.classList.add('active', 'border-[var(--theme-foam)]');
+                } else {
+                    console.warn('Background element not found, defaulting UI to gradient');
+                    currentBackground = 'gradient';
+                    localStorage.setItem('carbon-background-global', 'gradient');
+                    document.querySelector(`[data-bg="gradient"]`)?.classList.add('active', 'border-[var(--theme-foam)]');
+                }
+            }
+            applyBackground();
+        }
+
+        function loadCustomThemes() {
+            if (!window.carbonTheme) {
+                setTimeout(loadCustomThemes, 100);
+                return;
+            }
+            const customThemes = window.carbonTheme.customThemes;
+            const customThemesGrid = document.getElementById('custom-themes-grid');
+            const customThemesSection = document.getElementById('custom-themes-section');
+            customThemesGrid.innerHTML = '';
+            if (Object.keys(customThemes).length > 0) {
+                customThemesSection.classList.remove('hidden');
+                Object.entries(customThemes).forEach(([name, theme]) => {
+                    const themeDiv = document.createElement('div');
+                    themeDiv.className = `theme-preview rounded-lg p-2 cursor-pointer border ${currentTheme === name ? 'border-[var(--theme-foam)]' : 'border-transparent'} hover:border-[var(--theme-foam)] transition-all duration-200`;
+                    themeDiv.dataset.theme = name;
+                    themeDiv.style.background = `linear-gradient(135deg, ${theme.base} 0%, ${theme.surface} 50%, ${theme.overlay} 100%)`;
+                    themeDiv.innerHTML = `
+                        <div class="text-center text-xs text-white flex items-center justify-center gap-1">
+                            <span class="truncate">${name}</span>
+                            <button class="delete-custom-theme text-[var(--theme-love)] hover:text-[var(--theme-love)]/80" data-theme="${name}">×</button>
+                        </div>
+                    `;
+                    customThemesGrid.appendChild(themeDiv);
+                });
+            } else {
+                customThemesSection.classList.add('hidden');
+            }
+        }
+
+        async function saveSettings() {
+            localStorage.setItem('carbon-panic-key', panicKey || '');
+            localStorage.setItem('carbon-panic-url', document.getElementById('panic-url').value);
+            localStorage.setItem('carbon-theme-global', currentTheme);
+            localStorage.setItem('carbon-background-global', currentBackground);
+            localStorage.setItem('carbon-cloak-enabled', document.getElementById('tab-cloaking-enabled').checked);
+            localStorage.setItem('carbon-cloak-title', document.getElementById('cloak-title').value);
+            localStorage.setItem('carbon-cloak-favicon', document.getElementById('cloak-favicon').value);
+            localStorage.setItem('carbon-disable-right-click', document.getElementById('disable-right-click').checked);
+            localStorage.setItem('carbon-disable-devtools', document.getElementById('disable-devtools').checked);
+            localStorage.setItem('carbon-disable-select', document.getElementById('disable-select').checked);
+            localStorage.setItem('carbon-hide-cursor', document.getElementById('hide-cursor').checked);
+            localStorage.setItem('carbon-blur-unfocus', document.getElementById('blur-on-unfocus').checked);
+            console.log('Saved settings, background:', currentBackground);
+            if (currentUser) {
+                await saveSettingsToFirebase();
+            }
+            applySettings();
+            if (window.parent && window.parent !== window) {
+                window.parent.postMessage({ type: 'carbon-settings-refresh' }, '*');
+            }
+            updateStatusIndicators();
+            const btn = document.getElementById('save-settings');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i class="bx bx-check mr-1"></i>Saved!';
+            btn.classList.add('bg-[var(--theme-pine)]');
+            btn.classList.remove('bg-[var(--theme-foam)]');
+            setTimeout(() => {
+                btn.innerHTML = originalText;
+                btn.classList.remove('bg-[var(--theme-pine)]');
+                btn.classList.add('bg-[var(--theme-foam)]');
+            }, 1500);
+        }
+
+        function updateStatusIndicators() {
+            const panicStatus = document.getElementById('panic-status');
+            if (panicKey) {
+                panicStatus.classList.remove('bg-[var(--theme-muted)]');
+                panicStatus.classList.add('bg-[var(--theme-foam)]', 'animate-pulse');
+            } else {
+                panicStatus.classList.remove('bg-[var(--theme-foam)]', 'animate-pulse');
+                panicStatus.classList.add('bg-[var(--theme-muted)]');
+            }
+        }
+
+        function applySettings() {
+            applyTheme(currentTheme);
+            applyBackground();
+            applyTabCloaking();
+            applyPrivacySettings();
+            if (window.parent && window.parent !== window) {
+                window.parent.postMessage({
+                    type: 'carbon-settings-updated',
+                    settings: {
+                        panicKey: panicKey,
+                        panicUrl: document.getElementById('panic-url').value,
+                        theme: currentTheme,
+                        background: currentBackground,
+                        cloaking: {
+                            enabled: document.getElementById('tab-cloaking-enabled').checked,
+                            title: document.getElementById('cloak-title').value,
+                            favicon: document.getElementById('cloak-favicon').value
+                        }
+                    }
+                }, '*');
+            }
+        }
+
+        function applyTheme(theme) {
+            if (window.carbonTheme) {
+                window.carbonTheme.setTheme(theme);
+            } else {
+                document.documentElement.setAttribute('data-theme', theme);
+            }
+            updateBackgroundPreviews();
+        }
+
+        function updateBackgroundPreviews() {
+            console.log('Updating background previews for theme:', currentTheme);
+            const gradientPreview = document.querySelector('[data-bg="gradient"]');
+            const solidPreview = document.querySelector('[data-bg="solid"]');
+            const patternPreview = document.querySelector('[data-bg="pattern"]');
+            const particlesPreview = document.querySelector('[data-bg="particles"]');
+            const baseColor = getComputedStyle(document.documentElement).getPropertyValue('--theme-base').trim();
+            if (gradientPreview) gradientPreview.style.background = 'var(--theme-gradient)';
+            if (solidPreview) solidPreview.style.background = baseColor;
+            if (patternPreview) {
+                patternPreview.style.background = `${baseColor} url('data:image/svg+xml,<svg width="20" height="20" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><circle cx="10" cy="10" r="2" fill="%23ffffff" fill-opacity="0.2"/></svg>') repeat`;
+            }
+            if (particlesPreview) particlesPreview.style.background = baseColor;
+        }
+
+        function applyBackground() {
+            console.log('Applying background:', currentBackground);
+            const body = document.body;
+            const particlesCanvas = document.getElementById('particles-canvas');
+            const baseColor = getComputedStyle(document.documentElement).getPropertyValue('--theme-base').trim();
+            particlesCanvas.classList.add('hidden');
+            body.style.background = '';
+            const customBg = localStorage.getItem('carbon-custom-bg-global');
+            if (currentBackground === 'custom' && customBg) {
+                console.log('Applying custom background:', customBg);
+                body.style.background = `url(${customBg}) center/cover fixed`;
+            } else {
+                switch (currentBackground) {
+                    case 'solid':
+                        body.style.background = baseColor;
+                        console.log('Applied solid background');
+                        break;
+                    case 'pattern':
+                        body.style.background = `${baseColor} url('data:image/svg+xml,<svg width="20" height="20" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><circle cx="10" cy="10" r="2" fill="%23ffffff" fill-opacity="0.2"/></svg>') repeat`;
+                        console.log('Applied pattern background');
+                        break;
+                    case 'particles':
+                        body.style.background = baseColor;
+                        particlesCanvas.classList.remove('hidden');
+                        initParticles();
+                        console.log('Applied particles background');
+                        break;
+                    case 'gradient':
+                        body.style.background = 'var(--theme-gradient)';
+                        console.log('Applied gradient background');
+                        break;
+                    default:
+                        console.warn('Invalid background type, defaulting to gradient:', currentBackground);
+                        currentBackground = 'gradient';
+                        localStorage.setItem('carbon-background-global', 'gradient');
+                        body.style.background = 'var(--theme-gradient)';
+                        updateBackgroundUI();
+                        break;
+                }
+                body.style.backgroundAttachment = currentBackground === 'pattern' ? '' : 'fixed';
+            }
+        }
+
+        function initParticles() {
+            console.log('Initializing particles');
+            const canvas = document.getElementById('particles-canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            const particlesArray = [];
+            const particleCount = 50;
+
+            class Particle {
+                constructor() {
+                    this.x = Math.random() * canvas.width;
+                    this.y = Math.random() * canvas.height;
+                    this.size = Math.random() * 3 + 1;
+                    this.speedX = Math.random() * 0.5 - 0.25;
+                    this.speedY = Math.random() * 0.5 - 0.25;
+                }
+                update() {
+                    this.x += this.speedX;
+                    this.y += this.speedY;
+                    if (this.x < 0 || this.x > canvas.width) this.speedX *= -1;
+                    if (this.y < 0 || this.y > canvas.height) this.speedY *= -1;
+                }
+                draw() {
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+
+            particlesArray.length = 0;
+            for (let i = 0; i < particleCount; i++) {
+                particlesArray.push(new Particle());
+            }
+
+            function animateParticles() {
+                if (currentBackground === 'particles' && !canvas.classList.contains('hidden')) {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    particlesArray.forEach(particle => {
+                        particle.update();
+                        particle.draw();
+                    });
+                    requestAnimationFrame(animateParticles);
+                }
+            }
+
+            window.addEventListener('resize', () => {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+            });
+
+            if (currentBackground === 'particles') {
+                console.log('Starting particle animation');
+                animateParticles();
+            }
+        }
+
+        function applyTabCloaking() {
+            const enabled = document.getElementById('tab-cloaking-enabled').checked;
+            const title = document.getElementById('cloak-title').value;
+            const favicon = document.getElementById('cloak-favicon').value;
+            if (enabled && title) {
+                document.title = title;
+                if (favicon) {
+                    const link = document.querySelector("link[rel*='icon']") || document.createElement('link');
+                    link.type = 'image/x-icon';
+                    link.rel = 'shortcut icon';
+                    link.href = favicon;
+                    document.getElementsByTagName('head')[0].appendChild(link);
+                }
+            } else {
+                document.title = 'Settings - Carbon';
+            }
+        }
+
+        function applyPrivacySettings() {
+            if (document.getElementById('disable-right-click').checked) {
+                document.addEventListener('contextmenu', e => e.preventDefault());
+            }
+            if (document.getElementById('disable-select').checked) {
+                document.body.classList.add('select-none');
+            }
+            if (document.getElementById('hide-cursor').checked) {
+                let cursorTimer;
+                document.addEventListener('mousemove', () => {
+                    document.body.style.cursor = 'default';
+                    clearTimeout(cursorTimer);
+                    cursorTimer = setTimeout(() => {
+                        document.body.style.cursor = 'none';
+                    }, 3000);
+                });
+            }
+            if (document.getElementById('blur-on-unfocus').checked) {
+                window.addEventListener('blur', () => {
+                    document.body.classList.add('blur-sm');
+                });
+                window.addEventListener('focus', () => {
+                    document.body.classList.remove('blur-sm');
+                });
+            }
+        }
+
+        function initializeColorWheel() {
+            const createBtn = document.getElementById('create-custom-theme-btn');
+            const container = document.getElementById('color-wheel-container');
+            const closeBtn = document.getElementById('close-color-wheel');
+            const saveBtn = document.getElementById('save-custom-theme');
+            const randomBtn = document.getElementById('random-colors');
+            const nameInput = document.getElementById('custom-theme-name');
+            const preview = document.getElementById('theme-preview');
+
+            const colorInputs = {
+                base: document.getElementById('color-base'),
+                surface: document.getElementById('color-surface'),
+                overlay: document.getElementById('color-overlay'),
+                text: document.getElementById('color-text'),
+                foam: document.getElementById('color-foam'),
+                love: document.getElementById('color-love'),
+                gold: document.getElementById('color-gold'),
+                iris: document.getElementById('color-iris')
+            };
+
+            createBtn.addEventListener('click', () => {
+                container.classList.remove('hidden');
+                updatePreview();
+            });
+
+            closeBtn.addEventListener('click', () => {
+                container.classList.add('hidden');
+                resetColorInputs();
+            });
+
+            Object.values(colorInputs).forEach(input => {
+                input.addEventListener('input', updatePreview);
+            });
+
+            randomBtn.addEventListener('click', () => {
+                const randomHues = [];
+                const baseHue = Math.random() * 360;
+                
+                for (let i = 0; i < 8; i++) {
+                    randomHues.push((baseHue + (i * 45)) % 360);
+                }
+
+                colorInputs.base.value = hslToHex(randomHues[0], 40, 10);
+                colorInputs.surface.value = hslToHex(randomHues[1], 30, 15);
+                colorInputs.overlay.value = hslToHex(randomHues[2], 20, 20);
+                colorInputs.text.value = hslToHex(randomHues[3], 10, 90);
+                colorInputs.foam.value = hslToHex(randomHues[4], 60, 60);
+                colorInputs.love.value = hslToHex(randomHues[5], 70, 65);
+                colorInputs.gold.value = hslToHex(randomHues[6], 80, 70);
+                colorInputs.iris.value = hslToHex(randomHues[7], 50, 75);
+
+                updatePreview();
+            });
+
+            saveBtn.addEventListener('click', () => {
+                const name = nameInput.value.trim();
+                if (!name) {
+                    alert('Please enter a theme name');
+                    return;
+                }
+
+                const theme = {
+                    base: colorInputs.base.value,
+                    surface: colorInputs.surface.value,
+                    overlay: colorInputs.overlay.value,
+                    muted: adjustBrightness(colorInputs.text.value, -40),
+                    subtle: adjustBrightness(colorInputs.text.value, -20),
+                    text: colorInputs.text.value,
+                    love: colorInputs.love.value,
+                    gold: colorInputs.gold.value,
+                    rose: adjustBrightness(colorInputs.love.value, 10),
+                    pine: adjustBrightness(colorInputs.foam.value, -20),
+                    foam: colorInputs.foam.value,
+                    iris: colorInputs.iris.value,
+                    'highlight-low': adjustBrightness(colorInputs.base.value, 5),
+                    'highlight-med': adjustBrightness(colorInputs.surface.value, 10),
+                    'highlight-high': adjustBrightness(colorInputs.overlay.value, 15)
+                };
+
+                saveCustomTheme(name, theme);
+                container.classList.add('hidden');
+                resetColorInputs();
+            });
+
+            function updatePreview() {
+                const gradient = `linear-gradient(135deg, ${colorInputs.base.value} 0%, ${colorInputs.surface.value} 50%, ${colorInputs.overlay.value} 100%)`;
+                preview.style.background = gradient;
+                preview.querySelector('span').style.color = colorInputs.text.value;
+            }
+
+            function resetColorInputs() {
+                nameInput.value = '';
+                colorInputs.base.value = '#191724';
+                colorInputs.surface.value = '#1f1d2e';
+                colorInputs.overlay.value = '#26233a';
+                colorInputs.text.value = '#e0def4';
+                colorInputs.foam.value = '#9ccfd8';
+                colorInputs.love.value = '#eb6f92';
+                colorInputs.gold.value = '#f6c177';
+                colorInputs.iris.value = '#c4a7e7';
+                updatePreview();
+            }
+        }
+
+        function hslToHex(h, s, l) {
+            l /= 100;
+            const a = s * Math.min(l, 1 - l) / 100;
+            const f = n => {
+                const k = (n + h / 30) % 12;
+                const color = l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1);
+                return Math.round(255 * color).toString(16).padStart(2, '0');
+            };
+            return `#${f(0)}${f(8)}${f(4)}`;
+        }
+
+        function adjustBrightness(hex, percent) {
+            const num = parseInt(hex.replace('#', ''), 16);
+            const amt = Math.round(2.55 * percent);
+            const R = (num >> 16) + amt;
+            const G = (num >> 8 & 0x00FF) + amt;
+            const B = (num & 0x0000FF) + amt;
+            return '#' + (0x1000000 + (R < 255 ? R < 1 ? 0 : R : 255) * 0x10000 +
+                (G < 255 ? G < 1 ? 0 : G : 255) * 0x100 +
+                (B < 255 ? B < 1 ? 0 : B : 255)).toString(16).slice(1);
+        }
+
+        function saveCustomTheme(name, theme) {
+            const customThemes = JSON.parse(localStorage.getItem('carbon-custom-themes') || '{}');
+            customThemes[name] = theme;
+            localStorage.setItem('carbon-custom-themes', JSON.stringify(customThemes));
+            
+            if (window.carbonTheme && typeof window.carbonTheme.createCustomTheme === 'function') {
+                window.carbonTheme.createCustomTheme(name, theme);
+            } else {
+                console.warn('carbonTheme.createCustomTheme is not available. Ensure carbon-theme.js is loaded.');
+            }
+            
+            if (currentUser) {
+                saveCustomThemesToFirebase(customThemes);
+            }
+            
+            loadCustomThemes();
+            alert(`Theme "${name}" saved successfully!`);
+        }
+
+        function deleteCustomTheme(name) {
+            if (confirm(`Delete theme "${name}"?`)) {
+                const customThemes = JSON.parse(localStorage.getItem('carbon-custom-themes') || '{}');
+                delete customThemes[name];
+                localStorage.setItem('carbon-custom-themes', JSON.stringify(customThemes));
+                
+                if (window.carbonTheme && typeof window.carbonTheme.deleteCustomTheme === 'function') {
+                    window.carbonTheme.deleteCustomTheme(name);
+                }
+                
+                if (currentTheme === name) {
+                    currentTheme = 'rose-pine';
+                    localStorage.setItem('carbon-theme-global', currentTheme);
+                    applyTheme(currentTheme);
+                    document.querySelectorAll('.theme-preview').forEach(el => el.classList.remove('active', 'border-[var(--theme-foam)]'));
+                    document.querySelector(`[data-theme="rose-pine"]`)?.classList.add('active', 'border-[var(--theme-foam)]');
+                }
+                
+                if (currentUser) {
+                    saveCustomThemesToFirebase(customThemes);
+                }
+                
+                loadCustomThemes();
+            }
+        }
+
+        async function saveCustomThemesToFirebase(themes) {
+            if (!currentUser) return;
+            try {
+                await db.collection('users').doc(currentUser.uid).set({
+                    customThemes: themes
+                }, { merge: true });
+            } catch (error) {
+                console.error('Error saving custom themes to Firebase:', error);
+            }
+        }
+
+        async function loadCustomThemesFromFirebase() {
+            if (!currentUser) return;
+            try {
+                const userDoc = await db.collection('users').doc(currentUser.uid).get();
+                if (userDoc.exists && userDoc.data().customThemes) {
+                    const themes = userDoc.data().customThemes;
+                    localStorage.setItem('carbon-custom-themes', JSON.stringify(themes));
+                    
+                    if (window.carbonTheme && typeof window.carbonTheme.createCustomTheme === 'function') {
+                        Object.entries(themes).forEach(([name, theme]) => {
+                            window.carbonTheme.createCustomTheme(name, theme);
+                        });
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading custom themes from Firebase:', error);
+            }
+        }
+
+        function loadCustomThemes() {
+            const customThemes = JSON.parse(localStorage.getItem('carbon-custom-themes') || '{}');
+            const customThemesGrid = document.getElementById('custom-themes-grid');
+            const customThemesSection = document.getElementById('custom-themes-section');
+            
+            customThemesGrid.innerHTML = '';
+            
+            if (Object.keys(customThemes).length > 0) {
+                customThemesSection.classList.remove('hidden');
+                Object.entries(customThemes).forEach(([name, theme]) => {
+                    const themeDiv = document.createElement('div');
+                    themeDiv.className = `theme-preview rounded-lg p-2 cursor-pointer border ${currentTheme === name ? 'border-[var(--theme-foam)]' : 'border-transparent'} hover:border-[var(--theme-foam)] transition-all duration-200`;
+                    themeDiv.dataset.theme = name;
+                    themeDiv.style.background = `linear-gradient(135deg, ${theme.base} 0%, ${theme.surface} 50%, ${theme.overlay} 100%)`;
+                    themeDiv.innerHTML = `
+                        <div class="text-center text-xs text-white flex items-center justify-center gap-1">
+                            <span class="truncate">${name}</span>
+                            <button class="delete-custom-theme text-[var(--theme-love)] hover:text-[var(--theme-love)]/80" data-theme="${name}" onclick="event.stopPropagation(); deleteCustomTheme('${name}');">×</button>
+                        </div>
+                    `;
+                    
+                    themeDiv.addEventListener('click', () => {
+                        currentTheme = name;
+                        localStorage.setItem('carbon-theme-global', currentTheme);
+                        document.querySelectorAll('.theme-preview').forEach(el => el.classList.remove('active', 'border-[var(--theme-foam)]'));
+                        themeDiv.classList.add('active', 'border-[var(--theme-foam)]');
+                        applyTheme(name);
+                        triggerAutoSave();
+                    });
+                    
+                    customThemesGrid.appendChild(themeDiv);
+                });
+            } else {
+                customThemesSection.classList.add('hidden');
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            setTimeout(() => {
+                initializeColorWheel();
+                loadCustomThemesFromFirebase().then(() => {
+                    loadCustomThemes();
+                });
+            }, 100);
+        });
+
+        document.getElementById('set-panic-key').addEventListener('click', function() {
+            if (isRecordingPanicKey) return;
+            isRecordingPanicKey = true;
+            const display = document.getElementById('panic-key-display');
+            display.textContent = 'Press any key...';
+            display.classList.add('bg-[var(--theme-love)]', 'text-white', 'border-[var(--theme-love)]', 'animate-pulse');
+            function recordKey(e) {
+                e.preventDefault();
+                panicKey = e.key.toLowerCase();
+                display.textContent = panicKey.toUpperCase();
+                display.classList.remove('bg-[var(--theme-love)]', 'text-white', 'border-[var(--theme-love)]', 'animate-pulse');
+                isRecordingPanicKey = false;
+                document.removeEventListener('keydown', recordKey);
+                updateStatusIndicators();
+            }
+            document.addEventListener('keydown', recordKey);
+        });
+
+        document.getElementById('clear-panic-key').addEventListener('click', function() {
+            panicKey = null;
+            document.getElementById('panic-key-display').textContent = 'Press "Set Key" to configure';
+            updateStatusIndicators();
+        });
+
+        document.addEventListener('click', function(e) {
+            if (e.target.closest('.theme-preview:not(.color-wheel-trigger)')) {
+                const preview = e.target.closest('.theme-preview');
+                const themeName = preview.dataset.theme;
+                if (themeName) {
+                    document.querySelectorAll('.theme-preview').forEach(el => el.classList.remove('active', 'border-[var(--theme-foam)]'));
+                    preview.classList.add('active', 'border-[var(--theme-foam)]');
+                    currentTheme = themeName;
+                    applyTheme(currentTheme);
+                }
+            }
+            if (e.target.closest('.color-wheel-trigger')) {
+                const container = document.getElementById('color-wheel-container');
+                container.classList.remove('hidden');
+                container.innerHTML = '';
+                if (window.carbonTheme && typeof window.carbonTheme.createColorWheel === 'function') {
+                    window.carbonTheme.createColorWheel(container, (themeName, theme) => {
+                        container.classList.add('hidden');
+                        loadCustomThemes();
+                        currentTheme = themeName;
+                        document.querySelectorAll('.theme-preview').forEach(el => el.classList.remove('active', 'border-[var(--theme-foam)]'));
+                        document.querySelector(`[data-theme="${themeName}"]`)?.classList.add('active', 'border-[var(--theme-foam)]');
+                    });
+                }
+            }
+            if (e.target.closest('.delete-custom-theme')) {
+                e.stopPropagation();
+                const themeName = e.target.closest('.delete-custom-theme').dataset.theme;
+                if (confirm(`Delete custom theme "${themeName}"?`)) {
+                    if (window.carbonTheme && typeof window.carbonTheme.deleteCustomTheme === 'function') {
+                        window.carbonTheme.deleteCustomTheme(themeName);
+                    }
+                    loadCustomThemes();
+                    if (currentTheme === themeName) {
+                        currentTheme = 'rose-pine';
+                        applyTheme(currentTheme);
+                        document.querySelectorAll('.theme-preview').forEach(el => el.classList.remove('active', 'border-[var(--theme-foam)]'));
+                        document.querySelector(`[data-theme="rose-pine"]`)?.classList.add('active', 'border-[var(--theme-foam)]');
+                    }
+                }
+            }
+        });
+
+        document.querySelectorAll('.bg-preview').forEach(preview => {
+            preview.addEventListener('click', function() {
+                console.log('Clicked background:', this.dataset.bg);
+                document.querySelectorAll('.bg-preview').forEach(el => el.classList.remove('active', 'border-[var(--theme-foam)]'));
+                this.classList.add('active', 'border-[var(--theme-foam)]');
+                currentBackground = this.dataset.bg;
+                localStorage.setItem('carbon-background-global', currentBackground);
+                console.log('Set currentBackground to:', currentBackground);
+                if (currentBackground !== 'custom') {
+                    localStorage.removeItem('carbon-custom-bg-global');
+                    document.getElementById('custom-bg-preview').classList.add('hidden');
+                }
+                if (currentBackground === 'particles') {
+                    initParticles();
+                }
+                updateBackgroundUI();
+                triggerAutoSave();
+            });
+        });
+
+        document.getElementById('bg-upload').addEventListener('click', () => {
+            document.getElementById('bg-file-input').click();
+        });
+
+        document.getElementById('bg-file-input').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const dataUrl = e.target.result;
+                    localStorage.setItem('carbon-custom-bg-global', dataUrl);
+                    currentBackground = 'custom';
+                    localStorage.setItem('carbon-background-global', 'custom');
+                    console.log('Set custom background, currentBackground:', currentBackground);
+                    document.querySelectorAll('.bg-preview').forEach(el => el.classList.remove('active', 'border-[var(--theme-foam)]'));
+                    showCustomBgPreview(dataUrl);
+                    updateBackgroundUI();
+                    triggerAutoSave();
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        function showCustomBgPreview(dataUrl) {
+            const preview = document.getElementById('custom-bg-preview');
+            const image = document.getElementById('bg-preview-image');
+            image.style.backgroundImage = `url(${dataUrl})`;
+            preview.classList.remove('hidden');
+        }
+
+        document.getElementById('remove-bg').addEventListener('click', function() {
+            localStorage.removeItem('carbon-custom-bg-global');
+            document.getElementById('custom-bg-preview').classList.add('hidden');
+            currentBackground = 'gradient';
+            localStorage.setItem('carbon-background-global', 'gradient');
+            console.log('Removed custom background, set to gradient');
+            updateBackgroundUI();
+            triggerAutoSave();
+        });
+
+        document.getElementById('change-bg').addEventListener('click', () => {
+            document.getElementById('bg-file-input').click();
+        });
+
+        document.getElementById('tab-cloaking-enabled').addEventListener('change', toggleCloakingOptions);
+
+        function toggleCloakingOptions() {
+            const enabled = document.getElementById('tab-cloaking-enabled').checked;
+            const options = document.getElementById('cloaking-options');
+            options.style.opacity = enabled ? '1' : '0.5';
+            options.style.pointerEvents = enabled ? 'auto' : 'none';
+        }
+
+        document.querySelectorAll('.cloak-preset').forEach(preset => {
+            preset.addEventListener('click', function() {
+                document.getElementById('cloak-title').value = this.dataset.title;
+                document.getElementById('cloak-favicon').value = this.dataset.favicon;
+            });
+        });
+
+        document.getElementById('google-signin-btn').addEventListener('click', googleSignIn);
+        document.getElementById('sign-out-btn').addEventListener('click', signOut);
+
+        let autoSaveTimeout;
+        let isAutoSaving = false;
+
+        function triggerAutoSave() {
+            if (isAutoSaving) return;
+            if (autoSaveTimeout) clearTimeout(autoSaveTimeout);
+            autoSaveTimeout = setTimeout(async () => {
+                try {
+                    isAutoSaving = true;
+                    await autoSaveSettings();
+                    showAutoSaveStatus('✓ Saved', 'success');
+                } catch (error) {
+                    console.error('Auto save failed:', error);
+                    showAutoSaveStatus('⚠ Failed', 'error');
+                } finally {
+                    isAutoSaving = false;
+                }
+            }, 1000);
+            showAutoSaveStatus('💾 Saving...', 'saving');
+        }
+
+        async function autoSaveSettings() {
+            localStorage.setItem('carbon-panic-key', panicKey || '');
+            localStorage.setItem('carbon-panic-url', document.getElementById('panic-url').value);
+            localStorage.setItem('carbon-theme-global', currentTheme);
+            localStorage.setItem('carbon-background-global', currentBackground);
+            localStorage.setItem('carbon-cloak-enabled', document.getElementById('tab-cloaking-enabled').checked);
+            localStorage.setItem('carbon-cloak-title', document.getElementById('cloak-title').value);
+            localStorage.setItem('carbon-cloak-favicon', document.getElementById('cloak-favicon').value);
+            localStorage.setItem('carbon-disable-right-click', document.getElementById('disable-right-click').checked);
+            localStorage.setItem('carbon-disable-devtools', document.getElementById('disable-devtools').checked);
+            localStorage.setItem('carbon-disable-select', document.getElementById('disable-select').checked);
+            localStorage.setItem('carbon-hide-cursor', document.getElementById('hide-cursor').checked);
+            localStorage.setItem('carbon-blur-unfocus', document.getElementById('blur-on-unfocus').checked);
+            console.log('Auto-saved settings, background:', currentBackground);
+            if (currentUser) {
+                await saveSettingsToFirebase();
+            }
+            applySettings();
+            if (window.parent && window.parent !== window) {
+                window.parent.postMessage({ type: 'carbon-settings-refresh' }, '*');
+            }
+            updateStatusIndicators();
+        }
+
+        function showAutoSaveStatus(message, type) {
+            const btn = document.getElementById('save-settings');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = message;
+            btn.classList.remove('bg-[var(--theme-foam)]', 'bg-[var(--theme-pine)]', 'bg-[var(--theme-love)]');
+            if (type === 'success') {
+                btn.classList.add('bg-[var(--theme-pine)]');
+            } else if (type === 'error') {
+                btn.classList.add('bg-[var(--theme-love)]');
+            } else if (type === 'saving') {
+                btn.classList.add('bg-[var(--theme-gold)]');
+            }
+            if (type !== 'saving') {
+                setTimeout(() => {
+                    btn.innerHTML = originalText;
+                    btn.classList.remove('bg-[var(--theme-pine)]', 'bg-[var(--theme-love)]', 'bg-[var(--theme-gold)]');
+                    btn.classList.add('bg-[var(--theme-foam)]');
+                }, 1500);
+            }
+        }
+
+        function setupAutoSaveListeners() {
+            const textInputs = ['panic-url', 'cloak-title', 'cloak-favicon'];
+            textInputs.forEach(id => {
+                const element = document.getElementById(id);
+                if (element) {
+                    element.addEventListener('input', triggerAutoSave);
+                    element.addEventListener('blur', triggerAutoSave);
+                }
+            });
+            const checkboxes = [
+                'tab-cloaking-enabled', 'disable-right-click', 'disable-devtools',
+                'disable-select', 'hide-cursor', 'blur-on-unfocus'
+            ];
+            checkboxes.forEach(id => {
+                const element = document.getElementById(id);
+                if (element) {
+                    element.addEventListener('change', triggerAutoSave);
+                }
+            });
+            document.addEventListener('click', function(e) {
+                if (e.target.closest('.theme-preview') || e.target.closest('.bg-preview')) {
+                    setTimeout(triggerAutoSave, 100);
+                }
+            });
+            document.getElementById('bg-file-input').addEventListener('change', function() {
+                setTimeout(triggerAutoSave, 500);
+            });
+        }
+
+        setupAutoSaveListeners();
+        document.getElementById('save-settings').addEventListener('click', saveSettings);
+
+        document.addEventListener('keydown', function(e) {
+            if (document.getElementById('disable-devtools').checked) {
+                if (e.key === 'F12' || 
+                    (e.ctrlKey && e.shiftKey && e.key === 'I') || 
+                    (e.ctrlKey && e.shiftKey && e.key === 'J') || 
+                    (e.ctrlKey && e.key === 'U')) {
+                    e.preventDefault();
+                    return false;
+                }
+            }
+        });
+
+        // About Blank functionality
+        function openAboutBlank() {
+            var win = window.open();
+            var url = window.location.origin + '/index.html';
+            var iframe = win.document.createElement('iframe');
+            iframe.style.position = 'absolute';
+            iframe.style.left = '0';
+            iframe.style.top = '0';
+            iframe.style.width = '100vw';
+            iframe.style.height = '100vh';
+            iframe.style.border = 'none';
+            iframe.style.margin = '0';
+            iframe.style.padding = '0';
+            iframe.src = url;
+            win.document.body.appendChild(iframe);
+            win.document.body.style.overflow = 'hidden';
+            window.close();
+        }
+
+        // Create blob effect
+        function createBlob() {
+            const blob = document.createElement('div');
+            blob.style.position = 'fixed';
+            blob.style.width = '100px';
+            blob.style.height = '100px';
+            blob.style.background = 'linear-gradient(135deg, #ff6b35, #90caf9)';
+            blob.style.borderRadius = '50%';
+            blob.style.left = Math.random() * (window.innerWidth - 100) + 'px';
+            blob.style.top = Math.random() * (window.innerHeight - 100) + 'px';
+            blob.style.animation = 'blobMove 3s ease-out forwards';
+            blob.style.zIndex = '1000';
+            blob.style.pointerEvents = 'none';
+            blob.style.opacity = '0.7';
+            
+            document.body.appendChild(blob);
+            
+            // Remove blob after animation
+            setTimeout(() => {
+                blob.remove();
+            }, 3000);
+        }
+
+        // Add blob animation CSS
+        const blobStyle = document.createElement('style');
+        blobStyle.textContent = `
+            @keyframes blobMove {
+                0% { transform: scale(0) rotate(0deg); opacity: 0.7; }
+                50% { transform: scale(1.2) rotate(180deg); opacity: 0.5; }
+                100% { transform: scale(0) rotate(360deg); opacity: 0; }
+            }
+        `;
+        document.head.appendChild(blobStyle);
+
+        // Event listeners for about blank buttons
+        document.getElementById('open-about-blank').addEventListener('click', openAboutBlank);
+        document.getElementById('create-blob').addEventListener('click', createBlob);
+    </script>
+</body>
+</html>

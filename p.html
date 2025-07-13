@@ -1,0 +1,930 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Movie Player</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script src="carbon-theme.js"></script>
+  <style>
+    :root {
+      --primary-bg: #1a1a1a;
+      --secondary-bg: #2d2d2d;
+      --tertiary-bg: #3d3d3d;
+      --quaternary-bg: #4d4d4d;
+      --text-primary: #ffffff;
+      --text-secondary: #aaaaaa;
+      --accent: #a4b8db;
+      --hover-bg: rgba(255, 255, 255, 0.1);
+      --favorite-color: #ff6b6b;
+      --favorite-hover: #ff5252;
+
+      /* Theme variables - Rose Pine (default) */
+      --theme-base: #191724;
+      --theme-surface: #1f1d2e;
+      --theme-overlay: #26233a;
+      --theme-muted: #6e6a86;
+      --theme-subtle: #908caa;
+      --theme-text: #e0def4;
+      --theme-love: #eb6f92;
+      --theme-gold: #f6c177;
+      --theme-rose: #ebbcba;
+      --theme-pine: #31748f;
+      --theme-foam: #9ccfd8;
+      --theme-iris: #c4a7e7;
+      --theme-highlight-low: #21202e;
+      --theme-highlight-med: #403d52;
+      --theme-highlight-high: #524f67;
+      --theme-gradient: linear-gradient(135deg, #191724 0%, #1f1d2e 50%, #26233a 100%);
+    }
+    
+    /* Add all theme variations */
+    [data-theme="dark"] {
+      --theme-base: #0f172a;
+      --theme-surface: #1e293b;
+      --theme-overlay: #334155;
+      --theme-muted: #64748b;
+      --theme-subtle: #94a3b8;
+      --theme-text: #f1f5f9;
+      --theme-love: #ef4444;
+      --theme-gold: #f59e0b;
+      --theme-rose: #f97316;
+      --theme-pine: #059669;
+      --theme-foam: #06b6d4;
+      --theme-iris: #8b5cf6;
+      --theme-highlight-low: #1e293b;
+      --theme-highlight-med: #475569;
+      --theme-highlight-high: #64748b;
+      --theme-gradient: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
+    }
+    
+    [data-theme="light"] {
+      --theme-base: #f8fafc;
+      --theme-surface: #e2e8f0;
+      --theme-overlay: #cbd5e1;
+      --theme-muted: #64748b;
+      --theme-subtle: #475569;
+      --theme-text: #0f172a;
+      --theme-love: #dc2626;
+      --theme-gold: #d97706;
+      --theme-rose: #ea580c;
+      --theme-pine: #047857;
+      --theme-foam: #0891b2;
+      --theme-iris: #7c3aed;
+      --theme-highlight-low: #f1f5f9;
+      --theme-highlight-med: #e2e8f0;
+      --theme-highlight-high: #cbd5e1;
+      --theme-gradient: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 50%, #cbd5e1 100%);
+    }
+    
+    [data-theme="catppuccin"] {
+      --theme-base: #1e1e2e;
+      --theme-surface: #313244;
+      --theme-overlay: #45475a;
+      --theme-muted: #6c7086;
+      --theme-subtle: #9399b2;
+      --theme-text: #cdd6f4;
+      --theme-love: #f38ba8;
+      --theme-gold: #f9e2af;
+      --theme-rose: #fab387;
+      --theme-pine: #a6e3a1;
+      --theme-foam: #89dceb;
+      --theme-iris: #cba6f7;
+      --theme-highlight-low: #181825;
+      --theme-highlight-med: #313244;
+      --theme-highlight-high: #45475a;
+      --theme-gradient: linear-gradient(135deg, #1e1e2e 0%, #313244 50%, #45475a 100%);
+    }
+    
+    [data-theme="nord"] {
+      --theme-base: #2e3440;
+      --theme-surface: #3b4252;
+      --theme-overlay: #434c5e;
+      --theme-muted: #4c566a;
+      --theme-subtle: #d8dee9;
+      --theme-text: #eceff4;
+      --theme-love: #bf616a;
+      --theme-gold: #ebcb8b;
+      --theme-rose: #d08770;
+      --theme-pine: #a3be8c;
+      --theme-foam: #88c0d0;
+      --theme-iris: #b48ead;
+      --theme-highlight-low: #2e3440;
+      --theme-highlight-med: #434c5e;
+      --theme-highlight-high: #4c566a;
+      --theme-gradient: linear-gradient(135deg, #2e3440 0%, #3b4252 50%, #434c5e 100%);
+    }
+    
+    [data-theme="gruvbox"] {
+      --theme-base: #282828;
+      --theme-surface: #3c3836;
+      --theme-overlay: #504945;
+      --theme-muted: #665c54;
+      --theme-subtle: #a89984;
+      --theme-text: #ebdbb2;
+      --theme-love: #fb4934;
+      --theme-gold: #fabd2f;
+      --theme-rose: #fe8019;
+      --theme-pine: #b8bb26;
+      --theme-foam: #8ec07c;
+      --theme-iris: #d3869b;
+      --theme-highlight-low: #1d2021;
+      --theme-highlight-med: #3c3836;
+      --theme-highlight-high: #504945;
+      --theme-gradient: linear-gradient(135deg, #282828 0%, #3c3836 50%, #504945 100%);
+    }
+    
+    [data-theme="tokyo-night"] {
+      --theme-base: #1a1b26;
+      --theme-surface: #24283b;
+      --theme-overlay: #414868;
+      --theme-muted: #565f89;
+      --theme-subtle: #a9b1d6;
+      --theme-text: #c0caf5;
+      --theme-love: #f7768e;
+      --theme-gold: #e0af68;
+      --theme-rose: #ff9e64;
+      --theme-pine: #9ece6a;
+      --theme-foam: #7dcfff;
+      --theme-iris: #bb9af7;
+      --theme-highlight-low: #16161e;
+      --theme-highlight-med: #24283b;
+      --theme-highlight-high: #414868;
+      --theme-gradient: linear-gradient(135deg, #1a1b26 0%, #24283b 50%, #414868 100%);
+    }
+    
+    [data-theme="dracula"] {
+      --theme-base: #282a36;
+      --theme-surface: #44475a;
+      --theme-overlay: #6272a4;
+      --theme-muted: #6272a4;
+      --theme-subtle: #f8f8f2;
+      --theme-text: #f8f8f2;
+      --theme-love: #ff5555;
+      --theme-gold: #f1fa8c;
+      --theme-rose: #ffb86c;
+      --theme-pine: #50fa7b;
+      --theme-foam: #8be9fd;
+      --theme-iris: #bd93f9;
+      --theme-highlight-low: #21222c;
+      --theme-highlight-med: #44475a;
+      --theme-highlight-high: #6272a4;
+      --theme-gradient: linear-gradient(135deg, #282a36 0%, #44475a 50%, #6272a4 100%);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body, html {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--theme-gradient);
+      background-attachment: fixed;
+      color: var(--text-primary);
+    }
+
+    .player-container {
+      width: 100%;
+      height: 100%;
+      position: relative;
+    }
+
+    .player-iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+      background-color: var(--primary-bg);
+    }
+
+    .controls-overlay {
+      position: absolute;
+      top: 16px;
+      left: 16px;
+      z-index: 1000;
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+    }
+
+    .control-group {
+      position: relative;
+      display: inline-block;
+    }
+
+    .control-button {
+      background-color: var(--quaternary-bg);
+      color: var(--text-primary);
+      border: none;
+      padding: 12px 16px;
+      border-radius: 12px;
+      font-size: 14px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s ease;
+      opacity: 0.7;
+      backdrop-filter: blur(10px);
+      min-width: 44px;
+      justify-content: center;
+    }
+
+    .control-button:hover {
+      background-color: var(--tertiary-bg);
+      opacity: 1;
+      transform: translateY(-1px);
+    }
+
+    .control-button.favorite {
+      background-color: var(--favorite-color);
+      opacity: 1;
+    }
+
+    .control-button.favorite:hover {
+      background-color: var(--favorite-hover);
+    }
+
+    .control-button i {
+      font-size: 16px;
+    }
+
+    .dropdown-menu {
+      position: absolute;
+      top: calc(100% + 8px);
+      left: 0;
+      background-color: var(--quaternary-bg);
+      min-width: 200px;
+      border-radius: 12px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+      opacity: 0;
+      visibility: hidden;
+      transform: translateY(-10px) scale(0.95);
+      transition: all 0.2s ease;
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      max-height: 400px;
+      overflow-y: auto;
+    }
+
+    .dropdown-menu.show {
+      opacity: 1;
+      visibility: visible;
+      transform: translateY(0) scale(1);
+    }
+
+    .dropdown-option {
+      padding: 12px 16px;
+      cursor: pointer;
+      transition: background-color 0.2s ease;
+      border-radius: 8px;
+      margin: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .dropdown-option:hover {
+      background-color: var(--tertiary-bg);
+    }
+
+    .dropdown-option.active {
+      background-color: var(--hover-bg);
+      font-weight: 600;
+    }
+
+    .option-content {
+      flex: 1;
+    }
+
+    .option-title {
+      font-size: 14px;
+      font-weight: 500;
+      margin-bottom: 2px;
+    }
+
+    .option-description {
+      font-size: 11px;
+      color: var(--text-secondary);
+      line-height: 1.3;
+    }
+
+    .favorites-menu {
+      min-width: 300px;
+      max-width: 400px;
+    }
+
+    .favorites-header {
+      padding: 16px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .favorites-list {
+      max-height: 300px;
+      overflow-y: auto;
+    }
+
+    .favorite-item {
+      padding: 12px 16px;
+      cursor: pointer;
+      transition: background-color 0.2s ease;
+      border-radius: 8px;
+      margin: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .favorite-item:hover {
+      background-color: var(--tertiary-bg);
+    }
+
+    .favorite-info {
+      flex: 1;
+    }
+
+    .favorite-title {
+      font-size: 14px;
+      font-weight: 500;
+      margin-bottom: 2px;
+    }
+
+    .favorite-id {
+      font-size: 11px;
+      color: var(--text-secondary);
+    }
+
+    .favorite-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .action-btn {
+      background: none;
+      border: none;
+      color: var(--text-secondary);
+      cursor: pointer;
+      padding: 4px;
+      border-radius: 4px;
+      transition: all 0.2s ease;
+    }
+
+    .action-btn:hover {
+      background-color: var(--hover-bg);
+      color: var(--text-primary);
+    }
+
+    .action-btn.remove:hover {
+      color: var(--favorite-color);
+    }
+
+    .empty-favorites {
+      padding: 32px 16px;
+      text-align: center;
+      color: var(--text-secondary);
+      font-size: 14px;
+    }
+
+    .add-favorite-form {
+      padding: 16px;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .form-group {
+      margin-bottom: 12px;
+    }
+
+    .form-label {
+      display: block;
+      font-size: 12px;
+      color: var(--text-secondary);
+      margin-bottom: 4px;
+    }
+
+    .form-input {
+      width: 100%;
+      padding: 8px 12px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 6px;
+      background-color: var(--tertiary-bg);
+      color: var(--text-primary);
+      font-size: 14px;
+    }
+
+    .form-input:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+
+    .form-btn {
+      width: 100%;
+      padding: 8px 16px;
+      background-color: var(--accent);
+      color: var(--text-primary);
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .form-btn:hover {
+      background-color: #95a9d3;
+    }
+
+    .loading-indicator {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      color: var(--text-secondary);
+      font-size: 18px;
+      z-index: 999;
+    }
+
+    .loading-indicator.hidden {
+      display: none;
+    }
+
+    /* Notification System */
+    .notification {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background-color: var(--quaternary-bg);
+      color: var(--text-primary);
+      padding: 12px 20px;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      z-index: 10000;
+      transform: translateX(100%);
+      transition: transform 0.3s ease;
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      max-width: 300px;
+    }
+
+    .notification.show {
+      transform: translateX(0);
+    }
+
+    .notification.success {
+      border-left: 4px solid #4caf50;
+    }
+
+    .notification.error {
+      border-left: 4px solid #f44336;
+    }
+
+    @media (max-width: 768px) {
+      .controls-overlay {
+        top: 12px;
+        left: 12px;
+        flex-direction: column;
+        gap: 8px;
+      }
+      
+      .control-button {
+        padding: 10px 14px;
+        font-size: 13px;
+      }
+      
+      .dropdown-menu {
+        min-width: 180px;
+      }
+      
+      .favorites-menu {
+        min-width: 280px;
+        max-width: 320px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="player-container">
+    <div class="loading-indicator" id="loadingIndicator">
+      <i class="fas fa-spinner fa-spin"></i>
+    </div>
+    
+    <div class="controls-overlay">
+      <div class="control-group">
+        <button class="control-button" id="sourceButton">
+          <i class="fas fa-cloud"></i>
+          <span id="currentSource">VidSrc</span>
+        </button>
+        <div class="dropdown-menu" id="dropdownMenu">
+          <div class="dropdown-option" data-source="premium">
+            <div class="option-content">
+              <div class="option-title">123Embed</div>
+              <div class="option-description">High quality • No ads • Most content</div>
+            </div>
+          </div>
+          <div class="dropdown-option active" data-source="vidsrc">
+            <div class="option-content">
+              <div class="option-title">VidSrc</div>
+              <div class="option-description">Good quality • No ads • Less content</div>
+            </div>
+          </div>
+          <div class="dropdown-option" data-source="embed123">
+            <div class="option-content">
+              <div class="option-title">123Embed</div>
+              <div class="option-description">Standard quality • No ads • Limited content</div>
+            </div>
+          </div>
+          <div class="dropdown-option" data-source="moviesapi">
+            <div class="option-content">
+              <div class="option-title">MoviesAPI</div>
+              <div class="option-description">Variable quality • Has ads • More content</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="control-group">
+        <button class="control-button" id="favoriteButton">
+          <i class="fas fa-heart"></i>
+        </button>
+      </div>
+      
+      <div class="control-group">
+        <button class="control-button" id="favoritesListButton">
+          <i class="fas fa-list"></i>
+        </button>
+        <div class="dropdown-menu favorites-menu" id="favoritesMenu">
+          <div class="favorites-header">
+            <i class="fas fa-heart"></i>
+            <span>My Favorites</span>
+          </div>
+          <div class="favorites-list" id="favoritesList">
+            <!-- Favorites will be populated here -->
+          </div>
+          <div class="add-favorite-form">
+            <div class="form-group">
+              <label class="form-label">Movie Title</label>
+              <input type="text" class="form-input" id="movieTitle" placeholder="Enter movie title">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Movie ID</label>
+              <input type="text" class="form-input" id="movieId" placeholder="Enter TMDB ID">
+            </div>
+            <button class="form-btn" id="addFavoriteBtn">Add to Favorites</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <iframe class="player-iframe" id="playerFrame" src=""></iframe>
+  </div>
+
+  <script>
+    class MoviePlayer {
+      constructor() {
+        this.sources = {
+          premium: "https://play2.123embed.net/movie/MOVIE_ID",
+          vidsrc: "https://vidsrc.su/embed/movie/MOVIE_ID",
+          embed123: "https://play2.123embed.net/movie/MOVIE_ID",
+          moviesapi: "https://moviesapi.club/movie/MOVIE_ID"
+        };
+        
+        this.currentSource = 'vidsrc';
+        this.currentMovieId = null;
+        this.favorites = this.loadFavorites();
+        this.carbonTheme = null;
+        
+        this.init();
+      }
+      
+      init() {
+        this.initializeTheme();
+        this.bindEvents();
+        this.loadMovieFromHash();
+        this.updateFavoriteButton();
+        this.renderFavoritesList();
+      }
+      
+      initializeTheme() {
+        // Initialize Carbon Theme System
+        if (typeof CarbonTheme !== 'undefined') {
+          this.carbonTheme = new CarbonTheme();
+          // Apply the current theme
+          const currentTheme = this.carbonTheme.getCurrentTheme();
+          this.applyTheme(currentTheme);
+          
+          // Listen for theme changes
+          window.addEventListener('themeChanged', (event) => {
+            this.applyTheme(event.detail.theme);
+          });
+        }
+      }
+      
+      applyTheme(themeName) {
+        document.documentElement.setAttribute('data-theme', themeName);
+        // Update body background
+        const theme = this.carbonTheme.getTheme(themeName);
+        if (theme) {
+          document.body.style.background = `linear-gradient(135deg, ${theme.base} 0%, ${theme.surface} 50%, ${theme.overlay} 100%)`;
+        }
+      }
+      
+      bindEvents() {
+        // Source selector button click
+        document.getElementById('sourceButton').addEventListener('click', (e) => {
+          e.stopPropagation();
+          this.toggleDropdown('dropdownMenu');
+        });
+        
+        // Dropdown option clicks
+        document.querySelectorAll('.dropdown-option').forEach(option => {
+          option.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const source = option.getAttribute('data-source');
+            this.changeSource(source);
+          });
+        });
+        
+        // Favorite button click
+        document.getElementById('favoriteButton').addEventListener('click', (e) => {
+          e.stopPropagation();
+          this.toggleFavorite();
+        });
+        
+        // Favorites list button click
+        document.getElementById('favoritesListButton').addEventListener('click', (e) => {
+          e.stopPropagation();
+          this.toggleDropdown('favoritesMenu');
+        });
+        
+        // Add favorite form
+        document.getElementById('addFavoriteBtn').addEventListener('click', (e) => {
+          e.stopPropagation();
+          this.addFavoriteFromForm();
+        });
+        
+        // Close dropdown when clicking outside
+        document.addEventListener('click', () => {
+          this.closeAllDropdowns();
+        });
+        
+        // Hash change listener
+        window.addEventListener('hashchange', () => {
+          this.loadMovieFromHash();
+        });
+        
+        // Iframe load event
+        document.getElementById('playerFrame').addEventListener('load', () => {
+          this.hideLoading();
+        });
+      }
+      
+      toggleDropdown(menuId) {
+        const menu = document.getElementById(menuId);
+        const isOpen = menu.classList.contains('show');
+        
+        this.closeAllDropdowns();
+        
+        if (!isOpen) {
+          menu.classList.add('show');
+        }
+      }
+      
+      closeAllDropdowns() {
+        document.querySelectorAll('.dropdown-menu').forEach(menu => {
+          menu.classList.remove('show');
+        });
+      }
+      
+      changeSource(source) {
+        if (this.sources[source]) {
+          this.currentSource = source;
+          
+          // Update UI
+          document.getElementById('currentSource').textContent = 
+            document.querySelector(`[data-source="${source}"] .option-title`).textContent;
+          
+          // Update active state
+          document.querySelectorAll('.dropdown-option').forEach(opt => {
+            opt.classList.remove('active');
+          });
+          document.querySelector(`[data-source="${source}"]`).classList.add('active');
+          
+          // Reload current movie with new source
+          if (this.currentMovieId) {
+            this.loadMovie(this.currentMovieId);
+          }
+          
+          this.closeAllDropdowns();
+        }
+      }
+      
+      loadMovieFromHash() {
+        const hash = window.location.hash.substring(1);
+        if (hash) {
+          this.loadMovie(hash);
+        }
+      }
+      
+      loadMovie(movieId) {
+        if (!movieId || !this.sources[this.currentSource]) {
+          console.error('Invalid movie ID or source configuration');
+          return;
+        }
+        
+        this.currentMovieId = movieId;
+        this.showLoading();
+        this.updateFavoriteButton();
+        
+        const url = this.sources[this.currentSource].replace('MOVIE_ID', movieId);
+        document.getElementById('playerFrame').src = url;
+        
+        // Update the movie ID in the form
+        document.getElementById('movieId').value = movieId;
+      }
+      
+      showLoading() {
+        document.getElementById('loadingIndicator').classList.remove('hidden');
+      }
+      
+      hideLoading() {
+        document.getElementById('loadingIndicator').classList.add('hidden');
+      }
+      
+      // Favorites functionality
+      loadFavorites() {
+        const stored = {};
+        const keys = Object.keys(sessionStorage);
+        keys.forEach(key => {
+          if (key.startsWith('fav_')) {
+            const movieId = key.substring(4);
+            stored[movieId] = JSON.parse(sessionStorage.getItem(key));
+          }
+        });
+        return stored;
+      }
+      
+      saveFavorites() {
+        Object.keys(this.favorites).forEach(movieId => {
+          sessionStorage.setItem(`fav_${movieId}`, JSON.stringify(this.favorites[movieId]));
+        });
+      }
+      
+      async toggleFavorite() {
+        if (!this.currentMovieId) {
+          alert('Please load a movie first');
+          return;
+        }
+        
+        if (this.favorites[this.currentMovieId]) {
+          this.removeFavorite(this.currentMovieId);
+        } else {
+          // Try to get movie title from TMDB API
+          try {
+            const response = await fetch(`https://api.themoviedb.org/3/movie/${this.currentMovieId}?api_key=2713804610e1e236b1cf44bfac3a7776`);
+            const movieData = await response.json();
+            const title = movieData.title || `Movie ${this.currentMovieId}`;
+            this.addFavorite(this.currentMovieId, title);
+          } catch (error) {
+            // Fallback to prompt if API fails
+            const title = prompt('Enter movie title:') || `Movie ${this.currentMovieId}`;
+            this.addFavorite(this.currentMovieId, title);
+          }
+        }
+      }
+      
+      addFavorite(movieId, title) {
+        this.favorites[movieId] = {
+          title: title,
+          id: movieId,
+          addedAt: new Date().toISOString()
+        };
+        this.saveFavorites();
+        this.updateFavoriteButton();
+        this.renderFavoritesList();
+        this.showNotification(`"${title}" added to favorites!`, 'success');
+      }
+      
+      removeFavorite(movieId) {
+        const title = this.favorites[movieId]?.title || `Movie ${movieId}`;
+        delete this.favorites[movieId];
+        sessionStorage.removeItem(`fav_${movieId}`);
+        this.updateFavoriteButton();
+        this.renderFavoritesList();
+        this.showNotification(`"${title}" removed from favorites`, 'error');
+      }
+      
+      updateFavoriteButton() {
+        const button = document.getElementById('favoriteButton');
+        if (this.currentMovieId && this.favorites[this.currentMovieId]) {
+          button.classList.add('favorite');
+          button.querySelector('i').className = 'fas fa-heart';
+          button.title = `Remove "${this.favorites[this.currentMovieId].title}" from favorites`;
+        } else {
+          button.classList.remove('favorite');
+          button.querySelector('i').className = 'far fa-heart';
+          button.title = this.currentMovieId ? 'Add to favorites' : 'Load a movie to add to favorites';
+        }
+      }
+      
+      renderFavoritesList() {
+        const container = document.getElementById('favoritesList');
+        const favoriteIds = Object.keys(this.favorites);
+        
+        if (favoriteIds.length === 0) {
+          container.innerHTML = `
+            <div class="empty-favorites">
+              <i class="fas fa-heart" style="font-size: 24px; margin-bottom: 8px; opacity: 0.5;"></i>
+              <div>No favorites yet</div>
+              <div style="font-size: 12px; margin-top: 4px;">Add movies below to get started</div>
+            </div>
+          `;
+          return;
+        }
+        
+        container.innerHTML = favoriteIds.map(movieId => {
+          const fav = this.favorites[movieId];
+          return `
+            <div class="favorite-item">
+              <div class="favorite-info">
+                <div class="favorite-title">${fav.title}</div>
+                <div class="favorite-id">ID: ${fav.id}</div>
+              </div>
+              <div class="favorite-actions">
+                <button class="action-btn play" onclick="moviePlayer.playFavorite('${movieId}')" title="Play">
+                  <i class="fas fa-play"></i>
+                </button>
+                <button class="action-btn remove" onclick="moviePlayer.removeFavorite('${movieId}')" title="Remove">
+                  <i class="fas fa-trash"></i>
+                </button>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+      
+      playFavorite(movieId) {
+        window.location.hash = movieId;
+        this.closeAllDropdowns();
+      }
+      
+      addFavoriteFromForm() {
+        const title = document.getElementById('movieTitle').value.trim();
+        const movieId = document.getElementById('movieId').value.trim();
+        
+        if (!title || !movieId) {
+          alert('Please fill in both title and movie ID');
+          return;
+        }
+        
+        this.addFavorite(movieId, title);
+        
+        // Clear form
+        document.getElementById('movieTitle').value = '';
+        document.getElementById('movieId').value = '';
+      }
+      
+      showNotification(message, type = 'success') {
+        // Remove existing notifications
+        const existingNotifications = document.querySelectorAll('.notification');
+        existingNotifications.forEach(notification => notification.remove());
+        
+        // Create new notification
+        const notification = document.createElement('div');
+        notification.className = `notification ${type}`;
+        notification.textContent = message;
+        
+        document.body.appendChild(notification);
+        
+        // Show notification
+        setTimeout(() => {
+          notification.classList.add('show');
+        }, 100);
+        
+        // Hide notification after 3 seconds
+        setTimeout(() => {
+          notification.classList.remove('show');
+          setTimeout(() => {
+            if (notification.parentNode) {
+              notification.parentNode.removeChild(notification);
+            }
+          }, 300);
+        }, 3000);
+      }
+    }
+    
+    // Initialize the player when DOM is ready
+    let moviePlayer;
+    document.addEventListener('DOMContentLoaded', () => {
+      moviePlayer = new MoviePlayer();
+    });
+  </script>
+</body>
+</html>

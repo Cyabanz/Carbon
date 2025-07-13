@@ -1,0 +1,1150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="carbon-theme.js"></script>
+  
+  <script>
+    // Tailwind config will be dynamically updated by the enhanced theme system
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            'rp-base': '#191724',
+            'rp-surface': '#1f1d2e',
+            'rp-overlay': '#26233a',
+            'rp-muted': '#6e6a86',
+            'rp-subtle': '#908caa',
+            'rp-text': '#e0def4',
+            'rp-love': '#eb6f92',
+            'rp-gold': '#f6c177',
+            'rp-rose': '#ebbcba',
+            'rp-pine': '#31748f',
+            'rp-foam': '#9ccfd8',
+            'rp-iris': '#c4a7e7',
+            'rp-highlight-low': '#21202e',
+            'rp-highlight-med': '#403d52',
+            'rp-highlight-high': '#524f67'
+          },
+          fontFamily: {
+            'inter': ['Inter', 'sans-serif'],
+          },
+          animation: {
+            'fade-in': 'fadeIn 0.5s ease-in-out',
+            'slide-up': 'slideUp 0.3s ease-out',
+            'scale-in': 'scaleIn 0.2s ease-out',
+          },
+          keyframes: {
+            fadeIn: {
+              '0%': { opacity: '0' },
+              '100%': { opacity: '1' },
+            },
+            slideUp: {
+              '0%': { transform: 'translateY(20px)', opacity: '0' },
+              '100%': { transform: 'translateY(0)', opacity: '1' },
+            },
+            scaleIn: {
+              '0%': { transform: 'scale(0.95)', opacity: '0' },
+              '100%': { transform: 'scale(1)', opacity: '1' },
+            },
+          },
+        },
+      },
+    }
+  </script>
+  
+  <style>
+    :root {
+      --text-color: #e0def4;
+      --surface-color: #1f1d2e;
+      --overlay-color: #26233a;
+      --highlight-med: #403d52;
+      --highlight-high: #524f67;
+      --foam: #9ccfd8;
+      --love: #eb6f92;
+      --gold: #f6c177;
+      --pine: #31748f;
+      --iris: #c4a7e7;
+      --muted: #6e6a86;
+      --subtle: #908caa;
+
+      /* Theme variables - Rose Pine (default) */
+      --theme-base: #191724;
+      --theme-surface: #1f1d2e;
+      --theme-overlay: #26233a;
+      --theme-muted: #6e6a86;
+      --theme-subtle: #908caa;
+      --theme-text: #e0def4;
+      --theme-love: #eb6f92;
+      --theme-gold: #f6c177;
+      --theme-rose: #ebbcba;
+      --theme-pine: #31748f;
+      --theme-foam: #9ccfd8;
+      --theme-iris: #c4a7e7;
+      --theme-highlight-low: #21202e;
+      --theme-highlight-med: #403d52;
+      --theme-highlight-high: #524f67;
+      --theme-gradient: linear-gradient(135deg, #191724 0%, #1f1d2e 50%, #26233a 100%);
+    }
+    
+    body {
+      background: var(--theme-gradient);
+      background-attachment: fixed;
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      font-family: "Inter", Arial, sans-serif;
+      color: var(--theme-text);
+    }
+
+    /* Add all theme variations */
+    [data-theme="dark"] {
+      --theme-base: #0f172a;
+      --theme-surface: #1e293b;
+      --theme-overlay: #334155;
+      --theme-muted: #64748b;
+      --theme-subtle: #94a3b8;
+      --theme-text: #f1f5f9;
+      --theme-love: #ef4444;
+      --theme-gold: #f59e0b;
+      --theme-rose: #f97316;
+      --theme-pine: #059669;
+      --theme-foam: #06b6d4;
+      --theme-iris: #8b5cf6;
+      --theme-highlight-low: #1e293b;
+      --theme-highlight-med: #475569;
+      --theme-highlight-high: #64748b;
+      --theme-gradient: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
+    }
+    
+    [data-theme="light"] {
+      --theme-base: #f8fafc;
+      --theme-surface: #e2e8f0;
+      --theme-overlay: #cbd5e1;
+      --theme-muted: #64748b;
+      --theme-subtle: #475569;
+      --theme-text: #0f172a;
+      --theme-love: #dc2626;
+      --theme-gold: #d97706;
+      --theme-rose: #ea580c;
+      --theme-pine: #047857;
+      --theme-foam: #0891b2;
+      --theme-iris: #7c3aed;
+      --theme-highlight-low: #f1f5f9;
+      --theme-highlight-med: #e2e8f0;
+      --theme-highlight-high: #cbd5e1;
+      --theme-gradient: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 50%, #cbd5e1 100%);
+    }
+    
+    [data-theme="catppuccin"] {
+      --theme-base: #1e1e2e;
+      --theme-surface: #313244;
+      --theme-overlay: #45475a;
+      --theme-muted: #6c7086;
+      --theme-subtle: #9399b2;
+      --theme-text: #cdd6f4;
+      --theme-love: #f38ba8;
+      --theme-gold: #f9e2af;
+      --theme-rose: #fab387;
+      --theme-pine: #a6e3a1;
+      --theme-foam: #89dceb;
+      --theme-iris: #cba6f7;
+      --theme-highlight-low: #181825;
+      --theme-highlight-med: #313244;
+      --theme-highlight-high: #45475a;
+      --theme-gradient: linear-gradient(135deg, #1e1e2e 0%, #313244 50%, #45475a 100%);
+    }
+    
+    [data-theme="nord"] {
+      --theme-base: #2e3440;
+      --theme-surface: #3b4252;
+      --theme-overlay: #434c5e;
+      --theme-muted: #4c566a;
+      --theme-subtle: #d8dee9;
+      --theme-text: #eceff4;
+      --theme-love: #bf616a;
+      --theme-gold: #ebcb8b;
+      --theme-rose: #d08770;
+      --theme-pine: #a3be8c;
+      --theme-foam: #88c0d0;
+      --theme-iris: #b48ead;
+      --theme-highlight-low: #2e3440;
+      --theme-highlight-med: #434c5e;
+      --theme-highlight-high: #4c566a;
+      --theme-gradient: linear-gradient(135deg, #2e3440 0%, #3b4252 50%, #434c5e 100%);
+    }
+    
+    [data-theme="gruvbox"] {
+      --theme-base: #282828;
+      --theme-surface: #3c3836;
+      --theme-overlay: #504945;
+      --theme-muted: #665c54;
+      --theme-subtle: #a89984;
+      --theme-text: #ebdbb2;
+      --theme-love: #fb4934;
+      --theme-gold: #fabd2f;
+      --theme-rose: #fe8019;
+      --theme-pine: #b8bb26;
+      --theme-foam: #8ec07c;
+      --theme-iris: #d3869b;
+      --theme-highlight-low: #1d2021;
+      --theme-highlight-med: #3c3836;
+      --theme-highlight-high: #504945;
+      --theme-gradient: linear-gradient(135deg, #282828 0%, #3c3836 50%, #504945 100%);
+    }
+    
+    [data-theme="tokyo-night"] {
+      --theme-base: #1a1b26;
+      --theme-surface: #24283b;
+      --theme-overlay: #414868;
+      --theme-muted: #565f89;
+      --theme-subtle: #a9b1d6;
+      --theme-text: #c0caf5;
+      --theme-love: #f7768e;
+      --theme-gold: #e0af68;
+      --theme-rose: #ff9e64;
+      --theme-pine: #9ece6a;
+      --theme-foam: #7dcfff;
+      --theme-iris: #bb9af7;
+      --theme-highlight-low: #16161e;
+      --theme-highlight-med: #24283b;
+      --theme-highlight-high: #414868;
+      --theme-gradient: linear-gradient(135deg, #1a1b26 0%, #24283b 50%, #414868 100%);
+    }
+    
+    [data-theme="dracula"] {
+      --theme-base: #282a36;
+      --theme-surface: #44475a;
+      --theme-overlay: #6272a4;
+      --theme-muted: #6272a4;
+      --theme-subtle: #f8f8f2;
+      --theme-text: #f8f8f2;
+      --theme-love: #ff5555;
+      --theme-gold: #f1fa8c;
+      --theme-rose: #ffb86c;
+      --theme-pine: #50fa7b;
+      --theme-foam: #8be9fd;
+      --theme-iris: #bd93f9;
+      --theme-highlight-low: #21222c;
+      --theme-highlight-med: #44475a;
+      --theme-highlight-high: #6272a4;
+      --theme-gradient: linear-gradient(135deg, #282a36 0%, #44475a 50%, #6272a4 100%);
+    }
+
+    /* Custom scrollbar */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    
+    ::-webkit-scrollbar-track {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 4px;
+    }
+    
+    ::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.3);
+      border-radius: 4px;
+    }
+    
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(255, 255, 255, 0.5);
+    }
+
+    /* Smooth scrolling */
+    html {
+      scroll-behavior: smooth;
+    }
+
+    /* Custom gradient backgrounds */
+    .bg-gradient-radial {
+      background: radial-gradient(ellipse at center, rgba(255,255,255,0.1) 0%, transparent 70%);
+    }
+
+    .bg-gradient-mesh {
+      background-image: 
+        radial-gradient(at 40% 20%, rgba(120, 119, 198, 0.3) 0px, transparent 50%),
+        radial-gradient(at 80% 0%, rgba(255, 119, 198, 0.3) 0px, transparent 50%),
+        radial-gradient(at 0% 50%, rgba(120, 219, 255, 0.3) 0px, transparent 50%),
+        radial-gradient(at 80% 50%, rgba(255, 119, 119, 0.3) 0px, transparent 50%),
+        radial-gradient(at 0% 100%, rgba(120, 255, 198, 0.3) 0px, transparent 50%),
+        radial-gradient(at 80% 100%, rgba(255, 219, 119, 0.3) 0px, transparent 50%),
+        radial-gradient(at 0% 0%, rgba(255, 255, 255, 0.3) 0px, transparent 50%);
+    }
+  </style>
+
+  <!-- Star rating SVG -->
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" style="display: none;">
+    <symbol id="star" viewBox="0 0 24 24">
+      <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/>
+    </symbol>
+  </svg>
+
+  <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
+  <script src="/scripts/particle.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+
+<body class="min-h-screen font-inter text-white overflow-x-hidden">
+  <!-- Particles Canvas -->
+  <canvas id="particles-canvas" class="fixed inset-0 pointer-events-none hidden"></canvas>
+  
+  <!-- Background Effects -->
+  <div class="fixed inset-0 bg-gradient-mesh opacity-20 pointer-events-none"></div>
+  <div class="fixed inset-0 bg-gradient-radial pointer-events-none"></div>
+  
+  <!-- Main Content -->
+  <div class="relative z-10 min-h-screen">
+    <!-- Header Section -->
+    <header class="pt-8 pb-6 px-4 sm:px-6 lg:px-8">
+      <div class="max-w-7xl mx-auto">
+        <!-- Tab Navigation -->
+        <div class="flex flex-wrap justify-center gap-3 mb-8">
+          <button class="tab-button group relative px-6 py-3 rounded-xl bg-white/10 backdrop-blur-md border border-white/20 text-white/80 font-medium transition-all duration-300 hover:bg-white/20 hover:text-white hover:border-white/30 hover:scale-105 active" data-tab="popular">
+            <div class="flex items-center gap-2">
+              <i class="fas fa-fire text-orange-400 group-hover:scale-110 transition-transform"></i>
+              <span>Popular Movies</span>
+            </div>
+            <div class="absolute inset-0 rounded-xl bg-gradient-to-r from-orange-500/20 to-red-500/20 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+          </button>
+          
+          <button class="tab-button group relative px-6 py-3 rounded-xl bg-white/10 backdrop-blur-md border border-white/20 text-white/80 font-medium transition-all duration-300 hover:bg-white/20 hover:text-white hover:border-white/30 hover:scale-105" data-tab="favorites">
+            <div class="flex items-center gap-2">
+              <i class="fas fa-heart text-pink-400 group-hover:scale-110 transition-transform"></i>
+              <span>My Favorites</span>
+            </div>
+            <div class="absolute inset-0 rounded-xl bg-gradient-to-r from-pink-500/20 to-rose-500/20 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+          </button>
+          
+          <button class="tab-button group relative px-6 py-3 rounded-xl bg-white/10 backdrop-blur-md border border-white/20 text-white/80 font-medium transition-all duration-300 hover:bg-white/20 hover:text-white hover:border-white/30 hover:scale-105" data-tab="recommended">
+            <div class="flex items-center gap-2">
+              <i class="fas fa-star text-yellow-400 group-hover:scale-110 transition-transform"></i>
+              <span>Recommended</span>
+            </div>
+            <div class="absolute inset-0 rounded-xl bg-gradient-to-r from-yellow-500/20 to-amber-500/20 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+          </button>
+        </div>
+
+        <!-- Search Container -->
+        <div class="filter-container flex justify-center mb-8" id="searchContainer">
+          <div class="relative max-w-md w-full">
+            <input 
+              type="text" 
+              class="w-full px-6 py-4 pl-12 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 text-white placeholder-white/60 font-medium transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-400/50 focus:bg-white/15 hover:bg-white/15" 
+              placeholder="Search for movies..." 
+              id="searchInput"
+              aria-label="Search movies"
+            >
+            <i class="fas fa-search absolute left-4 top-1/2 transform -translate-y-1/2 text-white/60"></i>
+          </div>
+        </div>
+        
+        <!-- Section Headers -->
+        <div class="text-center mb-12">
+          <h1 id="sectionHeader" class="text-4xl sm:text-5xl font-bold bg-gradient-to-r from-white to-white/80 bg-clip-text text-transparent mb-4">
+            Movies
+          </h1>
+          <p id="sectionSubtitle" class="text-lg text-white/70 max-w-2xl mx-auto">
+            Explore your favorite films
+          </p>
+        </div>
+      </div>
+    </header>
+
+    <!-- Categories Container -->
+    <div id="categoriesContainer" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-16">
+      <!-- Popular Movies Category -->
+      <div class="category-section mb-16" id="popularSection">
+        <div class="category-header flex items-center justify-between mb-8">
+          <h2 class="text-3xl font-bold bg-gradient-to-r from-orange-400 to-red-500 bg-clip-text text-transparent flex items-center gap-3">
+            <span class="text-2xl">🔥</span>
+            Popular Movies
+          </h2>
+          <div class="flex gap-2">
+            <button class="carousel-nav prev w-12 h-12 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-white/80 hover:bg-white/20 hover:text-white transition-all duration-300 disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center" onclick="movieManager.navigateCarousel('popular', -1)">
+              <i class="fas fa-chevron-left"></i>
+            </button>
+            <button class="carousel-nav next w-12 h-12 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-white/80 hover:bg-white/20 hover:text-white transition-all duration-300 disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center" onclick="movieManager.navigateCarousel('popular', 1)">
+              <i class="fas fa-chevron-right"></i>
+            </button>
+          </div>
+        </div>
+        <div class="carousel-container relative overflow-hidden rounded-2xl bg-white/5 backdrop-blur-sm border border-white/10 p-6">
+          <div class="carousel-track flex gap-6 transition-transform duration-500 ease-out" id="popularCarousel">
+            <div class="flex items-center justify-center w-full py-12 text-white/60">
+              <i class="fas fa-spinner fa-spin text-2xl mr-3"></i>
+              Loading popular movies...
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Trending Movies Category -->
+      <div class="category-section mb-16" id="trendingSection">
+        <div class="category-header flex items-center justify-between mb-8">
+          <h2 class="text-3xl font-bold bg-gradient-to-r from-green-400 to-emerald-500 bg-clip-text text-transparent flex items-center gap-3">
+            <span class="text-2xl">📈</span>
+            Trending Now
+          </h2>
+          <div class="flex gap-2">
+            <button class="carousel-nav prev w-12 h-12 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-white/80 hover:bg-white/20 hover:text-white transition-all duration-300 disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center" onclick="movieManager.navigateCarousel('trending', -1)">
+              <i class="fas fa-chevron-left"></i>
+            </button>
+            <button class="carousel-nav next w-12 h-12 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-white/80 hover:bg-white/20 hover:text-white transition-all duration-300 disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center" onclick="movieManager.navigateCarousel('trending', 1)">
+              <i class="fas fa-chevron-right"></i>
+            </button>
+          </div>
+        </div>
+        <div class="carousel-container relative overflow-hidden rounded-2xl bg-white/5 backdrop-blur-sm border border-white/10 p-6">
+          <div class="carousel-track flex gap-6 transition-transform duration-500 ease-out" id="trendingCarousel">
+            <div class="flex items-center justify-center w-full py-12 text-white/60">
+              <i class="fas fa-spinner fa-spin text-2xl mr-3"></i>
+              Loading trending movies...
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Top Rated Movies Category -->
+      <div class="category-section mb-16" id="topRatedSection">
+        <div class="category-header flex items-center justify-between mb-8">
+          <h2 class="text-3xl font-bold bg-gradient-to-r from-yellow-400 to-amber-500 bg-clip-text text-transparent flex items-center gap-3">
+            <span class="text-2xl">⭐</span>
+            Top Rated
+          </h2>
+          <div class="flex gap-2">
+            <button class="carousel-nav prev w-12 h-12 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-white/80 hover:bg-white/20 hover:text-white transition-all duration-300 disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center" onclick="movieManager.navigateCarousel('topRated', -1)">
+              <i class="fas fa-chevron-left"></i>
+            </button>
+            <button class="carousel-nav next w-12 h-12 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-white/80 hover:bg-white/20 hover:text-white transition-all duration-300 disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center" onclick="movieManager.navigateCarousel('topRated', 1)">
+              <i class="fas fa-chevron-right"></i>
+            </button>
+          </div>
+        </div>
+        <div class="carousel-container relative overflow-hidden rounded-2xl bg-white/5 backdrop-blur-sm border border-white/10 p-6">
+          <div class="carousel-track flex gap-6 transition-transform duration-500 ease-out" id="topRatedCarousel">
+            <div class="flex items-center justify-center w-full py-12 text-white/60">
+              <i class="fas fa-spinner fa-spin text-2xl mr-3"></i>
+              Loading top rated movies...
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Now Playing Movies Category -->
+      <div class="category-section mb-16" id="nowPlayingSection">
+        <div class="category-header flex items-center justify-between mb-8">
+          <h2 class="text-3xl font-bold bg-gradient-to-r from-blue-400 to-cyan-500 bg-clip-text text-transparent flex items-center gap-3">
+            <span class="text-2xl">🎬</span>
+            Now Playing
+          </h2>
+          <div class="flex gap-2">
+            <button class="carousel-nav prev w-12 h-12 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-white/80 hover:bg-white/20 hover:text-white transition-all duration-300 disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center" onclick="movieManager.navigateCarousel('nowPlaying', -1)">
+              <i class="fas fa-chevron-left"></i>
+            </button>
+            <button class="carousel-nav next w-12 h-12 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-white/80 hover:bg-white/20 hover:text-white transition-all duration-300 disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center" onclick="movieManager.navigateCarousel('nowPlaying', 1)">
+              <i class="fas fa-chevron-right"></i>
+            </button>
+          </div>
+        </div>
+        <div class="carousel-container relative overflow-hidden rounded-2xl bg-white/5 backdrop-blur-sm border border-white/10 p-6">
+          <div class="carousel-track flex gap-6 transition-transform duration-500 ease-out" id="nowPlayingCarousel">
+            <div class="flex items-center justify-center w-full py-12 text-white/60">
+              <i class="fas fa-spinner fa-spin text-2xl mr-3"></i>
+              Loading now playing movies...
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Upcoming Movies Category -->
+      <div class="category-section mb-16" id="upcomingSection">
+        <div class="category-header flex items-center justify-between mb-8">
+          <h2 class="text-3xl font-bold bg-gradient-to-r from-purple-400 to-pink-500 bg-clip-text text-transparent flex items-center gap-3">
+            <span class="text-2xl">📅</span>
+            Coming Soon
+          </h2>
+          <div class="flex gap-2">
+            <button class="carousel-nav prev w-12 h-12 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-white/80 hover:bg-white/20 hover:text-white transition-all duration-300 disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center" onclick="movieManager.navigateCarousel('upcoming', -1)">
+              <i class="fas fa-chevron-left"></i>
+            </button>
+            <button class="carousel-nav next w-12 h-12 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-white/80 hover:bg-white/20 hover:text-white transition-all duration-300 disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center" onclick="movieManager.navigateCarousel('upcoming', 1)">
+              <i class="fas fa-chevron-right"></i>
+            </button>
+          </div>
+        </div>
+        <div class="carousel-container relative overflow-hidden rounded-2xl bg-white/5 backdrop-blur-sm border border-white/10 p-6">
+          <div class="carousel-track flex gap-6 transition-transform duration-500 ease-out" id="upcomingCarousel">
+            <div class="flex items-center justify-center w-full py-12 text-white/60">
+              <i class="fas fa-spinner fa-spin text-2xl mr-3"></i>
+              Loading upcoming movies...
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Legacy Grid (for favorites and search results) -->
+    <div class="game-grid max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-16 hidden" id="gameGrid">
+      <div class="flex items-center justify-center w-full py-12 text-white/60">
+        <i class="fas fa-spinner fa-spin text-2xl mr-3"></i>
+        Loading movies...
+      </div>
+    </div>
+  </div>
+
+  <script src="movies.js"></script>
+  <script>
+    // Initialize Carbon Theme System
+    let carbonTheme;
+    
+    class MovieManager {
+      constructor() {
+        this.currentTab = 'popular';
+        this.isLoading = false;
+        this.favorites = this.loadFavorites();
+        this.searchInput = document.getElementById("searchInput");
+        this.gameGrid = document.getElementById("gameGrid");
+        this.sectionHeader = document.getElementById("sectionHeader");
+        this.sectionSubtitle = document.getElementById("sectionSubtitle");
+        this.searchContainer = document.getElementById("searchContainer");
+        this.categoriesContainer = document.getElementById("categoriesContainer");
+        
+        // Carousel state
+        this.carouselPositions = {
+          popular: 0,
+          trending: 0,
+          topRated: 0,
+          nowPlaying: 0,
+          upcoming: 0
+        };
+        
+        this.init();
+      }
+      
+      init() {
+        this.bindEvents();
+        this.loadAllCategories();
+        
+        // Update favorite buttons after a short delay to ensure DOM is ready
+        setTimeout(() => {
+          this.updateFavoriteButtons();
+        }, 1000);
+      }
+      
+      bindEvents() {
+        // Tab navigation
+        document.querySelectorAll('.tab-button').forEach(button => {
+          button.addEventListener('click', () => {
+            const tab = button.getAttribute('data-tab');
+            this.switchTab(tab);
+          });
+        });
+        
+        // Search functionality
+        let searchTimeout;
+        this.searchInput.addEventListener("input", (event) => {
+          clearTimeout(searchTimeout);
+          searchTimeout = setTimeout(() => {
+            const query = this.searchInput.value.trim();
+            if (this.currentTab === 'popular') {
+              if (query) {
+                this.searchMovies(query);
+              } else {
+                this.categoriesContainer.style.display = 'block';
+                this.gameGrid.style.display = 'none';
+                this.loadAllCategories();
+              }
+            }
+          }, 500);
+        });
+        
+        this.searchInput.addEventListener("keypress", (event) => {
+          if (event.key === "Enter") {
+            clearTimeout(searchTimeout);
+            const query = this.searchInput.value.trim();
+            if (this.currentTab === 'popular') {
+              if (query) {
+                this.searchMovies(query);
+              } else {
+                this.categoriesContainer.style.display = 'block';
+                this.gameGrid.style.display = 'none';
+                this.loadAllCategories();
+              }
+            }
+          }
+        });
+      }
+      
+      switchTab(tab) {
+        this.currentTab = tab;
+        
+        // Update tab buttons
+        document.querySelectorAll('.tab-button').forEach(button => {
+          button.classList.remove('active');
+        });
+        document.querySelector(`[data-tab="${tab}"]`).classList.add('active');
+        
+        // Update search visibility
+        this.searchContainer.style.display = tab === 'popular' ? 'flex' : 'none';
+        
+        // Update section headers and layout
+        switch(tab) {
+          case 'popular':
+            this.sectionHeader.textContent = 'Movies';
+            this.sectionSubtitle.textContent = 'Explore your favorite films';
+            this.categoriesContainer.style.display = 'block';
+            this.gameGrid.style.display = 'none';
+            break;
+          case 'favorites':
+            this.sectionHeader.textContent = 'Favorites';
+            this.sectionSubtitle.textContent = 'Your personal collection';
+            this.categoriesContainer.style.display = 'none';
+            this.gameGrid.style.display = 'grid';
+            this.loadFavoritesMovies();
+            break;
+          case 'recommended':
+            this.sectionHeader.textContent = 'Recommended';
+            this.sectionSubtitle.textContent = 'Based on your preferences';
+            this.categoriesContainer.style.display = 'none';
+            this.gameGrid.style.display = 'grid';
+            this.loadRecommendedMovies();
+            break;
+        }
+      }
+      
+      async loadAllCategories() {
+        // Load all categories simultaneously
+        this.loadCategory('popular', 'popular');
+        this.loadCategory('trending', 'trending');
+        this.loadCategory('topRated', 'top_rated');
+        this.loadCategory('nowPlaying', 'now_playing');
+        this.loadCategory('upcoming', 'upcoming');
+      }
+
+      async loadCategory(categoryName, apiEndpoint) {
+        try {
+          const response = await fetch(
+            `https://api.themoviedb.org/3/movie/${apiEndpoint}?api_key=${movSec}`
+          );
+          const data = await response.json();
+          this.displayCarouselMovies(categoryName, data.results);
+        } catch (error) {
+          console.error(`Error fetching ${categoryName} movies:`, error);
+          const carousel = document.getElementById(`${categoryName}Carousel`);
+          if (carousel) {
+            carousel.innerHTML = `
+              <div class="flex items-center justify-center w-full py-12 text-white/60">
+                <i class="fas fa-exclamation-triangle text-2xl mr-3"></i>
+                Failed to load ${categoryName} movies
+              </div>
+            `;
+          }
+        }
+      }
+
+      async loadPopularMovies() {
+        if (this.isLoading) return;
+        this.isLoading = true;
+        
+        try {
+          const response = await fetch(
+            `https://api.themoviedb.org/3/movie/popular?api_key=${movSec}`
+          );
+          const data = await response.json();
+          this.displayMovies(data.results);
+        } catch (error) {
+          console.error("Error fetching movies:", error);
+          this.gameGrid.innerHTML = `
+            <div class="flex items-center justify-center w-full py-12 text-white/60">
+              <i class="fas fa-exclamation-triangle text-2xl mr-3"></i>
+              Failed to load movies. Please try again.
+            </div>
+          `;
+        } finally {
+          this.isLoading = false;
+        }
+      }
+      
+      async searchMovies(query) {
+        if (this.isLoading) return;
+        this.isLoading = true;
+        
+        // Switch to grid layout for search results
+        this.categoriesContainer.style.display = 'none';
+        this.gameGrid.style.display = 'grid';
+        
+        try {
+          const response = await fetch(
+            `https://api.themoviedb.org/3/search/movie?api_key=${movSec}&query=${encodeURIComponent(query)}`
+          );
+          const data = await response.json();
+          this.displayMovies(data.results);
+        } catch (error) {
+          console.error("Error searching movies:", error);
+          this.gameGrid.innerHTML = `
+            <div class="flex items-center justify-center w-full py-12 text-white/60">
+              <i class="fas fa-exclamation-triangle text-2xl mr-3"></i>
+              Search failed. Please try again.
+            </div>
+          `;
+        } finally {
+          this.isLoading = false;
+        }
+      }
+      
+      loadFavoritesMovies() {
+        const favoriteIds = Object.keys(this.favorites);
+        
+        if (favoriteIds.length === 0) {
+          this.gameGrid.innerHTML = `
+            <div class="col-span-full flex flex-col items-center justify-center py-16 text-white/60">
+              <i class="fas fa-heart text-6xl mb-6 text-pink-400/50"></i>
+              <h3 class="text-2xl font-bold mb-4 text-white/80">No favorites yet</h3>
+              <p class="text-lg text-center max-w-md">Start adding movies to your favorites to see them here!</p>
+            </div>
+          `;
+          return;
+        }
+        
+        // Fetch movie details for each favorite
+        Promise.all(
+          favoriteIds.map(id => 
+            fetch(`https://api.themoviedb.org/3/movie/${id}?api_key=${movSec}`)
+              .then(response => response.json())
+              .catch(() => null)
+          )
+        ).then(movies => {
+          const validMovies = movies.filter(movie => movie !== null);
+          this.displayMovies(validMovies);
+        });
+      }
+      
+      async loadRecommendedMovies() {
+        const favoriteIds = Object.keys(this.favorites);
+        
+        if (favoriteIds.length === 0) {
+          this.gameGrid.innerHTML = `
+            <div class="col-span-full flex flex-col items-center justify-center py-16 text-white/60">
+              <i class="fas fa-star text-6xl mb-6 text-yellow-400/50"></i>
+              <h3 class="text-2xl font-bold mb-4 text-white/80">No recommendations yet</h3>
+              <p class="text-lg text-center max-w-md">Add some movies to your favorites to get personalized recommendations!</p>
+            </div>
+          `;
+          return;
+        }
+        
+        // Get recommendations based on first favorite movie
+        const firstFavoriteId = favoriteIds[0];
+        
+        try {
+          const response = await fetch(
+            `https://api.themoviedb.org/3/movie/${firstFavoriteId}/recommendations?api_key=${movSec}`
+          );
+          const data = await response.json();
+          this.displayMovies(data.results.slice(0, 20)); // Limit to 20 recommendations
+        } catch (error) {
+          console.error("Error fetching recommendations:", error);
+          this.gameGrid.innerHTML = `
+            <div class="flex items-center justify-center w-full py-12 text-white/60">
+              <i class="fas fa-exclamation-triangle text-2xl mr-3"></i>
+              Failed to load recommendations. Please try again.
+            </div>
+          `;
+        }
+      }
+      
+      displayCarouselMovies(categoryName, movies) {
+        const carousel = document.getElementById(`${categoryName}Carousel`);
+        if (!carousel) return;
+        
+        if (!movies || movies.length === 0) {
+          carousel.innerHTML = `
+            <div class="flex items-center justify-center w-full py-12 text-white/60">
+              <i class="fas fa-film text-2xl mr-3"></i>
+              No movies found
+            </div>
+          `;
+          return;
+        }
+        
+        carousel.innerHTML = "";
+        
+        movies.forEach(movie => {
+          const carouselItem = document.createElement("div");
+          carouselItem.classList.add("carousel-item", "min-w-[200px]", "max-w-[200px]", "flex-shrink-0");
+          
+          const gameCard = document.createElement("div");
+          gameCard.classList.add(
+            "relative", "w-full", "aspect-[2/3]", "rounded-2xl", "overflow-hidden", "cursor-pointer",
+            "transition-all", "duration-300", "hover:scale-105", "hover:shadow-2xl", "hover:shadow-black/50",
+            "group", "bg-gradient-to-b", "from-gray-900", "to-black"
+          );
+          gameCard.style.backgroundImage = `url(https://image.tmdb.org/t/p/w500${movie.poster_path || ''})`;
+          gameCard.style.backgroundSize = 'cover';
+          gameCard.style.backgroundPosition = 'center';
+          
+          const releaseYear = movie.release_date ? new Date(movie.release_date).getFullYear() : 'N/A';
+          const rating = Math.round((movie.vote_average || 0) / 2);
+          const isFavorited = this.favorites[movie.id];
+          
+          gameCard.innerHTML = `
+            <button class="absolute top-3 right-3 w-10 h-10 rounded-full bg-black/60 backdrop-blur-md border border-white/20 text-white/80 hover:bg-pink-500 hover:text-white transition-all duration-300 z-10 flex items-center justify-center group-hover:scale-110 ${isFavorited ? 'bg-pink-500 text-white' : ''}" onclick="event.stopPropagation(); movieManager.toggleFavorite(${movie.id}, '${movie.title}')">
+              <i class="fas fa-heart"></i>
+            </button>
+            <div class="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-4">
+              <div class="transform translate-y-4 group-hover:translate-y-0 transition-transform duration-300">
+                <h3 class="text-lg font-bold text-white mb-2 line-clamp-2">${movie.title || 'Untitled'}</h3>
+                <div class="flex items-center justify-between text-sm text-white/80">
+                  <span class="bg-white/20 backdrop-blur-md px-2 py-1 rounded-full">${releaseYear}</span>
+                  ${movie.vote_average ? `
+                  <div class="flex items-center gap-1">
+                    ${'<svg class="w-4 h-4 text-yellow-400"><use xlink:href="#star"/></svg>'.repeat(rating)}
+                    ${'<svg class="w-4 h-4 text-yellow-400/30"><use xlink:href="#star"/></svg>'.repeat(5 - rating)}
+                    <span class="ml-1 font-medium">${movie.vote_average.toFixed(1)}</span>
+                  </div>
+                  ` : ''}
+                </div>
+              </div>
+            </div>
+          `;
+          
+          gameCard.addEventListener("click", () => {
+            if (movie.id) {
+              window.location.href = `p.html#${movie.id}`;
+            }
+          });
+          
+          carouselItem.appendChild(gameCard);
+          carousel.appendChild(carouselItem);
+        });
+        
+        // Update navigation buttons
+        this.updateCarouselNavigation(categoryName);
+        
+        // Update favorite buttons for newly displayed movies
+        this.updateFavoriteButtons();
+      }
+
+      displayMovies(movies) {
+        if (!movies || movies.length === 0) {
+          this.gameGrid.innerHTML = `
+            <div class="col-span-full flex items-center justify-center py-12 text-white/60">
+              <i class="fas fa-film text-2xl mr-3"></i>
+              No movies found
+            </div>
+          `;
+          return;
+        }
+        
+        this.gameGrid.innerHTML = "";
+        this.gameGrid.className = "max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-16 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6";
+        
+        movies.forEach(movie => {
+          const gameCard = document.createElement("div");
+          gameCard.classList.add(
+            "relative", "w-full", "aspect-[2/3]", "rounded-2xl", "overflow-hidden", "cursor-pointer",
+            "transition-all", "duration-300", "hover:scale-105", "hover:shadow-2xl", "hover:shadow-black/50",
+            "group", "bg-gradient-to-b", "from-gray-900", "to-black"
+          );
+          gameCard.style.backgroundImage = `url(https://image.tmdb.org/t/p/w500${movie.poster_path || ''})`;
+          gameCard.style.backgroundSize = 'cover';
+          gameCard.style.backgroundPosition = 'center';
+          
+          const releaseYear = movie.release_date ? new Date(movie.release_date).getFullYear() : 'N/A';
+          const rating = Math.round((movie.vote_average || 0) / 2);
+          const isFavorited = this.favorites[movie.id];
+          
+          gameCard.innerHTML = `
+            <button class="absolute top-3 right-3 w-10 h-10 rounded-full bg-black/60 backdrop-blur-md border border-white/20 text-white/80 hover:bg-pink-500 hover:text-white transition-all duration-300 z-10 flex items-center justify-center group-hover:scale-110 ${isFavorited ? 'bg-pink-500 text-white' : ''}" onclick="event.stopPropagation(); movieManager.toggleFavorite(${movie.id}, '${movie.title}')">
+              <i class="fas fa-heart"></i>
+            </button>
+            <div class="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-4">
+              <div class="transform translate-y-4 group-hover:translate-y-0 transition-transform duration-300">
+                <h3 class="text-lg font-bold text-white mb-2 line-clamp-2">${movie.title || 'Untitled'}</h3>
+                <div class="flex items-center justify-between text-sm text-white/80">
+                  <span class="bg-white/20 backdrop-blur-md px-2 py-1 rounded-full">${releaseYear}</span>
+                  ${movie.vote_average ? `
+                  <div class="flex items-center gap-1">
+                    ${'<svg class="w-4 h-4 text-yellow-400"><use xlink:href="#star"/></svg>'.repeat(rating)}
+                    ${'<svg class="w-4 h-4 text-yellow-400/30"><use xlink:href="#star"/></svg>'.repeat(5 - rating)}
+                    <span class="ml-1 font-medium">${movie.vote_average.toFixed(1)}</span>
+                  </div>
+                  ` : ''}
+                </div>
+              </div>
+            </div>
+          `;
+          
+          gameCard.addEventListener("click", () => {
+            if (movie.id) {
+              window.location.href = `p.html#${movie.id}`;
+            }
+          });
+          
+          this.gameGrid.appendChild(gameCard);
+        });
+      }
+      
+      // Favorites functionality
+      loadFavorites() {
+        const stored = {};
+        try {
+          const keys = Object.keys(sessionStorage);
+          keys.forEach(key => {
+            if (key.startsWith('fav_')) {
+              const movieId = key.substring(4);
+              const favoriteData = sessionStorage.getItem(key);
+              if (favoriteData) {
+                try {
+                  stored[movieId] = JSON.parse(favoriteData);
+                } catch (e) {
+                  console.warn('Invalid favorite data for movie', movieId, e);
+                }
+              }
+            }
+          });
+        } catch (error) {
+          console.error('Error loading favorites:', error);
+        }
+        return stored;
+      }
+      
+      saveFavorites() {
+        Object.keys(this.favorites).forEach(movieId => {
+          sessionStorage.setItem(`fav_${movieId}`, JSON.stringify(this.favorites[movieId]));
+        });
+      }
+      
+      toggleFavorite(movieId, title) {
+        try {
+          if (this.favorites[movieId]) {
+            this.removeFavorite(movieId);
+          } else {
+            this.addFavorite(movieId, title);
+          }
+          
+          // Refresh current view if needed
+          if (this.currentTab === 'favorites') {
+            this.loadFavoritesMovies();
+          } else if (this.currentTab === 'recommended') {
+            this.loadRecommendedMovies();
+          }
+          
+          // Update all favorite buttons
+          this.updateFavoriteButtons();
+        } catch (error) {
+          console.error('Error toggling favorite:', error);
+        }
+      }
+      
+      addFavorite(movieId, title) {
+        this.favorites[movieId] = {
+          title: title,
+          id: movieId,
+          addedAt: new Date().toISOString()
+        };
+        this.saveFavorites();
+        this.updateFavoriteButtons();
+      }
+      
+      removeFavorite(movieId) {
+        delete this.favorites[movieId];
+        sessionStorage.removeItem(`fav_${movieId}`);
+        this.updateFavoriteButtons();
+      }
+      
+      updateFavoriteButtons() {
+        document.querySelectorAll('button[onclick*="toggleFavorite"]').forEach(btn => {
+          const onclickAttr = btn.getAttribute('onclick');
+          const match = onclickAttr.match(/toggleFavorite\((\d+)/);
+          if (match) {
+            const movieId = match[1];
+            if (this.favorites[movieId]) {
+              btn.classList.add('bg-pink-500', 'text-white');
+              btn.classList.remove('bg-black/60', 'text-white/80');
+            } else {
+              btn.classList.remove('bg-pink-500', 'text-white');
+              btn.classList.add('bg-black/60', 'text-white/80');
+            }
+          }
+        });
+      }
+
+      // Carousel Navigation Methods
+      navigateCarousel(categoryName, direction) {
+        const carousel = document.getElementById(`${categoryName}Carousel`);
+        if (!carousel) return;
+        
+        const items = carousel.querySelectorAll('.carousel-item');
+        const itemWidth = 224; // 200px width + 24px gap
+        const visibleItems = Math.floor(carousel.offsetWidth / itemWidth);
+        const maxPosition = Math.max(0, items.length - visibleItems);
+        
+        this.carouselPositions[categoryName] += direction;
+        this.carouselPositions[categoryName] = Math.max(0, Math.min(this.carouselPositions[categoryName], maxPosition));
+        
+        const translateX = -this.carouselPositions[categoryName] * itemWidth;
+        carousel.style.transform = `translateX(${translateX}px)`;
+        
+        this.updateCarouselNavigation(categoryName);
+      }
+
+      updateCarouselNavigation(categoryName) {
+        const carousel = document.getElementById(`${categoryName}Carousel`);
+        if (!carousel) return;
+        
+        const items = carousel.querySelectorAll('.carousel-item');
+        const itemWidth = 224;
+        const visibleItems = Math.floor(carousel.offsetWidth / itemWidth);
+        const maxPosition = Math.max(0, items.length - visibleItems);
+        
+        const prevBtn = carousel.parentElement.querySelector('.carousel-nav.prev');
+        const nextBtn = carousel.parentElement.querySelector('.carousel-nav.next');
+        
+        if (prevBtn) {
+          prevBtn.disabled = this.carouselPositions[categoryName] <= 0;
+        }
+        
+        if (nextBtn) {
+          nextBtn.disabled = this.carouselPositions[categoryName] >= maxPosition;
+        }
+      }
+    }
+    
+    // Particles System
+    let particlesAnimation = null;
+    let currentBackground = 'default';
+
+    function initParticles() {
+      const canvas = document.getElementById('particles-canvas');
+      if (!canvas) return;
+      
+      const ctx = canvas.getContext('2d');
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      
+      const particlesArray = [];
+      const particleCount = 50;
+      
+      class Particle {
+        constructor() {
+          this.x = Math.random() * canvas.width;
+          this.y = Math.random() * canvas.height;
+          this.vx = (Math.random() - 0.5) * 2;
+          this.vy = (Math.random() - 0.5) * 2;
+          this.radius = Math.random() * 3 + 1;
+          this.opacity = Math.random() * 0.5 + 0.2;
+        }
+        
+        update() {
+          this.x += this.vx;
+          this.y += this.vy;
+          
+          if (this.x < 0 || this.x > canvas.width) this.vx *= -1;
+          if (this.y < 0 || this.y > canvas.height) this.vy *= -1;
+        }
+        
+        draw() {
+          ctx.beginPath();
+          ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(156, 207, 216, ${this.opacity})`;
+          ctx.fill();
+        }
+      }
+      
+      function createParticles() {
+        particlesArray.length = 0;
+        for (let i = 0; i < particleCount; i++) {
+          particlesArray.push(new Particle());
+        }
+      }
+      
+      function animate() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        particlesArray.forEach(particle => {
+          particle.update();
+          particle.draw();
+        });
+        
+        if (!canvas.classList.contains('hidden')) {
+          requestAnimationFrame(animate);
+        }
+      }
+      
+      createParticles();
+      animate();
+      
+      window.addEventListener('resize', () => {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        createParticles();
+      });
+    }
+
+    // Enhanced Theme System
+    function initializeThemeSystem() {
+      // Load current theme from localStorage
+      const currentTheme = localStorage.getItem('carbon-theme-global') || 'rose-pine';
+      const currentBg = localStorage.getItem('carbon-background-global') || 'default';
+      
+      // Apply theme
+      document.documentElement.setAttribute('data-theme', currentTheme);
+      currentBackground = currentBg;
+      
+      // Apply background
+      updateBackground();
+      
+      // Listen for theme changes
+      window.addEventListener('storage', (event) => {
+        if (event.key === 'carbon-theme-global' && event.newValue) {
+          document.documentElement.setAttribute('data-theme', event.newValue);
+        }
+        if (event.key === 'carbon-background-global' && event.newValue) {
+          currentBackground = event.newValue;
+          updateBackground();
+        }
+      });
+    }
+
+    function updateBackground() {
+      const particlesCanvas = document.getElementById('particles-canvas');
+      
+      // Hide particles canvas by default
+      if (particlesCanvas) {
+        particlesCanvas.classList.add('hidden');
+      }
+      
+      // Apply background based on current setting
+      switch (currentBackground) {
+        case 'particles':
+          if (particlesCanvas) {
+            particlesCanvas.classList.remove('hidden');
+            initParticles();
+          }
+          break;
+        case 'gradient':
+          // Gradient is applied via CSS
+          break;
+        case 'solid':
+          // Solid background is applied via CSS
+          break;
+        default:
+          // Default background
+          break;
+      }
+    }
+
+    // Initialize the movie manager when DOM is ready
+    let movieManager;
+    document.addEventListener('DOMContentLoaded', () => {
+      initializeThemeSystem();
+      movieManager = new MovieManager();
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,851 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>CARBON VM</title>
+  <script src="carbon-theme.js"></script>
+  <script src="platform-detector.js"></script>
+  <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+  <style>
+    :root {
+      --text-color: #e0def4;
+      --surface-color: #1f1d2e;
+      --overlay-color: #26233a;
+      --highlight-med: #403d52;
+      --highlight-high: #524f67;
+      --foam: #9ccfd8;
+      --love: #eb6f92;
+      --gold: #f6c177;
+      --pine: #31748f;
+      --iris: #c4a7e7;
+      --muted: #6e6a86;
+      --subtle: #908caa;
+      --base: #191724;
+
+      /* Theme variables - Rose Pine (default) */
+      --theme-base: #191724;
+      --theme-surface: #1f1d2e;
+      --theme-overlay: #26233a;
+      --theme-muted: #6e6a86;
+      --theme-subtle: #908caa;
+      --theme-text: #e0def4;
+      --theme-love: #eb6f92;
+      --theme-gold: #f6c177;
+      --theme-rose: #ebbcba;
+      --theme-pine: #31748f;
+      --theme-foam: #9ccfd8;
+      --theme-iris: #c4a7e7;
+      --theme-highlight-low: #21202e;
+      --theme-highlight-med: #403d52;
+      --theme-highlight-high: #524f67;
+      --theme-gradient: linear-gradient(135deg, #191724 0%, #1f1d2e 50%, #26233a 100%);
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      margin: 0;
+      padding: 2rem;
+      background: var(--theme-gradient);
+      background-attachment: fixed;
+      color: var(--theme-text);
+      line-height: 1.6;
+      min-height: 100vh;
+      position: relative;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      position: relative;
+      z-index: 1;
+    }
+
+    .hidden { display: none; }
+    
+    .notice { 
+      background: rgba(246, 193, 119, 0.1); 
+      padding: 1rem; 
+      border-radius: 12px; 
+      margin-bottom: 1.5rem; 
+      border-left: 4px solid var(--theme-gold);
+      color: var(--theme-text);
+    }
+    
+    .error-notice {
+      background: rgba(235, 111, 146, 0.1);
+      border-left: 4px solid var(--theme-love);
+      color: var(--theme-love);
+    }
+    
+    .rate-limit-notice {
+      background: rgba(156, 207, 216, 0.1);
+      border-left: 4px solid var(--theme-foam);
+      color: var(--theme-foam);
+    }
+    
+    #timer-bar {
+      background: var(--theme-overlay);
+      border-radius: 12px;
+      height: 24px;
+      margin-bottom: 1.5rem;
+      overflow: hidden;
+      width: 100%;
+      box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);
+    }
+    
+    #timer-progress {
+      background: linear-gradient(90deg, var(--theme-foam), var(--theme-iris));
+      height: 100%;
+      width: 100%;
+      transition: width 1s linear;
+      border-radius: 12px 0 0 12px;
+    }
+    
+    button { 
+      margin: 0.5rem 0.5rem 0.5rem 0; 
+      padding: 0.75rem 1.5rem;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      font-weight: 500;
+      transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    #create-btn {
+      background: linear-gradient(135deg, var(--theme-foam), var(--theme-iris));
+      color: var(--theme-base);
+    }
+    
+    #create-btn:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(156, 207, 216, 0.3);
+    }
+    
+    #create-btn:disabled {
+      background: var(--theme-muted);
+      cursor: not-allowed;
+      transform: none;
+    }
+    
+    #terminate-btn {
+      background: linear-gradient(135deg, var(--theme-love), #d63384);
+      color: white;
+    }
+    
+    #terminate-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(235, 111, 146, 0.3);
+    }
+    
+    #fullscreen-btn {
+      background: linear-gradient(135deg, var(--theme-gold), #e6a700);
+      color: var(--theme-base);
+    }
+    
+    #fullscreen-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(246, 193, 119, 0.3);
+    }
+
+    #test-btn {
+      background: linear-gradient(135deg, var(--theme-pine), #2d5a6b);
+      color: white;
+    }
+
+    #test-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(49, 116, 143, 0.3);
+    }
+    
+    #hb-container { 
+      width: 100%; 
+      height: 600px; 
+      border: none; 
+      display: block; 
+      border-radius: 16px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+      background: var(--theme-surface);
+      margin: 1.5rem 0;
+      position: relative;
+      z-index: 2;
+    }
+    
+    #status { 
+      font-size: 1.1rem; 
+      margin: 1rem 0; 
+      padding: 1rem;
+      border-radius: 12px;
+      transition: all 0.3s ease;
+    }
+    
+    .status-error {
+      background: rgba(235, 111, 146, 0.1);
+      color: var(--theme-love);
+      border: 1px solid rgba(235, 111, 146, 0.3);
+    }
+    
+    .status-success {
+      background: rgba(156, 207, 216, 0.1);
+      color: var(--theme-foam);
+      border: 1px solid rgba(156, 207, 216, 0.3);
+    }
+    
+    .status-info {
+      background: rgba(196, 167, 231, 0.1);
+      color: var(--theme-iris);
+      border: 1px solid rgba(196, 167, 231, 0.3);
+    }
+    
+    .countdown {
+      font-weight: bold;
+      font-family: 'Courier New', monospace;
+    }
+    
+    .session-info {
+      background: var(--theme-surface);
+      padding: 1.5rem;
+      border-radius: 16px;
+      margin: 1.5rem 0;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+      border: 1px solid var(--theme-overlay);
+    }
+    
+    h1 {
+      color: var(--theme-text);
+      margin-bottom: 1rem;
+      font-size: 2.5rem;
+      font-weight: 700;
+      text-align: center;
+      background: linear-gradient(135deg, var(--theme-foam), var(--theme-iris));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1><i class='bx bx-rocket'></i> CARBON VM</h1>
+    
+
+    
+    <!-- Particles Canvas -->
+    <canvas id="particles-canvas" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0;" class="hidden"></canvas>
+    
+    <div class="notice">
+      <strong><i class='bx bx-info-circle'></i> Session Limits:</strong><br>
+      • Maximum duration: <strong>4 minutes</strong><br>
+      • Auto-terminate after <strong>30 seconds</strong> of inactivity<br>
+      • Rate limit: <strong>2 sessions per IP address</strong>
+    </div>
+    
+    <div class="flex flex-wrap gap-3 mb-4">
+      <button id="create-btn">
+        <i class='bx bx-plus-circle'></i>
+        Create New Session
+      </button>
+      <button id="terminate-btn" class="hidden">
+        <i class='bx bx-stop-circle'></i>
+        Terminate Session
+      </button>
+      <button id="fullscreen-btn" class="hidden" onclick="toggleFullscreen()">
+        <i class='bx bx-fullscreen'></i>
+        Fullscreen
+      </button>
+      <button id="test-btn" onclick="testHyperbeam()">
+        <i class='bx bx-test-tube'></i>
+        Test Hyperbeam SDK
+      </button>
+    </div>
+    
+    <div id="timer-bar" class="hidden">
+      <div id="timer-progress"></div>
+    </div>
+    
+    <div id="status"></div>
+    
+    <div id="session-info" class="session-info hidden">
+      <strong><i class='bx bx-check-circle'></i> Session Active</strong><br>
+      <span id="session-details"></span>
+    </div>
+    
+    <div id="hb-container" class="hidden"></div>
+  </div>
+
+  <script type="module">
+    try {
+      import('https://unpkg.com/@hyperbeam/web@0.0.37/dist/index.js').then(module => {
+        window.hyperbeam = module.default;
+        console.log('✅ Hyperbeam module loaded successfully:', typeof window.hyperbeam);
+      }).catch(error => {
+        console.error('❌ Failed to load Hyperbeam module:', error);
+        window.hyperbeam = null;
+      });
+    } catch (error) {
+      console.error('❌ Failed to import Hyperbeam module:', error);
+      window.hyperbeam = null;
+    }
+  </script>
+  <script>
+    let sessionId = null;
+    let expiresAt = null;
+    let timerInterval = null;
+    let pingInterval = null;
+    let csrfToken = null;
+    let isCreatingSession = false;
+    let hyperbeamSession = null;
+    let particlesAnimation = null;
+
+    // Sync background from profile.html
+    function syncBackgroundFromProfile() {
+      // Get background setting from localStorage (same as profile.html)
+      const background = localStorage.getItem('carbon-background-global') || 'gradient';
+      applyBackground(background);
+    }
+
+    function applyBackground(background) {
+      console.log('🎨 Applying background:', background);
+      
+      const body = document.body;
+      const particlesCanvas = document.getElementById('particles-canvas');
+      
+      // Stop any existing particles animation
+      if (particlesAnimation) {
+        cancelAnimationFrame(particlesAnimation);
+        particlesAnimation = null;
+      }
+      
+      // Hide particles canvas by default
+      particlesCanvas.classList.add('hidden');
+      
+      // Reset body background
+      body.style.background = '';
+      body.style.backgroundAttachment = '';
+      
+      switch (background) {
+        case 'gradient':
+          body.style.background = 'linear-gradient(135deg, rgba(156, 207, 216, 0.1) 0%, rgba(196, 167, 231, 0.1) 100%)';
+          body.style.backgroundAttachment = 'fixed';
+          console.log('✅ Gradient background applied');
+          break;
+          
+        case 'solid':
+          body.style.background = '#31748f'; // Use hex instead of CSS variable for reliability
+          console.log('✅ Solid background applied');
+          break;
+          
+        case 'particles':
+          body.style.background = '#191724'; // Use hex instead of CSS variable
+          particlesCanvas.classList.remove('hidden');
+          
+          // Ensure particles canvas is properly positioned
+          particlesCanvas.style.position = 'fixed';
+          particlesCanvas.style.top = '0';
+          particlesCanvas.style.left = '0';
+          particlesCanvas.style.width = '100%';
+          particlesCanvas.style.height = '100%';
+          particlesCanvas.style.pointerEvents = 'none';
+          particlesCanvas.style.zIndex = '0';
+          
+          try {
+            initParticles();
+            console.log('✅ Particles background applied');
+          } catch (particlesError) {
+            console.error('❌ Error initializing particles:', particlesError);
+            // Fallback to solid background
+            body.style.background = '#191724';
+            particlesCanvas.classList.add('hidden');
+          }
+          break;
+          
+        case 'default':
+        default:
+          body.style.background = 'var(--theme-gradient)';
+          body.style.backgroundAttachment = 'fixed';
+          console.log('✅ Default background applied');
+          break;
+      }
+    }
+
+    function initParticles() {
+      console.log('✨ Initializing particles');
+      
+      const canvas = document.getElementById('particles-canvas');
+      if (!canvas) {
+        console.error('❌ Particles canvas not found');
+        return;
+      }
+      
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        console.error('❌ Could not get 2D context');
+        return;
+      }
+      
+      // Ensure canvas is properly positioned and sized
+      canvas.style.position = 'fixed';
+      canvas.style.top = '0';
+      canvas.style.left = '0';
+      canvas.style.width = '100%';
+      canvas.style.height = '100%';
+      canvas.style.pointerEvents = 'none';
+      canvas.style.zIndex = '0';
+      
+      // Set canvas size to match window
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      
+      const particlesArray = [];
+      const particleCount = 50;
+      
+      class Particle {
+        constructor() {
+          this.x = Math.random() * canvas.width;
+          this.y = Math.random() * canvas.height;
+          this.vx = (Math.random() - 0.5) * 2;
+          this.vy = (Math.random() - 0.5) * 2;
+          this.radius = Math.random() * 3 + 1;
+          this.opacity = Math.random() * 0.5 + 0.2;
+          this.color = this.getRandomColor();
+        }
+        
+        getRandomColor() {
+          const colors = [
+            'rgba(156, 207, 216, ', // foam
+            'rgba(196, 167, 231, ', // iris
+            'rgba(246, 193, 119, ', // gold
+            'rgba(235, 188, 186, '  // love
+          ];
+          return colors[Math.floor(Math.random() * colors.length)];
+        }
+        
+        update() {
+          this.x += this.vx;
+          this.y += this.vy;
+          
+          if (this.x < 0 || this.x > canvas.width) this.vx *= -1;
+          if (this.y < 0 || this.y > canvas.height) this.vy *= -1;
+        }
+        
+        draw() {
+          ctx.beginPath();
+          ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+          ctx.fillStyle = this.color + this.opacity + ')';
+          ctx.fill();
+        }
+      }
+      
+      function createParticles() {
+        particlesArray.length = 0;
+        for (let i = 0; i < particleCount; i++) {
+          particlesArray.push(new Particle());
+        }
+      }
+      
+      function animate() {
+        if (canvas.classList.contains('hidden')) {
+          return;
+        }
+        
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        particlesArray.forEach(particle => {
+          particle.update();
+          particle.draw();
+        });
+        
+        particlesAnimation = requestAnimationFrame(animate);
+      }
+      
+      createParticles();
+      animate();
+      
+      // Handle window resize
+      window.addEventListener('resize', () => {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        createParticles();
+      });
+    }
+
+    async function getCsrfToken() {
+      try {
+        const platform = window.platformDetector.detectPlatform();
+        const csrfPath = window.platformDetector.getFunctionPath('vm/csrf-token');
+        console.log(`🔍 Platform detected: ${platform}, CSRF path: ${csrfPath}`);
+        
+        const res = await fetch(csrfPath);
+        if (!res.ok) throw new Error('Failed to get CSRF token');
+        const json = await res.json();
+        csrfToken = json.csrfToken;
+        return true;
+      } catch (error) {
+        setStatus("Failed to initialize security token", "error");
+        return false;
+      }
+    }
+
+    function setStatus(msg, type = "info") {
+      const el = document.getElementById('status');
+      el.textContent = msg;
+      el.className = `status-${type}`;
+      
+      // Auto-clear non-error messages after 10 seconds
+      if (type !== "error") {
+        setTimeout(() => {
+          if (el.textContent === msg) {
+            el.textContent = "";
+            el.className = "";
+          }
+        }, 10000);
+      }
+    }
+
+    function updateSessionInfo(sessionData) {
+      const infoEl = document.getElementById('session-info');
+      const detailsEl = document.getElementById('session-details');
+      
+      if (sessionData) {
+        const expireTime = new Date(sessionData.expiresAt).toLocaleTimeString();
+        detailsEl.innerHTML = `
+          Session ID: <code>${sessionData.id.substring(0, 8)}...</code><br>
+          Expires at: <span class="countdown">${expireTime}</span>
+        `;
+        infoEl.classList.remove('hidden');
+      } else {
+        infoEl.classList.add('hidden');
+      }
+    }
+
+    async function createSession() {
+      if (isCreatingSession) return;
+      
+      isCreatingSession = true;
+      const createBtn = document.getElementById('create-btn');
+      createBtn.disabled = true;
+      createBtn.innerHTML = '<i class="bx bx-loader-alt bx-spin"></i> Creating Session...';
+      
+      try {
+        if (!(await getCsrfToken())) {
+          return;
+        }
+
+        setStatus("Creating session...", "info");
+        
+        const platform = window.platformDetector.detectPlatform();
+        const vmPath = window.platformDetector.getFunctionPath('vm');
+        console.log(`🔍 Platform detected: ${platform}, VM API path: ${vmPath}`);
+        console.log('🔍 Making API request to', vmPath, '...');
+        const res = await fetch(vmPath, {
+          method: "POST",
+          headers: {
+            "x-csrf-token": csrfToken,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({})
+        });
+        
+        console.log(`📡 API response status: ${res.status}`);
+        console.log(`📡 API response headers:`, Object.fromEntries(res.headers.entries()));
+        
+        const data = await res.json();
+        
+        if (!res.ok) {
+          if (res.status === 429) {
+            setStatus(`Rate limit exceeded: ${data.error}. Please try again in ${Math.ceil(data.retryAfter / 60)} minutes.`, "error");
+            showRateLimitNotice(data.retryAfter);
+          } else if (res.status === 403) {
+            setStatus("Security error: Please refresh the page and try again.", "error");
+          } else if (res.status === 405) {
+            setStatus("Method not allowed. Please refresh the page and try again.", "error");
+          } else if (res.status === 500) {
+            if (data.error === "Invalid API key") {
+              setStatus("Configuration error: Invalid Hyperbeam API key. Please check your setup.", "error");
+            } else if (data.error === "Service temporarily unavailable") {
+              if (data.details && data.details.includes("HYPERBEAM_API_KEY")) {
+                setStatus("Configuration error: HYPERBEAM_API_KEY environment variable is not set. Please check the deployment guide.", "error");
+              } else {
+                setStatus("Service temporarily unavailable. Please try again in a few minutes.", "error");
+              }
+            } else if (data.error === "Service temporarily overloaded") {
+              setStatus("Service temporarily overloaded. Please try again in a few minutes.", "error");
+            } else {
+              setStatus(`Server error: ${data.error}${data.details ? ` (${data.details})` : ""}`, "error");
+            }
+          } else {
+            setStatus(`Error: ${data.error}${data.details ? ` (${data.details})` : ""}`, "error");
+          }
+          return;
+        }
+        
+        if (!data.id || !data.url || !data.expiresAt) {
+          setStatus("Invalid session data received from server.", "error");
+          return;
+        }
+        
+        sessionId = data.id;
+        expiresAt = data.expiresAt;
+        
+        // Initialize Hyperbeam SDK
+        const container = document.getElementById('hb-container');
+        container.classList.remove('hidden');
+        
+        try {
+          // Check if hyperbeam function is available
+          if (typeof window.hyperbeam !== 'function') {
+            throw new Error('Hyperbeam SDK not loaded properly. Please refresh the page and try again.');
+          }
+          
+          // Initialize Hyperbeam session with the web SDK
+          hyperbeamSession = await window.hyperbeam(container, data.url, {
+            timeout: 10000
+          });
+          
+          document.getElementById('terminate-btn').classList.remove('hidden');
+          document.getElementById('fullscreen-btn').classList.remove('hidden');
+          document.getElementById('timer-bar').classList.remove('hidden');
+          document.getElementById('create-btn').classList.add('hidden');
+          
+          updateSessionInfo(data);
+          setStatus("Session created successfully!", "success");
+          startTimer();
+          startPing();
+          
+        } catch (sdkError) {
+          console.error('Hyperbeam SDK error:', sdkError);
+          setStatus("Failed to initialize Hyperbeam session. Please try again.", "error");
+          cleanupSession();
+        }
+        
+      } catch (error) {
+        setStatus(`Network error: ${error.message}`, "error");
+      } finally {
+        isCreatingSession = false;
+        createBtn.disabled = false;
+        createBtn.innerHTML = '<i class="bx bx-plus-circle"></i> Create New Session';
+      }
+    }
+
+    function showRateLimitNotice(retryAfter) {
+      const notice = document.createElement('div');
+      notice.className = 'notice rate-limit-notice';
+      notice.innerHTML = `
+        <strong><i class='bx bx-time'></i> Rate Limit Reached</strong><br>
+        You have reached the maximum of 2 sessions per IP address. 
+        Please wait ${Math.ceil(retryAfter / 60)} minutes before creating a new session.
+      `;
+      
+      // Insert after the main notice
+      const mainNotice = document.querySelector('.notice');
+      mainNotice.parentNode.insertBefore(notice, mainNotice.nextSibling);
+      
+      // Remove after delay
+      setTimeout(() => {
+        if (notice.parentNode) {
+          notice.parentNode.removeChild(notice);
+        }
+      }, retryAfter * 1000);
+    }
+
+    function startTimer() {
+      const bar = document.getElementById('timer-progress');
+      const sessionDetails = document.getElementById('session-details');
+      
+      function update() {
+        const now = Date.now();
+        const remaining = Math.max(0, expiresAt - now);
+        const total = 4 * 60 * 1000; // 4 minutes
+        const percent = Math.max(0, (remaining / total) * 100);
+        
+        bar.style.width = percent + "%";
+        
+        // Update color based on remaining time
+        if (percent < 25) {
+          bar.style.background = "linear-gradient(90deg, var(--theme-love), #d63384)";
+        } else if (percent < 50) {
+          bar.style.background = "linear-gradient(90deg, var(--theme-gold), #e6a700)";
+        }
+        
+        // Update countdown in session info
+        if (sessionDetails && remaining > 0) {
+          const mins = Math.floor(remaining / 60000);
+          const secs = Math.floor((remaining % 60000) / 1000);
+          const countdownEl = sessionDetails.querySelector('.countdown');
+          if (countdownEl) {
+            countdownEl.textContent = `${mins}:${secs.toString().padStart(2, '0')} remaining`;
+          }
+        }
+        
+        if (remaining <= 0) {
+          setStatus("Session expired due to time limit.", "error");
+          cleanupSession();
+        }
+      }
+      
+      update();
+      timerInterval = setInterval(update, 1000);
+    }
+
+    function stopTimer() {
+      if (timerInterval) {
+        clearInterval(timerInterval);
+        timerInterval = null;
+      }
+      document.getElementById('timer-bar').classList.add('hidden');
+    }
+
+    function startPing() {
+      pingInterval = setInterval(async () => {
+        try {
+          const platform = window.platformDetector.detectPlatform();
+          const vmPath = window.platformDetector.getFunctionPath('vm');
+          console.log('🔍 Making ping request to', vmPath, '...');
+          const res = await fetch(vmPath, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ sessionId })
+          });
+          
+          if (!res.ok) {
+            console.warn('Ping failed:', await res.text());
+            // If session not found, clean up
+            if (res.status === 404 || res.status === 403) {
+              setStatus("Session expired or access denied.", "error");
+              cleanupSession();
+            }
+          }
+        } catch (error) {
+          console.warn('Ping error:', error);
+        }
+      }, 10000); // every 10 seconds
+    }
+
+    function stopPing() {
+      if (pingInterval) {
+        clearInterval(pingInterval);
+        pingInterval = null;
+      }
+    }
+
+    async function terminateSession() {
+      try {
+        if (!(await getCsrfToken())) {
+          return;
+        }
+        
+        setStatus("Terminating session...", "info");
+        
+        const platform = window.platformDetector.detectPlatform();
+        const vmPath = window.platformDetector.getFunctionPath('vm');
+        const res = await fetch(vmPath, {
+          method: "DELETE",
+          headers: {
+            "x-csrf-token": csrfToken,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ sessionId })
+        });
+        
+        const data = await res.json();
+        
+        if (res.ok) {
+          setStatus("Session terminated successfully.", "success");
+        } else {
+          setStatus(`Error terminating session: ${data.error}`, "error");
+        }
+      } catch (error) {
+        setStatus(`Network error: ${error.message}`, "error");
+      }
+      
+      cleanupSession();
+    }
+
+    function cleanupSession() {
+      stopPing();
+      stopTimer();
+      updateSessionInfo(null);
+      
+      // Clean up Hyperbeam session
+      if (hyperbeamSession) {
+        try {
+          hyperbeamSession.destroy();
+        } catch (error) {
+          console.warn('Error destroying Hyperbeam session:', error);
+        }
+        hyperbeamSession = null;
+      }
+      
+      const container = document.getElementById('hb-container');
+      container.innerHTML = '';
+      container.classList.add('hidden');
+      document.getElementById('terminate-btn').classList.add('hidden');
+      document.getElementById('fullscreen-btn').classList.add('hidden');
+      document.getElementById('create-btn').classList.remove('hidden');
+      
+      sessionId = null;
+      expiresAt = null;
+    }
+
+    // Test function to check if Hyperbeam SDK is loaded
+    function testHyperbeam() {
+      if (typeof window.hyperbeam === 'function') {
+        setStatus("✅ Hyperbeam SDK is loaded and ready!", "success");
+        console.log('Hyperbeam SDK test passed:', window.hyperbeam);
+      } else {
+        setStatus("❌ Hyperbeam SDK is not loaded. Please refresh the page.", "error");
+        console.error('Hyperbeam SDK test failed:', window.hyperbeam);
+      }
+    }
+
+    // Fullscreen toggle function
+    function toggleFullscreen() {
+      const container = document.getElementById('hb-container');
+      
+      if (!document.fullscreenElement) {
+        // Enter fullscreen
+        if (container.requestFullscreen) {
+          container.requestFullscreen();
+        } else if (container.webkitRequestFullscreen) {
+          container.webkitRequestFullscreen();
+        } else if (container.msRequestFullscreen) {
+          container.msRequestFullscreen();
+        }
+      } else {
+        // Exit fullscreen
+        if (document.exitFullscreen) {
+          document.exitFullscreen();
+        } else if (document.webkitExitFullscreen) {
+          document.webkitExitFullscreen();
+        } else if (document.msExitFullscreen) {
+          document.msExitFullscreen();
+        }
+      }
+    }
+
+    // Initialize background sync when page loads
+    document.addEventListener('DOMContentLoaded', () => {
+      syncBackgroundFromProfile();
+    });
+
+    // Event listeners
+    document.getElementById('create-btn').onclick = createSession;
+    document.getElementById('terminate-btn').onclick = terminateSession;
+    
+    // Handle page visibility changes to pause/resume activity pings
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden && pingInterval) {
+        stopPing();
+      } else if (!document.hidden && sessionId && !pingInterval) {
+        startPing();
+      }
+    });
+  </script>
+</body>
+</html>

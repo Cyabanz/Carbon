@@ -1,0 +1,368 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ======================================
+    // CARBON BROWSER FIREBASE SECURITY RULES
+    // ======================================
+    
+    // Helper functions for validation and security
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(uid) {
+      return request.auth != null && request.auth.uid == uid;
+    }
+    
+    function isValidString(value, minLength, maxLength) {
+      return value is string && value.size() >= minLength && value.size() <= maxLength;
+    }
+    
+    function isValidUrl(value) {
+      return value is string && 
+             value.size() <= 2000 && 
+             (value.matches('https://.*') || 
+              value.matches('http://.*') || 
+              value.matches('carbon://.*'));
+    }
+    
+    function isValidEmail(value) {
+      return value is string && value.matches('.*@.*\\..*');
+    }
+    
+    function isValidTimestamp(value) {
+      return value is timestamp;
+    }
+    
+    function hasOnlyAllowedKeys(data, allowedKeys) {
+      return data.keys().hasOnly(allowedKeys);
+    }
+    
+    // Rate limiting helper (basic implementation)
+    function isWithinRateLimit() {
+      return request.time > resource.data.get('lastUpdated', timestamp.date(1970, 1, 1)) + duration.value(1, 's');
+    }
+    
+    // ======================================
+    // USER DATA RULES (index.html, profile.html)
+    // ======================================
+    
+    match /users/{userId} {
+      allow read, write: if isOwner(userId) && isWithinRateLimit();
+      
+      // Validate user document structure
+      allow create: if isOwner(userId) && 
+        hasOnlyAllowedKeys(request.resource.data, [
+          'profile', 'settings', 'browserData', 'customThemes', 
+          'bookmarks', 'gameData', 'achievements', 'lastUpdated', 'created'
+        ]);
+      
+      allow update: if isOwner(userId) && 
+        hasOnlyAllowedKeys(request.resource.data, [
+          'profile', 'settings', 'browserData', 'customThemes', 
+          'bookmarks', 'gameData', 'achievements', 'lastUpdated'
+        ]) &&
+        // Ensure lastUpdated is properly set
+        request.resource.data.lastUpdated is timestamp;
+      
+      // Profile data validation (profile.html)
+      allow update: if isOwner(userId) &&
+        request.resource.data.profile != null &&
+        hasOnlyAllowedKeys(request.resource.data.profile, [
+          'displayName', 'email', 'photoURL', 'bio', 'preferences', 
+          'theme', 'language', 'timezone', 'lastLogin', 'joinDate'
+        ]) &&
+        (request.resource.data.profile.displayName == null || 
+         isValidString(request.resource.data.profile.displayName, 1, 50)) &&
+        (request.resource.data.profile.email == null || 
+         isValidEmail(request.resource.data.profile.email)) &&
+        (request.resource.data.profile.bio == null || 
+         isValidString(request.resource.data.profile.bio, 0, 500)) &&
+        (request.resource.data.profile.photoURL == null || 
+         isValidUrl(request.resource.data.profile.photoURL));
+    }
+    
+    // ======================================
+    // BROWSER DATA RULES (index.html)
+    // ======================================
+    
+    match /users/{userId}/browserSessions/{sessionId} {
+      allow read, write: if isOwner(userId);
+      
+      // Validate browser session data
+      allow create, update: if isOwner(userId) &&
+        hasOnlyAllowedKeys(request.resource.data, [
+          'tabs', 'tabGroups', 'pinnedTabs', 'tabHistory', 
+          'tabSnapshots', 'activeTabId', 'verticalTabsMode', 
+          'tabBarHidden', 'bookmarks', 'sessionId', 'created', 'lastUpdated'
+        ]) &&
+        // Validate tabs array
+        (request.resource.data.tabs == null || 
+         request.resource.data.tabs is list &&
+         request.resource.data.tabs.size() <= 100) &&
+        // Validate bookmarks array
+        (request.resource.data.bookmarks == null || 
+         request.resource.data.bookmarks is list &&
+         request.resource.data.bookmarks.size() <= 500) &&
+        // Validate session ID
+        (request.resource.data.sessionId == null || 
+         isValidString(request.resource.data.sessionId, 10, 50));
+    }
+    
+    // ======================================
+    // SETTINGS DATA RULES (settings.html)
+    // ======================================
+    
+    match /users/{userId}/settings/{settingCategory} {
+      allow read, write: if isOwner(userId);
+      
+      // Privacy settings validation
+      allow create, update: if isOwner(userId) &&
+        settingCategory == 'privacy' &&
+        hasOnlyAllowedKeys(request.resource.data, [
+          'panicKey', 'panicUrl', 'cloakingEnabled', 'cloakTitle', 
+          'cloakFavicon', 'disableRightClick', 'disableDevtools', 
+          'disableSelect', 'hideCursor', 'blurOnUnfocus', 
+          'closePreventionEnabled', 'confirmClose', 'closeMessage'
+        ]) &&
+        (request.resource.data.panicKey == null || 
+         isValidString(request.resource.data.panicKey, 1, 5)) &&
+        (request.resource.data.panicUrl == null || 
+         isValidUrl(request.resource.data.panicUrl)) &&
+        (request.resource.data.cloakTitle == null || 
+         isValidString(request.resource.data.cloakTitle, 1, 100)) &&
+        (request.resource.data.cloakFavicon == null || 
+         isValidUrl(request.resource.data.cloakFavicon));
+      
+      // Theme settings validation
+      allow create, update: if isOwner(userId) &&
+        settingCategory == 'theme' &&
+        hasOnlyAllowedKeys(request.resource.data, [
+          'currentTheme', 'customThemes', 'animations', 'autoSync',
+          'performanceMode', 'gradientIntensity', 'borderRadius', 
+          'fontScale', 'background', 'customBackground'
+        ]) &&
+        (request.resource.data.currentTheme == null || 
+         isValidString(request.resource.data.currentTheme, 1, 50)) &&
+        (request.resource.data.customThemes == null || 
+         request.resource.data.customThemes is map &&
+         request.resource.data.customThemes.size() <= 20);
+      
+      // General settings validation
+      allow create, update: if isOwner(userId) &&
+        settingCategory == 'general' &&
+        hasOnlyAllowedKeys(request.resource.data, [
+          'language', 'timezone', 'searchEngine', 'proxy', 
+          'notifications', 'autoSave', 'syncEnabled'
+        ]);
+    }
+    
+    // ======================================
+    // GAMES DATA RULES (games.html)
+    // ======================================
+    
+    match /users/{userId}/gameData/{gameId} {
+      allow read, write: if isOwner(userId);
+      
+      // Validate game data structure
+      allow create, update: if isOwner(userId) &&
+        hasOnlyAllowedKeys(request.resource.data, [
+          'gameId', 'highScore', 'progress', 'achievements', 
+          'playtime', 'lastPlayed', 'settings', 'saves'
+        ]) &&
+        (request.resource.data.gameId == null || 
+         request.resource.data.gameId is int &&
+         request.resource.data.gameId >= 0) &&
+        (request.resource.data.highScore == null || 
+         request.resource.data.highScore is int &&
+         request.resource.data.highScore >= 0) &&
+        (request.resource.data.progress == null || 
+         (request.resource.data.progress is number &&
+          request.resource.data.progress >= 0 && 
+          request.resource.data.progress <= 100)) &&
+        (request.resource.data.playtime == null || 
+         request.resource.data.playtime is int &&
+         request.resource.data.playtime >= 0);
+    }
+    
+    // Global game statistics (readable by all, writable by authenticated users)
+    match /gameStats/{gameId} {
+      allow read: if true;
+      allow write: if isAuthenticated() &&
+        hasOnlyAllowedKeys(request.resource.data, [
+          'gameId', 'playCount', 'avgRating', 'totalPlaytime', 
+          'lastPlayed', 'featured', 'category'
+        ]) &&
+        (request.resource.data.playCount == null || 
+         request.resource.data.playCount is int &&
+         request.resource.data.playCount >= 0) &&
+        (request.resource.data.avgRating == null || 
+         (request.resource.data.avgRating is number &&
+          request.resource.data.avgRating >= 0 && 
+          request.resource.data.avgRating <= 5));
+    }
+    
+    // Daily game content (readable by all, admin writable only)
+    match /dailyContent/{date} {
+      allow read: if true;
+      allow write: if false; // Admin only through server
+    }
+    
+    // ======================================
+    // SHARED CONTENT RULES
+    // ======================================
+    
+    // Public bookmarks sharing
+    match /sharedBookmarks/{shareId} {
+      allow read: if true;
+      allow create: if isAuthenticated() &&
+        hasOnlyAllowedKeys(request.resource.data, [
+          'title', 'bookmarks', 'createdBy', 'created', 'isPublic'
+        ]) &&
+        isValidString(request.resource.data.title, 1, 100) &&
+        request.resource.data.bookmarks is list &&
+        request.resource.data.bookmarks.size() <= 50 &&
+        request.resource.data.createdBy == request.auth.uid;
+      
+      allow update, delete: if isAuthenticated() && 
+        resource.data.createdBy == request.auth.uid;
+    }
+    
+    // Theme sharing
+    match /sharedThemes/{themeId} {
+      allow read: if true;
+      allow create: if isAuthenticated() &&
+        hasOnlyAllowedKeys(request.resource.data, [
+          'name', 'colors', 'createdBy', 'created', 'downloads', 'rating'
+        ]) &&
+        isValidString(request.resource.data.name, 1, 50) &&
+        request.resource.data.colors is map &&
+        request.resource.data.createdBy == request.auth.uid;
+      
+      allow update: if isAuthenticated() && 
+        (resource.data.createdBy == request.auth.uid ||
+         // Allow others to update download count and rating
+         hasOnlyAllowedKeys(request.resource.data.diff(resource.data), ['downloads', 'rating']));
+      
+      allow delete: if isAuthenticated() && 
+        resource.data.createdBy == request.auth.uid;
+    }
+    
+    // ======================================
+    // ADMIN AND MODERATION RULES
+    // ======================================
+    
+    // Admin controls (admin users only)
+    match /admin/{document=**} {
+      allow read, write: if isAuthenticated() && 
+        request.auth.token.admin == true;
+    }
+    
+    // User reports and moderation
+    match /reports/{reportId} {
+      allow create: if isAuthenticated() &&
+        hasOnlyAllowedKeys(request.resource.data, [
+          'type', 'targetId', 'reason', 'description', 
+          'reportedBy', 'created', 'status'
+        ]) &&
+        isValidString(request.resource.data.reason, 1, 500) &&
+        request.resource.data.reportedBy == request.auth.uid;
+      
+      allow read, update: if isAuthenticated() && 
+        request.auth.token.moderator == true;
+    }
+    
+    // ======================================
+    // ANALYTICS AND METRICS RULES
+    // ======================================
+    
+    // Usage analytics (write-only for users, read for admins)
+    match /analytics/{userId}/sessions/{sessionId} {
+      allow create: if isOwner(userId) &&
+        hasOnlyAllowedKeys(request.resource.data, [
+          'startTime', 'endTime', 'pageViews', 'features', 
+          'device', 'browser', 'actions'
+        ]);
+      
+      allow read: if isAuthenticated() && 
+        request.auth.token.admin == true;
+    }
+    
+    // Error reporting
+    match /errorReports/{reportId} {
+      allow create: if isAuthenticated() &&
+        hasOnlyAllowedKeys(request.resource.data, [
+          'error', 'stack', 'url', 'userAgent', 'userId', 'timestamp'
+        ]) &&
+        request.resource.data.userId == request.auth.uid;
+      
+      allow read: if isAuthenticated() && 
+        request.auth.token.admin == true;
+    }
+    
+    // ======================================
+    // SECURITY AND ABUSE PREVENTION
+    // ======================================
+    
+    // Rate limiting collection (internal use)
+    match /rateLimits/{userId} {
+      allow read, write: if false; // Internal use only
+    }
+    
+    // Blocked users/content
+    match /blockedContent/{contentId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated() && 
+        request.auth.token.moderator == true;
+    }
+    
+    // User activity logs (security monitoring)
+    match /activityLogs/{userId}/activities/{activityId} {
+      allow create: if isOwner(userId) &&
+        hasOnlyAllowedKeys(request.resource.data, [
+          'action', 'timestamp', 'ip', 'userAgent', 'data'
+        ]);
+      
+      allow read: if isOwner(userId) || 
+        (isAuthenticated() && request.auth.token.admin == true);
+    }
+    
+    // ======================================
+    // FEATURE-SPECIFIC RULES
+    // ======================================
+    
+    // Carbon extensions/plugins data
+    match /users/{userId}/extensions/{extensionId} {
+      allow read, write: if isOwner(userId) &&
+        hasOnlyAllowedKeys(request.resource.data, [
+          'extensionId', 'enabled', 'settings', 'version', 'installed'
+        ]);
+    }
+    
+    // Export/import data
+    match /exports/{exportId} {
+      allow read: if isAuthenticated() && 
+        resource.data.userId == request.auth.uid;
+      
+      allow create: if isAuthenticated() &&
+        request.resource.data.userId == request.auth.uid &&
+        hasOnlyAllowedKeys(request.resource.data, [
+          'userId', 'type', 'data', 'created', 'expires'
+        ]);
+      
+      allow delete: if isAuthenticated() && 
+        resource.data.userId == request.auth.uid;
+    }
+    
+    // ======================================
+    // FALLBACK RULE
+    // ======================================
+    
+    // Deny all other access
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
