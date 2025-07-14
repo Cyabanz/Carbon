@@ -364,940 +364,868 @@
   </script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js"></script>
   
-  <!-- Carbon Theme -->
-  <script src="carbon-theme.js"></script>
-  
   <script>
     // Wait for DOM and Firebase to be ready
     document.addEventListener('DOMContentLoaded', function() {
-      // Initialize Carbon Theme
-      const carbonTheme = new CarbonTheme();
-      
-      // Check if Firebase is available
-      if (typeof window.firebase === 'undefined') {
-        console.error('Firebase not initialized');
-        const errorDiv = document.createElement('div');
-        errorDiv.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; background: #ef4444; color: white; padding: 1rem; text-align: center; z-index: 9999;';
-        errorDiv.textContent = 'Failed to initialize Firebase. Please refresh the page.';
-        document.body.appendChild(errorDiv);
-        return;
+      // DOM Elements
+      const loginScreen = document.getElementById('login-screen');
+      const chatInterface = document.getElementById('chat-interface');
+      const googleSigninBtn = document.getElementById('google-signin-btn');
+      const loginError = document.getElementById('login-error');
+      const signOutBtn = document.getElementById('sign-out-btn');
+      const userPhoto = document.getElementById('user-photo');
+      const userName = document.getElementById('user-name');
+      const themeSelect = document.getElementById('theme-select');
+      const bgSelect = document.getElementById('bg-select');
+      const newConvoBtn = document.getElementById('new-convo-btn');
+      const convoList = document.getElementById('convo-list');
+      const convoTitle = document.getElementById('convo-title');
+      const messageCount = document.getElementById('message-count');
+      const searchCount = document.getElementById('search-count');
+      const chatBox = document.getElementById('chat-box');
+      const userInput = document.getElementById('user-input');
+      const sendBtn = document.getElementById('send-btn');
+      const clearHistoryBtn = document.getElementById('clear-history');
+      const exportHistoryBtn = document.getElementById('export-history');
+      const webSearchBtn = document.getElementById('web-search');
+      const viewSearchHistoryBtn = document.getElementById('view-search-history');
+      const personalitySelect = document.getElementById('personality');
+      const reasoningSelect = document.getElementById('reasoning-mode');
+
+      // Authentication
+      function showAuthError(msg) {
+        loginError.textContent = DOMPurify.sanitize(msg);
+        loginError.classList.remove('hidden');
       }
-      
-      // Get Firebase instances
-      const auth = window.firebase.auth;
-      const db = window.firebase.db;
 
-    // DOM Elements
-    const loginScreen = document.getElementById('login-screen');
-    const chatInterface = document.getElementById('chat-interface');
-    const googleSigninBtn = document.getElementById('google-signin-btn');
-    const loginError = document.getElementById('login-error');
-    const signOutBtn = document.getElementById('sign-out-btn');
-    const userPhoto = document.getElementById('user-photo');
-    const userName = document.getElementById('user-name');
-    const themeSelect = document.getElementById('theme-select');
-    const bgSelect = document.getElementById('bg-select');
-    const newConvoBtn = document.getElementById('new-convo-btn');
-    const convoList = document.getElementById('convo-list');
-    const convoTitle = document.getElementById('convo-title');
-    const messageCount = document.getElementById('message-count');
-    const searchCount = document.getElementById('search-count');
-    const chatBox = document.getElementById('chat-box');
-    const userInput = document.getElementById('user-input');
-    const sendBtn = document.getElementById('send-btn');
-    const clearHistoryBtn = document.getElementById('clear-history');
-    const exportHistoryBtn = document.getElementById('export-history');
-    const webSearchBtn = document.getElementById('web-search');
-    const viewSearchHistoryBtn = document.getElementById('view-search-history');
-    const personalitySelect = document.getElementById('personality');
-    const reasoningSelect = document.getElementById('reasoning-mode');
-
-    // Theme Management
-    function populateThemeSelect() {
-      const themes = carbonTheme.getAllThemes();
-      themeSelect.innerHTML = '';
-      Object.keys(themes).forEach(theme => {
-        const opt = document.createElement('option');
-        opt.value = theme;
-        opt.textContent = theme.charAt(0).toUpperCase() + theme.slice(1);
-        if (carbonTheme.currentTheme === theme) opt.selected = true;
-        themeSelect.appendChild(opt);
-      });
-    }
-
-    function populateBgSelect() {
-      const backgrounds = ['gradient', 'solid', 'pattern', 'particles'];
-      bgSelect.innerHTML = '';
-      backgrounds.forEach(bg => {
-        const opt = document.createElement('option');
-        opt.value = bg;
-        opt.textContent = bg.charAt(0).toUpperCase() + bg.slice(1);
-        if ((localStorage.getItem('carbon-background-global') || 'gradient') === bg) opt.selected = true;
-        bgSelect.appendChild(opt);
-      });
-    }
-
-    themeSelect.addEventListener('change', e => {
-      carbonTheme.setTheme(e.target.value);
-      localStorage.setItem('carbon-theme-global', e.target.value);
-    });
-
-    bgSelect.addEventListener('change', e => {
-      localStorage.setItem('carbon-background-global', e.target.value);
-      carbonTheme.applyDynamicBackground(carbonTheme.currentTheme, e.target.value);
-    });
-
-    // Initialize theme system
-    populateThemeSelect();
-    populateBgSelect();
-    carbonTheme.applyTheme(localStorage.getItem('carbon-theme-global') || 'rose-pine');
-    carbonTheme.applyDynamicBackground(carbonTheme.currentTheme, localStorage.getItem('carbon-background-global') || 'gradient');
-
-    // Listen for theme changes from other tabs
-    window.addEventListener('storage', e => {
-      if (e.key === 'carbon-theme-global') {
-        carbonTheme.setTheme(e.newValue);
-        populateThemeSelect();
+      function clearAuthError() {
+        loginError.textContent = '';
+        loginError.classList.add('hidden');
       }
-      if (e.key === 'carbon-background-global') {
-        carbonTheme.applyDynamicBackground(carbonTheme.currentTheme, e.newValue);
-        populateBgSelect();
-      }
-    });
 
-    // Authentication
-    function showAuthError(msg) {
-      loginError.textContent = DOMPurify.sanitize(msg);
-      loginError.classList.remove('hidden');
-    }
-
-    function clearAuthError() {
-      loginError.textContent = '';
-      loginError.classList.add('hidden');
-    }
-
-    googleSigninBtn.addEventListener('click', async () => {
-      clearAuthError();
-      googleSigninBtn.disabled = true;
-      googleSigninBtn.innerHTML = "<i class='bx bxs-hourglass bx-spin'></i> Signing in...";
-      
-      const provider = new window.firebase.GoogleAuthProvider();
-      provider.addScope('profile');
-      provider.addScope('email');
-      
-      try {
-        await window.firebase.signInWithPopup(auth, provider);
-      } catch (e) {
-        showAuthError(`Authentication failed: ${DOMPurify.sanitize(e.message)}`);
-      } finally {
-        googleSigninBtn.disabled = false;
-        googleSigninBtn.innerHTML = "<i class='bx bxl-google'></i> Sign in with Google";
-      }
-    });
-
-    signOutBtn.addEventListener('click', () => {
-      if (confirm('Are you sure you want to sign out?')) {
-        window.firebase.signOut(auth);
-      }
-    });
-
-    // Chat Application
-    let fusionChat = null;
-    let userId = null;
-
-    window.firebase.onAuthStateChanged(auth, user => {
-      if (user) {
-        userId = user.uid;
-        loginScreen.classList.add('hidden');
-        chatInterface.classList.remove('hidden');
+      googleSigninBtn.addEventListener('click', async () => {
+        clearAuthError();
+        googleSigninBtn.disabled = true;
+        googleSigninBtn.innerHTML = "<i class='bx bxs-hourglass bx-spin'></i> Signing in...";
         
-        // Update user info
-        userPhoto.src = user.photoURL || '';
-        userName.textContent = user.displayName || user.email;
+        const provider = new window.firebase.GoogleAuthProvider();
+        provider.addScope('profile');
+        provider.addScope('email');
         
-        if (!fusionChat) {
-          fusionChat = new FusionAIChat(userId);
+        try {
+          await window.firebase.signInWithPopup(auth, provider);
+        } catch (e) {
+          showAuthError(`Authentication failed: ${DOMPurify.sanitize(e.message)}`);
+        } finally {
+          googleSigninBtn.disabled = false;
+          googleSigninBtn.innerHTML = "<i class='bx bxl-google'></i> Sign in with Google";
         }
-      } else {
-        userId = null;
-        loginScreen.classList.remove('hidden');
-        chatInterface.classList.add('hidden');
-        fusionChat = null;
-      }
-    });
+      });
 
-    // Utility Functions
-    function uuid() {
-      return 'xxyxxyxxxyx'.replace(/[xy]/g, function(c) {
-        const r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
-        return v.toString(16);
-      }) + Date.now();
-    }
+      signOutBtn.addEventListener('click', () => {
+        if (confirm('Are you sure you want to sign out?')) {
+          window.firebase.signOut(auth);
+        }
+      });
 
-    // Fusion AI Chat Class
-    class FusionAIChat {
-      constructor(uid) {
-        this.uid = uid;
-        this.conversations = {};
-        this.activeConvoId = null;
-        this.usageData = this.initializeUsageData();
-        this.searchHistory = [];
-        this.isTyping = false;
-        this.firebaseConvoListRef = window.firebase.ref(db, `users/${this.uid}/conversations`);
-        this.firebaseUsageRef = window.firebase.ref(db, `users/${this.uid}/usageData`);
-        this.firebaseSearchRef = window.firebase.ref(db, `users/${this.uid}/searchHistory`);
-        
-        this.initializeEventListeners();
-        this.listenToFirebase();
-        this.updateUsageDisplay();
-        this.startUsageResetTimer();
-      }
+      // Chat Application
+      let fusionChat = null;
+      let userId = null;
 
-      initializeEventListeners() {
-        newConvoBtn.addEventListener('click', () => this.createNewConversation());
-        sendBtn.addEventListener('click', () => this.sendMessage());
-        clearHistoryBtn.addEventListener('click', () => this.clearConversation());
-        exportHistoryBtn.addEventListener('click', () => this.exportConversation());
-        webSearchBtn.addEventListener('click', () => this.performWebSearch());
-        viewSearchHistoryBtn.addEventListener('click', () => this.showSearchHistory());
-        
-        userInput.addEventListener('keypress', (e) => {
-          if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault();
-            this.sendMessage();
-          }
-        });
-        
-        userInput.addEventListener('input', () => this.updateSendButtonState());
-        setTimeout(() => userInput.focus(), 500);
-      }
-
-      listenToFirebase() {
-        window.firebase.onValue(this.firebaseConvoListRef, (snapshot) => {
-          this.conversations = snapshot.val() || {};
-          this.renderSidebar();
-          if (!this.activeConvoId && Object.keys(this.conversations).length > 0) {
-            this.setActiveConversation(Object.keys(this.conversations)[0]);
-          }
-          if (Object.keys(this.conversations).length === 0) {
-            this.createNewConversation();
-          }
-          if (this.activeConvoId && this.conversations[this.activeConvoId]) {
-            this.renderChatHistory();
-          }
-        });
-        
-        window.firebase.onValue(this.firebaseUsageRef, (snapshot) => {
-          if (snapshot.exists()) {
-            this.usageData = snapshot.val();
-            this.updateUsageDisplay();
-          }
-        });
-        
-        window.firebase.onValue(this.firebaseSearchRef, (snapshot) => {
-          this.searchHistory = snapshot.val() || [];
-        });
-      }
-
-      initializeUsageData() {
-        const now = new Date();
-        return {
-          messages: { count: 0, resetTime: new Date(now.getTime() + 60 * 60 * 1000).toISOString() },
-          searches: { count: 0, resetTime: new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1).toISOString() }
-        };
-      }
-
-      startUsageResetTimer() {
-        setInterval(() => {
-          const now = new Date();
-          let changed = false;
-          let usage = {...this.usageData};
+      window.firebase.onAuthStateChanged(auth, user => {
+        if (user) {
+          userId = user.uid;
+          loginScreen.classList.add('hidden');
+          chatInterface.classList.remove('hidden');
           
-          if (now >= new Date(usage.messages.resetTime)) {
-            usage.messages.count = 0;
-            usage.messages.resetTime = new Date(now.getTime() + 60 * 60 * 1000).toISOString();
-            changed = true;
-          }
+          // Update user info
+          userPhoto.src = user.photoURL || '';
+          userName.textContent = user.displayName || user.email;
           
-          if (now >= new Date(usage.searches.resetTime)) {
-            usage.searches.count = 0;
-            usage.searches.resetTime = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1).toISOString();
-            changed = true;
+          if (!fusionChat) {
+            fusionChat = new FusionAIChat(userId);
           }
-          
-          if (changed) {
-            this.usageData = usage;
-            window.firebase.set(this.firebaseUsageRef, usage);
-          }
-        }, 60000);
+        } else {
+          userId = null;
+          loginScreen.classList.remove('hidden');
+          chatInterface.classList.add('hidden');
+          fusionChat = null;
+        }
+      });
+
+      // Utility Functions
+      function uuid() {
+        return 'xxyxxyxxxyx'.replace(/[xy]/g, function(c) {
+          const r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
+          return v.toString(16);
+        }) + Date.now();
       }
 
-      updateUsageDisplay() {
-        messageCount.textContent = DOMPurify.sanitize(`${this.usageData.messages.count}/10`);
-        messageCount.className = 'usage-count ' + this.getUsageClass(this.usageData.messages.count, 10);
-        
-        searchCount.textContent = DOMPurify.sanitize(`${this.usageData.searches.count}/5`);
-        searchCount.className = 'usage-count ' + this.getUsageClass(this.usageData.searches.count, 5);
-        
-        webSearchBtn.disabled = this.usageData.searches.count >= 5;
-        this.updateSendButtonState();
-      }
-
-      getUsageClass(current, limit) {
-        if (current >= limit) return 'limit';
-        if (current >= limit * 0.8) return 'warning';
-        return 'normal';
-      }
-
-      renderSidebar() {
-        convoList.innerHTML = '';
-        const ids = Object.keys(this.conversations);
-        
-        if (ids.length === 0) return;
-        
-        ids.sort((a, b) => {
-          const aTime = this.conversations[a].meta && this.conversations[a].meta.lastUpdated
-            ? this.conversations[a].meta.lastUpdated : 0;
-          const bTime = this.conversations[b].meta && this.conversations[b].meta.lastUpdated
-            ? this.conversations[b].meta.lastUpdated : 0;
-          return bTime - aTime;
-        });
-        
-        ids.forEach(convoId => {
-          const convo = this.conversations[convoId];
-          const li = document.createElement('li');
-          li.className = 'convo-item group' + (convoId === this.activeConvoId ? ' active' : '');
-          li.dataset.id = convoId;
+      // Fusion AI Chat Class
+      class FusionAIChat {
+        constructor(uid) {
+          this.uid = uid;
+          this.conversations = {};
+          this.activeConvoId = null;
+          this.usageData = this.initializeUsageData();
+          this.searchHistory = [];
+          this.isTyping = false;
+          this.firebaseConvoListRef = window.firebase.ref(db, `users/${this.uid}/conversations`);
+          this.firebaseUsageRef = window.firebase.ref(db, `users/${this.uid}/usageData`);
+          this.firebaseSearchRef = window.firebase.ref(db, `users/${this.uid}/searchHistory`);
           
-          const title = document.createElement('span');
-          title.className = 'convo-title';
-          title.textContent = DOMPurify.sanitize((convo.meta && convo.meta.title) ? convo.meta.title : 'Conversation');
-          li.appendChild(title);
+          this.initializeEventListeners();
+          this.listenToFirebase();
+          this.updateUsageDisplay();
+          this.startUsageResetTimer();
+        }
 
-          const actions = document.createElement('span');
-          actions.className = 'convo-actions';
-          const delBtn = document.createElement('button');
-          delBtn.title = 'Delete';
-          delBtn.innerHTML = "<i class='bx bx-trash'></i>";
-          delBtn.onclick = (e) => {
-            e.stopPropagation();
-            if (confirm('Delete this conversation?')) {
-              this.deleteConversation(convoId);
+        initializeEventListeners() {
+          newConvoBtn.addEventListener('click', () => this.createNewConversation());
+          sendBtn.addEventListener('click', () => this.sendMessage());
+          clearHistoryBtn.addEventListener('click', () => this.clearConversation());
+          exportHistoryBtn.addEventListener('click', () => this.exportConversation());
+          webSearchBtn.addEventListener('click', () => this.performWebSearch());
+          viewSearchHistoryBtn.addEventListener('click', () => this.showSearchHistory());
+          
+          userInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+              e.preventDefault();
+              this.sendMessage();
             }
-          };
-          actions.appendChild(delBtn);
-          li.appendChild(actions);
+          });
           
-          li.onclick = () => this.setActiveConversation(convoId);
-          convoList.appendChild(li);
-        });
-      }
+          userInput.addEventListener('input', () => this.updateSendButtonState());
+          setTimeout(() => userInput.focus(), 500);
+        }
 
-      setActiveConversation(convoId) {
-        if (!this.conversations[convoId]) return;
-        this.activeConvoId = convoId;
-        this.renderSidebar();
-        this.renderChatHistory();
-        convoTitle.textContent = DOMPurify.sanitize(this.conversations[convoId].meta && this.conversations[convoId].meta.title
-          ? this.conversations[convoId].meta.title : 'Conversation');
-      }
-
-      createNewConversation() {
-        const id = uuid();
-        const now = Date.now();
-        const welcomeMsg = {
-          role: 'ai',
-          text: "Hello! I'm Fusion AI. Start chatting or asking questions. You can create and switch conversations using the sidebar.",
-          timestamp: new Date().toISOString()
-        };
-        const meta = {
-          created: now,
-          lastUpdated: now,
-          title: "New conversation"
-        };
-        const convoRef = window.firebase.ref(db, `users/${this.uid}/conversations/${id}`);
-        window.firebase.set(convoRef, {meta, messages: [welcomeMsg]}).then(() => {
-          this.setActiveConversation(id);
-        });
-      }
-
-      deleteConversation(convoId) {
-        const convoRef = window.firebase.ref(db, `users/${this.uid}/conversations/${convoId}`);
-        window.firebase.remove(convoRef).then(() => {
-          if (this.activeConvoId === convoId) {
-            const ids = Object.keys(this.conversations).filter(id => id !== convoId);
-            if (ids.length > 0) {
-              this.setActiveConversation(ids[0]);
-            } else {
+        listenToFirebase() {
+          window.firebase.onValue(this.firebaseConvoListRef, (snapshot) => {
+            this.conversations = snapshot.val() || {};
+            this.renderSidebar();
+            if (!this.activeConvoId && Object.keys(this.conversations).length > 0) {
+              this.setActiveConversation(Object.keys(this.conversations)[0]);
+            }
+            if (Object.keys(this.conversations).length === 0) {
               this.createNewConversation();
             }
+            if (this.activeConvoId && this.conversations[this.activeConvoId]) {
+              this.renderChatHistory();
+            }
+          });
+          
+          window.firebase.onValue(this.firebaseUsageRef, (snapshot) => {
+            if (snapshot.exists()) {
+              this.usageData = snapshot.val();
+              this.updateUsageDisplay();
+            }
+          });
+          
+          window.firebase.onValue(this.firebaseSearchRef, (snapshot) => {
+            this.searchHistory = snapshot.val() || [];
+          });
+        }
+
+        initializeUsageData() {
+          const now = new Date();
+          return {
+            messages: { count: 0, resetTime: new Date(now.getTime() + 60 * 60 * 1000).toISOString() },
+            searches: { count: 0, resetTime: new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1).toISOString() }
+          };
+        }
+
+        startUsageResetTimer() {
+          setInterval(() => {
+            const now = new Date();
+            let changed = false;
+            let usage = {...this.usageData};
+            
+            if (now >= new Date(usage.messages.resetTime)) {
+              usage.messages.count = 0;
+              usage.messages.resetTime = new Date(now.getTime() + 60 * 60 * 1000).toISOString();
+              changed = true;
+            }
+            
+            if (now >= new Date(usage.searches.resetTime)) {
+              usage.searches.count = 0;
+              usage.searches.resetTime = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1).toISOString();
+              changed = true;
+            }
+            
+            if (changed) {
+              this.usageData = usage;
+              window.firebase.set(this.firebaseUsageRef, usage);
+            }
+          }, 60000);
+        }
+
+        updateUsageDisplay() {
+          messageCount.textContent = DOMPurify.sanitize(`${this.usageData.messages.count}/10`);
+          messageCount.className = 'usage-count ' + this.getUsageClass(this.usageData.messages.count, 10);
+          
+          searchCount.textContent = DOMPurify.sanitize(`${this.usageData.searches.count}/5`);
+          searchCount.className = 'usage-count ' + this.getUsageClass(this.usageData.searches.count, 5);
+          
+          webSearchBtn.disabled = this.usageData.searches.count >= 5;
+          this.updateSendButtonState();
+        }
+
+        getUsageClass(current, limit) {
+          if (current >= limit) return 'limit';
+          if (current >= limit * 0.8) return 'warning';
+          return 'normal';
+        }
+
+        renderSidebar() {
+          convoList.innerHTML = '';
+          const ids = Object.keys(this.conversations);
+          
+          if (ids.length === 0) return;
+          
+          ids.sort((a, b) => {
+            const aTime = this.conversations[a].meta && this.conversations[a].meta.lastUpdated
+              ? this.conversations[a].meta.lastUpdated : 0;
+            const bTime = this.conversations[b].meta && this.conversations[b].meta.lastUpdated
+              ? this.conversations[b].meta.lastUpdated : 0;
+            return bTime - aTime;
+          });
+          
+          ids.forEach(convoId => {
+            const convo = this.conversations[convoId];
+            const li = document.createElement('li');
+            li.className = 'convo-item group' + (convoId === this.activeConvoId ? ' active' : '');
+            li.dataset.id = convoId;
+            
+            const title = document.createElement('span');
+            title.className = 'convo-title';
+            title.textContent = DOMPurify.sanitize((convo.meta && convo.meta.title) ? convo.meta.title : 'Conversation');
+            li.appendChild(title);
+
+            const actions = document.createElement('span');
+            actions.className = 'convo-actions';
+            const delBtn = document.createElement('button');
+            delBtn.title = 'Delete';
+            delBtn.innerHTML = "<i class='bx bx-trash'></i>";
+            delBtn.onclick = (e) => {
+              e.stopPropagation();
+              if (confirm('Delete this conversation?')) {
+                this.deleteConversation(convoId);
+              }
+            };
+            actions.appendChild(delBtn);
+            li.appendChild(actions);
+            
+            li.onclick = () => this.setActiveConversation(convoId);
+            convoList.appendChild(li);
+          });
+        }
+
+        setActiveConversation(convoId) {
+          if (!this.conversations[convoId]) return;
+          this.activeConvoId = convoId;
+          this.renderSidebar();
+          this.renderChatHistory();
+          convoTitle.textContent = DOMPurify.sanitize(this.conversations[convoId].meta && this.conversations[convoId].meta.title
+            ? this.conversations[convoId].meta.title : 'Conversation');
+        }
+
+        createNewConversation() {
+          const id = uuid();
+          const now = Date.now();
+          const welcomeMsg = {
+            role: 'ai',
+            text: "Hello! I'm Fusion AI. Start chatting or asking questions. You can create and switch conversations using the sidebar.",
+            timestamp: new Date().toISOString()
+          };
+          const meta = {
+            created: now,
+            lastUpdated: now,
+            title: "New conversation"
+          };
+          const convoRef = window.firebase.ref(db, `users/${this.uid}/conversations/${id}`);
+          window.firebase.set(convoRef, {meta, messages: [welcomeMsg]}).then(() => {
+            this.setActiveConversation(id);
+          });
+        }
+
+        deleteConversation(convoId) {
+          const convoRef = window.firebase.ref(db, `users/${this.uid}/conversations/${convoId}`);
+          window.firebase.remove(convoRef).then(() => {
+            if (this.activeConvoId === convoId) {
+              const ids = Object.keys(this.conversations).filter(id => id !== convoId);
+              if (ids.length > 0) {
+                this.setActiveConversation(ids[0]);
+              } else {
+                this.createNewConversation();
+              }
+            }
+          });
+        }
+
+        renderChatHistory() {
+          chatBox.innerHTML = '';
+          if (!this.activeConvoId || !this.conversations[this.activeConvoId]) return;
+          
+          const messages = this.conversations[this.activeConvoId].messages || [];
+          messages.forEach((message, index) => {
+            this.createMessageElement(message, index);
+          });
+          this.scrollToBottom();
+        }
+
+        createMessageElement(message, index) {
+          const messageDiv = document.createElement('div');
+          messageDiv.className = `message ${message.role}`;
+          messageDiv.dataset.messageIndex = index;
+
+          const senderRow = document.createElement('div');
+          senderRow.className = 'message-sender-row';
+
+          if (message.role === 'ai') {
+            const aiProfile = document.createElement('div');
+            aiProfile.className = 'profile-circle-ai';
+            aiProfile.innerHTML = "<i class='bx bx-bot'></i>";
+            senderRow.appendChild(aiProfile);
+          } else {
+            const userProfile = document.createElement('div');
+            userProfile.className = 'profile-circle-user';
+            userProfile.innerHTML = "<i class='bx bx-user'></i>";
+            senderRow.appendChild(userProfile);
           }
-        });
-      }
 
-      renderChatHistory() {
-        chatBox.innerHTML = '';
-        if (!this.activeConvoId || !this.conversations[this.activeConvoId]) return;
-        
-        const messages = this.conversations[this.activeConvoId].messages || [];
-        messages.forEach((message, index) => {
-          this.createMessageElement(message, index);
-        });
-        this.scrollToBottom();
-      }
+          const messageSender = document.createElement('div');
+          messageSender.className = 'message-sender';
+          messageSender.textContent = DOMPurify.sanitize(message.role === 'user' ? "You" : "Fusion AI");
+          senderRow.appendChild(messageSender);
 
-      createMessageElement(message, index) {
-        const messageDiv = document.createElement('div');
-        messageDiv.className = `message ${message.role}`;
-        messageDiv.dataset.messageIndex = index;
+          const messageContent = document.createElement('div');
+          messageContent.className = 'message-content';
+          const messageText = document.createElement('div');
+          messageText.innerHTML = message.html ? DOMPurify.sanitize(message.html) : DOMPurify.sanitize(this.formatMessage(message.text));
+          messageContent.appendChild(messageText);
 
-        const senderRow = document.createElement('div');
-        senderRow.className = 'message-sender-row';
+          if (message.role === 'ai') {
+            const btnRow = document.createElement('div');
+            btnRow.className = 'ai-action-row';
+            
+            const regenBtn = document.createElement('button');
+            regenBtn.className = 'regen-btn';
+            regenBtn.title = "Regenerate response";
+            regenBtn.innerHTML = "<i class='bx bx-refresh'></i> Regenerate";
+            regenBtn.onclick = () => this.regenerateAIResponse(index);
+            btnRow.appendChild(regenBtn);
+            
+            const reasoningBtn = document.createElement('button');
+            reasoningBtn.className = 'reasoning-btn';
+            reasoningBtn.title = "Show AI Reasoning";
+            reasoningBtn.innerHTML = "<i class='bx bx-brain'></i> Reasoning";
+            reasoningBtn.onclick = () => this.showReasoning(index);
+            btnRow.appendChild(reasoningBtn);
+            
+            messageContent.appendChild(btnRow);
+          }
 
-        if (message.role === 'ai') {
+          messageDiv.appendChild(senderRow);
+          messageDiv.appendChild(messageContent);
+          chatBox.appendChild(messageDiv);
+        }
+
+        formatMessage(text) {
+          return DOMPurify.sanitize((text || '')
+            .replace(/\n/g, '<br>')
+            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+            .replace(/\*(.*?)\*/g, '<em>$1</em>'));
+        }
+
+        showTypingIndicator() {
+          this.hideTypingIndicator();
+          const typingDiv = document.createElement('div');
+          typingDiv.className = 'message ai';
+          typingDiv.id = 'typing-indicator';
+
+          const senderRow = document.createElement('div');
+          senderRow.className = 'message-sender-row';
           const aiProfile = document.createElement('div');
           aiProfile.className = 'profile-circle-ai';
           aiProfile.innerHTML = "<i class='bx bx-bot'></i>";
           senderRow.appendChild(aiProfile);
-        } else {
-          const userProfile = document.createElement('div');
-          userProfile.className = 'profile-circle-user';
-          userProfile.innerHTML = "<i class='bx bx-user'></i>";
-          senderRow.appendChild(userProfile);
+          const messageSender = document.createElement('div');
+          messageSender.className = 'message-sender';
+          messageSender.textContent = DOMPurify.sanitize('Fusion AI');
+          senderRow.appendChild(messageSender);
+          typingDiv.appendChild(senderRow);
+
+          const typingContent = document.createElement('div');
+          typingContent.className = 'typing-indicator';
+          const typingDots = document.createElement('div');
+          typingDots.className = 'typing-dots';
+          for (let i = 0; i < 3; i++) {
+            const dot = document.createElement('div');
+            dot.className = 'typing-dot';
+            typingDots.appendChild(dot);
+          }
+          typingContent.appendChild(typingDots);
+          typingDiv.appendChild(typingContent);
+          chatBox.appendChild(typingDiv);
+          this.scrollToBottom();
         }
 
-        const messageSender = document.createElement('div');
-        messageSender.className = 'message-sender';
-        messageSender.textContent = DOMPurify.sanitize(message.role === 'user' ? "You" : "Fusion AI");
-        senderRow.appendChild(messageSender);
-
-        const messageContent = document.createElement('div');
-        messageContent.className = 'message-content';
-        const messageText = document.createElement('div');
-        messageText.innerHTML = message.html ? DOMPurify.sanitize(message.html) : DOMPurify.sanitize(this.formatMessage(message.text));
-        messageContent.appendChild(messageText);
-
-        if (message.role === 'ai') {
-          const btnRow = document.createElement('div');
-          btnRow.className = 'ai-action-row';
-          
-          const regenBtn = document.createElement('button');
-          regenBtn.className = 'regen-btn';
-          regenBtn.title = "Regenerate response";
-          regenBtn.innerHTML = "<i class='bx bx-refresh'></i> Regenerate";
-          regenBtn.onclick = () => this.regenerateAIResponse(index);
-          btnRow.appendChild(regenBtn);
-          
-          const reasoningBtn = document.createElement('button');
-          reasoningBtn.className = 'reasoning-btn';
-          reasoningBtn.title = "Show AI Reasoning";
-          reasoningBtn.innerHTML = "<i class='bx bx-brain'></i> Reasoning";
-          reasoningBtn.onclick = () => this.showReasoning(index);
-          btnRow.appendChild(reasoningBtn);
-          
-          messageContent.appendChild(btnRow);
+        hideTypingIndicator() {
+          const typingIndicator = document.getElementById('typing-indicator');
+          if (typingIndicator) typingIndicator.remove();
         }
 
-        messageDiv.appendChild(senderRow);
-        messageDiv.appendChild(messageContent);
-        chatBox.appendChild(messageDiv);
-      }
-
-      formatMessage(text) {
-        return DOMPurify.sanitize((text || '')
-          .replace(/\n/g, '<br>')
-          .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-          .replace(/\*(.*?)\*/g, '<em>$1</em>'));
-      }
-
-      showTypingIndicator() {
-        this.hideTypingIndicator();
-        const typingDiv = document.createElement('div');
-        typingDiv.className = 'message ai';
-        typingDiv.id = 'typing-indicator';
-
-        const senderRow = document.createElement('div');
-        senderRow.className = 'message-sender-row';
-        const aiProfile = document.createElement('div');
-        aiProfile.className = 'profile-circle-ai';
-        aiProfile.innerHTML = "<i class='bx bx-bot'></i>";
-        senderRow.appendChild(aiProfile);
-        const messageSender = document.createElement('div');
-        messageSender.className = 'message-sender';
-        messageSender.textContent = DOMPurify.sanitize('Fusion AI');
-        senderRow.appendChild(messageSender);
-        typingDiv.appendChild(senderRow);
-
-        const typingContent = document.createElement('div');
-        typingContent.className = 'typing-indicator';
-        const typingDots = document.createElement('div');
-        typingDots.className = 'typing-dots';
-        for (let i = 0; i < 3; i++) {
-          const dot = document.createElement('div');
-          dot.className = 'typing-dot';
-          typingDots.appendChild(dot);
-        }
-        typingContent.appendChild(typingDots);
-        typingDiv.appendChild(typingContent);
-        chatBox.appendChild(typingDiv);
-        this.scrollToBottom();
-      }
-
-      hideTypingIndicator() {
-        const typingIndicator = document.getElementById('typing-indicator');
-        if (typingIndicator) typingIndicator.remove();
-      }
-
-      getSelectedModel() {
-        const personality = personalitySelect.value;
-        const modelMap = {
-          "Friendly": "openai/gpt-3.5-turbo",
-          "Professional": "openai/gpt-4o-mini",
-          "Humorous": "anthropic/claude-3-haiku",
-          "Creative": "openai/gpt-4o",
-          "Analytical": "openai/gpt-4o"
-        };
-        return modelMap[personality] || "openai/gpt-3.5-turbo";
-      }
-
-      getPersonalityPrompt(personality) {
-        const prompts = {
-          "Friendly": "You are a friendly, helpful, and approachable AI assistant. Be warm and conversational.",
-          "Professional": "You are a professional, concise, and businesslike AI assistant. Be direct and efficient.",
-          "Humorous": "You are a witty, humorous, and light-hearted AI assistant. Add some humor when appropriate.",
-          "Creative": "You are a creative, imaginative, and original AI assistant. Think outside the box.",
-          "Analytical": "You are an analytical, logical, and precise AI assistant. Focus on facts and reasoning."
-        };
-        return prompts[personality] || "";
-      }
-
-      getReasoningPrompt(reasoningMode) {
-        if (reasoningMode === "focused") {
-          return "Please reason step by step, be deterministic, logical, and avoid unnecessary creativity.";
-        } else if (reasoningMode === "creative") {
-          return "You are encouraged to be imaginative, use lateral thinking, and propose novel or unorthodox ideas.";
-        } else {
-          return "Balance logic and creativity, offering a clear answer but also open to alternative perspectives.";
-        }
-      }
-
-      sendMessage() {
-        if (!this.activeConvoId) return;
-        if (this.usageData.messages.count >= 10) {
-          this.showNotice('You\'ve reached your hourly message limit (10 messages). Please wait for the limit to reset.', 'error');
-          return;
-        }
-        
-        const userMessage = DOMPurify.sanitize(userInput.value.trim());
-        if (!userMessage || this.isTyping) return;
-        
-        this.usageData.messages.count++;
-        window.firebase.set(this.firebaseUsageRef, this.usageData);
-
-        const convoRef = window.firebase.ref(db, `users/${this.uid}/conversations/${this.activeConvoId}`);
-
-        const addAndSend = (convo) => {
-          const messages = (convo.messages || []);
-          
-          // Add user message
-          const userMsg = {
-            role: 'user',
-            text: userMessage,
-            timestamp: new Date().toISOString()
-          };
-          messages.push(userMsg);
-          
-          // Update conversation
-          const updatedConvo = {
-            ...convo,
-            messages: messages,
-            meta: {
-              ...convo.meta,
-              lastUpdated: Date.now(),
-              title: userMessage.length > 50 ? userMessage.substring(0, 50) + '...' : userMessage
-            }
-          };
-          
-          window.firebase.set(convoRef, updatedConvo).then(() => {
-            userInput.value = '';
-            this.updateSendButtonState();
-            this.showTypingIndicator();
-            this.generateAIResponse(userMessage, messages);
-          });
-        };
-        
-        window.firebase.get(convoRef).then((snapshot) => {
-          const convo = snapshot.val() || { messages: [], meta: {} };
-          addAndSend(convo);
-        });
-      }
-
-      async generateAIResponse(userMessage, conversationHistory) {
-        try {
-          const model = this.getSelectedModel();
+        getSelectedModel() {
           const personality = personalitySelect.value;
-          const reasoningMode = reasoningSelect.value;
-          
-          const systemPrompt = `${this.getPersonalityPrompt(personality)}\n\n${this.getReasoningPrompt(reasoningMode)}\n\nYou are Fusion AI, a helpful assistant. Respond naturally and conversationally.`;
-          
-          const messages = [
-            { role: 'system', content: systemPrompt },
-            ...conversationHistory.slice(-10).map(msg => ({
-              role: msg.role === 'user' ? 'user' : 'assistant',
-              content: msg.text
-            }))
-          ];
-          
-          // Simulate AI response (replace with actual API call)
-          const response = await this.simulateAIResponse(userMessage, model);
-          
-          this.hideTypingIndicator();
-          
-          // Add AI response to conversation
-          const aiMsg = {
-            role: 'ai',
-            text: response,
-            timestamp: new Date().toISOString()
+          const modelMap = {
+            "Friendly": "openai/gpt-3.5-turbo",
+            "Professional": "openai/gpt-4o-mini",
+            "Humorous": "anthropic/claude-3-haiku",
+            "Creative": "openai/gpt-4o",
+            "Analytical": "openai/gpt-4o"
           };
+          return modelMap[personality] || "openai/gpt-3.5-turbo";
+        }
+
+        getPersonalityPrompt(personality) {
+          const prompts = {
+            "Friendly": "You are a friendly, helpful, and approachable AI assistant. Be warm and conversational.",
+            "Professional": "You are a professional, concise, and businesslike AI assistant. Be direct and efficient.",
+            "Humorous": "You are a witty, humorous, and light-hearted AI assistant. Add some humor when appropriate.",
+            "Creative": "You are a creative, imaginative, and original AI assistant. Think outside the box.",
+            "Analytical": "You are an analytical, logical, and precise AI assistant. Focus on facts and reasoning."
+          };
+          return prompts[personality] || "";
+        }
+
+        getReasoningPrompt(reasoningMode) {
+          if (reasoningMode === "focused") {
+            return "Please reason step by step, be deterministic, logical, and avoid unnecessary creativity.";
+          } else if (reasoningMode === "creative") {
+            return "You are encouraged to be imaginative, use lateral thinking, and propose novel or unorthodox ideas.";
+          } else {
+            return "Balance logic and creativity, offering a clear answer but also open to alternative perspectives.";
+          }
+        }
+
+        sendMessage() {
+          if (!this.activeConvoId) return;
+          if (this.usageData.messages.count >= 10) {
+            this.showNotice('You\'ve reached your hourly message limit (10 messages). Please wait for the limit to reset.', 'error');
+            return;
+          }
           
+          const userMessage = DOMPurify.sanitize(userInput.value.trim());
+          if (!userMessage || this.isTyping) return;
+          
+          this.usageData.messages.count++;
+          window.firebase.set(this.firebaseUsageRef, this.usageData);
+
           const convoRef = window.firebase.ref(db, `users/${this.uid}/conversations/${this.activeConvoId}`);
-          window.firebase.get(convoRef).then((snapshot) => {
-            const convo = snapshot.val();
-            const messages = [...(convo.messages || []), aiMsg];
+
+          const addAndSend = (convo) => {
+            const messages = (convo.messages || []);
+            
+            // Add user message
+            const userMsg = {
+              role: 'user',
+              text: userMessage,
+              timestamp: new Date().toISOString()
+            };
+            messages.push(userMsg);
+            
+            // Update conversation
             const updatedConvo = {
               ...convo,
               messages: messages,
               meta: {
                 ...convo.meta,
-                lastUpdated: Date.now()
+                lastUpdated: Date.now(),
+                title: userMessage.length > 50 ? userMessage.substring(0, 50) + '...' : userMessage
               }
             };
-            window.firebase.set(convoRef, updatedConvo);
+            
+            window.firebase.set(convoRef, updatedConvo).then(() => {
+              userInput.value = '';
+              this.updateSendButtonState();
+              this.showTypingIndicator();
+              this.generateAIResponse(userMessage, messages);
+            });
+          };
+          
+          window.firebase.get(convoRef).then((snapshot) => {
+            const convo = snapshot.val() || { messages: [], meta: {} };
+            addAndSend(convo);
+          });
+        }
+
+        async generateAIResponse(userMessage, conversationHistory) {
+          try {
+            const model = this.getSelectedModel();
+            const personality = personalitySelect.value;
+            const reasoningMode = reasoningSelect.value;
+            
+            const systemPrompt = `${this.getPersonalityPrompt(personality)}\n\n${this.getReasoningPrompt(reasoningMode)}\n\nYou are Fusion AI, a helpful assistant. Respond naturally and conversationally.`;
+            
+            const messages = [
+              { role: 'system', content: systemPrompt },
+              ...conversationHistory.slice(-10).map(msg => ({
+                role: msg.role === 'user' ? 'user' : 'assistant',
+                content: msg.text
+              }))
+            ];
+            
+            // Simulate AI response (replace with actual API call)
+            const response = await this.simulateAIResponse(userMessage, model);
+            
+            this.hideTypingIndicator();
+            
+            // Add AI response to conversation
+            const aiMsg = {
+              role: 'ai',
+              text: response,
+              timestamp: new Date().toISOString()
+            };
+            
+            const convoRef = window.firebase.ref(db, `users/${this.uid}/conversations/${this.activeConvoId}`);
+            window.firebase.get(convoRef).then((snapshot) => {
+              const convo = snapshot.val();
+              const messages = [...(convo.messages || []), aiMsg];
+              const updatedConvo = {
+                ...convo,
+                messages: messages,
+                meta: {
+                  ...convo.meta,
+                  lastUpdated: Date.now()
+                }
+              };
+              window.firebase.set(convoRef, updatedConvo);
+            });
+            
+          } catch (error) {
+            this.hideTypingIndicator();
+            this.showNotice(`Error generating response: ${error.message}`, 'error');
+          }
+        }
+
+        async simulateAIResponse(userMessage, model) {
+          // Simulate API delay
+          await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 2000));
+          
+          // Simple response simulation based on model
+          const responses = {
+            "openai/gpt-3.5-turbo": [
+              "I understand your question! Let me help you with that.",
+              "That's an interesting point. Here's what I think about it.",
+              "I'd be happy to help you with that. Let me break it down for you."
+            ],
+            "openai/gpt-4o-mini": [
+              "Based on my analysis, here's a comprehensive response to your query.",
+              "I've considered your question carefully. Here's my professional assessment.",
+              "Let me provide you with a detailed and well-structured answer."
+            ],
+            "anthropic/claude-3-haiku": [
+              "Oh, that's a fun question! 😄 Let me share my thoughts on this.",
+              "Haha, I love this! Here's my take on it with a bit of humor.",
+              "Well, well, well... what do we have here? Let me help you out! 😊"
+            ],
+            "openai/gpt-4o": [
+              "This is fascinating! Let me explore this from multiple creative angles.",
+              "I'm going to think outside the box here and give you something unique.",
+              "Let me approach this with some creative thinking and innovative ideas."
+            ]
+          };
+          
+          const modelResponses = responses[model] || responses["openai/gpt-3.5-turbo"];
+          const baseResponse = modelResponses[Math.floor(Math.random() * modelResponses.length)];
+          
+          // Add some context-aware response
+          if (userMessage.toLowerCase().includes('hello') || userMessage.toLowerCase().includes('hi')) {
+            return "Hello! 👋 I'm Fusion AI, your friendly assistant. How can I help you today?";
+          } else if (userMessage.toLowerCase().includes('thank')) {
+            return "You're very welcome! 😊 I'm here to help whenever you need me.";
+          } else if (userMessage.toLowerCase().includes('help')) {
+            return "I'm here to help! I can assist with questions, creative tasks, analysis, and much more. What would you like to work on?";
+          } else {
+            return `${baseResponse} ${userMessage.length > 20 ? "I hope that helps!" : "Is there anything else you'd like to know?"}`;
+          }
+        }
+
+        regenerateAIResponse(messageIndex) {
+          if (!this.activeConvoId || !this.conversations[this.activeConvoId]) return;
+          
+          const messages = this.conversations[this.activeConvoId].messages;
+          if (messageIndex >= messages.length || messages[messageIndex].role !== 'ai') return;
+          
+          // Find the user message that prompted this AI response
+          let userMessage = '';
+          for (let i = messageIndex - 1; i >= 0; i--) {
+            if (messages[i].role === 'user') {
+              userMessage = messages[i].text;
+              break;
+            }
+          }
+          
+          if (userMessage) {
+            this.showTypingIndicator();
+            this.generateAIResponse(userMessage, messages.slice(0, messageIndex));
+          }
+        }
+
+        showReasoning(messageIndex) {
+          if (!this.activeConvoId || !this.conversations[this.activeConvoId]) return;
+          
+          const messages = this.conversations[this.activeConvoId].messages;
+          if (messageIndex >= messages.length || messages[messageIndex].role !== 'ai') return;
+          
+          const reasoning = `**AI Reasoning Process:**\n\n1. **Input Analysis**: I analyzed your question/request carefully\n2. **Context Understanding**: I considered the conversation context and your preferences\n3. **Model Selection**: Used ${personalitySelect.value} personality with ${reasoningSelect.value} reasoning mode\n4. **Response Generation**: Crafted a response that aligns with the selected personality and reasoning approach\n5. **Quality Check**: Ensured the response is helpful, accurate, and engaging`;
+          
+          // Show reasoning in a modal or expand the message
+          this.showNotice(reasoning, 'info');
+        }
+
+        async performWebSearch() {
+          if (this.usageData.searches.count >= 5) {
+            this.showNotice('You\'ve reached your daily search limit (5 searches). Please wait until tomorrow.', 'error');
+            return;
+          }
+          
+          const query = prompt('Enter your search query:');
+          if (!query) return;
+          
+          this.usageData.searches.count++;
+          window.firebase.set(this.firebaseUsageRef, this.usageData);
+          window.firebase.push(this.firebaseSearchRef, {
+            query: query,
+            timestamp: new Date().toISOString()
           });
           
-        } catch (error) {
-          this.hideTypingIndicator();
-          this.showNotice(`Error generating response: ${error.message}`, 'error');
+          // Simulate web search
+          this.showNotice(`Searching for: "${query}"...`, 'info');
+          setTimeout(() => {
+            this.showNotice(`Found 1,234 results for "${query}". Here are the top 3:\n\n1. **Relevant Result 1** - Brief description\n2. **Relevant Result 2** - Brief description\n3. **Relevant Result 3** - Brief description`, 'info');
+          }, 2000);
         }
-      }
 
-      async simulateAIResponse(userMessage, model) {
-        // Simulate API delay
-        await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 2000));
-        
-        // Simple response simulation based on model
-        const responses = {
-          "openai/gpt-3.5-turbo": [
-            "I understand your question! Let me help you with that.",
-            "That's an interesting point. Here's what I think about it.",
-            "I'd be happy to help you with that. Let me break it down for you."
-          ],
-          "openai/gpt-4o-mini": [
-            "Based on my analysis, here's a comprehensive response to your query.",
-            "I've considered your question carefully. Here's my professional assessment.",
-            "Let me provide you with a detailed and well-structured answer."
-          ],
-          "anthropic/claude-3-haiku": [
-            "Oh, that's a fun question! 😄 Let me share my thoughts on this.",
-            "Haha, I love this! Here's my take on it with a bit of humor.",
-            "Well, well, well... what do we have here? Let me help you out! 😊"
-          ],
-          "openai/gpt-4o": [
-            "This is fascinating! Let me explore this from multiple creative angles.",
-            "I'm going to think outside the box here and give you something unique.",
-            "Let me approach this with some creative thinking and innovative ideas."
-          ]
-        };
-        
-        const modelResponses = responses[model] || responses["openai/gpt-3.5-turbo"];
-        const baseResponse = modelResponses[Math.floor(Math.random() * modelResponses.length)];
-        
-        // Add some context-aware response
-        if (userMessage.toLowerCase().includes('hello') || userMessage.toLowerCase().includes('hi')) {
-          return "Hello! 👋 I'm Fusion AI, your friendly assistant. How can I help you today?";
-        } else if (userMessage.toLowerCase().includes('thank')) {
-          return "You're very welcome! 😊 I'm here to help whenever you need me.";
-        } else if (userMessage.toLowerCase().includes('help')) {
-          return "I'm here to help! I can assist with questions, creative tasks, analysis, and much more. What would you like to work on?";
-        } else {
-          return `${baseResponse} ${userMessage.length > 20 ? "I hope that helps!" : "Is there anything else you'd like to know?"}`;
-        }
-      }
-
-      regenerateAIResponse(messageIndex) {
-        if (!this.activeConvoId || !this.conversations[this.activeConvoId]) return;
-        
-        const messages = this.conversations[this.activeConvoId].messages;
-        if (messageIndex >= messages.length || messages[messageIndex].role !== 'ai') return;
-        
-        // Find the user message that prompted this AI response
-        let userMessage = '';
-        for (let i = messageIndex - 1; i >= 0; i--) {
-          if (messages[i].role === 'user') {
-            userMessage = messages[i].text;
-            break;
+        showSearchHistory() {
+          if (this.searchHistory.length === 0) {
+            this.showNotice('No search history found.', 'info');
+            return;
           }
-        }
-        
-        if (userMessage) {
-          this.showTypingIndicator();
-          this.generateAIResponse(userMessage, messages.slice(0, messageIndex));
-        }
-      }
-
-      showReasoning(messageIndex) {
-        if (!this.activeConvoId || !this.conversations[this.activeConvoId]) return;
-        
-        const messages = this.conversations[this.activeConvoId].messages;
-        if (messageIndex >= messages.length || messages[messageIndex].role !== 'ai') return;
-        
-        const reasoning = `**AI Reasoning Process:**\n\n1. **Input Analysis**: I analyzed your question/request carefully\n2. **Context Understanding**: I considered the conversation context and your preferences\n3. **Model Selection**: Used ${personalitySelect.value} personality with ${reasoningSelect.value} reasoning mode\n4. **Response Generation**: Crafted a response that aligns with the selected personality and reasoning approach\n5. **Quality Check**: Ensured the response is helpful, accurate, and engaging`;
-        
-        // Show reasoning in a modal or expand the message
-        this.showNotice(reasoning, 'info');
-      }
-
-      async performWebSearch() {
-        if (this.usageData.searches.count >= 5) {
-          this.showNotice('You\'ve reached your daily search limit (5 searches). Please wait until tomorrow.', 'error');
-          return;
-        }
-        
-        const query = prompt('Enter your search query:');
-        if (!query) return;
-        
-        this.usageData.searches.count++;
-        window.firebase.set(this.firebaseUsageRef, this.usageData);
-        window.firebase.push(this.firebaseSearchRef, {
-          query: query,
-          timestamp: new Date().toISOString()
-        });
-        
-        // Simulate web search
-        this.showNotice(`Searching for: "${query}"...`, 'info');
-        setTimeout(() => {
-          this.showNotice(`Found 1,234 results for "${query}". Here are the top 3:\n\n1. **Relevant Result 1** - Brief description\n2. **Relevant Result 2** - Brief description\n3. **Relevant Result 3** - Brief description`, 'info');
-        }, 2000);
-      }
-
-      showSearchHistory() {
-        if (this.searchHistory.length === 0) {
-          this.showNotice('No search history found.', 'info');
-          return;
-        }
-        
-        const historyHtml = this.searchHistory
-          .slice(-10)
-          .reverse()
-          .map(search => `
-            <div class="search-item">
-              <div class="font-medium">${DOMPurify.sanitize(search.query)}</div>
-              <div class="text-sm text-[var(--theme-muted)]">${new Date(search.timestamp).toLocaleString()}</div>
+          
+          const historyHtml = this.searchHistory
+            .slice(-10)
+            .reverse()
+            .map(search => `
+              <div class="search-item">
+                <div class="font-medium">${DOMPurify.sanitize(search.query)}</div>
+                <div class="text-sm text-[var(--theme-muted)]">${new Date(search.timestamp).toLocaleString()}</div>
+              </div>
+            `)
+            .join('');
+          
+          const modal = document.createElement('div');
+          modal.className = 'fixed inset-0 bg-black/50 flex items-center justify-center z-50';
+          modal.innerHTML = `
+            <div class="bg-[var(--theme-surface)] rounded-lg p-6 max-w-md w-full mx-4 max-h-96 overflow-y-auto">
+              <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-semibold">Search History</h3>
+                <button class="text-[var(--theme-muted)] hover:text-[var(--theme-text)]" onclick="this.closest('.fixed').remove()">
+                  <i class="bx bx-x text-xl"></i>
+                </button>
+              </div>
+              <div class="search-history">
+                ${historyHtml}
+              </div>
             </div>
-          `)
-          .join('');
-        
-        const modal = document.createElement('div');
-        modal.className = 'fixed inset-0 bg-black/50 flex items-center justify-center z-50';
-        modal.innerHTML = `
-          <div class="bg-[var(--theme-surface)] rounded-lg p-6 max-w-md w-full mx-4 max-h-96 overflow-y-auto">
-            <div class="flex items-center justify-between mb-4">
-              <h3 class="text-lg font-semibold">Search History</h3>
-              <button class="text-[var(--theme-muted)] hover:text-[var(--theme-text)]" onclick="this.closest('.fixed').remove()">
-                <i class="bx bx-x text-xl"></i>
+          `;
+          document.body.appendChild(modal);
+          
+          modal.addEventListener('click', (e) => {
+            if (e.target === modal) modal.remove();
+          });
+        }
+
+        clearConversation() {
+          if (!this.activeConvoId || !confirm('Are you sure you want to clear this conversation?')) return;
+          
+          const convoRef = window.firebase.ref(db, `users/${this.uid}/conversations/${this.activeConvoId}`);
+          window.firebase.update(convoRef, {
+            messages: [],
+            meta: {
+              created: Date.now(),
+              lastUpdated: Date.now(),
+              title: "New conversation"
+            }
+          });
+        }
+
+        exportConversation() {
+          if (!this.activeConvoId || !this.conversations[this.activeConvoId]) return;
+          
+          const convo = this.conversations[this.activeConvoId];
+          const messages = convo.messages || [];
+          
+          if (messages.length === 0) {
+            this.showNotice('No messages to export.', 'info');
+            return;
+          }
+          
+          const exportData = {
+            title: convo.meta?.title || 'Conversation',
+            created: new Date(convo.meta?.created || Date.now()).toLocaleString(),
+            messages: messages.map(msg => ({
+              role: msg.role,
+              text: msg.text,
+              timestamp: new Date(msg.timestamp).toLocaleString()
+            }))
+          };
+          
+          const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `fusion-ai-conversation-${Date.now()}.json`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+          
+          this.showNotice('Conversation exported successfully!', 'info');
+        }
+
+        showNotice(message, type = 'info') {
+          const notice = document.createElement('div');
+          notice.className = `fixed top-4 right-4 p-4 rounded-lg shadow-lg z-50 max-w-md ${
+            type === 'error' ? 'bg-[var(--theme-love)]/10 border border-[var(--theme-love)]/20 text-[var(--theme-love)]' :
+            type === 'warning' ? 'bg-[var(--theme-gold)]/10 border border-[var(--theme-gold)]/20 text-[var(--theme-gold)]' :
+            'bg-[var(--theme-foam)]/10 border border-[var(--theme-foam)]/20 text-[var(--theme-foam)]'
+          }`;
+          notice.innerHTML = `
+            <div class="flex items-start gap-3">
+              <i class="bx ${type === 'error' ? 'bx-error' : type === 'warning' ? 'bx-warning' : 'bx-info-circle'} text-lg mt-0.5"></i>
+              <div class="flex-1">
+                <div class="text-sm">${DOMPurify.sanitize(message)}</div>
+              </div>
+              <button class="text-current hover:opacity-70" onclick="this.closest('.fixed').remove()">
+                <i class="bx bx-x"></i>
               </button>
             </div>
-            <div class="search-history">
-              ${historyHtml}
-            </div>
-          </div>
-        `;
-        document.body.appendChild(modal);
-        
-        modal.addEventListener('click', (e) => {
-          if (e.target === modal) modal.remove();
-        });
-      }
-
-      clearConversation() {
-        if (!this.activeConvoId || !confirm('Are you sure you want to clear this conversation?')) return;
-        
-        const convoRef = window.firebase.ref(db, `users/${this.uid}/conversations/${this.activeConvoId}`);
-        window.firebase.update(convoRef, {
-          messages: [],
-          meta: {
-            created: Date.now(),
-            lastUpdated: Date.now(),
-            title: "New conversation"
-          }
-        });
-      }
-
-      exportConversation() {
-        if (!this.activeConvoId || !this.conversations[this.activeConvoId]) return;
-        
-        const convo = this.conversations[this.activeConvoId];
-        const messages = convo.messages || [];
-        
-        if (messages.length === 0) {
-          this.showNotice('No messages to export.', 'info');
-          return;
-        }
-        
-        const exportData = {
-          title: convo.meta?.title || 'Conversation',
-          created: new Date(convo.meta?.created || Date.now()).toLocaleString(),
-          messages: messages.map(msg => ({
-            role: msg.role,
-            text: msg.text,
-            timestamp: new Date(msg.timestamp).toLocaleString()
-          }))
-        };
-        
-        const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `fusion-ai-conversation-${Date.now()}.json`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-        
-        this.showNotice('Conversation exported successfully!', 'info');
-      }
-
-      showNotice(message, type = 'info') {
-        const notice = document.createElement('div');
-        notice.className = `fixed top-4 right-4 p-4 rounded-lg shadow-lg z-50 max-w-md ${
-          type === 'error' ? 'bg-[var(--theme-love)]/10 border border-[var(--theme-love)]/20 text-[var(--theme-love)]' :
-          type === 'warning' ? 'bg-[var(--theme-gold)]/10 border border-[var(--theme-gold)]/20 text-[var(--theme-gold)]' :
-          'bg-[var(--theme-foam)]/10 border border-[var(--theme-foam)]/20 text-[var(--theme-foam)]'
-        }`;
-        notice.innerHTML = `
-          <div class="flex items-start gap-3">
-            <i class="bx ${type === 'error' ? 'bx-error' : type === 'warning' ? 'bx-warning' : 'bx-info-circle'} text-lg mt-0.5"></i>
-            <div class="flex-1">
-              <div class="text-sm">${DOMPurify.sanitize(message)}</div>
-            </div>
-            <button class="text-current hover:opacity-70" onclick="this.closest('.fixed').remove()">
-              <i class="bx bx-x"></i>
-            </button>
-          </div>
-        `;
-        
-        document.body.appendChild(notice);
-        
-        // Auto-remove after 5 seconds
-        setTimeout(() => {
-          if (notice.parentNode) {
-            notice.remove();
-          }
-        }, 5000);
-      }
-
-      updateSendButtonState() {
-        const hasText = userInput.value.trim().length > 0;
-        const canSend = hasText && !this.isTyping && this.usageData.messages.count < 10;
-        sendBtn.disabled = !canSend;
-      }
-
-      scrollToBottom() {
-        setTimeout(() => {
-          chatBox.scrollTop = chatBox.scrollHeight;
-        }, 100);
-      }
-    }
-
-    // Initialize particles canvas
-    function initParticles() {
-      const canvas = document.getElementById('particles-canvas');
-      if (!canvas) return;
-      
-      const ctx = canvas.getContext('2d');
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-      
-      const particles = [];
-      const particleCount = 50;
-      
-      class Particle {
-        constructor() {
-          this.x = Math.random() * canvas.width;
-          this.y = Math.random() * canvas.height;
-          this.vx = (Math.random() - 0.5) * 0.5;
-          this.vy = (Math.random() - 0.5) * 0.5;
-          this.size = Math.random() * 2 + 1;
-          this.opacity = Math.random() * 0.5 + 0.2;
-        }
-        
-        update() {
-          this.x += this.vx;
-          this.y += this.vy;
+          `;
           
-          if (this.x < 0 || this.x > canvas.width) this.vx *= -1;
-          if (this.y < 0 || this.y > canvas.height) this.vy *= -1;
+          document.body.appendChild(notice);
+          
+          // Auto-remove after 5 seconds
+          setTimeout(() => {
+            if (notice.parentNode) {
+              notice.remove();
+            }
+          }, 5000);
         }
-        
-        draw() {
-          ctx.save();
-          ctx.globalAlpha = this.opacity;
-          ctx.fillStyle = 'var(--theme-foam)';
-          ctx.beginPath();
-          ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-          ctx.fill();
-          ctx.restore();
+
+        updateSendButtonState() {
+          const hasText = userInput.value.trim().length > 0;
+          const canSend = hasText && !this.isTyping && this.usageData.messages.count < 10;
+          sendBtn.disabled = !canSend;
+        }
+
+        scrollToBottom() {
+          setTimeout(() => {
+            chatBox.scrollTop = chatBox.scrollHeight;
+          }, 100);
         }
       }
-      
-      for (let i = 0; i < particleCount; i++) {
-        particles.push(new Particle());
-      }
-      
-      function animate() {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Initialize particles canvas
+      function initParticles() {
+        const canvas = document.getElementById('particles-canvas');
+        if (!canvas) return;
         
-        particles.forEach(particle => {
-          particle.update();
-          particle.draw();
-        });
-        
-        requestAnimationFrame(animate);
-      }
-      
-      animate();
-      
-      window.addEventListener('resize', () => {
+        const ctx = canvas.getContext('2d');
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
-      });
-    }
-
-    // Initialize particles when background is set to particles
-    function checkAndInitParticles() {
-      const bgType = localStorage.getItem('carbon-background-global') || 'gradient';
-      const canvas = document.getElementById('particles-canvas');
-      
-      if (bgType === 'particles') {
-        canvas.classList.remove('hidden');
-        initParticles();
-      } else {
-        canvas.classList.add('hidden');
-      }
-    }
-
-      // Check particles on load and theme change
-      checkAndInitParticles();
-      
-      // Listen for background changes
-      window.addEventListener('storage', (e) => {
-        if (e.key === 'carbon-background-global') {
-          checkAndInitParticles();
+        
+        const particles = [];
+        const particleCount = 50;
+        
+        class Particle {
+          constructor() {
+            this.x = Math.random() * canvas.width;
+            this.y = Math.random() * canvas.height;
+            this.vx = (Math.random() - 0.5) * 0.5;
+            this.vy = (Math.random() - 0.5) * 0.5;
+            this.size = Math.random() * 2 + 1;
+            this.opacity = Math.random() * 0.5 + 0.2;
+          }
+          
+          update() {
+            this.x += this.vx;
+            this.y += this.vy;
+            
+            if (this.x < 0 || this.x > canvas.width) this.vx *= -1;
+            if (this.y < 0 || this.y > canvas.height) this.vy *= -1;
+          }
+          
+          draw() {
+            ctx.save();
+            ctx.globalAlpha = this.opacity;
+            ctx.fillStyle = 'var(--theme-foam)';
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+          }
         }
-      });
+        
+        for (let i = 0; i < particleCount; i++) {
+          particles.push(new Particle());
+        }
+        
+        function animate() {
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          
+          particles.forEach(particle => {
+            particle.update();
+            particle.draw();
+          });
+          
+          requestAnimationFrame(animate);
+        }
+        
+        animate();
+        
+        window.addEventListener('resize', () => {
+          canvas.width = window.innerWidth;
+          canvas.height = window.innerHeight;
+        });
+      }
+
+      // Initialize particles when background is set to particles
+      function checkAndInitParticles() {
+        const bgType = localStorage.getItem('carbon-background-global') || 'gradient';
+        const canvas = document.getElementById('particles-canvas');
+        
+        if (bgType === 'particles') {
+          canvas.classList.remove('hidden');
+          initParticles();
+        } else {
+          canvas.classList.add('hidden');
+        }
+      }
+
+        // Check particles on load and theme change
+        checkAndInitParticles();
+        
+        // Listen for background changes
+        window.addEventListener('storage', (e) => {
+          if (e.key === 'carbon-background-global') {
+            checkAndInitParticles();
+          }
+        });
     });
   </script>
 </body>
 </html>
+ 
  
  
