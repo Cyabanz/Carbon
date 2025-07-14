@@ -42,64 +42,271 @@
       --theme-gradient: linear-gradient(135deg, #191724 0%, #1f1d2e 50%, #26233a 100%);
     }
     
+    /* Modern Chat Interface Styles */
+    .chat-container {
+      @apply h-screen flex bg-gradient-to-br from-[var(--theme-base)] via-[var(--theme-surface)] to-[var(--theme-overlay)];
+      background-attachment: fixed;
+    }
+    
+    .sidebar {
+      @apply w-80 bg-[var(--theme-surface)]/80 backdrop-blur-xl border-r border-[var(--theme-highlight-med)]/30 flex flex-col shadow-2xl;
+    }
+    
+    .main-chat {
+      @apply flex-1 flex flex-col bg-transparent;
+    }
+    
+    .chat-header {
+      @apply p-6 bg-[var(--theme-surface)]/60 backdrop-blur-xl border-b border-[var(--theme-highlight-med)]/30 shadow-sm;
+    }
+    
+    .chat-messages {
+      @apply flex-1 overflow-y-auto p-6 space-y-6 bg-transparent;
+    }
+    
+    .chat-input-area {
+      @apply p-6 bg-[var(--theme-surface)]/60 backdrop-blur-xl border-t border-[var(--theme-highlight-med)]/30 shadow-lg;
+    }
+    
+    /* Message Styles */
     .message {
-      @apply mb-4 p-4 rounded-lg max-w-4xl;
+      @apply relative max-w-4xl mx-auto;
     }
     
     .message.user {
-      @apply bg-[var(--theme-foam)]/10 border border-[var(--theme-foam)]/20 ml-auto;
+      @apply ml-auto;
     }
     
     .message.ai {
-      @apply bg-[var(--theme-surface)] border border-[var(--theme-highlight-med)];
+      @apply mr-auto;
     }
     
-    .message-sender-row {
-      @apply flex items-center gap-2 mb-2;
+    .message-bubble {
+      @apply p-6 rounded-2xl shadow-lg backdrop-blur-sm border border-[var(--theme-highlight-med)]/20;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
     
-    .profile-circle-ai {
-      @apply w-8 h-8 rounded-full bg-gradient-to-br from-[var(--theme-foam)] to-[var(--theme-iris)] flex items-center justify-center text-[var(--theme-base)] text-sm font-semibold;
+    .message.user .message-bubble {
+      @apply bg-gradient-to-br from-[var(--theme-foam)]/20 to-[var(--theme-iris)]/20 border-[var(--theme-foam)]/30;
     }
     
-    .profile-circle-user {
-      @apply w-8 h-8 rounded-full bg-gradient-to-br from-[var(--theme-gold)] to-[var(--theme-rose)] flex items-center justify-center text-[var(--theme-base)] text-sm font-semibold;
+    .message.ai .message-bubble {
+      @apply bg-gradient-to-br from-[var(--theme-surface)]/80 to-[var(--theme-overlay)]/80 border-[var(--theme-highlight-med)]/30;
+    }
+    
+    .message:hover .message-bubble {
+      @apply shadow-xl transform scale-[1.02];
+    }
+    
+    .message-header {
+      @apply flex items-center gap-3 mb-3;
+    }
+    
+    .avatar {
+      @apply w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold shadow-lg;
+    }
+    
+    .avatar.ai {
+      @apply bg-gradient-to-br from-[var(--theme-foam)] to-[var(--theme-iris)] text-[var(--theme-base)];
+    }
+    
+    .avatar.user {
+      @apply bg-gradient-to-br from-[var(--theme-gold)] to-[var(--theme-rose)] text-[var(--theme-base)];
+    }
+    
+    .message-info {
+      @apply flex-1;
     }
     
     .message-sender {
-      @apply text-sm font-medium text-[var(--theme-subtle)];
+      @apply text-sm font-semibold text-[var(--theme-text)];
+    }
+    
+    .message-time {
+      @apply text-xs text-[var(--theme-muted)];
     }
     
     .message-content {
-      @apply text-[var(--theme-text)];
+      @apply text-[var(--theme-text)] leading-relaxed;
     }
     
-    .ai-action-row {
-      @apply flex gap-2 mt-3 pt-3 border-t border-[var(--theme-highlight-med)]/30;
+    .message-content p {
+      @apply mb-3 last:mb-0;
     }
     
-    .regen-btn, .reasoning-btn {
-      @apply px-3 py-1 text-xs bg-[var(--theme-overlay)] text-[var(--theme-text)] rounded-md hover:bg-[var(--theme-highlight-med)] transition-colors duration-200 flex items-center gap-1;
+    .message-content strong {
+      @apply font-semibold text-[var(--theme-foam)];
     }
     
+    .message-content em {
+      @apply italic text-[var(--theme-subtle)];
+    }
+    
+    .message-content code {
+      @apply bg-[var(--theme-overlay)] px-2 py-1 rounded text-[var(--theme-foam)] font-mono text-sm;
+    }
+    
+    .message-content pre {
+      @apply bg-[var(--theme-overlay)] p-4 rounded-lg overflow-x-auto my-3;
+    }
+    
+    .message-content pre code {
+      @apply bg-transparent p-0;
+    }
+    
+    /* Action Buttons */
+    .message-actions {
+      @apply flex gap-2 mt-4 pt-4 border-t border-[var(--theme-highlight-med)]/20;
+    }
+    
+    .action-btn {
+      @apply px-4 py-2 text-sm bg-[var(--theme-overlay)]/50 text-[var(--theme-text)] rounded-lg hover:bg-[var(--theme-highlight-med)]/50 transition-all duration-200 flex items-center gap-2 backdrop-blur-sm;
+    }
+    
+    .action-btn:hover {
+      @apply transform scale-105 shadow-md;
+    }
+    
+    /* Typing Indicator */
     .typing-indicator {
-      @apply flex items-center gap-2 text-[var(--theme-muted)];
+      @apply flex items-center gap-3 p-6 rounded-2xl bg-gradient-to-br from-[var(--theme-surface)]/80 to-[var(--theme-overlay)]/80 border border-[var(--theme-highlight-med)]/30 backdrop-blur-sm shadow-lg;
     }
     
     .typing-dots {
-      @apply flex gap-1;
+      @apply flex gap-2;
     }
     
     .typing-dot {
-      @apply w-2 h-2 bg-[var(--theme-foam)] rounded-full animate-pulse;
+      @apply w-3 h-3 bg-[var(--theme-foam)] rounded-full animate-pulse;
     }
     
-    .typing-dot:nth-child(2) {
-      animation-delay: 0.2s;
+    .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+    .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+    
+    /* Input Area */
+    .input-container {
+      @apply relative;
     }
     
-    .typing-dot:nth-child(3) {
-      animation-delay: 0.4s;
+    .message-input {
+      @apply w-full px-6 py-4 bg-[var(--theme-overlay)]/50 border border-[var(--theme-highlight-med)]/30 text-[var(--theme-text)] rounded-2xl focus:border-[var(--theme-foam)] focus:ring-2 focus:ring-[var(--theme-foam)]/20 transition-all duration-300 backdrop-blur-sm resize-none;
+      min-height: 60px;
+      max-height: 200px;
+    }
+    
+    .send-button {
+      @apply absolute right-3 top-1/2 transform -translate-y-1/2 px-6 py-2 bg-gradient-to-r from-[var(--theme-foam)] to-[var(--theme-iris)] text-[var(--theme-base)] font-semibold rounded-xl hover:from-[var(--theme-foam)]/80 hover:to-[var(--theme-iris)]/80 transition-all duration-300 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed;
+    }
+    
+    .send-button:hover:not(:disabled) {
+      @apply transform scale-105;
+    }
+    
+    /* Sidebar Styles */
+    .sidebar-header {
+      @apply p-6 border-b border-[var(--theme-highlight-med)]/30;
+    }
+    
+    .sidebar-title {
+      @apply text-xl font-bold text-[var(--theme-text)] flex items-center gap-3;
+    }
+    
+    .theme-controls {
+      @apply space-y-3 mt-4;
+    }
+    
+    .theme-select, .bg-select {
+      @apply w-full px-4 py-3 bg-[var(--theme-overlay)]/50 border border-[var(--theme-highlight-med)]/30 text-[var(--theme-text)] rounded-xl focus:border-[var(--theme-foam)] focus:ring-2 focus:ring-[var(--theme-foam)]/20 transition-all duration-300 backdrop-blur-sm;
+    }
+    
+    .conversations-list {
+      @apply flex-1 overflow-y-auto;
+    }
+    
+    .convo-item {
+      @apply flex items-center justify-between p-4 hover:bg-[var(--theme-overlay)]/50 cursor-pointer border-b border-[var(--theme-highlight-med)]/20 transition-all duration-300 group;
+    }
+    
+    .convo-item.active {
+      @apply bg-gradient-to-r from-[var(--theme-foam)]/10 to-[var(--theme-iris)]/10 border-l-4 border-l-[var(--theme-foam)] shadow-lg;
+    }
+    
+    .convo-item:hover {
+      @apply transform translate-x-1;
+    }
+    
+    .convo-title {
+      @apply text-sm font-medium text-[var(--theme-text)] truncate flex-1;
+    }
+    
+    .convo-actions {
+      @apply flex gap-1 opacity-0 group-hover:opacity-100 transition-all duration-300;
+    }
+    
+    .convo-actions button {
+      @apply p-2 text-[var(--theme-muted)] hover:text-[var(--theme-love)] hover:bg-[var(--theme-overlay)]/50 rounded-lg transition-all duration-200;
+    }
+    
+    .sidebar-footer {
+      @apply p-4 border-t border-[var(--theme-highlight-med)]/30;
+    }
+    
+    .user-info {
+      @apply flex items-center gap-3;
+    }
+    
+    .user-avatar {
+      @apply w-10 h-10 rounded-full border-2 border-[var(--theme-foam)]/50 shadow-lg;
+    }
+    
+    .user-name {
+      @apply text-sm font-medium text-[var(--theme-text)] flex-1;
+    }
+    
+    .sign-out-btn {
+      @apply p-2 text-[var(--theme-muted)] hover:text-[var(--theme-love)] hover:bg-[var(--theme-overlay)]/50 rounded-lg transition-all duration-200;
+    }
+    
+    /* Action Buttons */
+    .action-buttons {
+      @apply flex gap-3 flex-wrap mt-4;
+    }
+    
+    .action-button {
+      @apply px-4 py-3 bg-gradient-to-r from-[var(--theme-overlay)]/50 to-[var(--theme-highlight-med)]/30 text-[var(--theme-text)] rounded-xl hover:from-[var(--theme-overlay)]/70 hover:to-[var(--theme-highlight-med)]/50 transition-all duration-300 flex items-center gap-2 backdrop-blur-sm border border-[var(--theme-highlight-med)]/20;
+    }
+    
+    .action-button:hover {
+      @apply transform scale-105 shadow-lg;
+    }
+    
+    .action-button.clear {
+      @apply from-[var(--theme-gold)]/20 to-[var(--theme-gold)]/10 border-[var(--theme-gold)]/30;
+    }
+    
+    .action-button.export {
+      @apply from-[var(--theme-rose)]/20 to-[var(--theme-rose)]/10 border-[var(--theme-rose)]/30;
+    }
+    
+    .action-button.search {
+      @apply from-[var(--theme-pine)]/20 to-[var(--theme-pine)]/10 border-[var(--theme-pine)]/30;
+    }
+    
+    .action-button.history {
+      @apply from-[var(--theme-iris)]/20 to-[var(--theme-iris)]/10 border-[var(--theme-iris)]/30;
+    }
+    
+    /* Usage Indicators */
+    .usage-indicators {
+      @apply flex gap-6 mt-4;
+    }
+    
+    .usage-item {
+      @apply flex items-center gap-2 text-sm;
+    }
+    
+    .usage-count {
+      @apply font-semibold;
     }
     
     .usage-count.normal {
@@ -114,52 +321,78 @@
       @apply text-[var(--theme-love)];
     }
     
-    .error-notice, .limit-notice {
-      @apply p-3 rounded-lg mb-4 text-sm;
+    /* AI Controls */
+    .ai-controls {
+      @apply flex gap-3 mt-4;
     }
     
-    .error-notice {
-      @apply bg-[var(--theme-love)]/10 border border-[var(--theme-love)]/20 text-[var(--theme-love)];
+    .ai-select {
+      @apply px-4 py-2 bg-[var(--theme-overlay)]/50 border border-[var(--theme-highlight-med)]/30 text-[var(--theme-text)] rounded-lg focus:border-[var(--theme-foam)] focus:ring-2 focus:ring-[var(--theme-foam)]/20 transition-all duration-300 backdrop-blur-sm;
     }
     
-    .limit-notice {
-      @apply bg-[var(--theme-gold)]/10 border border-[var(--theme-gold)]/20 text-[var(--theme-gold)];
+    /* Notifications */
+    .notification {
+      @apply fixed top-4 right-4 p-4 rounded-xl shadow-2xl backdrop-blur-xl border border-[var(--theme-highlight-med)]/30 z-50 max-w-md;
     }
     
-    .search-history {
-      @apply bg-[var(--theme-overlay)] rounded-lg p-4 border border-[var(--theme-highlight-med)];
+    .notification.info {
+      @apply bg-gradient-to-r from-[var(--theme-foam)]/10 to-[var(--theme-iris)]/10 text-[var(--theme-foam)];
     }
     
-    .search-item {
-      @apply p-2 border-b border-[var(--theme-highlight-med)]/30 last:border-b-0;
+    .notification.error {
+      @apply bg-gradient-to-r from-[var(--theme-love)]/10 to-[var(--theme-love)]/20 text-[var(--theme-love)];
     }
     
-    .conversation-sidebar {
-      @apply w-80 bg-[var(--theme-surface)] border-r border-[var(--theme-highlight-med)] flex flex-col;
+    .notification.warning {
+      @apply bg-gradient-to-r from-[var(--theme-gold)]/10 to-[var(--theme-gold)]/20 text-[var(--theme-gold)];
     }
     
-    .convo-item {
-      @apply flex items-center justify-between p-3 hover:bg-[var(--theme-overlay)] cursor-pointer border-b border-[var(--theme-highlight-med)]/30 transition-colors duration-200;
+    /* Scrollbar Styling */
+    ::-webkit-scrollbar {
+      @apply w-2;
     }
     
-    .convo-item.active {
-      @apply bg-[var(--theme-foam)]/10 border-l-4 border-l-[var(--theme-foam)];
+    ::-webkit-scrollbar-track {
+      @apply bg-[var(--theme-overlay)]/30;
     }
     
-    .convo-title {
-      @apply text-sm font-medium text-[var(--theme-text)] truncate flex-1;
+    ::-webkit-scrollbar-thumb {
+      @apply bg-[var(--theme-highlight-med)]/50 rounded-full;
     }
     
-    .convo-actions {
-      @apply flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200;
+    ::-webkit-scrollbar-thumb:hover {
+      @apply bg-[var(--theme-highlight-med)]/70;
     }
     
-    .convo-actions button {
-      @apply p-1 text-[var(--theme-muted)] hover:text-[var(--theme-love)] transition-colors duration-200;
+    /* Animations */
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
     }
     
-    .convo-item:hover .convo-actions {
-      @apply opacity-100;
+    .message {
+      animation: fadeInUp 0.3s ease-out;
+    }
+    
+    /* Responsive Design */
+    @media (max-width: 768px) {
+      .sidebar {
+        @apply w-full h-full absolute inset-0 z-40 transform -translate-x-full transition-transform duration-300;
+      }
+      
+      .sidebar.open {
+        @apply translate-x-0;
+      }
+      
+      .main-chat {
+        @apply w-full;
+      }
     }
   </style>
 </head>
@@ -189,24 +422,24 @@
   </div>
 
   <!-- Main Chat Interface -->
-  <div id="chat-interface" class="h-screen flex hidden">
+  <div id="chat-interface" class="chat-container hidden">
     <!-- Sidebar -->
-    <div class="conversation-sidebar">
-      <!-- Header -->
-      <div class="p-4 border-b border-[var(--theme-highlight-med)]">
+    <div class="sidebar">
+      <!-- Sidebar Header -->
+      <div class="sidebar-header">
         <div class="flex items-center justify-between mb-4">
-          <h1 class="text-lg font-semibold flex items-center gap-2">
+          <h1 class="sidebar-title">
             <i class="bx bx-bot text-[var(--theme-foam)]"></i>
             Fusion AI
           </h1>
-          <button id="new-convo-btn" class="p-2 text-[var(--theme-foam)] hover:bg-[var(--theme-foam)]/10 rounded-lg transition-colors duration-200">
-            <i class="bx bx-plus text-lg"></i>
+          <button id="new-convo-btn" class="p-3 text-[var(--theme-foam)] hover:bg-[var(--theme-foam)]/10 rounded-xl transition-all duration-300 hover:scale-110">
+            <i class="bx bx-plus text-xl"></i>
           </button>
         </div>
         
         <!-- Theme Controls -->
-        <div class="space-y-2">
-          <select id="theme-select" class="w-full px-3 py-2 bg-[var(--theme-overlay)] border border-[var(--theme-highlight-med)] text-[var(--theme-text)] rounded-lg text-sm focus:border-[var(--theme-foam)] focus:ring-1 focus:ring-[var(--theme-foam)]/30 transition-all duration-200">
+        <div class="theme-controls">
+          <select id="theme-select" class="theme-select">
             <option value="rose-pine">Rose Pine</option>
             <option value="dark">Dark</option>
             <option value="light">Light</option>
@@ -214,7 +447,7 @@
             <option value="nord">Nord</option>
             <option value="dracula">Dracula</option>
           </select>
-          <select id="bg-select" class="w-full px-3 py-2 bg-[var(--theme-overlay)] border border-[var(--theme-highlight-med)] text-[var(--theme-text)] rounded-lg text-sm focus:border-[var(--theme-foam)] focus:ring-1 focus:ring-[var(--theme-foam)]/30 transition-all duration-200">
+          <select id="bg-select" class="bg-select">
             <option value="gradient">Gradient</option>
             <option value="solid">Solid</option>
             <option value="pattern">Pattern</option>
@@ -224,37 +457,35 @@
       </div>
 
       <!-- Conversations List -->
-      <div class="flex-1 overflow-y-auto">
-        <ul id="convo-list" class="divide-y divide-[var(--theme-highlight-med)]/30"></ul>
+      <div class="conversations-list">
+        <ul id="convo-list"></ul>
       </div>
 
-      <!-- User Info -->
-      <div class="p-4 border-t border-[var(--theme-highlight-med)]">
-        <div class="flex items-center justify-between">
-          <div class="flex items-center gap-2">
-            <img id="user-photo" class="w-8 h-8 rounded-full border border-[var(--theme-foam)]/50" src="" alt="Profile">
-            <span id="user-name" class="text-sm font-medium"></span>
-          </div>
-          <button id="sign-out-btn" class="text-[var(--theme-muted)] hover:text-[var(--theme-love)] text-sm transition-colors duration-200">
-            <i class="bx bx-log-out"></i>
+      <!-- Sidebar Footer -->
+      <div class="sidebar-footer">
+        <div class="user-info">
+          <img id="user-photo" class="user-avatar" src="" alt="Profile">
+          <span id="user-name" class="user-name"></span>
+          <button id="sign-out-btn" class="sign-out-btn">
+            <i class="bx bx-log-out text-lg"></i>
           </button>
         </div>
       </div>
     </div>
 
     <!-- Main Chat Area -->
-    <div class="flex-1 flex flex-col">
+    <div class="main-chat">
       <!-- Chat Header -->
-      <div class="p-4 border-b border-[var(--theme-highlight-med)] bg-[var(--theme-surface)]">
+      <div class="chat-header">
         <div class="flex items-center justify-between">
           <div>
-            <h2 id="convo-title" class="text-lg font-semibold">New Conversation</h2>
-            <div class="flex gap-4 mt-2">
-              <div class="flex items-center gap-2 text-sm">
+            <h2 id="convo-title" class="text-2xl font-bold text-[var(--theme-text)]">New Conversation</h2>
+            <div class="usage-indicators">
+              <div class="usage-item">
                 <i class="bx bx-message-square-dots text-[var(--theme-foam)]"></i>
                 <span>Messages: <span id="message-count" class="usage-count normal">0/10</span></span>
               </div>
-              <div class="flex items-center gap-2 text-sm">
+              <div class="usage-item">
                 <i class="bx bx-search-alt-2 text-[var(--theme-foam)]"></i>
                 <span>Searches: <span id="search-count" class="usage-count normal">0/5</span></span>
               </div>
@@ -262,15 +493,15 @@
           </div>
           
           <!-- AI Controls -->
-          <div class="flex gap-2">
-            <select id="personality" class="px-3 py-2 bg-[var(--theme-overlay)] border border-[var(--theme-highlight-med)] text-[var(--theme-text)] rounded-lg text-sm focus:border-[var(--theme-foam)] focus:ring-1 focus:ring-[var(--theme-foam)]/30 transition-all duration-200">
+          <div class="ai-controls">
+            <select id="personality" class="ai-select">
               <option value="Friendly">Friendly (GPT-3.5)</option>
               <option value="Professional">Professional (GPT-4o Mini)</option>
               <option value="Humorous">Humorous (Claude-3 Haiku)</option>
               <option value="Creative">Creative (GPT-4o)</option>
               <option value="Analytical">Analytical (GPT-4o)</option>
             </select>
-            <select id="reasoning-mode" class="px-3 py-2 bg-[var(--theme-overlay)] border border-[var(--theme-highlight-med)] text-[var(--theme-text)] rounded-lg text-sm focus:border-[var(--theme-foam)] focus:ring-1 focus:ring-[var(--theme-foam)]/30 transition-all duration-200">
+            <select id="reasoning-mode" class="ai-select">
               <option value="focused">Focused</option>
               <option value="balanced" selected>Balanced</option>
               <option value="creative">Creative</option>
@@ -280,35 +511,35 @@
       </div>
 
       <!-- Chat Messages -->
-      <div id="chat-box" class="flex-1 overflow-y-auto p-4 space-y-4"></div>
+      <div id="chat-box" class="chat-messages"></div>
 
       <!-- Input Area -->
-      <div class="p-4 border-t border-[var(--theme-highlight-med)] bg-[var(--theme-surface)]">
-        <div class="space-y-3">
+      <div class="chat-input-area">
+        <div class="space-y-4">
           <!-- Message Input -->
-          <div class="flex gap-2">
-            <input type="text" id="user-input" placeholder="Type your message here..." maxlength="500" 
-                   class="flex-1 px-4 py-3 bg-[var(--theme-overlay)] border border-[var(--theme-highlight-med)] text-[var(--theme-text)] rounded-lg focus:border-[var(--theme-foam)] focus:ring-1 focus:ring-[var(--theme-foam)]/30 transition-all duration-200">
-            <button id="send-btn" class="px-6 py-3 bg-[var(--theme-foam)] text-[var(--theme-base)] font-medium rounded-lg hover:bg-[var(--theme-foam)]/80 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed">
-              Send
+          <div class="input-container">
+            <textarea id="user-input" placeholder="Type your message here..." maxlength="500" 
+                     class="message-input"></textarea>
+            <button id="send-btn" class="send-button disabled:opacity-50 disabled:cursor-not-allowed">
+              <i class="bx bx-send"></i>
             </button>
           </div>
           
           <!-- Action Buttons -->
-          <div class="flex gap-2 flex-wrap">
-            <button id="clear-history" class="px-4 py-2 bg-[var(--theme-gold)] text-[var(--theme-base)] font-medium rounded-lg hover:bg-[var(--theme-gold)]/80 transition-all duration-200 flex items-center gap-2">
+          <div class="action-buttons">
+            <button id="clear-history" class="action-button clear">
               <i class="bx bx-trash"></i>
               Clear
             </button>
-            <button id="export-history" class="px-4 py-2 bg-[var(--theme-rose)] text-[var(--theme-base)] font-medium rounded-lg hover:bg-[var(--theme-rose)]/80 transition-all duration-200 flex items-center gap-2">
+            <button id="export-history" class="action-button export">
               <i class="bx bx-download"></i>
               Export
             </button>
-            <button id="web-search" class="px-4 py-2 bg-[var(--theme-pine)] text-[var(--theme-base)] font-medium rounded-lg hover:bg-[var(--theme-pine)]/80 transition-all duration-200 flex items-center gap-2">
+            <button id="web-search" class="action-button search">
               <i class="bx bx-search"></i>
               Web Search
             </button>
-            <button id="view-search-history" class="px-4 py-2 bg-[var(--theme-iris)] text-[var(--theme-base)] font-medium rounded-lg hover:bg-[var(--theme-iris)]/80 transition-all duration-200 flex items-center gap-2">
+            <button id="view-search-history" class="action-button history">
               <i class="bx bx-history"></i>
               Search History
             </button>
@@ -364,9 +595,15 @@
   </script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js"></script>
   
+  <!-- Carbon Theme -->
+  <script src="carbon-theme.js"></script>
+  
   <script>
     // Wait for DOM and Firebase to be ready
     document.addEventListener('DOMContentLoaded', function() {
+      // Initialize Carbon Theme
+      const carbonTheme = new CarbonTheme();
+      
       // Check if Firebase is available
       if (typeof window.firebase === 'undefined') {
         console.error('Firebase not initialized');
@@ -405,6 +642,59 @@
       const viewSearchHistoryBtn = document.getElementById('view-search-history');
       const personalitySelect = document.getElementById('personality');
       const reasoningSelect = document.getElementById('reasoning-mode');
+
+      // Theme Management
+      function populateThemeSelect() {
+        const themes = carbonTheme.getAllThemes();
+        themeSelect.innerHTML = '';
+        Object.keys(themes).forEach(theme => {
+          const opt = document.createElement('option');
+          opt.value = theme;
+          opt.textContent = theme.charAt(0).toUpperCase() + theme.slice(1);
+          if (carbonTheme.currentTheme === theme) opt.selected = true;
+          themeSelect.appendChild(opt);
+        });
+      }
+
+      function populateBgSelect() {
+        const backgrounds = ['gradient', 'solid', 'pattern', 'particles'];
+        bgSelect.innerHTML = '';
+        backgrounds.forEach(bg => {
+          const opt = document.createElement('option');
+          opt.value = bg;
+          opt.textContent = bg.charAt(0).toUpperCase() + bg.slice(1);
+          if ((localStorage.getItem('carbon-background-global') || 'gradient') === bg) opt.selected = true;
+          bgSelect.appendChild(opt);
+        });
+      }
+
+      themeSelect.addEventListener('change', e => {
+        carbonTheme.setTheme(e.target.value);
+        localStorage.setItem('carbon-theme-global', e.target.value);
+      });
+
+      bgSelect.addEventListener('change', e => {
+        localStorage.setItem('carbon-background-global', e.target.value);
+        carbonTheme.applyDynamicBackground(carbonTheme.currentTheme, e.target.value);
+      });
+
+      // Initialize theme system
+      populateThemeSelect();
+      populateBgSelect();
+      carbonTheme.applyTheme(localStorage.getItem('carbon-theme-global') || 'rose-pine');
+      carbonTheme.applyDynamicBackground(carbonTheme.currentTheme, localStorage.getItem('carbon-background-global') || 'gradient');
+
+      // Listen for theme changes from other tabs
+      window.addEventListener('storage', e => {
+        if (e.key === 'carbon-theme-global') {
+          carbonTheme.setTheme(e.newValue);
+          populateThemeSelect();
+        }
+        if (e.key === 'carbon-background-global') {
+          carbonTheme.applyDynamicBackground(carbonTheme.currentTheme, e.newValue);
+          populateBgSelect();
+        }
+      });
 
       // Authentication
       function showAuthError(msg) {
@@ -502,15 +792,21 @@
           webSearchBtn.addEventListener('click', () => this.performWebSearch());
           viewSearchHistoryBtn.addEventListener('click', () => this.showSearchHistory());
           
-          userInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-              e.preventDefault();
-              this.sendMessage();
-            }
-          });
-          
-          userInput.addEventListener('input', () => this.updateSendButtonState());
-          setTimeout(() => userInput.focus(), 500);
+                  userInput.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            this.sendMessage();
+          }
+        });
+        
+        userInput.addEventListener('input', () => {
+          this.updateSendButtonState();
+          // Auto-resize textarea
+          userInput.style.height = 'auto';
+          userInput.style.height = Math.min(userInput.scrollHeight, 200) + 'px';
+        });
+        
+        setTimeout(() => userInput.focus(), 500);
         }
 
         listenToFirebase() {
@@ -687,62 +983,71 @@
           this.scrollToBottom();
         }
 
-        createMessageElement(message, index) {
-          const messageDiv = document.createElement('div');
-          messageDiv.className = `message ${message.role}`;
-          messageDiv.dataset.messageIndex = index;
+              createMessageElement(message, index) {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `message ${message.role}`;
+        messageDiv.dataset.messageIndex = index;
 
-          const senderRow = document.createElement('div');
-          senderRow.className = 'message-sender-row';
+        const messageBubble = document.createElement('div');
+        messageBubble.className = 'message-bubble';
 
-          if (message.role === 'ai') {
-            const aiProfile = document.createElement('div');
-            aiProfile.className = 'profile-circle-ai';
-            aiProfile.innerHTML = "<i class='bx bx-bot'></i>";
-            senderRow.appendChild(aiProfile);
-          } else {
-            const userProfile = document.createElement('div');
-            userProfile.className = 'profile-circle-user';
-            userProfile.innerHTML = "<i class='bx bx-user'></i>";
-            senderRow.appendChild(userProfile);
-          }
+        // Message Header
+        const messageHeader = document.createElement('div');
+        messageHeader.className = 'message-header';
 
-          const messageSender = document.createElement('div');
-          messageSender.className = 'message-sender';
-          messageSender.textContent = DOMPurify.sanitize(message.role === 'user' ? "You" : "Fusion AI");
-          senderRow.appendChild(messageSender);
+        const avatar = document.createElement('div');
+        avatar.className = `avatar ${message.role}`;
+        avatar.innerHTML = message.role === 'ai' ? "<i class='bx bx-bot'></i>" : "<i class='bx bx-user'></i>";
 
-          const messageContent = document.createElement('div');
-          messageContent.className = 'message-content';
-          const messageText = document.createElement('div');
-          messageText.innerHTML = message.html ? DOMPurify.sanitize(message.html) : DOMPurify.sanitize(this.formatMessage(message.text));
-          messageContent.appendChild(messageText);
+        const messageInfo = document.createElement('div');
+        messageInfo.className = 'message-info';
 
-          if (message.role === 'ai') {
-            const btnRow = document.createElement('div');
-            btnRow.className = 'ai-action-row';
-            
-            const regenBtn = document.createElement('button');
-            regenBtn.className = 'regen-btn';
-            regenBtn.title = "Regenerate response";
-            regenBtn.innerHTML = "<i class='bx bx-refresh'></i> Regenerate";
-            regenBtn.onclick = () => this.regenerateAIResponse(index);
-            btnRow.appendChild(regenBtn);
-            
-            const reasoningBtn = document.createElement('button');
-            reasoningBtn.className = 'reasoning-btn';
-            reasoningBtn.title = "Show AI Reasoning";
-            reasoningBtn.innerHTML = "<i class='bx bx-brain'></i> Reasoning";
-            reasoningBtn.onclick = () => this.showReasoning(index);
-            btnRow.appendChild(reasoningBtn);
-            
-            messageContent.appendChild(btnRow);
-          }
+        const messageSender = document.createElement('div');
+        messageSender.className = 'message-sender';
+        messageSender.textContent = DOMPurify.sanitize(message.role === 'user' ? "You" : "Fusion AI");
 
-          messageDiv.appendChild(senderRow);
-          messageDiv.appendChild(messageContent);
-          chatBox.appendChild(messageDiv);
+        const messageTime = document.createElement('div');
+        messageTime.className = 'message-time';
+        messageTime.textContent = new Date(message.timestamp).toLocaleTimeString();
+
+        messageInfo.appendChild(messageSender);
+        messageInfo.appendChild(messageTime);
+        messageHeader.appendChild(avatar);
+        messageHeader.appendChild(messageInfo);
+
+        // Message Content
+        const messageContent = document.createElement('div');
+        messageContent.className = 'message-content';
+        messageContent.innerHTML = message.html ? DOMPurify.sanitize(message.html) : DOMPurify.sanitize(this.formatMessage(message.text));
+
+        messageBubble.appendChild(messageHeader);
+        messageBubble.appendChild(messageContent);
+
+        // AI Action Buttons
+        if (message.role === 'ai') {
+          const messageActions = document.createElement('div');
+          messageActions.className = 'message-actions';
+          
+          const regenBtn = document.createElement('button');
+          regenBtn.className = 'action-btn';
+          regenBtn.title = "Regenerate response";
+          regenBtn.innerHTML = "<i class='bx bx-refresh'></i> Regenerate";
+          regenBtn.onclick = () => this.regenerateAIResponse(index);
+          
+          const reasoningBtn = document.createElement('button');
+          reasoningBtn.className = 'action-btn';
+          reasoningBtn.title = "Show AI Reasoning";
+          reasoningBtn.innerHTML = "<i class='bx bx-brain'></i> Reasoning";
+          reasoningBtn.onclick = () => this.showReasoning(index);
+          
+          messageActions.appendChild(regenBtn);
+          messageActions.appendChild(reasoningBtn);
+          messageBubble.appendChild(messageActions);
         }
+
+        messageDiv.appendChild(messageBubble);
+        chatBox.appendChild(messageDiv);
+      }
 
         formatMessage(text) {
           return DOMPurify.sanitize((text || '')
@@ -751,38 +1056,58 @@
             .replace(/\*(.*?)\*/g, '<em>$1</em>'));
         }
 
-        showTypingIndicator() {
-          this.hideTypingIndicator();
-          const typingDiv = document.createElement('div');
-          typingDiv.className = 'message ai';
-          typingDiv.id = 'typing-indicator';
+              showTypingIndicator() {
+        this.hideTypingIndicator();
+        const typingDiv = document.createElement('div');
+        typingDiv.className = 'message ai';
+        typingDiv.id = 'typing-indicator';
 
-          const senderRow = document.createElement('div');
-          senderRow.className = 'message-sender-row';
-          const aiProfile = document.createElement('div');
-          aiProfile.className = 'profile-circle-ai';
-          aiProfile.innerHTML = "<i class='bx bx-bot'></i>";
-          senderRow.appendChild(aiProfile);
-          const messageSender = document.createElement('div');
-          messageSender.className = 'message-sender';
-          messageSender.textContent = DOMPurify.sanitize('Fusion AI');
-          senderRow.appendChild(messageSender);
-          typingDiv.appendChild(senderRow);
+        const messageBubble = document.createElement('div');
+        messageBubble.className = 'message-bubble';
 
-          const typingContent = document.createElement('div');
-          typingContent.className = 'typing-indicator';
-          const typingDots = document.createElement('div');
-          typingDots.className = 'typing-dots';
-          for (let i = 0; i < 3; i++) {
-            const dot = document.createElement('div');
-            dot.className = 'typing-dot';
-            typingDots.appendChild(dot);
-          }
-          typingContent.appendChild(typingDots);
-          typingDiv.appendChild(typingContent);
-          chatBox.appendChild(typingDiv);
-          this.scrollToBottom();
+        // Message Header
+        const messageHeader = document.createElement('div');
+        messageHeader.className = 'message-header';
+
+        const avatar = document.createElement('div');
+        avatar.className = 'avatar ai';
+        avatar.innerHTML = "<i class='bx bx-bot'></i>";
+
+        const messageInfo = document.createElement('div');
+        messageInfo.className = 'message-info';
+
+        const messageSender = document.createElement('div');
+        messageSender.className = 'message-sender';
+        messageSender.textContent = DOMPurify.sanitize('Fusion AI');
+
+        const messageTime = document.createElement('div');
+        messageTime.className = 'message-time';
+        messageTime.textContent = 'Typing...';
+
+        messageInfo.appendChild(messageSender);
+        messageInfo.appendChild(messageTime);
+        messageHeader.appendChild(avatar);
+        messageHeader.appendChild(messageInfo);
+
+        // Typing Content
+        const typingContent = document.createElement('div');
+        typingContent.className = 'typing-indicator';
+        
+        const typingDots = document.createElement('div');
+        typingDots.className = 'typing-dots';
+        for (let i = 0; i < 3; i++) {
+          const dot = document.createElement('div');
+          dot.className = 'typing-dot';
+          typingDots.appendChild(dot);
         }
+        typingContent.appendChild(typingDots);
+
+        messageBubble.appendChild(messageHeader);
+        messageBubble.appendChild(typingContent);
+        typingDiv.appendChild(messageBubble);
+        chatBox.appendChild(typingDiv);
+        this.scrollToBottom();
+      }
 
         hideTypingIndicator() {
           const typingIndicator = document.getElementById('typing-indicator');
@@ -1108,34 +1433,30 @@
           this.showNotice('Conversation exported successfully!', 'info');
         }
 
-        showNotice(message, type = 'info') {
-          const notice = document.createElement('div');
-          notice.className = `fixed top-4 right-4 p-4 rounded-lg shadow-lg z-50 max-w-md ${
-            type === 'error' ? 'bg-[var(--theme-love)]/10 border border-[var(--theme-love)]/20 text-[var(--theme-love)]' :
-            type === 'warning' ? 'bg-[var(--theme-gold)]/10 border border-[var(--theme-gold)]/20 text-[var(--theme-gold)]' :
-            'bg-[var(--theme-foam)]/10 border border-[var(--theme-foam)]/20 text-[var(--theme-foam)]'
-          }`;
-          notice.innerHTML = `
-            <div class="flex items-start gap-3">
-              <i class="bx ${type === 'error' ? 'bx-error' : type === 'warning' ? 'bx-warning' : 'bx-info-circle'} text-lg mt-0.5"></i>
-              <div class="flex-1">
-                <div class="text-sm">${DOMPurify.sanitize(message)}</div>
-              </div>
-              <button class="text-current hover:opacity-70" onclick="this.closest('.fixed').remove()">
-                <i class="bx bx-x"></i>
-              </button>
+              showNotice(message, type = 'info') {
+        const notice = document.createElement('div');
+        notice.className = `notification ${type}`;
+        notice.innerHTML = `
+          <div class="flex items-start gap-3">
+            <i class="bx ${type === 'error' ? 'bx-error' : type === 'warning' ? 'bx-warning' : 'bx-info-circle'} text-lg mt-0.5"></i>
+            <div class="flex-1">
+              <div class="text-sm font-medium">${DOMPurify.sanitize(message)}</div>
             </div>
-          `;
-          
-          document.body.appendChild(notice);
-          
-          // Auto-remove after 5 seconds
-          setTimeout(() => {
-            if (notice.parentNode) {
-              notice.remove();
-            }
-          }, 5000);
-        }
+            <button class="text-current hover:opacity-70 transition-opacity duration-200" onclick="this.closest('.notification').remove()">
+              <i class="bx bx-x text-lg"></i>
+            </button>
+          </div>
+        `;
+        
+        document.body.appendChild(notice);
+        
+        // Auto-remove after 5 seconds
+        setTimeout(() => {
+          if (notice.parentNode) {
+            notice.remove();
+          }
+        }, 5000);
+      }
 
         updateSendButtonState() {
           const hasText = userInput.value.trim().length > 0;
@@ -1240,5 +1561,6 @@
   </script>
 </body>
 </html>
+ 
  
  
