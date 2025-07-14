@@ -549,13 +549,12 @@
     </div>
   </div>
 
-  <!-- Firebase Scripts -->
-  <script type="module">
-    // Import the functions you need from the SDKs you need
-    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
-    import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
-    import { getDatabase, ref, set, push, onValue, remove, update, get } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js';
-    
+    <!-- Firebase Scripts -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <script>
     // Firebase Configuration
     const firebaseConfig = {
       apiKey: "AIzaSyC4ilHYP1T-kdXbWPoHJHhD2aj0pNWmMec",
@@ -567,31 +566,13 @@
       appId: "1:288385472070:web:c4be3ff186e248fc645c47",
       measurementId: "G-Y2K1RQYE74"
     };
-
+    
     // Initialize Firebase
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const db = getDatabase(app);
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.database();
     
-    // Make Firebase available globally
-    window.firebase = {
-      app: app,
-      auth: auth,
-      db: db,
-      GoogleAuthProvider: GoogleAuthProvider,
-      signInWithPopup: signInWithPopup,
-      onAuthStateChanged: onAuthStateChanged,
-      signOut: signOut,
-      ref: ref,
-      set: set,
-      push: push,
-      onValue: onValue,
-      get: get,
-      remove: remove,
-      update: update
-    };
-    
-    console.log('Firebase initialized successfully with modular SDK');
+    console.log('Firebase initialized successfully with compat SDK');
   </script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js"></script>
   
@@ -605,7 +586,7 @@
       const carbonTheme = new CarbonTheme();
       
       // Check if Firebase is available
-      if (typeof window.firebase === 'undefined') {
+      if (typeof firebase === 'undefined') {
         console.error('Firebase not initialized');
         const errorDiv = document.createElement('div');
         errorDiv.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; background: #ef4444; color: white; padding: 1rem; text-align: center; z-index: 9999;';
@@ -615,8 +596,8 @@
       }
       
       // Get Firebase instances
-      const auth = window.firebase.auth;
-      const db = window.firebase.db;
+      const auth = firebase.auth();
+      const db = firebase.database();
 
       // DOM Elements
       const loginScreen = document.getElementById('login-screen');
@@ -712,12 +693,12 @@
         googleSigninBtn.disabled = true;
         googleSigninBtn.innerHTML = "<i class='bx bxs-hourglass bx-spin'></i> Signing in...";
         
-        const provider = new window.firebase.GoogleAuthProvider();
+        const provider = new firebase.auth.GoogleAuthProvider();
         provider.addScope('profile');
         provider.addScope('email');
         
         try {
-          await window.firebase.signInWithPopup(auth, provider);
+          await auth.signInWithPopup(provider);
         } catch (e) {
           showAuthError(`Authentication failed: ${DOMPurify.sanitize(e.message)}`);
         } finally {
@@ -728,7 +709,7 @@
 
       signOutBtn.addEventListener('click', () => {
         if (confirm('Are you sure you want to sign out?')) {
-          window.firebase.signOut(auth);
+          auth.signOut();
         }
       });
 
@@ -736,7 +717,7 @@
       let fusionChat = null;
       let userId = null;
 
-      window.firebase.onAuthStateChanged(auth, user => {
+      auth.onAuthStateChanged(user => {
         if (user) {
           userId = user.uid;
           loginScreen.classList.add('hidden');
@@ -774,9 +755,9 @@
           this.usageData = this.initializeUsageData();
           this.searchHistory = [];
           this.isTyping = false;
-          this.firebaseConvoListRef = window.firebase.ref(db, `users/${this.uid}/conversations`);
-          this.firebaseUsageRef = window.firebase.ref(db, `users/${this.uid}/usageData`);
-          this.firebaseSearchRef = window.firebase.ref(db, `users/${this.uid}/searchHistory`);
+          this.firebaseConvoListRef = db.ref(`users/${this.uid}/conversations`);
+          this.firebaseUsageRef = db.ref(`users/${this.uid}/usageData`);
+          this.firebaseSearchRef = db.ref(`users/${this.uid}/searchHistory`);
           
           this.initializeEventListeners();
           this.listenToFirebase();
@@ -810,7 +791,7 @@
         }
 
         listenToFirebase() {
-          window.firebase.onValue(this.firebaseConvoListRef, (snapshot) => {
+          this.firebaseConvoListRef.on('value', (snapshot) => {
             this.conversations = snapshot.val() || {};
             this.renderSidebar();
             if (!this.activeConvoId && Object.keys(this.conversations).length > 0) {
@@ -824,14 +805,14 @@
             }
           });
           
-          window.firebase.onValue(this.firebaseUsageRef, (snapshot) => {
+          this.firebaseUsageRef.on('value', (snapshot) => {
             if (snapshot.exists()) {
               this.usageData = snapshot.val();
               this.updateUsageDisplay();
             }
           });
           
-          window.firebase.onValue(this.firebaseSearchRef, (snapshot) => {
+          this.firebaseSearchRef.on('value', (snapshot) => {
             this.searchHistory = snapshot.val() || [];
           });
         }
@@ -864,7 +845,7 @@
             
             if (changed) {
               this.usageData = usage;
-              window.firebase.set(this.firebaseUsageRef, usage);
+              this.firebaseUsageRef.set(usage);
             }
           }, 60000);
         }
@@ -952,15 +933,15 @@
             lastUpdated: now,
             title: "New conversation"
           };
-          const convoRef = window.firebase.ref(db, `users/${this.uid}/conversations/${id}`);
-          window.firebase.set(convoRef, {meta, messages: [welcomeMsg]}).then(() => {
+          const convoRef = db.ref(`users/${this.uid}/conversations/${id}`);
+          convoRef.set({meta, messages: [welcomeMsg]}).then(() => {
             this.setActiveConversation(id);
           });
         }
 
         deleteConversation(convoId) {
-          const convoRef = window.firebase.ref(db, `users/${this.uid}/conversations/${convoId}`);
-          window.firebase.remove(convoRef).then(() => {
+          const convoRef = db.ref(`users/${this.uid}/conversations/${convoId}`);
+          convoRef.remove().then(() => {
             if (this.activeConvoId === convoId) {
               const ids = Object.keys(this.conversations).filter(id => id !== convoId);
               if (ids.length > 0) {
@@ -1158,9 +1139,9 @@
           if (!userMessage || this.isTyping) return;
           
           this.usageData.messages.count++;
-          window.firebase.set(this.firebaseUsageRef, this.usageData);
+          this.firebaseUsageRef.set(this.usageData);
 
-          const convoRef = window.firebase.ref(db, `users/${this.uid}/conversations/${this.activeConvoId}`);
+          const convoRef = db.ref(`users/${this.uid}/conversations/${this.activeConvoId}`);
 
           const addAndSend = (convo) => {
             const messages = (convo.messages || []);
@@ -1184,7 +1165,7 @@
               }
             };
             
-            window.firebase.set(convoRef, updatedConvo).then(() => {
+            convoRef.set(updatedConvo).then(() => {
               userInput.value = '';
               this.updateSendButtonState();
               this.showTypingIndicator();
@@ -1192,7 +1173,7 @@
             });
           };
           
-          window.firebase.get(convoRef).then((snapshot) => {
+          convoRef.once('value').then((snapshot) => {
             const convo = snapshot.val() || { messages: [], meta: {} };
             addAndSend(convo);
           });
@@ -1226,8 +1207,8 @@
               timestamp: new Date().toISOString()
             };
             
-            const convoRef = window.firebase.ref(db, `users/${this.uid}/conversations/${this.activeConvoId}`);
-            window.firebase.get(convoRef).then((snapshot) => {
+            const convoRef = db.ref(`users/${this.uid}/conversations/${this.activeConvoId}`);
+            convoRef.once('value').then((snapshot) => {
               const convo = snapshot.val();
               const messages = [...(convo.messages || []), aiMsg];
               const updatedConvo = {
@@ -1238,7 +1219,7 @@
                   lastUpdated: Date.now()
                 }
               };
-              window.firebase.set(convoRef, updatedConvo);
+              convoRef.set(updatedConvo);
             });
             
           } catch (error) {
@@ -1333,8 +1314,8 @@
           if (!query) return;
           
           this.usageData.searches.count++;
-          window.firebase.set(this.firebaseUsageRef, this.usageData);
-          window.firebase.push(this.firebaseSearchRef, {
+          this.firebaseUsageRef.set(this.usageData);
+          this.firebaseSearchRef.push({
             query: query,
             timestamp: new Date().toISOString()
           });
@@ -1388,8 +1369,8 @@
         clearConversation() {
           if (!this.activeConvoId || !confirm('Are you sure you want to clear this conversation?')) return;
           
-          const convoRef = window.firebase.ref(db, `users/${this.uid}/conversations/${this.activeConvoId}`);
-          window.firebase.update(convoRef, {
+          const convoRef = db.ref(`users/${this.uid}/conversations/${this.activeConvoId}`);
+          convoRef.update({
             messages: [],
             meta: {
               created: Date.now(),
@@ -1561,4 +1542,5 @@
   </script>
 </body>
 </html>
+ 
  
