@@ -367,6 +367,20 @@
   <script>
     // Wait for DOM and Firebase to be ready
     document.addEventListener('DOMContentLoaded', function() {
+      // Check if Firebase is available
+      if (typeof window.firebase === 'undefined') {
+        console.error('Firebase not initialized');
+        const errorDiv = document.createElement('div');
+        errorDiv.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; background: #ef4444; color: white; padding: 1rem; text-align: center; z-index: 9999;';
+        errorDiv.textContent = 'Failed to initialize Firebase. Please refresh the page.';
+        document.body.appendChild(errorDiv);
+        return;
+      }
+      
+      // Get Firebase instances
+      const auth = window.firebase.auth;
+      const db = window.firebase.db;
+
       // DOM Elements
       const loginScreen = document.getElementById('login-screen');
       const chatInterface = document.getElementById('chat-interface');
@@ -1226,6 +1240,5 @@
   </script>
 </body>
 </html>
- 
  
  
