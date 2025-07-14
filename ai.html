@@ -319,17 +319,11 @@
   </div>
 
   <!-- Firebase Scripts -->
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js"></script>
-  
-  <!-- Carbon Theme -->
-  <script src="carbon-theme.js"></script>
-  
-  <script>
-    // Initialize Carbon Theme
-    const carbonTheme = new CarbonTheme();
+  <script type="module">
+    // Import the functions you need from the SDKs you need
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
+    import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
+    import { getDatabase, ref, set, push, onValue, once, remove, update } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js';
     
     // Firebase Configuration
     const firebaseConfig = {
@@ -342,14 +336,56 @@
       appId: "1:288385472070:web:c4be3ff186e248fc645c47",
       measurementId: "G-Y2K1RQYE74"
     };
-    
+
     // Initialize Firebase
-    if (!firebase.apps.length) {
-      firebase.initializeApp(firebaseConfig);
-    }
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getDatabase(app);
     
-    const auth = firebase.auth();
-    const db = firebase.database();
+    // Make Firebase available globally
+    window.firebase = {
+      app: app,
+      auth: auth,
+      db: db,
+      GoogleAuthProvider: GoogleAuthProvider,
+      signInWithPopup: signInWithPopup,
+      onAuthStateChanged: onAuthStateChanged,
+      signOut: signOut,
+      ref: ref,
+      set: set,
+      push: push,
+      onValue: onValue,
+      once: once,
+      remove: remove,
+      update: update
+    };
+    
+    console.log('Firebase initialized successfully with modular SDK');
+  </script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js"></script>
+  
+  <!-- Carbon Theme -->
+  <script src="carbon-theme.js"></script>
+  
+  <script>
+    // Wait for DOM and Firebase to be ready
+    document.addEventListener('DOMContentLoaded', function() {
+      // Initialize Carbon Theme
+      const carbonTheme = new CarbonTheme();
+      
+      // Check if Firebase is available
+      if (typeof window.firebase === 'undefined') {
+        console.error('Firebase not initialized');
+        const errorDiv = document.createElement('div');
+        errorDiv.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; background: #ef4444; color: white; padding: 1rem; text-align: center; z-index: 9999;';
+        errorDiv.textContent = 'Failed to initialize Firebase. Please refresh the page.';
+        document.body.appendChild(errorDiv);
+        return;
+      }
+      
+      // Get Firebase instances
+      const auth = window.firebase.auth;
+      const db = window.firebase.db;
 
     // DOM Elements
     const loginScreen = document.getElementById('login-screen');
@@ -445,12 +481,12 @@
       googleSigninBtn.disabled = true;
       googleSigninBtn.innerHTML = "<i class='bx bxs-hourglass bx-spin'></i> Signing in...";
       
-      const provider = new firebase.auth.GoogleAuthProvider();
+      const provider = new window.firebase.GoogleAuthProvider();
       provider.addScope('profile');
       provider.addScope('email');
       
       try {
-        await auth.signInWithPopup(provider);
+        await window.firebase.signInWithPopup(auth, provider);
       } catch (e) {
         showAuthError(`Authentication failed: ${DOMPurify.sanitize(e.message)}`);
       } finally {
@@ -461,7 +497,7 @@
 
     signOutBtn.addEventListener('click', () => {
       if (confirm('Are you sure you want to sign out?')) {
-        auth.signOut();
+        window.firebase.signOut(auth);
       }
     });
 
@@ -469,7 +505,7 @@
     let fusionChat = null;
     let userId = null;
 
-    auth.onAuthStateChanged(user => {
+    window.firebase.onAuthStateChanged(auth, user => {
       if (user) {
         userId = user.uid;
         loginScreen.classList.add('hidden');
@@ -507,9 +543,9 @@
         this.usageData = this.initializeUsageData();
         this.searchHistory = [];
         this.isTyping = false;
-        this.firebaseConvoListRef = db.ref(`users/${this.uid}/conversations`);
-        this.firebaseUsageRef = db.ref(`users/${this.uid}/usageData`);
-        this.firebaseSearchRef = db.ref(`users/${this.uid}/searchHistory`);
+        this.firebaseConvoListRef = window.firebase.ref(db, `users/${this.uid}/conversations`);
+        this.firebaseUsageRef = window.firebase.ref(db, `users/${this.uid}/usageData`);
+        this.firebaseSearchRef = window.firebase.ref(db, `users/${this.uid}/searchHistory`);
         
         this.initializeEventListeners();
         this.listenToFirebase();
@@ -537,7 +573,7 @@
       }
 
       listenToFirebase() {
-        this.firebaseConvoListRef.on('value', (snapshot) => {
+        window.firebase.onValue(this.firebaseConvoListRef, (snapshot) => {
           this.conversations = snapshot.val() || {};
           this.renderSidebar();
           if (!this.activeConvoId && Object.keys(this.conversations).length > 0) {
@@ -551,14 +587,14 @@
           }
         });
         
-        this.firebaseUsageRef.on('value', (snapshot) => {
+        window.firebase.onValue(this.firebaseUsageRef, (snapshot) => {
           if (snapshot.exists()) {
             this.usageData = snapshot.val();
             this.updateUsageDisplay();
           }
         });
         
-        this.firebaseSearchRef.on('value', (snapshot) => {
+        window.firebase.onValue(this.firebaseSearchRef, (snapshot) => {
           this.searchHistory = snapshot.val() || [];
         });
       }
@@ -591,7 +627,7 @@
           
           if (changed) {
             this.usageData = usage;
-            this.firebaseUsageRef.set(usage);
+            window.firebase.set(this.firebaseUsageRef, usage);
           }
         }, 60000);
       }
@@ -679,13 +715,15 @@
           lastUpdated: now,
           title: "New conversation"
         };
-        this.firebaseConvoListRef.child(id).set({meta, messages: [welcomeMsg]}, () => {
+        const convoRef = window.firebase.ref(db, `users/${this.uid}/conversations/${id}`);
+        window.firebase.set(convoRef, {meta, messages: [welcomeMsg]}, () => {
           this.setActiveConversation(id);
         });
       }
 
       deleteConversation(convoId) {
-        this.firebaseConvoListRef.child(convoId).remove(() => {
+        const convoRef = window.firebase.ref(db, `users/${this.uid}/conversations/${convoId}`);
+        window.firebase.remove(convoRef, () => {
           if (this.activeConvoId === convoId) {
             const ids = Object.keys(this.conversations).filter(id => id !== convoId);
             if (ids.length > 0) {
@@ -854,9 +892,9 @@
         if (!userMessage || this.isTyping) return;
         
         this.usageData.messages.count++;
-        this.firebaseUsageRef.set(this.usageData);
+        window.firebase.set(this.firebaseUsageRef, this.usageData);
 
-        const convoRef = this.firebaseConvoListRef.child(this.activeConvoId);
+        const convoRef = window.firebase.ref(db, `users/${this.uid}/conversations/${this.activeConvoId}`);
 
         const addAndSend = (convo) => {
           const messages = (convo.messages || []);
@@ -880,7 +918,7 @@
             }
           };
           
-          convoRef.set(updatedConvo, () => {
+          window.firebase.set(convoRef, updatedConvo, () => {
             userInput.value = '';
             this.updateSendButtonState();
             this.showTypingIndicator();
@@ -888,7 +926,7 @@
           });
         };
         
-        convoRef.once('value', (snapshot) => {
+        window.firebase.once(convoRef, 'value', (snapshot) => {
           const convo = snapshot.val() || { messages: [], meta: {} };
           addAndSend(convo);
         });
@@ -922,8 +960,8 @@
             timestamp: new Date().toISOString()
           };
           
-          const convoRef = this.firebaseConvoListRef.child(this.activeConvoId);
-          convoRef.once('value', (snapshot) => {
+          const convoRef = window.firebase.ref(db, `users/${this.uid}/conversations/${this.activeConvoId}`);
+          window.firebase.once(convoRef, 'value', (snapshot) => {
             const convo = snapshot.val();
             const messages = [...(convo.messages || []), aiMsg];
             const updatedConvo = {
@@ -934,7 +972,7 @@
                 lastUpdated: Date.now()
               }
             };
-            convoRef.set(updatedConvo);
+            window.firebase.set(convoRef, updatedConvo);
           });
           
         } catch (error) {
@@ -1029,8 +1067,8 @@
         if (!query) return;
         
         this.usageData.searches.count++;
-        this.firebaseUsageRef.set(this.usageData);
-        this.firebaseSearchRef.push({
+        window.firebase.set(this.firebaseUsageRef, this.usageData);
+        window.firebase.push(this.firebaseSearchRef, {
           query: query,
           timestamp: new Date().toISOString()
         });
@@ -1084,8 +1122,8 @@
       clearConversation() {
         if (!this.activeConvoId || !confirm('Are you sure you want to clear this conversation?')) return;
         
-        const convoRef = this.firebaseConvoListRef.child(this.activeConvoId);
-        convoRef.update({
+        const convoRef = window.firebase.ref(db, `users/${this.uid}/conversations/${this.activeConvoId}`);
+        window.firebase.update(convoRef, {
           messages: [],
           meta: {
             created: Date.now(),
@@ -1248,16 +1286,18 @@
       }
     }
 
-    // Check particles on load and theme change
-    document.addEventListener('DOMContentLoaded', checkAndInitParticles);
-    
-    // Listen for background changes
-    window.addEventListener('storage', (e) => {
-      if (e.key === 'carbon-background-global') {
-        checkAndInitParticles();
-      }
+      // Check particles on load and theme change
+      checkAndInitParticles();
+      
+      // Listen for background changes
+      window.addEventListener('storage', (e) => {
+        if (e.key === 'carbon-background-global') {
+          checkAndInitParticles();
+        }
+      });
     });
   </script>
 </body>
 </html>
+ 
  
