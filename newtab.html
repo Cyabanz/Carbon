@@ -540,6 +540,7 @@
       updateProxyUI();
       updateSearchEngineUI();
       renderBookmarks();
+      loadNewtabBackgroundSettings();
       applyBackground();
 
       // Listen for theme and background changes from settings page
@@ -556,6 +557,15 @@
         }
         if (event.key === 'carbon-custom-bg-global') {
           applyBackground();
+        }
+        if (event.key === 'carbon-newtab-bg-type' || 
+            event.key === 'carbon-newtab-image-url' || 
+            event.key === 'carbon-newtab-unsplash-category' || 
+            event.key === 'carbon-newtab-unsplash-frequency' || 
+            event.key === 'carbon-newtab-gradient-type' || 
+            event.key === 'carbon-newtab-gradient-direction' || 
+            event.key === 'carbon-newtab-gradient-colors') {
+          loadNewtabBackgroundSettings();
         }
       });
       
@@ -579,6 +589,17 @@
             localStorage.removeItem('carbon-custom-bg-global');
           }
           applyBackground();
+        }
+        if (event.data && event.data.type === 'carbon-newtab-bg-updated') {
+          const settings = event.data.settings;
+          newtabBackgroundType = settings.type;
+          newtabImageUrl = settings.imageUrl;
+          newtabUnsplashCategory = settings.unsplashCategory;
+          newtabUnsplashFrequency = settings.unsplashFrequency;
+          newtabGradientType = settings.gradientType;
+          newtabGradientDirection = settings.gradientDirection;
+          newtabGradientColors = settings.gradientColors;
+          applyNewtabBackground();
         }
       });
 
@@ -918,6 +939,85 @@
           bookmarkForm.reset();
         }
       });
+
+      // New Tab Background Settings
+      let newtabBackgroundType = 'theme';
+      let newtabImageUrl = '';
+      let newtabUnsplashCategory = 'nature';
+      let newtabUnsplashFrequency = 'daily';
+      let newtabGradientType = 'linear';
+      let newtabGradientDirection = 'to right';
+      let newtabGradientColors = ['#667eea', '#764ba2', '#f093fb'];
+
+      // Load New Tab Background Settings
+      function loadNewtabBackgroundSettings() {
+        newtabBackgroundType = localStorage.getItem('carbon-newtab-bg-type') || 'theme';
+        newtabImageUrl = localStorage.getItem('carbon-newtab-image-url') || '';
+        newtabUnsplashCategory = localStorage.getItem('carbon-newtab-unsplash-category') || 'nature';
+        newtabUnsplashFrequency = localStorage.getItem('carbon-newtab-unsplash-frequency') || 'daily';
+        newtabGradientType = localStorage.getItem('carbon-newtab-gradient-type') || 'linear';
+        newtabGradientDirection = localStorage.getItem('carbon-newtab-gradient-direction') || 'to right';
+        const savedColors = localStorage.getItem('carbon-newtab-gradient-colors');
+        if (savedColors) {
+          newtabGradientColors = JSON.parse(savedColors);
+        }
+        
+        applyNewtabBackground();
+      }
+
+      async function applyNewtabBackground() {
+        const body = document.body;
+        
+        switch (newtabBackgroundType) {
+          case 'theme':
+            // Use theme gradient (already applied by applyBackground)
+            applyBackground();
+            break;
+          case 'image':
+            if (newtabImageUrl) {
+              body.style.background = `url(${newtabImageUrl}) center/cover fixed`;
+            } else {
+              applyBackground();
+            }
+            break;
+          case 'unsplash':
+            try {
+              const unsplashUrl = await getUnsplashImage(newtabUnsplashCategory);
+              if (unsplashUrl) {
+                body.style.background = `url(${unsplashUrl}) center/cover fixed`;
+              } else {
+                applyBackground();
+              }
+            } catch (error) {
+              console.error('Error loading Unsplash image:', error);
+              applyBackground();
+            }
+            break;
+          case 'gradient':
+            const gradientColors = newtabGradientColors.join(', ');
+            if (newtabGradientType === 'radial') {
+              body.style.background = `radial-gradient(circle, ${gradientColors}) fixed`;
+            } else if (newtabGradientType === 'conic') {
+              body.style.background = `conic-gradient(from 0deg, ${gradientColors}) fixed`;
+            } else {
+              body.style.background = `linear-gradient(${newtabGradientDirection}, ${gradientColors}) fixed`;
+            }
+            break;
+          default:
+            applyBackground();
+            break;
+        }
+      }
+
+      async function getUnsplashImage(category = 'nature') {
+        try {
+          const response = await fetch(`https://source.unsplash.com/1920x1080/?${category}`);
+          return response.url;
+        } catch (error) {
+          console.error('Error fetching Unsplash image:', error);
+          return null;
+        }
+      }
 
       // Background Management
       function applyBackground() {
