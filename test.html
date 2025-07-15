@@ -122,17 +122,30 @@
 
       async function applyNewtabBackground() {
         const body = document.body;
+        const particlesCanvas = document.getElementById('particles-canvas');
+        
+        // Hide particles canvas by default
+        if (particlesCanvas) particlesCanvas.classList.add('hidden');
+        
+        // Reset body background classes
+        body.classList.remove('bg-gradient-to-br', 'from-base', 'via-surface', 'to-overlay');
+        body.style.background = '';
         
         switch (newtabBackgroundType) {
           case 'theme':
-            // Use theme gradient (already applied by applyBackground)
-            applyBackground();
+            // Use theme gradient
+            body.classList.add('bg-gradient-to-br', 'from-base', 'via-surface', 'to-overlay');
+            body.style.background = 'var(--theme-gradient)';
+            body.style.backgroundAttachment = 'fixed';
             break;
           case 'image':
             if (newtabImageUrl) {
               body.style.background = `url(${newtabImageUrl}) center/cover fixed`;
             } else {
-              applyBackground();
+              // Fallback to theme gradient
+              body.classList.add('bg-gradient-to-br', 'from-base', 'via-surface', 'to-overlay');
+              body.style.background = 'var(--theme-gradient)';
+              body.style.backgroundAttachment = 'fixed';
             }
             break;
           case 'unsplash':
@@ -141,11 +154,17 @@
               if (unsplashUrl) {
                 body.style.background = `url(${unsplashUrl}) center/cover fixed`;
               } else {
-                applyBackground();
+                // Fallback to theme gradient
+                body.classList.add('bg-gradient-to-br', 'from-base', 'via-surface', 'to-overlay');
+                body.style.background = 'var(--theme-gradient)';
+                body.style.backgroundAttachment = 'fixed';
               }
             } catch (error) {
               console.error('Error loading Unsplash image:', error);
-              applyBackground();
+              // Fallback to theme gradient
+              body.classList.add('bg-gradient-to-br', 'from-base', 'via-surface', 'to-overlay');
+              body.style.background = 'var(--theme-gradient)';
+              body.style.backgroundAttachment = 'fixed';
             }
             break;
           case 'gradient':
@@ -159,7 +178,10 @@
             }
             break;
           default:
-            applyBackground();
+            // Fallback to theme gradient
+            body.classList.add('bg-gradient-to-br', 'from-base', 'via-surface', 'to-overlay');
+            body.style.background = 'var(--theme-gradient)';
+            body.style.backgroundAttachment = 'fixed';
             break;
         }
       }
@@ -3475,7 +3497,6 @@
           }
         }
       });
-
       // -- Keyboard Shortcuts --
       document.addEventListener("keydown", (e) => {
         // PANIC KEY - Check this FIRST before any other shortcuts
@@ -4274,7 +4295,6 @@
         { id: 'shadow-cat', name: 'Shadow Cat', description: 'Fusion of Pixel Cat + Friendly Ghost', emoji: '🐱👻', rarity: 'epic', basePower: 65, fusion: ['cat', 'ghost'] },
         { id: 'rainbow-dragon', name: 'Rainbow Dragon', description: 'Fusion of Cyber Dragon + Rainbow Unicorn', emoji: '🐉🦄', rarity: 'cosmic', basePower: 250, fusion: ['dragon', 'unicorn'] }
       ];
-
       // Gacha system
       const gachaTypes = [
         {
@@ -4920,7 +4940,6 @@
           }, 3000);
         });
       }
-      
       function openCarbonShop() {
         // Clean up any old waiting rooms when opening shop (helps with database hygiene)
         if (currentUser) {
@@ -5565,7 +5584,6 @@
         closeShop();
         setTimeout(() => openCarbonShop(), 100);
       };
-      
              window.playMiniGame = function(gameId) {
          closeShop();
          
@@ -6283,7 +6301,6 @@
           currentPlayer: 'red'
         };
       }
-
       function showGameLobby(gameRoom, roomId, isHost) {
         const modal = document.createElement('div');
         modal.className = 'fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[9999]';
@@ -6626,7 +6643,6 @@
           showNotification('Error', 'Failed to find opponent', 'error');
         }
       };
-
                            async function joinGame(roomId) {
           try {
             // Get the game room to determine the game type
@@ -7422,7 +7438,6 @@
       } else {
         console.log('👤 No user authenticated, using localStorage settings only');
       }
-      
       // Initialize theme system connection to Firebase
       function initializeThemeSystem() {
         let retryCount = 0;
@@ -7558,10 +7573,9 @@
         const savedBg = localStorage.getItem('carbon-background-global') || 'gradient';
         if (validBackgrounds.includes(savedBg)) {
           currentBackground = savedBg;
-          applyBackground();
         }
 
-        // Load newtab background settings
+        // Load newtab background settings (this will apply the background)
         loadNewtabBackgroundSettings();
 
         // Listen for background changes from settings page
@@ -7663,17 +7677,30 @@
 
       async function applyNewtabBackground() {
         const body = document.body;
+        const particlesCanvas = document.getElementById('particles-canvas');
+        
+        // Hide particles canvas by default
+        if (particlesCanvas) particlesCanvas.classList.add('hidden');
+        
+        // Reset body background classes
+        body.classList.remove('bg-gradient-to-br', 'from-base', 'via-surface', 'to-overlay');
+        body.style.background = '';
         
         switch (newtabBackgroundType) {
           case 'theme':
-            // Use theme gradient (already applied by applyBackground)
-            applyBackground();
+            // Use theme gradient
+            body.classList.add('bg-gradient-to-br', 'from-base', 'via-surface', 'to-overlay');
+            body.style.background = 'var(--theme-gradient)';
+            body.style.backgroundAttachment = 'fixed';
             break;
           case 'image':
             if (newtabImageUrl) {
               body.style.background = `url(${newtabImageUrl}) center/cover fixed`;
             } else {
-              applyBackground();
+              // Fallback to theme gradient
+              body.classList.add('bg-gradient-to-br', 'from-base', 'via-surface', 'to-overlay');
+              body.style.background = 'var(--theme-gradient)';
+              body.style.backgroundAttachment = 'fixed';
             }
             break;
           case 'unsplash':
@@ -7682,11 +7709,17 @@
               if (unsplashUrl) {
                 body.style.background = `url(${unsplashUrl}) center/cover fixed`;
               } else {
-                applyBackground();
+                // Fallback to theme gradient
+                body.classList.add('bg-gradient-to-br', 'from-base', 'via-surface', 'to-overlay');
+                body.style.background = 'var(--theme-gradient)';
+                body.style.backgroundAttachment = 'fixed';
               }
             } catch (error) {
               console.error('Error loading Unsplash image:', error);
-              applyBackground();
+              // Fallback to theme gradient
+              body.classList.add('bg-gradient-to-br', 'from-base', 'via-surface', 'to-overlay');
+              body.style.background = 'var(--theme-gradient)';
+              body.style.backgroundAttachment = 'fixed';
             }
             break;
           case 'gradient':
@@ -7700,7 +7733,10 @@
             }
             break;
           default:
-            applyBackground();
+            // Fallback to theme gradient
+            body.classList.add('bg-gradient-to-br', 'from-base', 'via-surface', 'to-overlay');
+            body.style.background = 'var(--theme-gradient)';
+            body.style.backgroundAttachment = 'fixed';
             break;
         }
       }
