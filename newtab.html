@@ -450,6 +450,13 @@
       let currentUser = null;
       let currentBackground = localStorage.getItem('carbon-background-global') || 'gradient';
       
+      // Newtab-specific background settings
+      let newtabBackgroundType = localStorage.getItem('carbon-newtab-bg-type') || 'theme';
+      let newtabImageUrl = localStorage.getItem('carbon-newtab-image-url') || '';
+      let newtabUnsplashCategory = localStorage.getItem('carbon-newtab-unsplash-category') || 'nature';
+      let newtabGradientType = localStorage.getItem('carbon-newtab-gradient-type') || 'linear';
+      let newtabGradientColors = JSON.parse(localStorage.getItem('carbon-newtab-gradient-colors') || '[["#667eea", "#764ba2"]]');
+      
       // DOM Elements
       const searchInput = document.getElementById('search-input');
       const searchForm = document.getElementById('search-form');
@@ -541,27 +548,32 @@
       updateSearchEngineUI();
       renderBookmarks();
       applyBackground();
+      applyNewtabBackground();
 
       // Ensure background is applied after theme system is ready
       if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', () => {
           setTimeout(() => {
             applyBackground();
+            applyNewtabBackground();
           }, 100);
         });
       } else {
         // DOM is already loaded
         setTimeout(() => {
           applyBackground();
+          applyNewtabBackground();
         }, 100);
       }
 
       // Also apply background when theme system is loaded
       if (window.carbonTheme && window.carbonTheme.isReady) {
         applyBackground();
+        applyNewtabBackground();
       } else {
         setTimeout(() => {
           applyBackground();
+          applyNewtabBackground();
         }, 200);
       }
 
@@ -572,6 +584,7 @@
             window.carbonTheme.applyTheme(event.newValue);
           }
           applyBackground();
+          applyNewtabBackground();
         }
         if (event.key === 'carbon-background-global' && event.newValue) {
           currentBackground = event.newValue;
@@ -579,6 +592,18 @@
         }
         if (event.key === 'carbon-custom-bg-global') {
           applyBackground();
+        }
+        if (event.key === 'carbon-newtab-bg-type' && event.newValue) {
+          newtabBackgroundType = event.newValue;
+          applyNewtabBackground();
+        }
+        if (event.key === 'carbon-newtab-image-url' && event.newValue) {
+          newtabImageUrl = event.newValue;
+          applyNewtabBackground();
+        }
+        if (event.key === 'carbon-newtab-gradient-colors' && event.newValue) {
+          newtabGradientColors = JSON.parse(event.newValue);
+          applyNewtabBackground();
         }
       });
       
@@ -602,6 +627,23 @@
             localStorage.removeItem('carbon-custom-bg-global');
           }
           applyBackground();
+        }
+        if (event.data && event.data.type === 'carbon-newtab-bg-updated') {
+          const settings = event.data.settings;
+          newtabBackgroundType = settings.type;
+          newtabImageUrl = settings.imageUrl;
+          newtabUnsplashCategory = settings.unsplashCategory;
+          newtabGradientType = settings.gradientType;
+          newtabGradientColors = settings.gradientColors;
+          
+          // Save to localStorage
+          localStorage.setItem('carbon-newtab-bg-type', newtabBackgroundType);
+          localStorage.setItem('carbon-newtab-image-url', newtabImageUrl);
+          localStorage.setItem('carbon-newtab-unsplash-category', newtabUnsplashCategory);
+          localStorage.setItem('carbon-newtab-gradient-type', newtabGradientType);
+          localStorage.setItem('carbon-newtab-gradient-colors', JSON.stringify(newtabGradientColors));
+          
+          applyNewtabBackground();
         }
       });
 
@@ -944,31 +986,80 @@
 
       // Background Management
       function applyBackground() {
-        const body = document.body;
-        const baseColor = getComputedStyle(document.documentElement).getPropertyValue('--theme-base').trim();
-        particlesCanvas.classList.add('hidden');
-        const customBg = localStorage.getItem('carbon-custom-bg-global');
-        if (customBg) {
-          body.style.background = `url(${customBg}) center/cover fixed`;
-        } else {
-          switch (currentBackground) {
-            case 'solid':
-              body.style.background = baseColor;
-              break;
-            case 'pattern':
-              body.style.background = `${baseColor} url('data:image/svg+xml,<svg width="20" height="20" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><circle cx="10" cy="10" r="2" fill="%23ffffff" fill-opacity="0.2"/></svg>') repeat`;
-              break;
-            case 'particles':
-              body.style.background = baseColor;
-              particlesCanvas.classList.remove('hidden');
-              initParticles();
-              break;
-            case 'gradient':
-            default:
-              body.style.background = 'var(--theme-gradient)';
-              break;
+        // Legacy background system - only apply if no newtab background is set
+        if (newtabBackgroundType === 'theme') {
+          const body = document.body;
+          const baseColor = getComputedStyle(document.documentElement).getPropertyValue('--theme-base').trim();
+          particlesCanvas.classList.add('hidden');
+          const customBg = localStorage.getItem('carbon-custom-bg-global');
+          if (customBg) {
+            body.style.background = `url(${customBg}) center/cover fixed`;
+          } else {
+            switch (currentBackground) {
+              case 'solid':
+                body.style.background = baseColor;
+                break;
+              case 'pattern':
+                body.style.background = `${baseColor} url('data:image/svg+xml,<svg width="20" height="20" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><circle cx="10" cy="10" r="2" fill="%23ffffff" fill-opacity="0.2"/></svg>') repeat`;
+                break;
+              case 'particles':
+                body.style.background = baseColor;
+                particlesCanvas.classList.remove('hidden');
+                initParticles();
+                break;
+              case 'gradient':
+              default:
+                body.style.background = 'var(--theme-gradient)';
+                break;
+            }
+            body.style.backgroundAttachment = currentBackground === 'pattern' ? '' : 'fixed';
           }
-          body.style.backgroundAttachment = currentBackground === 'pattern' ? '' : 'fixed';
+        }
+      }
+
+      // New tab specific background management
+      function applyNewtabBackground() {
+        const body = document.body;
+        particlesCanvas.classList.add('hidden');
+
+        switch (newtabBackgroundType) {
+          case 'theme':
+            // Use theme gradient
+            body.style.background = 'var(--theme-gradient)';
+            body.style.backgroundAttachment = 'fixed';
+            break;
+            
+          case 'image':
+            if (newtabImageUrl) {
+              body.style.background = `url(${newtabImageUrl}) center/cover fixed`;
+            } else {
+              body.style.background = 'var(--theme-gradient)';
+              body.style.backgroundAttachment = 'fixed';
+            }
+            break;
+            
+          case 'unsplash':
+            // For now, use a default unsplash image or fallback
+            const unsplashUrl = `https://source.unsplash.com/1920x1080/?${newtabUnsplashCategory}`;
+            body.style.background = `url(${unsplashUrl}) center/cover fixed`;
+            break;
+            
+          case 'gradient':
+            if (newtabGradientColors && newtabGradientColors.length > 0) {
+              const colors = newtabGradientColors[0]; // Use first gradient set
+              const direction = newtabGradientType === 'radial' ? 'radial-gradient(circle,' : 'linear-gradient(135deg,';
+              body.style.background = `${direction} ${colors[0]}, ${colors[1]})`;
+              body.style.backgroundAttachment = 'fixed';
+            } else {
+              body.style.background = 'var(--theme-gradient)';
+              body.style.backgroundAttachment = 'fixed';
+            }
+            break;
+            
+          default:
+            body.style.background = 'var(--theme-gradient)';
+            body.style.backgroundAttachment = 'fixed';
+            break;
         }
       }
 
