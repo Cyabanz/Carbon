@@ -432,7 +432,7 @@
         apiKey: "AIzaSyC4ilHYP1T-kdXbWPoHJHhD2aj0pNWmMec",
         authDomain: "carbon-services.firebaseapp.com",
         projectId: "carbon-services",
-        storageBucket: "carbon-services.firebasestorage.app",
+        storageBucket: "carbon-services.appspot.com",
         messagingSenderId: "288385472070",
         appId: "1:288385472070:web:c4be3ff186e248fc645c47",
         measurementId: "G-Y2K1RQYE74"
@@ -449,22 +449,6 @@
       let bookmarks = JSON.parse(localStorage.getItem('carbon-bookmarks') || '[]');
       let currentUser = null;
       let currentBackground = localStorage.getItem('carbon-background-global') || 'gradient';
-      
-      // Newtab-specific background settings
-      let newtabBackgroundType = localStorage.getItem('carbon-newtab-bg-type') || 'theme';
-      let newtabImageUrl = localStorage.getItem('carbon-newtab-image-url') || '';
-      let newtabUnsplashCategory = localStorage.getItem('carbon-newtab-unsplash-category') || 'nature';
-      let newtabGradientType = localStorage.getItem('carbon-newtab-gradient-type') || 'linear';
-      let newtabGradientColors = JSON.parse(localStorage.getItem('carbon-newtab-gradient-colors') || '[["#667eea", "#764ba2"]]');
-      
-      // Debug initial values
-      console.log('Initial newtab background settings:', {
-        newtabBackgroundType,
-        newtabImageUrl,
-        newtabUnsplashCategory,
-        newtabGradientType,
-        newtabGradientColors
-      });
       
       // DOM Elements
       const searchInput = document.getElementById('search-input');
@@ -522,26 +506,6 @@
         }
       }
 
-      async function saveNewtabBackgroundToFirebase() {
-        if (!currentUser) return;
-        
-        try {
-          await db.collection('users').doc(currentUser.uid).set({
-            settings: {
-              newtabBackgroundType: newtabBackgroundType,
-              newtabImageUrl: newtabImageUrl,
-              newtabUnsplashCategory: newtabUnsplashCategory,
-              newtabGradientType: newtabGradientType,
-              newtabGradientColors: newtabGradientColors,
-              lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
-            }
-          }, { merge: true });
-          console.log('Newtab background settings saved to Firebase');
-        } catch (error) {
-          console.error('Error saving newtab background to Firebase:', error);
-        }
-      }
-
       async function loadSettingsFromFirebase() {
         if (!currentUser) return;
         try {
@@ -549,8 +513,6 @@
           if (userSettingsDoc.exists) {
             const userData = userSettingsDoc.data();
             const settings = userData.settings || {};
-            
-            // Load legacy background settings
             if (settings.background) {
               currentBackground = settings.background;
               localStorage.setItem('carbon-background-global', currentBackground);
@@ -558,32 +520,7 @@
             if (settings.customBackground) {
               localStorage.setItem('carbon-custom-bg-global', settings.customBackground);
             }
-            
-            // Load newtab background settings
-            if (settings.newtabBackgroundType) {
-              newtabBackgroundType = settings.newtabBackgroundType;
-              localStorage.setItem('carbon-newtab-bg-type', newtabBackgroundType);
-            }
-            if (settings.newtabImageUrl) {
-              newtabImageUrl = settings.newtabImageUrl;
-              localStorage.setItem('carbon-newtab-image-url', newtabImageUrl);
-            }
-            if (settings.newtabUnsplashCategory) {
-              newtabUnsplashCategory = settings.newtabUnsplashCategory;
-              localStorage.setItem('carbon-newtab-unsplash-category', newtabUnsplashCategory);
-            }
-            if (settings.newtabGradientType) {
-              newtabGradientType = settings.newtabGradientType;
-              localStorage.setItem('carbon-newtab-gradient-type', newtabGradientType);
-            }
-            if (settings.newtabGradientColors) {
-              newtabGradientColors = settings.newtabGradientColors;
-              localStorage.setItem('carbon-newtab-gradient-colors', JSON.stringify(newtabGradientColors));
-            }
-            
-            // Apply both background systems
             applyBackground();
-            applyNewtabBackground();
           }
         } catch (error) {
           console.error('Error loading settings from Firebase:', error);
@@ -592,10 +529,8 @@
 
       // Authentication state observer
       auth.onAuthStateChanged((user) => {
-        console.log('Auth state changed:', user ? 'logged in' : 'logged out');
         currentUser = user;
         if (user) {
-          console.log('Loading data from Firebase for user:', user.uid);
           loadBookmarksFromFirebase();
           loadSettingsFromFirebase();
         }
@@ -606,69 +541,6 @@
       updateSearchEngineUI();
       renderBookmarks();
       applyBackground();
-      applyNewtabBackground();
-
-             // Listen for background changes via BroadcastChannel (for cross-tab communication)
-       if (typeof BroadcastChannel !== 'undefined') {
-         const channel = new BroadcastChannel('carbon-settings');
-         channel.addEventListener('message', (event) => {
-           console.log('📡 Received broadcast message:', event.data);
-           if (event.data && event.data.type === 'carbon-newtab-bg-updated') {
-             const settings = event.data.settings;
-             newtabBackgroundType = settings.type;
-             newtabImageUrl = settings.imageUrl;
-             newtabUnsplashCategory = settings.unsplashCategory;
-             newtabGradientType = settings.gradientType;
-             newtabGradientColors = settings.gradientColors;
-             
-             // Save to localStorage
-             localStorage.setItem('carbon-newtab-bg-type', newtabBackgroundType);
-             localStorage.setItem('carbon-newtab-image-url', newtabImageUrl);
-             localStorage.setItem('carbon-newtab-unsplash-category', newtabUnsplashCategory);
-             localStorage.setItem('carbon-newtab-gradient-type', newtabGradientType);
-             localStorage.setItem('carbon-newtab-gradient-colors', JSON.stringify(newtabGradientColors));
-             
-             console.log('🎨 Applying background from broadcast:', newtabBackgroundType);
-             applyNewtabBackground();
-           }
-         });
-         console.log('✅ BroadcastChannel listener setup complete');
-       } else {
-         console.log('❌ BroadcastChannel not supported');
-       }
-
-       // Debug message to confirm fixes loaded
-       console.log('%c✅ NEWTAB.HTML BACKGROUND FIX LOADED SUCCESSFULLY!', 'color: #00ff00; font-size: 16px; font-weight: bold;');
-       console.log('🕐 Loaded at:', new Date().toLocaleTimeString());
-       console.log('🎨 applyNewtabBackground function:', typeof applyNewtabBackground);
-       console.log('📡 BroadcastChannel support:', typeof BroadcastChannel !== 'undefined');
-
-      // Ensure background is applied after theme system is ready
-      if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', () => {
-          setTimeout(() => {
-            applyBackground();
-            applyNewtabBackground();
-          }, 100);
-        });
-      } else {
-        // DOM is already loaded
-        setTimeout(() => {
-          applyBackground();
-          applyNewtabBackground();
-        }, 100);
-      }
-
-      // Also apply background when theme system is loaded
-      if (window.carbonTheme && window.carbonTheme.isReady) {
-        applyBackground();
-        applyNewtabBackground();
-      } else {
-        setTimeout(() => {
-          applyBackground();
-          applyNewtabBackground();
-        }, 200);
-      }
 
       // Listen for theme and background changes from settings page
       window.addEventListener('storage', (event) => {
@@ -677,7 +549,6 @@
             window.carbonTheme.applyTheme(event.newValue);
           }
           applyBackground();
-          applyNewtabBackground();
         }
         if (event.key === 'carbon-background-global' && event.newValue) {
           currentBackground = event.newValue;
@@ -686,25 +557,10 @@
         if (event.key === 'carbon-custom-bg-global') {
           applyBackground();
         }
-        if (event.key === 'carbon-newtab-bg-type' && event.newValue) {
-          console.log('Storage change detected - newtab bg type:', event.newValue);
-          newtabBackgroundType = event.newValue;
-          applyNewtabBackground();
-        }
-        if (event.key === 'carbon-newtab-image-url' && event.newValue) {
-          console.log('Storage change detected - newtab image url:', event.newValue);
-          newtabImageUrl = event.newValue;
-          applyNewtabBackground();
-        }
-        if (event.key === 'carbon-newtab-gradient-colors' && event.newValue) {
-          console.log('Storage change detected - newtab gradient colors:', event.newValue);
-          newtabGradientColors = JSON.parse(event.newValue);
-          applyNewtabBackground();
-        }
       });
       
       // Listen for theme and settings broadcast messages
-      window.addEventListener('message', async (event) => {
+      window.addEventListener('message', (event) => {
         if (event.data && event.data.type === 'carbon-theme-change') {
           if (window.carbonTheme) {
             window.carbonTheme.applyTheme(event.data.theme);
@@ -723,28 +579,6 @@
             localStorage.removeItem('carbon-custom-bg-global');
           }
           applyBackground();
-        }
-        if (event.data && event.data.type === 'carbon-newtab-bg-updated') {
-          console.log('Received newtab background update from settings:', event.data.settings);
-          const settings = event.data.settings;
-          newtabBackgroundType = settings.type;
-          newtabImageUrl = settings.imageUrl;
-          newtabUnsplashCategory = settings.unsplashCategory;
-          newtabGradientType = settings.gradientType;
-          newtabGradientColors = settings.gradientColors;
-          
-          // Save to localStorage
-          localStorage.setItem('carbon-newtab-bg-type', newtabBackgroundType);
-          localStorage.setItem('carbon-newtab-image-url', newtabImageUrl);
-          localStorage.setItem('carbon-newtab-unsplash-category', newtabUnsplashCategory);
-          localStorage.setItem('carbon-newtab-gradient-type', newtabGradientType);
-          localStorage.setItem('carbon-newtab-gradient-colors', JSON.stringify(newtabGradientColors));
-          
-          // Save to Firebase
-          await saveNewtabBackgroundToFirebase();
-          
-          // Apply background
-          applyNewtabBackground();
         }
       });
 
@@ -1085,94 +919,33 @@
         }
       });
 
-      // Legacy Background Management (deprecated - use applyNewtabBackground instead)
+      // Background Management
       function applyBackground() {
-        // This function is now deprecated and does nothing
-        // All background logic is handled by applyNewtabBackground()
-        console.log('Legacy applyBackground called - using applyNewtabBackground instead');
-      }
-
-      // New tab specific background management
-      function applyNewtabBackground() {
         const body = document.body;
+        const baseColor = getComputedStyle(document.documentElement).getPropertyValue('--theme-base').trim();
         particlesCanvas.classList.add('hidden');
-        
-        console.log('Applying newtab background, type:', newtabBackgroundType);
-
-        switch (newtabBackgroundType) {
-          case 'theme':
-            // Use theme gradient or legacy background system
-            const customBg = localStorage.getItem('carbon-custom-bg-global');
-            if (customBg) {
-              body.style.background = `url(${customBg}) center/cover fixed`;
-              body.style.backgroundAttachment = 'fixed';
-            } else {
-              const baseColor = getComputedStyle(document.documentElement).getPropertyValue('--theme-base').trim();
-              switch (currentBackground) {
-                case 'solid':
-                  body.style.background = baseColor;
-                  body.style.backgroundAttachment = 'fixed';
-                  break;
-                case 'pattern':
-                  body.style.background = `${baseColor} url('data:image/svg+xml,<svg width="20" height="20" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><circle cx="10" cy="10" r="2" fill="%23ffffff" fill-opacity="0.2"/></svg>') repeat`;
-                  body.style.backgroundAttachment = '';
-                  break;
-                case 'particles':
-                  body.style.background = baseColor;
-                  body.style.backgroundAttachment = 'fixed';
-                  particlesCanvas.classList.remove('hidden');
-                  initParticles();
-                  break;
-                case 'gradient':
-                default:
-                  body.style.background = 'var(--theme-gradient)';
-                  body.style.backgroundAttachment = 'fixed';
-                  break;
-              }
-            }
-            break;
-            
-          case 'image':
-            if (newtabImageUrl) {
-              body.style.background = `url(${newtabImageUrl}) center/cover fixed`;
-              body.style.backgroundAttachment = 'fixed';
-              console.log('Applied image background:', newtabImageUrl);
-            } else {
+        const customBg = localStorage.getItem('carbon-custom-bg-global');
+        if (customBg) {
+          body.style.background = `url(${customBg}) center/cover fixed`;
+        } else {
+          switch (currentBackground) {
+            case 'solid':
+              body.style.background = baseColor;
+              break;
+            case 'pattern':
+              body.style.background = `${baseColor} url('data:image/svg+xml,<svg width="20" height="20" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><circle cx="10" cy="10" r="2" fill="%23ffffff" fill-opacity="0.2"/></svg>') repeat`;
+              break;
+            case 'particles':
+              body.style.background = baseColor;
+              particlesCanvas.classList.remove('hidden');
+              initParticles();
+              break;
+            case 'gradient':
+            default:
               body.style.background = 'var(--theme-gradient)';
-              body.style.backgroundAttachment = 'fixed';
-            }
-            break;
-            
-          case 'unsplash':
-            // Use unsplash image with category
-            const unsplashUrl = `https://source.unsplash.com/1920x1080/?${newtabUnsplashCategory}`;
-            body.style.background = `url(${unsplashUrl}) center/cover fixed`;
-            body.style.backgroundAttachment = 'fixed';
-            console.log('Applied unsplash background:', unsplashUrl);
-            break;
-            
-          case 'gradient':
-            if (newtabGradientColors && newtabGradientColors.length > 0 && newtabGradientColors[0]) {
-              const colors = newtabGradientColors[0]; // Use first gradient set
-              if (colors && colors.length >= 2) {
-                const direction = newtabGradientType === 'radial' ? 'radial-gradient(circle,' : 'linear-gradient(135deg,';
-                body.style.background = `${direction} ${colors[0]}, ${colors[1]})`;
-                body.style.backgroundAttachment = 'fixed';
-                console.log('Applied gradient background:', colors);
-              } else {
-                body.style.background = 'var(--theme-gradient)';
-                body.style.backgroundAttachment = 'fixed';
-              }
-            } else {
-              body.style.background = 'var(--theme-gradient)';
-              body.style.backgroundAttachment = 'fixed';
-            }
-            break;
-            
-          default:
-            body.style.background = 'var(--theme-gradient)';
-            body.style.backgroundAttachment = 'fixed';
-            break;
+              break;
+          }
+          body.style.backgroundAttachment = currentBackground === 'pattern' ? '' : 'fixed';
         }
       }
 
@@ -1246,4 +1019,3 @@
     </script>
   </body>
 </html>
-
