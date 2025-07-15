@@ -543,11 +543,18 @@
       applyBackground();
 
       // Ensure background is applied after theme system is ready
-      document.addEventListener('DOMContentLoaded', () => {
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => {
+          setTimeout(() => {
+            applyBackground();
+          }, 100);
+        });
+      } else {
+        // DOM is already loaded
         setTimeout(() => {
           applyBackground();
         }, 100);
-      });
+      }
 
       // Also apply background when theme system is loaded
       if (window.carbonTheme && window.carbonTheme.isReady) {
