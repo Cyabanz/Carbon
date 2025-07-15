@@ -608,31 +608,40 @@
       applyBackground();
       applyNewtabBackground();
 
-      // Listen for background changes via BroadcastChannel (for cross-tab communication)
-      if (typeof BroadcastChannel !== 'undefined') {
-        const channel = new BroadcastChannel('carbon-settings');
-        channel.addEventListener('message', (event) => {
-          console.log('📡 Received broadcast message:', event.data);
-          if (event.data && event.data.type === 'carbon-newtab-bg-updated') {
-            const settings = event.data.settings;
-            newtabBackgroundType = settings.type;
-            newtabImageUrl = settings.imageUrl;
-            newtabUnsplashCategory = settings.unsplashCategory;
-            newtabGradientType = settings.gradientType;
-            newtabGradientColors = settings.gradientColors;
-            
-            // Save to localStorage
-            localStorage.setItem('carbon-newtab-bg-type', newtabBackgroundType);
-            localStorage.setItem('carbon-newtab-image-url', newtabImageUrl);
-            localStorage.setItem('carbon-newtab-unsplash-category', newtabUnsplashCategory);
-            localStorage.setItem('carbon-newtab-gradient-type', newtabGradientType);
-            localStorage.setItem('carbon-newtab-gradient-colors', JSON.stringify(newtabGradientColors));
-            
-            console.log('🎨 Applying background from broadcast:', newtabBackgroundType);
-            applyNewtabBackground();
-          }
-        });
-      }
+             // Listen for background changes via BroadcastChannel (for cross-tab communication)
+       if (typeof BroadcastChannel !== 'undefined') {
+         const channel = new BroadcastChannel('carbon-settings');
+         channel.addEventListener('message', (event) => {
+           console.log('📡 Received broadcast message:', event.data);
+           if (event.data && event.data.type === 'carbon-newtab-bg-updated') {
+             const settings = event.data.settings;
+             newtabBackgroundType = settings.type;
+             newtabImageUrl = settings.imageUrl;
+             newtabUnsplashCategory = settings.unsplashCategory;
+             newtabGradientType = settings.gradientType;
+             newtabGradientColors = settings.gradientColors;
+             
+             // Save to localStorage
+             localStorage.setItem('carbon-newtab-bg-type', newtabBackgroundType);
+             localStorage.setItem('carbon-newtab-image-url', newtabImageUrl);
+             localStorage.setItem('carbon-newtab-unsplash-category', newtabUnsplashCategory);
+             localStorage.setItem('carbon-newtab-gradient-type', newtabGradientType);
+             localStorage.setItem('carbon-newtab-gradient-colors', JSON.stringify(newtabGradientColors));
+             
+             console.log('🎨 Applying background from broadcast:', newtabBackgroundType);
+             applyNewtabBackground();
+           }
+         });
+         console.log('✅ BroadcastChannel listener setup complete');
+       } else {
+         console.log('❌ BroadcastChannel not supported');
+       }
+
+       // Debug message to confirm fixes loaded
+       console.log('%c✅ NEWTAB.HTML BACKGROUND FIX LOADED SUCCESSFULLY!', 'color: #00ff00; font-size: 16px; font-weight: bold;');
+       console.log('🕐 Loaded at:', new Date().toLocaleTimeString());
+       console.log('🎨 applyNewtabBackground function:', typeof applyNewtabBackground);
+       console.log('📡 BroadcastChannel support:', typeof BroadcastChannel !== 'undefined');
 
       // Ensure background is applied after theme system is ready
       if (document.readyState === 'loading') {
