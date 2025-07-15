@@ -432,7 +432,7 @@
         apiKey: "AIzaSyC4ilHYP1T-kdXbWPoHJHhD2aj0pNWmMec",
         authDomain: "carbon-services.firebaseapp.com",
         projectId: "carbon-services",
-        storageBucket: "carbon-services.firebasestorage.app",
+        storageBucket: "carbon-services.appspot.com",
         messagingSenderId: "288385472070",
         appId: "1:288385472070:web:c4be3ff186e248fc645c47",
         measurementId: "G-Y2K1RQYE74"
@@ -449,6 +449,15 @@
       let bookmarks = JSON.parse(localStorage.getItem('carbon-bookmarks') || '[]');
       let currentUser = null;
       let currentBackground = localStorage.getItem('carbon-background-global') || 'gradient';
+      
+      // New Tab Background Settings
+      let newtabBackgroundType = 'theme';
+      let newtabImageUrl = '';
+      let newtabUnsplashCategory = 'nature';
+      let newtabUnsplashFrequency = 'daily';
+      let newtabGradientType = 'linear';
+      let newtabGradientDirection = 'to right';
+      let newtabGradientColors = ['#667eea', '#764ba2', '#f093fb'];
       
       // DOM Elements
       const searchInput = document.getElementById('search-input');
@@ -520,10 +529,102 @@
             if (settings.customBackground) {
               localStorage.setItem('carbon-custom-bg-global', settings.customBackground);
             }
-            applyBackground();
+            // Load new tab background settings from Firebase
+            if (settings.newtabBackgroundType) {
+              localStorage.setItem('carbon-newtab-bg-type', settings.newtabBackgroundType);
+              localStorage.setItem('carbon-newtab-image-url', settings.newtabImageUrl || '');
+              localStorage.setItem('carbon-newtab-unsplash-category', settings.newtabUnsplashCategory || 'nature');
+              localStorage.setItem('carbon-newtab-unsplash-frequency', settings.newtabUnsplashFrequency || 'daily');
+              localStorage.setItem('carbon-newtab-gradient-type', settings.newtabGradientType || 'linear');
+              localStorage.setItem('carbon-newtab-gradient-direction', settings.newtabGradientDirection || 'to right');
+              localStorage.setItem('carbon-newtab-gradient-colors', JSON.stringify(settings.newtabGradientColors || ['#667eea', '#764ba2', '#f093fb']));
+            }
+            // Apply new tab background instead of regular background
+            applyNewtabBackground();
           }
         } catch (error) {
           console.error('Error loading settings from Firebase:', error);
+        }
+      }
+
+      // Load New Tab Background Settings
+      function loadNewtabBackgroundSettings() {
+        const newtabBgType = localStorage.getItem('carbon-newtab-bg-type') || 'theme';
+        
+        console.log('Loading newtab background settings:', newtabBgType);
+        
+        // Apply new tab background instead of regular background
+        applyNewtabBackground();
+      }
+
+      async function applyNewtabBackground() {
+        const body = document.body;
+        const newtabBgType = localStorage.getItem('carbon-newtab-bg-type') || 'theme';
+        
+        console.log('Applying newtab background:', newtabBgType);
+        
+        switch (newtabBgType) {
+          case 'theme':
+            // Use theme gradient
+            body.style.background = 'var(--theme-gradient)';
+            console.log('Applied theme gradient background');
+            break;
+          case 'image':
+            const imageUrl = localStorage.getItem('carbon-newtab-image-url');
+            if (imageUrl) {
+              body.style.background = `url(${imageUrl}) center/cover fixed`;
+              console.log('Applied image background:', imageUrl);
+            } else {
+              body.style.background = 'var(--theme-gradient)';
+              console.log('No image URL found, using theme gradient');
+            }
+            break;
+          case 'unsplash':
+            try {
+              const category = localStorage.getItem('carbon-newtab-unsplash-category') || 'nature';
+              console.log('Fetching Unsplash image for category:', category);
+              const response = await fetch(`https://source.unsplash.com/1920x1080/?${category}`);
+              if (response.ok) {
+                body.style.background = `url(${response.url}) center/cover fixed`;
+                console.log('Applied Unsplash background:', response.url);
+              } else {
+                body.style.background = 'var(--theme-gradient)';
+                console.log('Unsplash request failed, using theme gradient');
+              }
+            } catch (error) {
+              console.error('Error loading Unsplash image:', error);
+              body.style.background = 'var(--theme-gradient)';
+            }
+            break;
+          case 'gradient':
+            const gradientType = localStorage.getItem('carbon-newtab-gradient-type') || 'linear';
+            const gradientDirection = localStorage.getItem('carbon-newtab-gradient-direction') || 'to right';
+            const gradientColors = JSON.parse(localStorage.getItem('carbon-newtab-gradient-colors') || '["#667eea", "#764ba2", "#f093fb"]');
+            
+            console.log('Applying gradient:', { gradientType, gradientDirection, gradientColors });
+            
+            if (gradientType === 'radial') {
+              body.style.background = `radial-gradient(circle, ${gradientColors.join(', ')})`;
+            } else if (gradientType === 'conic') {
+              body.style.background = `conic-gradient(from 0deg, ${gradientColors.join(', ')})`;
+            } else {
+              body.style.background = `linear-gradient(${gradientDirection}, ${gradientColors.join(', ')})`;
+            }
+            console.log('Applied gradient background:', body.style.background);
+            break;
+          default:
+            body.style.background = 'var(--theme-gradient)';
+            console.log('Applied default theme gradient');
+        }
+      }
+
+      async function getUnsplashImage(category = 'nature') {
+        try {
+          const response = await fetch(`https://source.unsplash.com/1920x1080/?${category}`);
+          return response.url;
+        } catch (error) {
+          console.error('Error fetching Unsplash image:', error);
+          return null;
         }
       }
 
@@ -540,7 +641,16 @@
       updateProxyUI();
       updateSearchEngineUI();
       renderBookmarks();
-      applyBackground();
+      loadNewtabBackgroundSettings();
+      
+      // Apply new tab background instead of regular background
+      applyNewtabBackground();
+      
+      // Ensure new tab background is applied after a short delay to catch any late settings
+      setTimeout(() => {
+        console.log('Re-applying newtab background after delay');
+        applyNewtabBackground();
+      }, 500);
 
       // Listen for theme and background changes from settings page
       window.addEventListener('storage', (event) => {
@@ -548,14 +658,27 @@
           if (window.carbonTheme) {
             window.carbonTheme.applyTheme(event.newValue);
           }
-          applyBackground();
+          // Apply new tab background after theme change
+          applyNewtabBackground();
         }
         if (event.key === 'carbon-background-global' && event.newValue) {
           currentBackground = event.newValue;
-          applyBackground();
+          // Don't apply regular background to newtab, use newtab background instead
+          applyNewtabBackground();
         }
         if (event.key === 'carbon-custom-bg-global') {
-          applyBackground();
+          // Don't apply regular background to newtab, use newtab background instead
+          applyNewtabBackground();
+        }
+        if (event.key === 'carbon-newtab-bg-type' || 
+            event.key === 'carbon-newtab-image-url' || 
+            event.key === 'carbon-newtab-unsplash-category' || 
+            event.key === 'carbon-newtab-unsplash-frequency' || 
+            event.key === 'carbon-newtab-gradient-type' || 
+            event.key === 'carbon-newtab-gradient-direction' || 
+            event.key === 'carbon-newtab-gradient-colors') {
+          console.log('Newtab background setting changed:', event.key, event.newValue);
+          loadNewtabBackgroundSettings();
         }
       });
       
@@ -565,7 +688,8 @@
           if (window.carbonTheme) {
             window.carbonTheme.applyTheme(event.data.theme);
           }
-          applyBackground();
+          // Apply new tab background after theme change
+          applyNewtabBackground();
         }
         if (event.data && event.data.type === 'carbon-settings-updated') {
           const settings = event.data.settings;
@@ -578,7 +702,21 @@
           } else {
             localStorage.removeItem('carbon-custom-bg-global');
           }
-          applyBackground();
+          // Don't apply regular background to newtab, use newtab background instead
+          applyNewtabBackground();
+        }
+        if (event.data && event.data.type === 'carbon-newtab-bg-updated') {
+          const settings = event.data.settings;
+          console.log('Received newtab background update:', settings);
+          // Update localStorage with new settings
+          localStorage.setItem('carbon-newtab-bg-type', settings.type);
+          localStorage.setItem('carbon-newtab-image-url', settings.imageUrl || '');
+          localStorage.setItem('carbon-newtab-unsplash-category', settings.unsplashCategory || 'nature');
+          localStorage.setItem('carbon-newtab-unsplash-frequency', settings.unsplashFrequency || 'daily');
+          localStorage.setItem('carbon-newtab-gradient-type', settings.gradientType || 'linear');
+          localStorage.setItem('carbon-newtab-gradient-direction', settings.gradientDirection || 'to right');
+          localStorage.setItem('carbon-newtab-gradient-colors', JSON.stringify(settings.gradientColors || ['#667eea', '#764ba2', '#f093fb']));
+          applyNewtabBackground();
         }
       });
 
@@ -919,6 +1057,47 @@
         }
       });
 
+      // New Tab Background Management
+      function applyNewtabBackground() {
+        const body = document.body;
+        const newtabBgType = localStorage.getItem('carbon-newtab-bg-type') || 'theme';
+        
+        switch (newtabBgType) {
+          case 'theme':
+            // Use theme gradient
+            body.style.background = 'var(--theme-gradient)';
+            break;
+          case 'image':
+            const imageUrl = localStorage.getItem('carbon-newtab-image-url');
+            if (imageUrl) {
+              body.style.background = `url(${imageUrl}) center/cover fixed`;
+            } else {
+              body.style.background = 'var(--theme-gradient)';
+            }
+            break;
+          case 'unsplash':
+            // For now, use a placeholder gradient - in a real implementation, 
+            // you'd fetch from Unsplash API
+            body.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+            break;
+          case 'gradient':
+            const gradientType = localStorage.getItem('carbon-newtab-gradient-type') || 'linear';
+            const gradientDirection = localStorage.getItem('carbon-newtab-gradient-direction') || 'to right';
+            const gradientColors = JSON.parse(localStorage.getItem('carbon-newtab-gradient-colors') || '["#667eea", "#764ba2", "#f093fb"]');
+            
+            if (gradientType === 'radial') {
+              body.style.background = `radial-gradient(circle, ${gradientColors.join(', ')})`;
+            } else if (gradientType === 'conic') {
+              body.style.background = `conic-gradient(from 0deg, ${gradientColors.join(', ')})`;
+            } else {
+              body.style.background = `linear-gradient(${gradientDirection}, ${gradientColors.join(', ')})`;
+            }
+            break;
+          default:
+            body.style.background = 'var(--theme-gradient)';
+        }
+      }
+
       // Background Management
       function applyBackground() {
         const body = document.body;
@@ -1019,3 +1198,4 @@
     </script>
   </body>
 </html>
+
