@@ -289,12 +289,12 @@
       }
       /* Theme & background switching */
       body {
-        background: var(--theme-gradient);
         background-attachment: fixed;
+        min-height: 100vh;
       }
     </style>
   </head>
-  <body class="font-inter bg-gradient-to-br from-base via-surface to-overlay min-h-screen text-text">
+  <body class="font-inter min-h-screen text-text">
     <div class="min-h-screen flex flex-col">
       <!-- Particles Canvas -->
       <canvas id="particles-canvas" class="fixed inset-0 pointer-events-none hidden"></canvas>
@@ -544,6 +544,11 @@
           }
         } catch (error) {
           console.error('Error loading settings from Firebase:', error);
+          // Apply background even if Firebase fails
+          setTimeout(() => {
+            console.log('Firebase failed, applying newtab background as fallback');
+            applyNewtabBackground();
+          }, 100);
         }
       }
 
@@ -634,6 +639,12 @@
         if (user) {
           loadBookmarksFromFirebase();
           loadSettingsFromFirebase();
+        } else {
+          // Even if not logged in, apply newtab background
+          setTimeout(() => {
+            console.log('User not logged in, applying newtab background');
+            applyNewtabBackground();
+          }, 100);
         }
       });
 
@@ -643,14 +654,32 @@
       renderBookmarks();
       loadNewtabBackgroundSettings();
       
-      // Apply new tab background instead of regular background
+      // Apply new tab background immediately
       applyNewtabBackground();
+      
+      // Ensure new tab background is applied after DOM is fully loaded
+      document.addEventListener('DOMContentLoaded', () => {
+        console.log('DOM loaded, applying newtab background');
+        applyNewtabBackground();
+      });
       
       // Ensure new tab background is applied after a short delay to catch any late settings
       setTimeout(() => {
         console.log('Re-applying newtab background after delay');
         applyNewtabBackground();
       }, 500);
+      
+      // Additional fallback to ensure background is applied
+      setTimeout(() => {
+        console.log('Final fallback: applying newtab background');
+        applyNewtabBackground();
+      }, 1000);
+      
+      // Apply background after window loads
+      window.addEventListener('load', () => {
+        console.log('Window loaded, applying newtab background');
+        applyNewtabBackground();
+      });
 
       // Listen for theme and background changes from settings page
       window.addEventListener('storage', (event) => {
