@@ -7970,6 +7970,101 @@
              window.carbonFrames.setActiveFrame(event.data.frameId);
            }
          });
+
+        // Save newtab background settings and notify other windows
+        function saveNewtabBackgroundSettings() {
+          localStorage.setItem('carbon-newtab-bg-type', newtabBackgroundType);
+          localStorage.setItem('carbon-newtab-image-url', newtabImageUrl || '');
+          localStorage.setItem('carbon-newtab-unsplash-category', newtabUnsplashCategory || 'nature');
+          localStorage.setItem('carbon-newtab-unsplash-frequency', newtabUnsplashFrequency || 'daily');
+          localStorage.setItem('carbon-newtab-gradient-type', newtabGradientType || 'linear');
+          localStorage.setItem('carbon-newtab-gradient-direction', newtabGradientDirection || 'to right');
+          localStorage.setItem('carbon-newtab-gradient-colors', JSON.stringify(newtabGradientColors || []));
+          
+          console.log('🔄 Sending newtab background update to other windows...', {
+            type: newtabBackgroundType,
+            imageUrl: newtabImageUrl,
+            unsplashCategory: newtabUnsplashCategory
+          });
+          
+          // Notify newtab pages about the change via BroadcastChannel
+          try {
+            if (typeof BroadcastChannel !== 'undefined') {
+              const channel = new BroadcastChannel('carbon-settings');
+              channel.postMessage({
+                type: 'carbon-newtab-bg-updated',
+                settings: {
+                  type: newtabBackgroundType,
+                  imageUrl: newtabImageUrl,
+                  unsplashCategory: newtabUnsplashCategory,
+                  unsplashFrequency: newtabUnsplashFrequency,
+                  gradientType: newtabGradientType,
+                  gradientDirection: newtabGradientDirection,
+                  gradientColors: newtabGradientColors
+                }
+              });
+              console.log('✅ Broadcast sent via BroadcastChannel');
+            }
+          } catch (e) {
+            console.log('❌ BroadcastChannel failed:', e);
+          }
+          
+          // Also try postMessage to parent window
+          if (window.parent && window.parent !== window) {
+            try {
+              window.parent.postMessage({
+                type: 'carbon-newtab-bg-updated',
+                settings: {
+                  type: newtabBackgroundType,
+                  imageUrl: newtabImageUrl,
+                  unsplashCategory: newtabUnsplashCategory,
+                  unsplashFrequency: newtabUnsplashFrequency,
+                  gradientType: newtabGradientType,
+                  gradientDirection: newtabGradientDirection,
+                  gradientColors: newtabGradientColors
+                }
+              }, '*');
+              console.log('✅ PostMessage sent to parent window');
+            } catch (e) {
+              console.log('❌ PostMessage to parent failed:', e);
+            }
+          }
+        }
+
+        // Call saveNewtabBackgroundSettings whenever newtab settings change
+        // Override the existing loadNewtabBackgroundSettings to also save
+        const originalLoadNewtabBackgroundSettings = loadNewtabBackgroundSettings;
+        loadNewtabBackgroundSettings = function() {
+          originalLoadNewtabBackgroundSettings();
+          // Call save to notify other windows whenever settings are loaded/changed
+          setTimeout(saveNewtabBackgroundSettings, 100);
+        };
+
+        // Also watch for localStorage changes and trigger saving
+        const originalSetItem = localStorage.setItem;
+        localStorage.setItem = function(key, value) {
+          const result = originalSetItem.call(this, key, value);
+          if (key.startsWith('carbon-newtab-') || key === 'carbon-background-global') {
+            console.log('🔄 localStorage change detected for:', key, '=', value);
+            setTimeout(() => {
+              loadNewtabBackgroundSettings(); // This will trigger save
+            }, 50);
+          }
+          return result;
+        };
+
+                 // Trigger initial save to notify any open newtab pages
+         setTimeout(() => {
+           console.log('🚀 Initial saveNewtabBackgroundSettings call');
+           saveNewtabBackgroundSettings();
+         }, 1000);
+
+         // Debug message to confirm fixes loaded
+         console.log('%c✅ TEST.HTML BACKGROUND FIX LOADED SUCCESSFULLY!', 'color: #00ff00; font-size: 16px; font-weight: bold;');
+         console.log('🕐 Loaded at:', new Date().toLocaleTimeString());
+         console.log('🔧 saveNewtabBackgroundSettings function:', typeof saveNewtabBackgroundSettings);
+         console.log('📡 BroadcastChannel support:', typeof BroadcastChannel !== 'undefined');
+
     </script>
   </body>
 </html>
