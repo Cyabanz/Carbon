@@ -542,6 +542,22 @@
       renderBookmarks();
       applyBackground();
 
+      // Ensure background is applied after theme system is ready
+      document.addEventListener('DOMContentLoaded', () => {
+        setTimeout(() => {
+          applyBackground();
+        }, 100);
+      });
+
+      // Also apply background when theme system is loaded
+      if (window.carbonTheme && window.carbonTheme.isReady) {
+        applyBackground();
+      } else {
+        setTimeout(() => {
+          applyBackground();
+        }, 200);
+      }
+
       // Listen for theme and background changes from settings page
       window.addEventListener('storage', (event) => {
         if (event.key === 'carbon-theme-global' && event.newValue) {
