@@ -509,7 +509,7 @@
             <i class="bx bx-image text-iris"></i>
             New Tab Background
           </h3>
-          <p class="text-muted text-sm mb-2">Customize the background for new tabs (overrides default background)</p>
+          <p class="text-muted text-sm mb-2">Customize the background for new tabs</p>
           
           <!-- Background Type Selection -->
           <div class="mb-4">
@@ -518,13 +518,13 @@
               <div class="newtab-bg-preview active rounded-lg p-2 cursor-pointer border border-transparent hover:border-foam transition-all duration-200" data-newtab-bg="theme" style="background: var(--theme-gradient);">
                 <div class="text-center text-xs text-white">Theme</div>
               </div>
-              <div class="newtab-bg-preview rounded-lg p-2 cursor-pointer border border-transparent hover:border-foam transition-all duration-200" data-newtab-bg="image">
+              <div class="newtab-bg-preview rounded-lg p-2 cursor-pointer border border-transparent hover:border-foam transition-all duration-200" data-newtab-bg="image" style="background: url('https://source.unsplash.com/1920x1080/?nature');">
                 <div class="text-center text-xs text-white">Image</div>
               </div>
-              <div class="newtab-bg-preview rounded-lg p-2 cursor-pointer border border-transparent hover:border-foam transition-all duration-200" data-newtab-bg="unsplash">
+              <div class="newtab-bg-preview rounded-lg p-2 cursor-pointer border border-transparent hover:border-foam transition-all duration-200" data-newtab-bg="unsplash" style="background: url('https://source.unsplash.com/1920x1080/?abstract');">
                 <div class="text-center text-xs text-white">Unsplash</div>
               </div>
-              <div class="newtab-bg-preview rounded-lg p-2 cursor-pointer border border-transparent hover:border-foam transition-all duration-200" data-newtab-bg="gradient">
+              <div class="newtab-bg-preview rounded-lg p-2 cursor-pointer border border-transparent hover:border-foam transition-all duration-200" data-newtab-bg="gradient" style="background: linear-gradient(to right, #667eea, #764ba2, #f093fb);">
                 <div class="text-center text-xs text-white">Gradient</div>
               </div>
             </div>
@@ -614,14 +614,6 @@
             </div>
           </div>
         </div>
-
-        <!-- Save Settings -->
-        <div class="text-center">
-          <button id="save-settings" class="px-6 py-2 bg-foam text-base rounded-lg text-sm font-medium hover:bg-foam/80 transition-all duration-200">
-            <i class="bx bx-check mr-1"></i>
-            Auto-Save Enabled
-          </button>
-        </div>
       </div>
     </div>
 
@@ -656,7 +648,7 @@
       let currentUser = null;
       let currentBackground = localStorage.getItem('carbon-background-global') || 'gradient';
       let currentTheme = localStorage.getItem('carbon-theme-global') || 'rose-pine';
-      let newtabBackgroundType = localStorage.getItem('carbon-newtab-bg-type') || null;
+      let newtabBackgroundType = localStorage.getItem('carbon-newtab-bg-type') || 'theme';
       let newtabImageUrl = localStorage.getItem('carbon-newtab-image-url') || '';
       let newtabUnsplashCategory = localStorage.getItem('carbon-newtab-unsplash-category') || 'nature';
       let newtabUnsplashFrequency = localStorage.getItem('carbon-newtab-unsplash-frequency') || 'daily';
@@ -728,18 +720,10 @@
           if (userSettingsDoc.exists) {
             const userData = userSettingsDoc.data();
             const settings = userData.settings || {};
-            if (settings.background) {
-              currentBackground = settings.background;
-              localStorage.setItem('carbon-background-global', currentBackground);
-            }
-            if (settings.customBackground) {
-              localStorage.setItem('carbon-custom-bg-global', settings.customBackground);
-            }
             if (settings.theme) {
               currentTheme = settings.theme;
               localStorage.setItem('carbon-theme-global', currentTheme);
-              document.querySelectorAll('.theme-preview').forEach(el => el.classList.remove('active', 'border-foam'));
-              document.querySelector(`[data-theme="${currentTheme}"]`)?.classList.add('active', 'border-foam');
+              applyTheme(currentTheme);
             }
             if (settings.newtabBackgroundType) {
               newtabBackgroundType = settings.newtabBackgroundType;
@@ -749,10 +733,16 @@
               newtabGradientType = settings.newtabGradientType || 'linear';
               newtabGradientDirection = settings.newtabGradientDirection || 'to right';
               newtabGradientColors = settings.newtabGradientColors || ['#667eea', '#764ba2', '#f093fb'];
+              localStorage.setItem('carbon-newtab-bg-type', newtabBackgroundType);
+              localStorage.setItem('carbon-newtab-image-url', newtabImageUrl);
+              localStorage.setItem('carbon-newtab-unsplash-category', newtabUnsplashCategory);
+              localStorage.setItem('carbon-newtab-unsplash-frequency', newtabUnsplashFrequency);
+              localStorage.setItem('carbon-newtab-gradient-type', newtabGradientType);
+              localStorage.setItem('carbon-newtab-gradient-direction', newtabGradientDirection);
+              localStorage.setItem('carbon-newtab-gradient-colors', JSON.stringify(newtabGradientColors));
               loadNewtabBackgroundSettings();
             }
             applyBackground();
-            applyTheme(currentTheme);
           }
         } catch (error) {
           console.error('Error loading settings from Firebase:', error);
@@ -763,8 +753,6 @@
         if (!currentUser) return;
         try {
           const settings = {
-            background: currentBackground,
-            customBackground: localStorage.getItem('carbon-custom-bg-global') || '',
             theme: currentTheme,
             newtabBackgroundType: newtabBackgroundType,
             newtabImageUrl: newtabImageUrl,
@@ -798,7 +786,7 @@
       function loadSettings() {
         currentBackground = localStorage.getItem('carbon-background-global') || 'gradient';
         currentTheme = localStorage.getItem('carbon-theme-global') || 'rose-pine';
-        newtabBackgroundType = localStorage.getItem('carbon-newtab-bg-type') || null;
+        newtabBackgroundType = localStorage.getItem('carbon-newtab-bg-type') || 'theme';
         newtabImageUrl = localStorage.getItem('carbon-newtab-image-url') || '';
         newtabUnsplashCategory = localStorage.getItem('carbon-newtab-unsplash-category') || 'nature';
         newtabUnsplashFrequency = localStorage.getItem('carbon-newtab-unsplash-frequency') || 'daily';
@@ -816,11 +804,13 @@
         } else {
           document.documentElement.setAttribute('data-theme', theme);
         }
+        document.querySelectorAll('.theme-preview').forEach(el => el.classList.remove('active', 'border-foam'));
+        const activeTheme = document.querySelector(`[data-theme="${theme}"]`);
+        if (activeTheme) activeTheme.classList.add('active', 'border-foam');
         updateNewtabBackgroundPreviews();
       }
 
       function loadNewtabBackgroundSettings() {
-        if (!newtabBackgroundType) return;
         document.getElementById('newtab-image-url').value = newtabImageUrl;
         document.getElementById('newtab-unsplash-category').value = newtabUnsplashCategory;
         document.getElementById('newtab-unsplash-frequency').value = newtabUnsplashFrequency;
@@ -834,13 +824,6 @@
       }
 
       function updateNewtabBackgroundUI() {
-        if (!newtabBackgroundType) {
-          document.querySelectorAll('.newtab-bg-preview').forEach(el => {
-            el.classList.remove('active', 'border-foam');
-          });
-          document.querySelector('[data-newtab-bg="theme"]').classList.add('active', 'border-foam');
-          return;
-        }
         document.querySelectorAll('.newtab-bg-preview').forEach(el => {
           el.classList.remove('active', 'border-foam');
         });
@@ -877,35 +860,33 @@
         if (!preview) return;
 
         let backgroundStyle = '';
-        if (!newtabBackgroundType || newtabBackgroundType === 'theme') {
-          backgroundStyle = 'var(--theme-gradient)';
-        } else {
-          switch (newtabBackgroundType) {
-            case 'image':
-              backgroundStyle = newtabImageUrl ? `url(${newtabImageUrl}) center/cover` : 'var(--theme-gradient)';
-              break;
-            case 'unsplash':
-              backgroundStyle = `linear-gradient(135deg, #667eea 0%, #764ba2 100%)`; // Placeholder for preview
-              break;
-            case 'gradient':
-              const gradientColors = newtabGradientColors.join(', ');
-              if (newtabGradientType === 'radial') {
-                backgroundStyle = `radial-gradient(circle, ${gradientColors})`;
-              } else if (newtabGradientType === 'conic') {
-                backgroundStyle = `conic-gradient(from 0deg, ${gradientColors})`;
-              } else {
-                backgroundStyle = `linear-gradient(${newtabGradientDirection}, ${gradientColors})`;
-              }
-              break;
-            default:
-              backgroundStyle = 'var(--theme-gradient)';
-          }
+        switch (newtabBackgroundType) {
+          case 'image':
+            backgroundStyle = newtabImageUrl ? `url(${newtabImageUrl}) center/cover` : 'var(--theme-gradient)';
+            break;
+          case 'unsplash':
+            backgroundStyle = `linear-gradient(135deg, #667eea 0%, #764ba2 100%)`; // Placeholder for preview
+            break;
+          case 'gradient':
+            const gradientColors = newtabGradientColors.join(', ');
+            if (newtabGradientType === 'radial') {
+              backgroundStyle = `radial-gradient(circle, ${gradientColors})`;
+            } else if (newtabGradientType === 'conic') {
+              backgroundStyle = `conic-gradient(from 0deg, ${gradientColors})`;
+            } else {
+              backgroundStyle = `linear-gradient(${newtabGradientDirection}, ${gradientColors})`;
+            }
+            break;
+          case 'theme':
+          default:
+            backgroundStyle = 'var(--theme-gradient)';
+            break;
         }
         preview.style.background = backgroundStyle;
       }
 
       function saveNewtabBackgroundSettings() {
-        localStorage.setItem('carbon-newtab-bg-type', newtabBackgroundType || '');
+        localStorage.setItem('carbon-newtab-bg-type', newtabBackgroundType);
         localStorage.setItem('carbon-newtab-image-url', newtabImageUrl);
         localStorage.setItem('carbon-newtab-unsplash-category', newtabUnsplashCategory);
         localStorage.setItem('carbon-newtab-unsplash-frequency', newtabUnsplashFrequency);
@@ -918,69 +899,44 @@
       // Background Management
       async function applyBackground() {
         const body = document.body;
-        const baseColor = getComputedStyle(document.documentElement).getPropertyValue('--theme-base').trim();
         particlesCanvas.classList.add('hidden');
+        localStorage.removeItem('carbon-custom-bg-global'); // Clear legacy custom background
+        localStorage.removeItem('carbon-background-global'); // Clear legacy background
 
-        // Check if new tab background settings should override
-        if (newtabBackgroundType && newtabBackgroundType !== 'theme') {
-          switch (newtabBackgroundType) {
-            case 'image':
-              if (newtabImageUrl) {
-                body.style.background = `url(${newtabImageUrl}) center/cover fixed`;
-              } else {
-                body.style.background = 'var(--theme-gradient)';
-                body.style.backgroundAttachment = 'fixed';
-              }
-              break;
-            case 'unsplash':
-              const imageUrl = await getUnsplashImage();
-              if (imageUrl) {
-                body.style.background = `url(${imageUrl}) center/cover fixed`;
-              } else {
-                body.style.background = 'var(--theme-gradient)';
-                body.style.backgroundAttachment = 'fixed';
-              }
-              break;
-            case 'gradient':
-              const gradientColors = newtabGradientColors.join(', ');
-              if (newtabGradientType === 'radial') {
-                body.style.background = `radial-gradient(circle, ${gradientColors})`;
-              } else if (newtabGradientType === 'conic') {
-                body.style.background = `conic-gradient(from 0deg, ${gradientColors})`;
-              } else {
-                body.style.background = `linear-gradient(${newtabGradientDirection}, ${gradientColors})`;
-              }
-              body.style.backgroundAttachment = 'fixed';
-              break;
-            default:
+        switch (newtabBackgroundType) {
+          case 'image':
+            if (newtabImageUrl) {
+              body.style.background = `url(${newtabImageUrl}) center/cover fixed`;
+            } else {
               body.style.background = 'var(--theme-gradient)';
               body.style.backgroundAttachment = 'fixed';
-          }
-        } else {
-          // Original background logic
-          const customBg = localStorage.getItem('carbon-custom-bg-global');
-          if (customBg) {
-            body.style.background = `url(${customBg}) center/cover fixed`;
-          } else {
-            switch (currentBackground) {
-              case 'solid':
-                body.style.background = baseColor;
-                break;
-              case 'pattern':
-                body.style.background = `${baseColor} url('data:image/svg+xml,<svg width="20" height="20" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><circle cx="10" cy="10" r="2" fill="%23ffffff" fill-opacity="0.2"/></svg>') repeat`;
-                break;
-              case 'particles':
-                body.style.background = baseColor;
-                particlesCanvas.classList.remove('hidden');
-                initParticles();
-                break;
-              case 'gradient':
-              default:
-                body.style.background = 'var(--theme-gradient)';
-                break;
             }
-            body.style.backgroundAttachment = currentBackground === 'pattern' ? '' : 'fixed';
-          }
+            break;
+          case 'unsplash':
+            const imageUrl = await getUnsplashImage();
+            if (imageUrl) {
+              body.style.background = `url(${imageUrl}) center/cover fixed`;
+            } else {
+              body.style.background = 'var(--theme-gradient)';
+              body.style.backgroundAttachment = 'fixed';
+            }
+            break;
+          case 'gradient':
+            const gradientColors = newtabGradientColors.join(', ');
+            if (newtabGradientType === 'radial') {
+              body.style.background = `radial-gradient(circle, ${gradientColors})`;
+            } else if (newtabGradientType === 'conic') {
+              body.style.background = `conic-gradient(from 0deg, ${gradientColors})`;
+            } else {
+              body.style.background = `linear-gradient(${newtabGradientDirection}, ${gradientColors})`;
+            }
+            body.style.backgroundAttachment = 'fixed';
+            break;
+          case 'theme':
+          default:
+            body.style.background = 'var(--theme-gradient)';
+            body.style.backgroundAttachment = 'fixed';
+            break;
         }
       }
 
@@ -1016,7 +972,7 @@
             return lastImage || '';
           }
         }
-        return lastImage;
+        return lastImage || '';
       }
 
       function initParticles() {
@@ -1054,13 +1010,14 @@
         }
 
         function animateParticles() {
-          if (currentBackground !== 'particles' || particlesCanvas.classList.contains('hidden')) return;
-          ctx.clearRect(0, 0, canvas.width, canvas.height);
-          particlesArray.forEach(particle => {
-            particle.update();
-            particle.draw();
-          });
-          requestAnimationFrame(animateParticles);
+          if (newtabBackgroundType === 'particles' && !particlesCanvas.classList.contains('hidden')) {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            particlesArray.forEach(particle => {
+              particle.update();
+              particle.draw();
+            });
+            requestAnimationFrame(animateParticles);
+          }
         }
 
         window.addEventListener('resize', () => {
@@ -1089,18 +1046,11 @@
           applyTheme(event.newValue);
           applyBackground();
         }
-        if (event.key === 'carbon-background-global' && event.newValue) {
-          currentBackground = event.newValue;
-          applyBackground();
-        }
-        if (event.key === 'carbon-custom-bg-global') {
-          applyBackground();
-        }
         if (event.key === 'carbon-newtab-bg-type' || event.key === 'carbon-newtab-image-url' || 
             event.key === 'carbon-newtab-unsplash-category' || event.key === 'carbon-newtab-unsplash-frequency' ||
             event.key === 'carbon-newtab-gradient-type' || event.key === 'carbon-newtab-gradient-direction' ||
             event.key === 'carbon-newtab-gradient-colors') {
-          newtabBackgroundType = localStorage.getItem('carbon-newtab-bg-type') || null;
+          newtabBackgroundType = localStorage.getItem('carbon-newtab-bg-type') || 'theme';
           newtabImageUrl = localStorage.getItem('carbon-newtab-image-url') || '';
           newtabUnsplashCategory = localStorage.getItem('carbon-newtab-unsplash-category') || 'nature';
           newtabUnsplashFrequency = localStorage.getItem('carbon-newtab-unsplash-frequency') || 'daily';
@@ -1121,15 +1071,6 @@
         }
         if (event.data && event.data.type === 'carbon-settings-updated') {
           const settings = event.data.settings;
-          if (settings.background) {
-            currentBackground = settings.background;
-            localStorage.setItem('carbon-background-global', currentBackground);
-          }
-          if (settings.customBackground) {
-            localStorage.setItem('carbon-custom-bg-global', settings.customBackground);
-          } else {
-            localStorage.removeItem('carbon-custom-bg-global');
-          }
           if (settings.theme) {
             currentTheme = settings.theme;
             localStorage.setItem('carbon-theme-global', currentTheme);
@@ -1143,9 +1084,16 @@
             newtabGradientType = settings.newtabGradientType || 'linear';
             newtabGradientDirection = settings.newtabGradientDirection || 'to right';
             newtabGradientColors = settings.newtabGradientColors || ['#667eea', '#764ba2', '#f093fb'];
+            localStorage.setItem('carbon-newtab-bg-type', newtabBackgroundType);
+            localStorage.setItem('carbon-newtab-image-url', newtabImageUrl);
+            localStorage.setItem('carbon-newtab-unsplash-category', newtabUnsplashCategory);
+            localStorage.setItem('carbon-newtab-unsplash-frequency', newtabUnsplashFrequency);
+            localStorage.setItem('carbon-newtab-gradient-type', newtabGradientType);
+            localStorage.setItem('carbon-newtab-gradient-direction', newtabGradientDirection);
+            localStorage.setItem('carbon-newtab-gradient-colors', JSON.stringify(newtabGradientColors));
             loadNewtabBackgroundSettings();
+            applyBackground();
           }
-          applyBackground();
         }
       });
 
@@ -1501,28 +1449,20 @@
       document.addEventListener('click', e => {
         if (e.target.closest('.newtab-bg-preview')) {
           const preview = e.target.closest('.newtab-bg-preview');
-          const bgType = ['theme', 'image', 'unsplash', 'gradient'].includes(preview.dataset.newtabBg) ? preview.dataset.newtabBg : null;
-          if (bgType) {
-            newtabBackgroundType = bgType;
-            document.querySelectorAll('.newtab-bg-preview').forEach(el => {
-              el.classList.remove('active', 'border-foam');
-            });
-            preview.classList.add('active', 'border-foam');
-            updateNewtabBackgroundUI();
-            updateNewtabBackgroundPreview();
-            saveNewtabBackgroundSettings();
-            applyBackground();
-          }
+          newtabBackgroundType = ['theme', 'image', 'unsplash', 'gradient'].includes(preview.dataset.newtabBg) ? preview.dataset.newtabBg : 'theme';
+          updateNewtabBackgroundUI();
+          updateNewtabBackgroundPreview();
+          saveNewtabBackgroundSettings();
+          applyBackground();
         }
         if (e.target.closest('.theme-preview')) {
           const preview = e.target.closest('.theme-preview');
           const theme = preview.dataset.theme;
-          document.querySelectorAll('.theme-preview').forEach(el => el.classList.remove('active', 'border-foam'));
-          preview.classList.add('active', 'border-foam');
           currentTheme = theme;
           localStorage.setItem('carbon-theme-global', currentTheme);
           applyTheme(currentTheme);
           saveSettingsToFirebase();
+          applyBackground();
         }
       });
 
@@ -1600,4 +1540,37 @@
         newtabGradientColors = [
           hslToHex(randomHues[0], 70, 60),
           hslToHex(randomHues[1], 70, 60),
-          hslTo
+          hslToHex(randomHues[2], 70, 60)
+        ];
+        document.getElementById('newtab-gradient-color1').value = newtabGradientColors[0];
+        document.getElementById('newtab-gradient-color2').value = newtabGradientColors[1];
+        document.getElementById('newtab-gradient-color3').value = newtabGradientColors[2];
+        updateNewtabBackgroundPreview();
+        saveNewtabBackgroundSettings();
+        applyBackground();
+      });
+
+      // Click outside to close suggestions
+      document.addEventListener('click', function(e) {
+        if (!suggestionBox.contains(e.target) && e.target !== searchInput) {
+          suggestionBox.classList.add('hidden');
+          suggestionActive = -1;
+        }
+      });
+
+      // Keyboard shortcuts
+      document.addEventListener('keydown', (e) => {
+        if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+          e.preventDefault();
+          searchInput.focus();
+        }
+      });
+
+      // Initialize
+      updateProxyUI();
+      updateSearchEngineUI();
+      renderBookmarks();
+      loadSettings();
+    </script>
+  </body>
+</html>
