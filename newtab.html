@@ -449,7 +449,6 @@
       let currentUser = null;
       let currentBackground = localStorage.getItem('carbon-background-global') || 'gradient';
       
-<<<<<<< HEAD
       // Newtab-specific background settings
       let newtabBackgroundType = localStorage.getItem('carbon-newtab-bg-type') || 'theme';
       let newtabImageUrl = localStorage.getItem('carbon-newtab-image-url') || '';
@@ -470,8 +469,6 @@
         newtabGradientColors
       });
       
-=======
->>>>>>> main
       // DOM Elements
       const searchInput = document.getElementById('search-input');
       const searchForm = document.getElementById('search-form');
@@ -541,13 +538,10 @@
           if (userSettingsDoc.exists) {
             const userData = userSettingsDoc.data();
             const settings = userData.settings || {};
-<<<<<<< HEAD
             
             console.log('Firebase settings loaded:', settings);
             
             // Load legacy background settings
-=======
->>>>>>> main
             if (settings.background) {
               currentBackground = settings.background;
               localStorage.setItem('carbon-background-global', currentBackground);
@@ -557,7 +551,6 @@
               localStorage.setItem('carbon-custom-bg-global', settings.customBackground);
               console.log('Loaded custom background from Firebase');
             }
-<<<<<<< HEAD
             
             // Load newtab background settings
             if (settings.newtabBackgroundType) {
@@ -603,9 +596,6 @@
             // Don't apply background here - it will be applied by the caller
           } else {
             console.log('No Firebase settings document found for user');
-=======
-            applyBackground();
->>>>>>> main
           }
         } catch (error) {
           console.error('Error loading settings from Firebase:', error);
@@ -643,7 +633,6 @@
       updateProxyUI();
       updateSearchEngineUI();
       renderBookmarks();
-<<<<<<< HEAD
       
       // Don't apply background here - wait for auth state to be determined
       
@@ -719,9 +708,6 @@
           applyNewtabBackground();
         }, 200);
       }
-=======
-      applyBackground();
->>>>>>> main
 
       // Listen for theme and background changes from settings page
       window.addEventListener('storage', (event) => {
@@ -1105,7 +1091,6 @@
         const body = document.body;
         const baseColor = getComputedStyle(document.documentElement).getPropertyValue('--theme-base').trim();
         particlesCanvas.classList.add('hidden');
-<<<<<<< HEAD
         
         console.log('🎨 [NEWTAB] Applying newtab background...');
         console.log('🎨 [NEWTAB] Background type:', newtabBackgroundType);
@@ -1183,16 +1168,49 @@
             
           case 'gradient':
             console.log('🎨 [NEWTAB] Applying custom gradient background...');
-            if (newtabGradientColors && newtabGradientColors.length > 0 && newtabGradientColors[0]) {
-              const colors = newtabGradientColors[0]; // Use first gradient set
-              if (colors && colors.length >= 2) {
-                const direction = newtabGradientType === 'radial' ? 'radial-gradient(circle,' : `linear-gradient(${newtabGradientDirection},`;
-                const gradientStyle = `${direction} ${colors[0]}, ${colors[1]})`;
-                console.log('🎨 [NEWTAB] Applied custom gradient:', gradientStyle);
-                body.style.background = gradientStyle;
-                body.style.backgroundAttachment = 'fixed';
+            console.log('🎨 [NEWTAB] Gradient data debug:', {
+              newtabGradientColors,
+              newtabGradientType,
+              newtabGradientDirection,
+              firstColorSet: newtabGradientColors && newtabGradientColors[0]
+            });
+            
+            if (newtabGradientColors && newtabGradientColors.length > 0) {
+              let colors = newtabGradientColors[0]; // Use first gradient set
+              
+              // Handle different possible gradient color formats
+              if (!colors || !Array.isArray(colors)) {
+                colors = newtabGradientColors; // Maybe it's not nested
+              }
+              
+              if (colors && Array.isArray(colors) && colors.length >= 2) {
+                // Ensure colors are valid hex/rgb values
+                const color1 = colors[0] && colors[0].toString().trim();
+                const color2 = colors[1] && colors[1].toString().trim();
+                
+                if (color1 && color2 && color1 !== '#' && color2 !== 'a' && color1 !== '' && color2 !== '') {
+                  // Fix gradient direction - convert named directions to degrees if needed
+                  let direction = newtabGradientDirection || '135deg';
+                  if (direction === 'to right') direction = '90deg';
+                  if (direction === 'to left') direction = '270deg';
+                  if (direction === 'to bottom') direction = '180deg';
+                  if (direction === 'to top') direction = '0deg';
+                  
+                  const gradientPrefix = newtabGradientType === 'radial' ? 'radial-gradient(circle,' : `linear-gradient(${direction},`;
+                  const gradientStyle = `${gradientPrefix} ${color1}, ${color2})`;
+                  
+                  console.log('🎨 [NEWTAB] Applied custom gradient:', gradientStyle);
+                  console.log('🎨 [NEWTAB] Colors used:', color1, 'to', color2);
+                  
+                  body.style.background = gradientStyle;
+                  body.style.backgroundAttachment = 'fixed';
+                } else {
+                  console.log('🎨 [NEWTAB] Invalid color values, falling back to theme gradient. Colors:', color1, color2);
+                  body.style.background = 'var(--theme-gradient)';
+                  body.style.backgroundAttachment = 'fixed';
+                }
               } else {
-                console.log('🎨 [NEWTAB] Invalid gradient colors, falling back to theme gradient');
+                console.log('🎨 [NEWTAB] Invalid gradient colors array, falling back to theme gradient. Colors:', colors);
                 body.style.background = 'var(--theme-gradient)';
                 body.style.backgroundAttachment = 'fixed';
               }
@@ -1208,31 +1226,6 @@
             body.style.background = 'var(--theme-gradient)';
             body.style.backgroundAttachment = 'fixed';
             break;
-=======
-        const customBg = localStorage.getItem('carbon-custom-bg-global');
-        if (customBg) {
-          body.style.background = `url(${customBg}) center/cover fixed`;
-        } else {
-          switch (currentBackground) {
-            case 'solid':
-              body.style.background = baseColor;
-              break;
-            case 'pattern':
-              body.style.background = `${baseColor} url('data:image/svg+xml,<svg width="20" height="20" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><circle cx="10" cy="10" r="2" fill="%23ffffff" fill-opacity="0.2"/></svg>') repeat`;
-              break;
-            case 'particles':
-              body.style.background = baseColor;
-              particlesCanvas.classList.remove('hidden');
-              initParticles();
-              break;
-            case 'gradient':
-            default:
-              body.style.background = 'var(--theme-gradient)';
-              break;
-          }
-          body.style.backgroundAttachment = currentBackground === 'pattern' ? '' : 'fixed';
->>>>>>> main
-        }
       }
 
       function initParticles() {
