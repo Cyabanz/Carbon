@@ -118,9 +118,6 @@
       .theme-preview.active {
         border: 2px solid var(--theme-foam) !important;
       }
-      .bg-preview.active {
-        border: 2px solid var(--theme-foam) !important;
-      }
       .newtab-bg-preview.active {
         border: 2px solid var(--theme-foam) !important;
       }
@@ -240,39 +237,6 @@
                 </div>
                 <div class="theme-preview rounded-lg p-2 cursor-pointer border border-transparent hover:border-[var(--theme-foam)] transition-all duration-200" data-theme="dracula" style="background: linear-gradient(135deg, #282a36 0%, #44475a 50%, #6272a4 100%);">
                   <div class="text-center text-xs text-white">Dracula</div>
-                </div>
-              </div>
-            </div>
-            <div class="mb-4">
-              <label class="block text-xs font-medium text-[var(--theme-subtle)] mb-2">Backgrounds</label>
-              <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <div class="bg-preview active rounded-lg p-2 cursor-pointer border border-[var(--theme-foam)] transition-all duration-200" data-bg="gradient" style="background: var(--theme-gradient);">
-                  <div class="text-center text-xs text-white">Gradient</div>
-                </div>
-                <div class="bg-preview rounded-lg p-2 cursor-pointer border border-transparent hover:border-[var(--theme-foam)] transition-all duration-200" data-bg="solid">
-                  <div class="text-center text-xs text-white">Solid</div>
-                </div>
-                <div class="bg-preview rounded-lg p-2 cursor-pointer border border-transparent hover:border-[var(--theme-foam)] transition-all duration-200" data-bg="pattern">
-                  <div class="text-center text-xs text-white">Pattern</div>
-                </div>
-                <div class="bg-preview rounded-lg p-2 cursor-pointer border border-transparent hover:border-[var(--theme-foam)] transition-all duration-200" data-bg="particles">
-                  <div class="text-center text-xs text-white">Particles</div>
-                </div>
-              </div>
-            </div>
-            <div>
-              <label class="block text-xs font-medium text-[var(--theme-subtle)] mb-2">Custom Background</label>
-              <div id="bg-upload" class="border-2 border-dashed border-[var(--theme-highlight-med)] rounded-lg p-4 text-center cursor-pointer hover:bg-[var(--theme-overlay)] transition-all duration-200">
-                <i class="bx bx-cloud-upload text-2xl text-[var(--theme-muted)] mb-1"></i>
-                <p class="text-[var(--theme-muted)] text-sm">Upload or drag and drop an image</p>
-                <p class="text-xs text-[var(--theme-subtle)]">JPG, PNG, WebP</p>
-              </div>
-              <input type="file" id="bg-file-input" accept="image/*" class="hidden">
-              <div id="custom-bg-preview" class="mt-4 hidden">
-                <div id="bg-preview-image" class="w-full h-40 rounded-lg bg-cover bg-center border border-[var(--theme-highlight-med)] hover:border-[var(--theme-foam)] transition-all duration-200"></div>
-                <div class="flex gap-2 mt-2">
-                  <button id="remove-bg" class="px-3 py-1 bg-[var(--theme-love)] text-white rounded-lg text-sm hover:bg-[var(--theme-love)]/80 transition-all duration-200">Remove</button>
-                  <button id="change-bg" class="px-3 py-1 bg-[var(--theme-foam)] text-[var(--theme-base)] rounded-lg text-sm hover:bg-[var(--theme-foam)]/80 transition-all duration-200">Change</button>
                 </div>
               </div>
             </div>
@@ -475,4 +439,756 @@
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
     <script>
       const firebaseConfig = {
-        apiKey: "AIzaSyC4ilHYP1T-kdXbW
+        apiKey: "AIzaSyC4ilHYP1T-kdXbWPoHJHhD2aj0pNWmMec",
+        authDomain: "carbon-services.firebaseapp.com",
+        projectId: "carbon-services",
+        storageBucket: "carbon-services.firebasestorage.app",
+        messagingSenderId: "288385472070",
+        appId: "1:288385472070:web:c4be3ff186e248fc645c47",
+        measurementId: "G-Y2K1RQYE74"
+      };
+      
+      firebase.initializeApp(firebaseConfig);
+      const auth = firebase.auth();
+      const db = firebase.firestore();
+      
+      let bookmarks = [];
+      let panicKey = null;
+      let isRecordingPanicKey = false;
+      let currentTheme = 'rose-pine';
+      let currentUser = null;
+
+      // New Tab Background Settings
+      let newtabBackgroundType = 'theme';
+      let newtabImageUrl = '';
+      let newtabUnsplashCategory = 'nature';
+      let newtabUnsplashFrequency = 'daily';
+      let newtabGradientType = 'linear';
+      let newtabGradientDirection = 'to right';
+      let newtabGradientColors = ['#667eea', '#764ba2', '#f093fb'];
+
+      function updateClock() {
+        const now = new Date();
+        const timeString = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        document.getElementById('clock').textContent = timeString;
+      }
+
+      async function loadBookmarks() {
+        if (currentUser) {
+          try {
+            const snapshot = await db.collection('users').doc(currentUser.uid).collection('bookmarks').get();
+            bookmarks = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+          } catch (error) {
+            console.error('Error loading bookmarks:', error);
+          }
+        } else {
+          bookmarks = JSON.parse(localStorage.getItem('carbon-bookmarks') || '[]');
+        }
+        renderBookmarks();
+      }
+
+      function renderBookmarks() {
+        const container = document.getElementById('bookmarks-container');
+        container.innerHTML = '';
+        bookmarks.forEach((bookmark, index) => {
+          const card = document.createElement('div');
+          card.className = 'bookmark-card bg-[var(--theme-surface)] rounded-lg p-4 flex flex-col items-center justify-center shadow-sm hover:shadow-md transition-all duration-200 relative';
+          card.innerHTML = `
+            <a href="${bookmark.url}" target="_blank" class="flex flex-col items-center w-full">
+              ${bookmark.icon ? `<img src="${bookmark.icon}" alt="${bookmark.name}" class="w-8 h-8 mb-2 rounded">` : `<i class="bx bx-link text-2xl text-[var(--theme-foam)] mb-2"></i>`}
+              <span class="text-sm text-center text-[var(--theme-text)] truncate w-full">${bookmark.name}</span>
+            </a>
+            <div class="bookmark-options absolute top-2 right-2 flex gap-1">
+              <button class="edit-bookmark text-[var(--theme-muted)] hover:text-[var(--theme-foam)] transition-colors" data-index="${index}">
+                <i class="bx bx-edit text-sm"></i>
+              </button>
+              <button class="delete-bookmark text-[var(--theme-muted)] hover:text-[var(--theme-love)] transition-colors" data-index="${index}">
+                <i class="bx bx-trash text-sm"></i>
+              </button>
+            </div>
+          `;
+          container.appendChild(card);
+        });
+
+        const addCard = document.createElement('div');
+        addCard.className = 'bookmark-card bg-[var(--theme-surface)] rounded-lg p-4 flex flex-col items-center justify-center shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer';
+        addCard.innerHTML = `
+          <i class="bx bx-plus text-2xl text-[var(--theme-foam)] mb-2"></i>
+          <span class="text-sm text-[var(--theme-text)]">Add Bookmark</span>
+        `;
+        addCard.addEventListener('click', () => {
+          document.getElementById('add-bookmark-modal').classList.remove('hidden');
+          document.getElementById('bookmark-name').focus();
+        });
+        container.appendChild(addCard);
+      }
+
+      async function addBookmark(bookmark) {
+        if (currentUser) {
+          try {
+            const docRef = await db.collection('users').doc(currentUser.uid).collection('bookmarks').add(bookmark);
+            bookmarks.push({ id: docRef.id, ...bookmark });
+          } catch (error) {
+            console.error('Error adding bookmark:', error);
+          }
+        } else {
+          bookmarks.push(bookmark);
+          localStorage.setItem('carbon-bookmarks', JSON.stringify(bookmarks));
+        }
+        renderBookmarks();
+      }
+
+      async function updateBookmark(index, updatedBookmark) {
+        if (currentUser) {
+          try {
+            const bookmark = bookmarks[index];
+            await db.collection('users').doc(currentUser.uid).collection('bookmarks').doc(bookmark.id).update(updatedBookmark);
+            bookmarks[index] = { id: bookmark.id, ...updatedBookmark };
+          } catch (error) {
+            console.error('Error updating bookmark:', error);
+          }
+        } else {
+          bookmarks[index] = updatedBookmark;
+          localStorage.setItem('carbon-bookmarks', JSON.stringify(bookmarks));
+        }
+        renderBookmarks();
+      }
+
+      async function deleteBookmark(index) {
+        if (currentUser) {
+          try {
+            const bookmark = bookmarks[index];
+            await db.collection('users').doc(currentUser.uid).collection('bookmarks').doc(bookmark.id).delete();
+            bookmarks.splice(index, 1);
+          } catch (error) {
+            console.error('Error deleting bookmark:', error);
+          }
+        } else {
+          bookmarks.splice(index, 1);
+          localStorage.setItem('carbon-bookmarks', JSON.stringify(bookmarks));
+        }
+        renderBookmarks();
+      }
+
+      async function loadSettingsFromFirebase() {
+        if (!currentUser) {
+          loadSettings();
+          return;
+        }
+        try {
+          const userSettingsDoc = await db.collection('users').doc(currentUser.uid).get();
+          if (userSettingsDoc.exists) {
+            const settings = userSettingsDoc.data().settings || {};
+            if (settings.panicKey) {
+              panicKey = settings.panicKey;
+              document.getElementById('panic-key-display').textContent = panicKey.toUpperCase();
+            }
+            if (settings.panicUrl) {
+              document.getElementById('panic-url').value = settings.panicUrl;
+            }
+            if (settings.theme) {
+              currentTheme = settings.theme;
+              document.querySelectorAll('.theme-preview').forEach(el => el.classList.remove('active', 'border-[var(--theme-foam)]'));
+              document.querySelector(`[data-theme="${settings.theme}"]`)?.classList.add('active', 'border-[var(--theme-foam)]');
+            }
+            // Load New Tab Background Settings
+            if (settings.newtabBackgroundType) {
+              newtabBackgroundType = settings.newtabBackgroundType;
+              newtabImageUrl = settings.newtabImageUrl || '';
+              newtabUnsplashCategory = settings.newtabUnsplashCategory || 'nature';
+              newtabUnsplashFrequency = settings.newtabUnsplashFrequency || 'daily';
+              newtabGradientType = settings.newtabGradientType || 'linear';
+              newtabGradientDirection = settings.newtabGradientDirection || 'to right';
+              newtabGradientColors = settings.newtabGradientColors || ['#667eea', '#764ba2', '#f093fb'];
+              loadNewtabBackgroundSettings();
+            }
+            applySettings();
+            updateStatusIndicators();
+          } else {
+            loadSettings();
+          }
+        } catch (error) {
+          console.error('Error loading settings from Firebase:', error);
+          loadSettings();
+        }
+      }
+
+      async function saveSettingsToFirebase() {
+        if (!currentUser) return;
+        try {
+          const settings = {
+            panicKey: panicKey || '',
+            panicUrl: document.getElementById('panic-url').value,
+            theme: currentTheme,
+            newtabBackgroundType: newtabBackgroundType,
+            newtabImageUrl: newtabImageUrl,
+            newtabUnsplashCategory: newtabUnsplashCategory,
+            newtabUnsplashFrequency: newtabUnsplashFrequency,
+            newtabGradientType: newtabGradientType,
+            newtabGradientDirection: newtabGradientDirection,
+            newtabGradientColors: newtabGradientColors,
+            lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+          };
+          await db.collection('users').doc(currentUser.uid).set({ settings }, { merge: true });
+        } catch (error) {
+          console.error('Error saving settings to Firebase:', error);
+        }
+      }
+
+      function loadSettings() {
+        const savedPanicKey = localStorage.getItem('carbon-panic-key');
+        if (savedPanicKey) {
+          panicKey = savedPanicKey;
+          document.getElementById('panic-key-display').textContent = panicKey.toUpperCase();
+        }
+        const savedPanicUrl = localStorage.getItem('carbon-panic-url');
+        if (savedPanicUrl) {
+          document.getElementById('panic-url').value = savedPanicUrl;
+        }
+        const savedTheme = localStorage.getItem('carbon-theme-global') || 'rose-pine';
+        currentTheme = savedTheme;
+        document.querySelectorAll('.theme-preview').forEach(el => el.classList.remove('active', 'border-[var(--theme-foam)]'));
+        document.querySelector(`[data-theme="${savedTheme}"]`)?.classList.add('active', 'border-[var(--theme-foam)]');
+        
+        // Load New Tab Background Settings
+        newtabBackgroundType = localStorage.getItem('carbon-newtab-bg-type') || 'theme';
+        newtabImageUrl = localStorage.getItem('carbon-newtab-image-url') || '';
+        newtabUnsplashCategory = localStorage.getItem('carbon-newtab-unsplash-category') || 'nature';
+        newtabUnsplashFrequency = localStorage.getItem('carbon-newtab-unsplash-frequency') || 'daily';
+        newtabGradientType = localStorage.getItem('carbon-newtab-gradient-type') || 'linear';
+        newtabGradientDirection = localStorage.getItem('carbon-newtab-gradient-direction') || 'to right';
+        const savedColors = localStorage.getItem('carbon-newtab-gradient-colors');
+        if (savedColors) {
+          newtabGradientColors = JSON.parse(savedColors);
+        }
+        
+        updateNewtabBackgroundUI();
+        applyBackground();
+        applySettings();
+        updateStatusIndicators();
+      }
+
+      function updateStatusIndicators() {
+        const panicStatus = document.getElementById('panic-status');
+        if (panicKey) {
+          panicStatus.classList.remove('bg-[var(--theme-muted)]');
+          panicStatus.classList.add('bg-[var(--theme-foam)]', 'animate-pulse');
+        } else {
+          panicStatus.classList.remove('bg-[var(--theme-foam)]', 'animate-pulse');
+          panicStatus.classList.add('bg-[var(--theme-muted)]');
+        }
+      }
+
+      function applySettings() {
+        applyTheme(currentTheme);
+        applyBackground();
+        if (window.parent && window.parent !== window) {
+          window.parent.postMessage({
+            type: 'carbon-settings-updated',
+            settings: {
+              panicKey: panicKey,
+              panicUrl: document.getElementById('panic-url').value,
+              theme: currentTheme,
+              newtabBackgroundType: newtabBackgroundType,
+              newtabImageUrl: newtabImageUrl,
+              newtabUnsplashCategory: newtabUnsplashCategory,
+              newtabUnsplashFrequency: newtabUnsplashFrequency,
+              newtabGradientType: newtabGradientType,
+              newtabGradientDirection: newtabGradientDirection,
+              newtabGradientColors: newtabGradientColors
+            }
+          }, '*');
+        }
+      }
+
+      function applyTheme(theme) {
+        if (window.carbonTheme) {
+          window.carbonTheme.setTheme(theme);
+        } else {
+          document.documentElement.setAttribute('data-theme', theme);
+        }
+        updateNewtabBackgroundPreviews();
+      }
+
+      function updateNewtabBackgroundPreviews() {
+        const themePreview = document.querySelector('[data-newtab-bg="theme"]');
+        if (themePreview) themePreview.style.background = 'var(--theme-gradient)';
+        // Update other previews if needed
+        updateNewtabBackgroundPreview();
+      }
+
+      async function applyBackground() {
+        const body = document.body;
+        const particlesCanvas = document.getElementById('particles-canvas');
+        particlesCanvas.classList.add('hidden');
+        body.style.background = '';
+
+        switch (newtabBackgroundType) {
+          case 'theme':
+            body.style.background = 'var(--theme-gradient)';
+            body.style.backgroundAttachment = 'fixed';
+            break;
+          case 'image':
+            if (newtabImageUrl) {
+              body.style.background = `url(${newtabImageUrl}) center/cover fixed`;
+            } else {
+              body.style.background = 'var(--theme-gradient)';
+              body.style.backgroundAttachment = 'fixed';
+            }
+            break;
+          case 'unsplash':
+            const imageUrl = await getUnsplashImage();
+            if (imageUrl) {
+              body.style.background = `url(${imageUrl}) center/cover fixed`;
+            } else {
+              body.style.background = 'var(--theme-gradient)';
+              body.style.backgroundAttachment = 'fixed';
+            }
+            break;
+          case 'gradient':
+            const gradientColors = newtabGradientColors.join(', ');
+            if (newtabGradientType === 'radial') {
+              body.style.background = `radial-gradient(circle, ${gradientColors})`;
+            } else if (newtabGradientType === 'conic') {
+              body.style.background = `conic-gradient(from 0deg, ${gradientColors})`;
+            } else {
+              body.style.background = `linear-gradient(${newtabGradientDirection}, ${gradientColors})`;
+            }
+            body.style.backgroundAttachment = 'fixed';
+            break;
+          default:
+            body.style.background = 'var(--theme-gradient)';
+            body.style.backgroundAttachment = 'fixed';
+            break;
+        }
+      }
+
+      async function getUnsplashImage() {
+        const lastFetch = localStorage.getItem('carbon-unsplash-last-fetch');
+        const lastImage = localStorage.getItem('carbon-unsplash-image');
+        const now = new Date();
+        let shouldFetch = false;
+
+        if (!lastFetch || !lastImage) {
+          shouldFetch = true;
+        } else {
+          const lastFetchDate = new Date(parseInt(lastFetch));
+          const diffDays = (now - lastFetchDate) / (1000 * 60 * 60 * 24);
+          if (newtabUnsplashFrequency === 'daily' && diffDays >= 1) {
+            shouldFetch = true;
+          } else if (newtabUnsplashFrequency === 'weekly' && diffDays >= 7) {
+            shouldFetch = true;
+          } else if (newtabUnsplashFrequency === 'monthly' && diffDays >= 30) {
+            shouldFetch = true;
+          }
+        }
+
+        if (shouldFetch) {
+          try {
+            const response = await fetch(`https://source.unsplash.com/1920x1080/?${newtabUnsplashCategory}`);
+            const imageUrl = response.url;
+            localStorage.setItem('carbon-unsplash-image', imageUrl);
+            localStorage.setItem('carbon-unsplash-last-fetch', Date.now().toString());
+            return imageUrl;
+          } catch (error) {
+            console.error('Error fetching Unsplash image:', error);
+            return lastImage || 'var(--theme-gradient)';
+          }
+        }
+        return lastImage;
+      }
+
+      function loadNewtabBackgroundSettings() {
+        document.getElementById('newtab-image-url').value = newtabImageUrl;
+        document.getElementById('newtab-unsplash-category').value = newtabUnsplashCategory;
+        document.getElementById('newtab-unsplash-frequency').value = newtabUnsplashFrequency;
+        document.getElementById('newtab-gradient-type').value = newtabGradientType;
+        document.getElementById('newtab-gradient-direction').value = newtabGradientDirection;
+        document.getElementById('newtab-gradient-color1').value = newtabGradientColors[0];
+        document.getElementById('newtab-gradient-color2').value = newtabGradientColors[1];
+        document.getElementById('newtab-gradient-color3').value = newtabGradientColors[2];
+        updateNewtabBackgroundUI();
+        updateNewtabBackgroundPreview();
+      }
+
+      function updateNewtabBackgroundUI() {
+        document.querySelectorAll('.newtab-bg-preview').forEach(el => {
+          el.classList.remove('active', 'border-[var(--theme-foam)]');
+        });
+        const activeElement = document.querySelector(`[data-newtab-bg="${newtabBackgroundType}"]`);
+        if (activeElement) {
+          activeElement.classList.add('active', 'border-[var(--theme-foam)]');
+        }
+
+        document.getElementById('newtab-image-section').classList.add('hidden');
+        document.getElementById('newtab-unsplash-section').classList.add('hidden');
+        document.getElementById('newtab-gradient-section').classList.add('hidden');
+
+        switch (newtabBackgroundType) {
+          case 'image':
+            document.getElementById('newtab-image-section').classList.remove('hidden');
+            break;
+          case 'unsplash':
+            document.getElementById('newtab-unsplash-section').classList.remove('hidden');
+            break;
+          case 'gradient':
+            document.getElementById('newtab-gradient-section').classList.remove('hidden');
+            break;
+        }
+      }
+
+      function updateNewtabBackgroundPreview() {
+        const preview = document.getElementById('newtab-bg-preview');
+        if (!preview) return;
+
+        let backgroundStyle = '';
+        switch (newtabBackgroundType) {
+          case 'theme':
+            backgroundStyle = 'var(--theme-gradient)';
+            break;
+          case 'image':
+            backgroundStyle = newtabImageUrl ? `url(${newtabImageUrl}) center/cover` : 'var(--theme-gradient)';
+            break;
+          case 'unsplash':
+            backgroundStyle = `linear-gradient(135deg, #667eea 0%, #764ba2 100%)`; // Placeholder for preview
+            break;
+          case 'gradient':
+            const gradientColors = newtabGradientColors.join(', ');
+            if (newtabGradientType === 'radial') {
+              backgroundStyle = `radial-gradient(circle, ${gradientColors})`;
+            } else if (newtabGradientType === 'conic') {
+              backgroundStyle = `conic-gradient(from 0deg, ${gradientColors})`;
+            } else {
+              backgroundStyle = `linear-gradient(${newtabGradientDirection}, ${gradientColors})`;
+            }
+            break;
+          default:
+            backgroundStyle = 'var(--theme-gradient)';
+        }
+        
+        preview.style.background = backgroundStyle;
+      }
+
+      function saveNewtabBackgroundSettings() {
+        localStorage.setItem('carbon-newtab-bg-type', newtabBackgroundType);
+        localStorage.setItem('carbon-newtab-image-url', newtabImageUrl);
+        localStorage.setItem('carbon-newtab-unsplash-category', newtabUnsplashCategory);
+        localStorage.setItem('carbon-newtab-unsplash-frequency', newtabUnsplashFrequency);
+        localStorage.setItem('carbon-newtab-gradient-type', newtabGradientType);
+        localStorage.setItem('carbon-newtab-gradient-direction', newtabGradientDirection);
+        localStorage.setItem('carbon-newtab-gradient-colors', JSON.stringify(newtabGradientColors));
+      }
+
+      function hslToHex(h, s, l) {
+        l /= 100;
+        const a = s * Math.min(l, 1 - l) / 100;
+        const f = n => {
+          const k = (n + h / 30) % 12;
+          const color = l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1);
+          return Math.round(255 * color).toString(16).padStart(2, '0');
+        };
+        return `#${f(0)}${f(8)}${f(4)}`;
+      }
+
+      auth.onAuthStateChanged(user => {
+        currentUser = user;
+        loadBookmarks();
+        loadSettingsFromFirebase();
+      });
+
+      document.addEventListener('DOMContentLoaded', () => {
+        updateClock();
+        setInterval(updateClock, 1000);
+        loadSettings();
+        loadBookmarks();
+
+        document.getElementById('settings-btn').addEventListener('click', () => {
+          document.getElementById('settings-modal').classList.remove('hidden');
+        });
+
+        document.getElementById('close-settings').addEventListener('click', () => {
+          document.getElementById('settings-modal').classList.add('hidden');
+        });
+
+        document.getElementById('set-panic-key').addEventListener('click', () => {
+          if (isRecordingPanicKey) return;
+          isRecordingPanicKey = true;
+          const display = document.getElementById('panic-key-display');
+          display.textContent = 'Press any key...';
+          display.classList.add('bg-[var(--theme-love)]', 'text-white', 'border-[var(--theme-love)]', 'animate-pulse');
+          function recordKey(e) {
+            e.preventDefault();
+            panicKey = e.key.toLowerCase();
+            display.textContent = panicKey.toUpperCase();
+            display.classList.remove('bg-[var(--theme-love)]', 'text-white', 'border-[var(--theme-love)]', 'animate-pulse');
+            isRecordingPanicKey = false;
+            document.removeEventListener('keydown', recordKey);
+            updateStatusIndicators();
+            triggerAutoSave();
+          }
+          document.addEventListener('keydown', recordKey);
+        });
+
+        document.getElementById('clear-panic-key').addEventListener('click', () => {
+          panicKey = null;
+          document.getElementById('panic-key-display').textContent = 'Press "Set Key" to configure';
+          updateStatusIndicators();
+          triggerAutoSave();
+        });
+
+        document.getElementById('panic-url').addEventListener('input', triggerAutoSave);
+
+        document.querySelectorAll('.theme-preview').forEach(preview => {
+          preview.addEventListener('click', () => {
+            document.querySelectorAll('.theme-preview').forEach(el => el.classList.remove('active', 'border-[var(--theme-foam)]'));
+            preview.classList.add('active', 'border-[var(--theme-foam)]');
+            currentTheme = preview.dataset.theme;
+            localStorage.setItem('carbon-theme-global', currentTheme);
+            applyTheme(currentTheme);
+            triggerAutoSave();
+          });
+        });
+
+        document.getElementById('save-bookmark').addEventListener('click', () => {
+          const name = document.getElementById('bookmark-name').value;
+          const url = document.getElementById('bookmark-url').value;
+          const icon = document.getElementById('bookmark-icon').value;
+          if (name && url) {
+            addBookmark({ name, url, icon });
+            document.getElementById('add-bookmark-modal').classList.add('hidden');
+            document.getElementById('bookmark-name').value = '';
+            document.getElementById('bookmark-url').value = '';
+            document.getElementById('bookmark-icon').value = '';
+          }
+        });
+
+        document.getElementById('close-add-bookmark').addEventListener('click', () => {
+          document.getElementById('add-bookmark-modal').classList.add('hidden');
+        });
+
+        document.getElementById('bookmarks-container').addEventListener('click', e => {
+          if (e.target.closest('.edit-bookmark')) {
+            const index = e.target.closest('.edit-bookmark').dataset.index;
+            const bookmark = bookmarks[index];
+            document.getElementById('edit-bookmark-name').value = bookmark.name;
+            document.getElementById('edit-bookmark-url').value = bookmark.url;
+            document.getElementById('edit-bookmark-icon').value = bookmark.icon || '';
+            document.getElementById('edit-bookmark-modal').dataset.index = index;
+            document.getElementById('edit-bookmark-modal').classList.remove('hidden');
+          }
+          if (e.target.closest('.delete-bookmark')) {
+            const index = e.target.closest('.delete-bookmark').dataset.index;
+            if (confirm('Delete this bookmark?')) {
+              deleteBookmark(index);
+            }
+          }
+        });
+
+        document.getElementById('update-bookmark').addEventListener('click', () => {
+          const index = document.getElementById('edit-bookmark-modal').dataset.index;
+          const name = document.getElementById('edit-bookmark-name').value;
+          const url = document.getElementById('edit-bookmark-url').value;
+          const icon = document.getElementById('edit-bookmark-icon').value;
+          if (name && url) {
+            updateBookmark(index, { name, url, icon });
+            document.getElementById('edit-bookmark-modal').classList.add('hidden');
+          }
+        });
+
+        document.getElementById('delete-bookmark').addEventListener('click', () => {
+          const index = document.getElementById('edit-bookmark-modal').dataset.index;
+          deleteBookmark(index);
+          document.getElementById('edit-bookmark-modal').classList.add('hidden');
+        });
+
+        document.getElementById('close-edit-bookmark').addEventListener('click', () => {
+          document.getElementById('edit-bookmark-modal').classList.add('hidden');
+        });
+
+        document.getElementById('search-input').addEventListener('keypress', e => {
+          if (e.key === 'Enter') {
+            const query = e.target.value;
+            if (query) {
+              window.location.href = `https://www.google.com/search?q=${encodeURIComponent(query)}`;
+            }
+          }
+        });
+
+        // New Tab Background Event Listeners
+        document.addEventListener('click', e => {
+          if (e.target.closest('.newtab-bg-preview')) {
+            const preview = e.target.closest('.newtab-bg-preview');
+            const bgType = preview.dataset.newtabBg;
+            if (bgType) {
+              document.querySelectorAll('.newtab-bg-preview').forEach(el => {
+                el.classList.remove('active', 'border-[var(--theme-foam)]');
+              });
+              preview.classList.add('active', 'border-[var(--theme-foam)]');
+              newtabBackgroundType = bgType;
+              updateNewtabBackgroundUI();
+              updateNewtabBackgroundPreview();
+              saveNewtabBackgroundSettings();
+              applyBackground();
+              triggerAutoSave();
+            }
+          }
+        });
+
+        document.getElementById('newtab-image-url').addEventListener('input', function() {
+          newtabImageUrl = this.value;
+          updateNewtabBackgroundPreview();
+          saveNewtabBackgroundSettings();
+          applyBackground();
+          triggerAutoSave();
+        });
+
+        document.getElementById('test-newtab-image').addEventListener('click', function() {
+          const url = document.getElementById('newtab-image-url').value;
+          if (url) {
+            const preview = document.getElementById('newtab-bg-preview');
+            preview.style.background = `url(${url}) center/cover`;
+            setTimeout(() => {
+              updateNewtabBackgroundPreview();
+            }, 2000);
+          }
+        });
+
+        document.getElementById('newtab-unsplash-category').addEventListener('change', function() {
+          newtabUnsplashCategory = this.value;
+          saveNewtabBackgroundSettings();
+          applyBackground();
+          triggerAutoSave();
+        });
+
+        document.getElementById('newtab-unsplash-frequency').addEventListener('change', function() {
+          newtabUnsplashFrequency = this.value;
+          saveNewtabBackgroundSettings();
+          applyBackground();
+          triggerAutoSave();
+        });
+
+        document.getElementById('newtab-gradient-type').addEventListener('change', function() {
+          newtabGradientType = this.value;
+          updateNewtabBackgroundPreview();
+          saveNewtabBackgroundSettings();
+          applyBackground();
+          triggerAutoSave();
+        });
+
+        document.getElementById('newtab-gradient-direction').addEventListener('change', function() {
+          newtabGradientDirection = this.value;
+          updateNewtabBackgroundPreview();
+          saveNewtabBackgroundSettings();
+          applyBackground();
+          triggerAutoSave();
+        });
+
+        document.getElementById('newtab-gradient-color1').addEventListener('input', function() {
+          newtabGradientColors[0] = this.value;
+          updateNewtabBackgroundPreview();
+          saveNewtabBackgroundSettings();
+          applyBackground();
+          triggerAutoSave();
+        });
+
+        document.getElementById('newtab-gradient-color2').addEventListener('input', function() {
+          newtabGradientColors[1] = this.value;
+          updateNewtabBackgroundPreview();
+          saveNewtabBackgroundSettings();
+          applyBackground();
+          triggerAutoSave();
+        });
+
+        document.getElementById('newtab-gradient-color3').addEventListener('input', function() {
+          newtabGradientColors[2] = this.value;
+          updateNewtabBackgroundPreview();
+          saveNewtabBackgroundSettings();
+          applyBackground();
+          triggerAutoSave();
+        });
+
+        document.getElementById('random-gradient').addEventListener('click', function() {
+          const randomHues = [];
+          const baseHue = Math.random() * 360;
+          
+          for (let i = 0; i < 3; i++) {
+            randomHues.push((baseHue + (i * 120)) % 360);
+          }
+
+          newtabGradientColors = [
+            hslToHex(randomHues[0], 70, 60),
+            hslToHex(randomHues[1], 70, 60),
+            hslToHex(randomHues[2], 70, 60)
+          ];
+
+          document.getElementById('newtab-gradient-color1').value = newtabGradientColors[0];
+          document.getElementById('newtab-gradient-color2').value = newtabGradientColors[1];
+          document.getElementById('newtab-gradient-color3').value = newtabGradientColors[2];
+
+          updateNewtabBackgroundPreview();
+          saveNewtabBackgroundSettings();
+          applyBackground();
+          triggerAutoSave();
+        });
+      });
+
+      let autoSaveTimeout;
+      let isAutoSaving = false;
+
+      function triggerAutoSave() {
+        if (isAutoSaving) return;
+        if (autoSaveTimeout) clearTimeout(autoSaveTimeout);
+        autoSaveTimeout = setTimeout(async () => {
+          try {
+            isAutoSaving = true;
+            await autoSaveSettings();
+            showAutoSaveStatus('✓ Saved', 'success');
+          } catch (error) {
+            console.error('Auto save failed:', error);
+            showAutoSaveStatus('⚠ Failed', 'error');
+          } finally {
+            isAutoSaving = false;
+          }
+        }, 1000);
+        showAutoSaveStatus('💾 Saving...', 'saving');
+      }
+
+      async function autoSaveSettings() {
+        localStorage.setItem('carbon-panic-key', panicKey || '');
+        localStorage.setItem('carbon-panic-url', document.getElementById('panic-url').value);
+        localStorage.setItem('carbon-theme-global', currentTheme);
+        saveNewtabBackgroundSettings();
+        
+        if (currentUser) {
+          await saveSettingsToFirebase();
+        }
+        applySettings();
+      }
+
+      function showAutoSaveStatus(message, type) {
+        const btn = document.getElementById('save-settings');
+        const originalText = btn.innerHTML;
+        btn.innerHTML = message;
+        btn.classList.remove('bg-[var(--theme-foam)]', 'bg-[var(--theme-pine)]', 'bg-[var(--theme-love)]');
+        if (type === 'success') {
+          btn.classList.add('bg-[var(--theme-pine)]');
+        } else if (type === 'error') {
+          btn.classList.add('bg-[var(--theme-love)]');
+        } else if (type === 'saving') {
+          btn.classList.add('bg-[var(--theme-gold)]');
+        }
+        if (type !== 'saving') {
+          setTimeout(() => {
+            btn.innerHTML = originalText;
+            btn.classList.remove('bg-[var(--theme-pine)]', 'bg-[var(--theme-love)]', 'bg-[var(--theme-gold)]');
+            btn.classList.add('bg-[var(--theme-foam)]');
+          }, 1500);
+        }
+      }
+
+      document.getElementById('save-settings').addEventListener('click', async () => {
+        await autoSaveSettings();
+      });
+    </script>
+  </body>
+</html>
