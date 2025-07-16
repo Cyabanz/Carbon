@@ -423,15 +423,34 @@
       // Immediately override carbon-theme.js background application for newtab
       console.log('🎨 [NEWTAB] Setting up carbon-theme.js override protection...');
       
-      // Method 1: Override as soon as possible
+      // Method 1: Override as soon as possible  
       let overrideInterval = setInterval(() => {
-        if (window.carbonTheme && window.carbonTheme.applyDynamicBackground) {
-          console.log('🎨 [NEWTAB] Disabling carbon-theme.js background override');
-          const original = window.carbonTheme.applyDynamicBackground;
-          window.carbonTheme.applyDynamicBackground = function(theme, backgroundType) {
-            console.log('🎨 [NEWTAB] Blocked carbon-theme.js background override attempt');
-            return; // Block the background application
-          };
+        if (window.carbonTheme) {
+          console.log('🎨 [NEWTAB] Found carbonTheme, disabling all background functions...');
+          
+          // Override multiple potential background functions
+          if (window.carbonTheme.applyDynamicBackground) {
+            window.carbonTheme.applyDynamicBackground = function(theme, backgroundType) {
+              console.log('🎨 [NEWTAB] Blocked carbonTheme.applyDynamicBackground');
+              return false;
+            };
+          }
+          
+          if (window.carbonTheme.applyTheme) {
+            const originalApplyTheme = window.carbonTheme.applyTheme;
+            window.carbonTheme.applyTheme = function(themeName) {
+              console.log('🎨 [NEWTAB] Intercepting carbonTheme.applyTheme:', themeName);
+              // Call original but without background
+              originalApplyTheme.call(this, themeName);
+              // Immediately reapply our background
+              setTimeout(() => {
+                console.log('🎨 [NEWTAB] Reapplying newtab background after theme change');
+                applyNewtabBackground();
+              }, 100);
+            };
+          }
+          
+          console.log('🎨 [NEWTAB] Successfully disabled carbon-theme.js background override');
           clearInterval(overrideInterval);
         }
       }, 50);
@@ -450,6 +469,18 @@
       setTimeout(() => {
         clearInterval(overrideInterval);
       }, 10000);
+      
+      // Method 3: Periodic reapplication to combat theme system interference
+      setInterval(() => {
+        if (window.newtabBackgroundActive && newtabBackgroundType && newtabBackgroundType !== 'theme') {
+          const currentBg = document.body.style.background;
+          // Check if background was changed by external system
+          if (!currentBg || currentBg === 'var(--theme-gradient)' || currentBg.includes('linear-gradient(135deg, #191724')) {
+            console.log('🎨 [NEWTAB] Background was overridden by theme system, reapplying...');
+            applyNewtabBackground();
+          }
+        }
+      }, 3000); // Check every 3 seconds
     </script>
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -1237,6 +1268,7 @@
             
           case 'gradient':
             console.log('🎨 [NEWTAB] Applying custom gradient background...');
+            console.log('🔍 [NEWTAB] TRACE: Reached gradient case, starting validation...');
             console.log('🎨 [NEWTAB] Gradient data debug:', {
               newtabGradientColors,
               newtabGradientType,
@@ -1293,6 +1325,18 @@
                   
                   const gradientPrefix = newtabGradientType === 'radial' ? 'radial-gradient(circle,' : `linear-gradient(${direction},`;
                   const gradientStyle = `${gradientPrefix} ${color1}, ${color2})`;
+                  
+                  // SAFETY CHECK: Prevent malformed gradients from being applied
+                  if (gradientStyle.includes('#,') || gradientStyle.includes('a)') || gradientStyle.includes(', #') || gradientStyle.includes(', a')) {
+                    console.error('🚨 [NEWTAB] BLOCKED malformed gradient:', gradientStyle);
+                    console.error('🚨 [NEWTAB] Raw colors were:', {color1, color2, colors});
+                    // Apply default gradient instead
+                    const safeGradient = 'linear-gradient(135deg, #667eea, #764ba2)';
+                    console.log('🎨 [NEWTAB] Applied safe default gradient:', safeGradient);
+                    body.style.background = safeGradient;
+                    body.style.backgroundAttachment = 'fixed';
+                    return; // Exit early
+                  }
                   
                   console.log('🎨 [NEWTAB] Applied custom gradient:', gradientStyle);
                   console.log('🎨 [NEWTAB] Colors used:', color1, 'to', color2);
