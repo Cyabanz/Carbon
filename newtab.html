@@ -4,6 +4,8 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>New Tab - Carbon</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
     <script defer async>
       function setConfig() {
         tailwind.config = {
@@ -424,9 +426,9 @@
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-    <script type="module">
-      import { makeURL, getProxied, setProxy, getProxy } from '/lethal.mjs';
-      
+    
+    <!-- Firebase Configuration -->
+    <script>
       // Firebase configuration
       const firebaseConfig = {
         apiKey: "AIzaSyC4ilHYP1T-kdXbWPoHJHhD2aj0pNWmMec",
@@ -438,10 +440,39 @@
         measurementId: "G-Y2K1RQYE74"
       };
       
-      // Initialize Firebase
-      firebase.initializeApp(firebaseConfig);
-      const auth = firebase.auth();
-      const db = firebase.firestore();
+      // Initialize Firebase with error handling
+      try {
+        if (typeof firebase !== 'undefined') {
+          // Check if Firebase is already initialized
+          if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+          }
+          window.auth = firebase.auth();
+          window.db = firebase.firestore();
+          console.log('Firebase initialized successfully');
+        } else {
+          console.warn('Firebase SDK not loaded - running in offline mode');
+          window.auth = null;
+          window.db = null;
+        }
+      } catch (error) {
+        console.error('Error initializing Firebase:', error);
+        window.auth = null;
+        window.db = null;
+      }
+    </script>
+    
+    <script type="module">
+      import { makeURL, getProxied, setProxy, getProxy } from '/lethal.mjs';
+      
+      // Get Firebase instances from window with fallback
+      const auth = window.auth || null;
+      const db = window.db || null;
+      
+      // Log Firebase status
+      if (!auth || !db) {
+        console.log('Firebase not available - running in offline mode');
+      }
 
       // State Management
       let currentSearchEngine = localStorage.getItem('search-engine') || 'https://search.brave.com/search?q=%s';
@@ -476,7 +507,7 @@
 
       // Firebase sync functions
       async function loadBookmarksFromFirebase() {
-        if (!currentUser) return;
+        if (!currentUser || !db) return;
         
         try {
           const userDoc = await db.collection('users').doc(currentUser.uid).get();
@@ -494,7 +525,7 @@
       }
       
       async function saveBookmarksToFirebase() {
-        if (!currentUser) return;
+        if (!currentUser || !db) return;
         
         try {
           await db.collection('users').doc(currentUser.uid).set({
@@ -507,7 +538,7 @@
       }
 
       async function loadSettingsFromFirebase() {
-        if (!currentUser) return;
+        if (!currentUser || !db) return;
         try {
           const userSettingsDoc = await db.collection('users').doc(currentUser.uid).get();
           if (userSettingsDoc.exists) {
@@ -528,13 +559,15 @@
       }
 
       // Authentication state observer
-      auth.onAuthStateChanged((user) => {
-        currentUser = user;
-        if (user) {
-          loadBookmarksFromFirebase();
-          loadSettingsFromFirebase();
-        }
-      });
+      if (auth) {
+        auth.onAuthStateChanged((user) => {
+          currentUser = user;
+          if (user) {
+            loadBookmarksFromFirebase();
+            loadSettingsFromFirebase();
+          }
+        });
+      }
 
       // Initialize
       updateProxyUI();
