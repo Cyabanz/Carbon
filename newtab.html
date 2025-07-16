@@ -419,6 +419,38 @@
     </div>
 
     <script src="carbon-theme.js"></script>
+    <script>
+      // Immediately override carbon-theme.js background application for newtab
+      console.log('🎨 [NEWTAB] Setting up carbon-theme.js override protection...');
+      
+      // Method 1: Override as soon as possible
+      let overrideInterval = setInterval(() => {
+        if (window.carbonTheme && window.carbonTheme.applyDynamicBackground) {
+          console.log('🎨 [NEWTAB] Disabling carbon-theme.js background override');
+          const original = window.carbonTheme.applyDynamicBackground;
+          window.carbonTheme.applyDynamicBackground = function(theme, backgroundType) {
+            console.log('🎨 [NEWTAB] Blocked carbon-theme.js background override attempt');
+            return; // Block the background application
+          };
+          clearInterval(overrideInterval);
+        }
+      }, 50);
+      
+      // Method 2: Override body style changes
+      const originalSetProperty = CSSStyleDeclaration.prototype.setProperty;
+      document.body.style.setProperty = function(property, value, priority) {
+        if (property === 'background' && window.newtabBackgroundActive) {
+          console.log('🎨 [NEWTAB] Blocked external background change:', value);
+          return; // Block background changes when newtab background is active
+        }
+        return originalSetProperty.call(this, property, value, priority);
+      };
+      
+      // Clear override protection after 10 seconds
+      setTimeout(() => {
+        clearInterval(overrideInterval);
+      }, 10000);
+    </script>
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
@@ -1137,6 +1169,9 @@
           newtabGradientColors,
           currentBackground
         });
+        
+        // Set flag to protect our background from external changes
+        window.newtabBackgroundActive = true;
 
         switch (newtabBackgroundType) {
           case 'theme':
@@ -1206,16 +1241,22 @@
               newtabGradientColors,
               newtabGradientType,
               newtabGradientDirection,
-              firstColorSet: newtabGradientColors && newtabGradientColors[0]
+              firstColorSet: newtabGradientColors && newtabGradientColors[0],
+              isArray: Array.isArray(newtabGradientColors),
+              length: newtabGradientColors ? newtabGradientColors.length : 0
             });
             
             if (newtabGradientColors && newtabGradientColors.length > 0) {
               let colors = newtabGradientColors[0]; // Use first gradient set
+              console.log('🎨 [NEWTAB] First color set debug:', colors, 'Type:', typeof colors, 'IsArray:', Array.isArray(colors));
               
               // Handle different possible gradient color formats
               if (!colors || !Array.isArray(colors)) {
+                console.log('🎨 [NEWTAB] Colors not nested array, using direct array');
                 colors = newtabGradientColors; // Maybe it's not nested
               }
+              
+              console.log('🎨 [NEWTAB] Final colors array:', colors, 'Length:', colors ? colors.length : 0);
               
               if (colors && Array.isArray(colors) && colors.length >= 2) {
                 // Ensure colors are valid hex/rgb values
@@ -1256,8 +1297,12 @@
                   console.log('🎨 [NEWTAB] Applied custom gradient:', gradientStyle);
                   console.log('🎨 [NEWTAB] Colors used:', color1, 'to', color2);
                   
+                  // Temporarily disable protection to apply our own background
+                  window.newtabBackgroundActive = false;
                   body.style.background = gradientStyle;
                   body.style.backgroundAttachment = 'fixed';
+                  // Re-enable protection after applying
+                  setTimeout(() => { window.newtabBackgroundActive = true; }, 100);
                               } else {
                 console.log('🎨 [NEWTAB] Invalid color values, using default gradient colors. Invalid colors:', color1, color2);
                 // Use default gradient colors instead of theme gradient
@@ -1271,9 +1316,13 @@
                 const gradientPrefix = newtabGradientType === 'radial' ? 'radial-gradient(circle,' : `linear-gradient(${direction},`;
                 const defaultGradientStyle = `${gradientPrefix} ${defaultColors[0]}, ${defaultColors[1]})`;
                 
-                console.log('🎨 [NEWTAB] Applied default gradient:', defaultGradientStyle);
-                body.style.background = defaultGradientStyle;
-                body.style.backgroundAttachment = 'fixed';
+                                 console.log('🎨 [NEWTAB] Applied default gradient:', defaultGradientStyle);
+                 // Temporarily disable protection to apply our own background
+                 window.newtabBackgroundActive = false;
+                 body.style.background = defaultGradientStyle;
+                 body.style.backgroundAttachment = 'fixed';
+                 // Re-enable protection after applying
+                 setTimeout(() => { window.newtabBackgroundActive = true; }, 100);
               }
               } else {
                 console.log('🎨 [NEWTAB] Invalid gradient colors array, falling back to theme gradient. Colors:', colors);
