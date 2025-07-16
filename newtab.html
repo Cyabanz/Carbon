@@ -3,6 +3,9 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
     <title>New Tab - Carbon</title>
     <script defer async>
       function setConfig() {
@@ -1189,6 +1192,9 @@
         const baseColor = getComputedStyle(document.documentElement).getPropertyValue('--theme-base').trim();
         particlesCanvas.classList.add('hidden');
         
+        // CACHE BUSTING DEBUG - This should show updated timestamp if new code is loaded
+        console.log('🚀 [NEWTAB] UPDATED CODE LOADED - Timestamp:', new Date().toLocaleTimeString());
+        console.log('🔧 [NEWTAB] CODE VERSION: 2024-12-28-v3 - With COMPREHENSIVE malformed gradient protection');
         console.log('🎨 [NEWTAB] Applying newtab background...');
         console.log('🎨 [NEWTAB] Background type:', newtabBackgroundType);
         console.log('🎨 [NEWTAB] Current settings:', {
@@ -1203,6 +1209,41 @@
         
         // Set flag to protect our background from external changes
         window.newtabBackgroundActive = true;
+        
+        // UNIVERSAL MALFORMED GRADIENT PROTECTION
+        // Override body.style.background setter to intercept malformed gradients
+        const originalStyleSetter = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'style').set;
+        const originalBackgroundSetter = Object.getOwnPropertyDescriptor(CSSStyleDeclaration.prototype, 'background');
+        
+        // Temporarily override to catch malformed gradients
+        let overrideActive = false;
+        if (!overrideActive) {
+          overrideActive = true;
+          Object.defineProperty(document.body.style, 'background', {
+            set: function(value) {
+              if (typeof value === 'string' && (
+                  value.includes('linear-gradient(to right, #, a)') ||
+                  value.includes('linear-gradient(to right, #,') ||
+                  value.includes(', #, ') ||
+                  value.includes(', a)'))) {
+                console.error('🚨 [NEWTAB] INTERCEPTED malformed gradient:', value);
+                console.error('🚨 [NEWTAB] Replacing with safe gradient');
+                const safeGradient = 'linear-gradient(135deg, #667eea, #764ba2)';
+                originalBackgroundSetter.set.call(this, safeGradient);
+                return;
+              }
+              originalBackgroundSetter.set.call(this, value);
+            },
+            get: originalBackgroundSetter.get,
+            configurable: true
+          });
+          
+          // Reset override after 5 seconds
+          setTimeout(() => {
+            Object.defineProperty(document.body.style, 'background', originalBackgroundSetter);
+            overrideActive = false;
+          }, 5000);
+        }
 
         switch (newtabBackgroundType) {
           case 'theme':
