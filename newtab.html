@@ -3,6 +3,9 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
     <title>New Tab - Carbon</title>
     <script defer async>
       function setConfig() {
@@ -289,12 +292,11 @@
       }
       /* Theme & background switching */
       body {
-        background: var(--theme-gradient);
-        background-attachment: fixed;
+        /* Background is dynamically set by JavaScript - don't override here */
       }
     </style>
   </head>
-  <body class="font-inter bg-gradient-to-br from-base via-surface to-overlay min-h-screen text-text">
+  <body class="font-inter min-h-screen text-text">
     <div class="min-h-screen flex flex-col">
       <!-- Particles Canvas -->
       <canvas id="particles-canvas" class="fixed inset-0 pointer-events-none hidden"></canvas>
@@ -420,6 +422,69 @@
     </div>
 
     <script src="carbon-theme.js"></script>
+    <script>
+      // Immediately override carbon-theme.js background application for newtab
+      console.log('🎨 [NEWTAB] Setting up carbon-theme.js override protection...');
+      
+      // Method 1: Override as soon as possible  
+      let overrideInterval = setInterval(() => {
+        if (window.carbonTheme) {
+          console.log('🎨 [NEWTAB] Found carbonTheme, disabling all background functions...');
+          
+          // Override multiple potential background functions
+          if (window.carbonTheme.applyDynamicBackground) {
+            window.carbonTheme.applyDynamicBackground = function(theme, backgroundType) {
+              console.log('🎨 [NEWTAB] Blocked carbonTheme.applyDynamicBackground');
+              return false;
+            };
+          }
+          
+          if (window.carbonTheme.applyTheme) {
+            const originalApplyTheme = window.carbonTheme.applyTheme;
+            window.carbonTheme.applyTheme = function(themeName) {
+              console.log('🎨 [NEWTAB] Intercepting carbonTheme.applyTheme:', themeName);
+              // Call original but without background
+              originalApplyTheme.call(this, themeName);
+              // Immediately reapply our background
+              setTimeout(() => {
+                console.log('🎨 [NEWTAB] Reapplying newtab background after theme change');
+                applyNewtabBackground();
+              }, 100);
+            };
+          }
+          
+          console.log('🎨 [NEWTAB] Successfully disabled carbon-theme.js background override');
+          clearInterval(overrideInterval);
+        }
+      }, 50);
+      
+      // Method 2: Override body style changes
+      const originalSetProperty = CSSStyleDeclaration.prototype.setProperty;
+      document.body.style.setProperty = function(property, value, priority) {
+        if (property === 'background' && window.newtabBackgroundActive) {
+          console.log('🎨 [NEWTAB] Blocked external background change:', value);
+          return; // Block background changes when newtab background is active
+        }
+        return originalSetProperty.call(this, property, value, priority);
+      };
+      
+      // Clear override protection after 10 seconds
+      setTimeout(() => {
+        clearInterval(overrideInterval);
+      }, 10000);
+      
+      // Method 3: Periodic reapplication to combat theme system interference
+      setInterval(() => {
+        if (window.newtabBackgroundActive && newtabBackgroundType && newtabBackgroundType !== 'theme') {
+          const currentBg = document.body.style.background;
+          // Check if background was changed by external system
+          if (!currentBg || currentBg === 'var(--theme-gradient)' || currentBg.includes('linear-gradient(135deg, #191724')) {
+            console.log('🎨 [NEWTAB] Background was overridden by theme system, reapplying...');
+            applyNewtabBackground();
+          }
+        }
+      }, 3000); // Check every 3 seconds
+    </script>
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
@@ -449,6 +514,26 @@
       let bookmarks = JSON.parse(localStorage.getItem('carbon-bookmarks') || '[]');
       let currentUser = null;
       let currentBackground = localStorage.getItem('carbon-background-global') || 'gradient';
+      
+      // Newtab-specific background settings
+      let newtabBackgroundType = localStorage.getItem('carbon-newtab-bg-type') || 'theme';
+      let newtabImageUrl = localStorage.getItem('carbon-newtab-image-url') || '';
+      let newtabUnsplashCategory = localStorage.getItem('carbon-newtab-unsplash-category') || 'nature';
+      let newtabUnsplashFrequency = localStorage.getItem('carbon-newtab-unsplash-frequency') || 'daily';
+      let newtabGradientType = localStorage.getItem('carbon-newtab-gradient-type') || 'linear';
+      let newtabGradientDirection = localStorage.getItem('carbon-newtab-gradient-direction') || '135deg';
+      let newtabGradientColors = JSON.parse(localStorage.getItem('carbon-newtab-gradient-colors') || '[["#667eea", "#764ba2"]]');
+      
+      // Debug initial values
+      console.log('Initial newtab background settings:', {
+        newtabBackgroundType,
+        newtabImageUrl,
+        newtabUnsplashCategory,
+        newtabUnsplashFrequency,
+        newtabGradientType,
+        newtabGradientDirection,
+        newtabGradientColors
+      });
       
       // DOM Elements
       const searchInput = document.getElementById('search-input');
@@ -507,23 +592,122 @@
       }
 
       async function loadSettingsFromFirebase() {
-        if (!currentUser) return;
+        if (!currentUser) {
+          console.log('No current user, skipping Firebase settings load');
+          return Promise.resolve();
+        }
+        
         try {
+          console.log('Loading settings from Firebase for user:', currentUser.uid);
           const userSettingsDoc = await db.collection('users').doc(currentUser.uid).get();
+          
           if (userSettingsDoc.exists) {
             const userData = userSettingsDoc.data();
             const settings = userData.settings || {};
+            
+            console.log('Firebase settings loaded:', settings);
+            
+            // Load legacy background settings
             if (settings.background) {
               currentBackground = settings.background;
               localStorage.setItem('carbon-background-global', currentBackground);
+              console.log('Loaded background from Firebase:', currentBackground);
             }
             if (settings.customBackground) {
               localStorage.setItem('carbon-custom-bg-global', settings.customBackground);
+              console.log('Loaded custom background from Firebase');
             }
-            applyBackground();
+            
+            // Load newtab background settings
+            if (settings.newtabBackgroundType) {
+              newtabBackgroundType = settings.newtabBackgroundType;
+              localStorage.setItem('carbon-newtab-bg-type', newtabBackgroundType);
+              console.log('Loaded newtab background type from Firebase:', newtabBackgroundType);
+            }
+            if (settings.newtabImageUrl) {
+              newtabImageUrl = settings.newtabImageUrl;
+              localStorage.setItem('carbon-newtab-image-url', newtabImageUrl);
+            }
+            if (settings.newtabUnsplashCategory) {
+              newtabUnsplashCategory = settings.newtabUnsplashCategory;
+              localStorage.setItem('carbon-newtab-unsplash-category', newtabUnsplashCategory);
+            }
+            if (settings.newtabUnsplashFrequency) {
+              newtabUnsplashFrequency = settings.newtabUnsplashFrequency;
+              localStorage.setItem('carbon-newtab-unsplash-frequency', newtabUnsplashFrequency);
+            }
+            if (settings.newtabGradientType) {
+              newtabGradientType = settings.newtabGradientType;
+              localStorage.setItem('carbon-newtab-gradient-type', newtabGradientType);
+            }
+            if (settings.newtabGradientDirection) {
+              newtabGradientDirection = settings.newtabGradientDirection;
+              localStorage.setItem('carbon-newtab-gradient-direction', newtabGradientDirection);
+            }
+            if (settings.newtabGradientColors) {
+              newtabGradientColors = settings.newtabGradientColors;
+              localStorage.setItem('carbon-newtab-gradient-colors', JSON.stringify(newtabGradientColors));
+            }
+            
+            console.log('Updated newtab background settings from Firebase:', {
+              newtabBackgroundType,
+              newtabImageUrl,
+              newtabUnsplashCategory,
+              newtabUnsplashFrequency,
+              newtabGradientType,
+              newtabGradientDirection,
+              newtabGradientColors
+            });
+            
+            // Don't apply background here - it will be applied by the caller
+          } else {
+            console.log('No Firebase settings document found for user');
           }
         } catch (error) {
           console.error('Error loading settings from Firebase:', error);
+          throw error; // Re-throw to allow proper error handling
+        }
+      }
+
+      // Function to apply background after theme system is ready
+      function applyBackgroundWithDelay() {
+        // Wait for carbon-theme.js to finish, then apply our background
+        const applyWithThemeOverride = () => {
+          console.log('🎨 [NEWTAB] Applying background after theme system...');
+          applyBackground();
+          applyNewtabBackground();
+          backgroundApplied = true;
+          
+          // Disable carbon-theme.js background override for newtab
+          if (window.carbonTheme && typeof window.carbonTheme.applyDynamicBackground === 'function') {
+            const originalApplyDynamicBackground = window.carbonTheme.applyDynamicBackground;
+            window.carbonTheme.applyDynamicBackground = function(theme, backgroundType) {
+              console.log('🎨 [NEWTAB] Preventing carbon-theme.js background override');
+              // Don't apply carbon-theme background - let newtab handle it
+              return;
+            };
+            console.log('🎨 [NEWTAB] Disabled carbon-theme.js background override');
+          }
+        };
+        
+        if (window.carbonTheme) {
+          // Theme system is already loaded
+          setTimeout(applyWithThemeOverride, 100);
+        } else {
+          // Wait for theme system to load
+          let attempts = 0;
+          const checkThemeSystem = () => {
+            attempts++;
+            if (window.carbonTheme) {
+              setTimeout(applyWithThemeOverride, 100);
+            } else if (attempts < 50) { // Max 5 seconds
+              setTimeout(checkThemeSystem, 100);
+            } else {
+              console.log('🎨 [NEWTAB] Theme system timeout, applying background anyway');
+              applyWithThemeOverride();
+            }
+          };
+          checkThemeSystem();
         }
       }
 
@@ -532,7 +716,18 @@
         currentUser = user;
         if (user) {
           loadBookmarksFromFirebase();
-          loadSettingsFromFirebase();
+          loadSettingsFromFirebase()
+            .then(() => {
+              console.log('Settings loaded from Firebase, applying background...');
+              applyBackgroundWithDelay();
+            })
+            .catch((error) => {
+              console.error('Failed to load settings from Firebase, falling back to localStorage:', error);
+              applyBackgroundWithDelay();
+            });
+        } else {
+          console.log('No user authenticated, applying background from localStorage...');
+          applyBackgroundWithDelay();
         }
       });
 
@@ -540,7 +735,79 @@
       updateProxyUI();
       updateSearchEngineUI();
       renderBookmarks();
-      applyBackground();
+      
+      // Don't apply background here - wait for auth state to be determined
+      
+      // Fallback timer: apply background after 3 seconds if Firebase hasn't loaded yet
+      let backgroundApplied = false;
+      setTimeout(() => {
+        if (!backgroundApplied) {
+          console.log('Firebase taking too long, applying background from localStorage as fallback');
+          applyBackgroundWithDelay();
+        }
+      }, 3000);
+
+             // Listen for background changes via BroadcastChannel (for cross-tab communication)
+       if (typeof BroadcastChannel !== 'undefined') {
+         const channel = new BroadcastChannel('carbon-settings');
+         channel.addEventListener('message', (event) => {
+           console.log('📡 Received broadcast message:', event.data);
+           if (event.data && event.data.type === 'carbon-newtab-bg-updated') {
+             const settings = event.data.settings;
+             newtabBackgroundType = settings.type;
+             newtabImageUrl = settings.imageUrl;
+             newtabUnsplashCategory = settings.unsplashCategory;
+             newtabGradientType = settings.gradientType;
+             newtabGradientColors = settings.gradientColors;
+             
+             // Save to localStorage
+             localStorage.setItem('carbon-newtab-bg-type', newtabBackgroundType);
+             localStorage.setItem('carbon-newtab-image-url', newtabImageUrl);
+             localStorage.setItem('carbon-newtab-unsplash-category', newtabUnsplashCategory);
+             localStorage.setItem('carbon-newtab-gradient-type', newtabGradientType);
+             localStorage.setItem('carbon-newtab-gradient-colors', JSON.stringify(newtabGradientColors));
+             
+             console.log('🎨 Applying background from broadcast:', newtabBackgroundType);
+             applyNewtabBackground();
+           }
+         });
+         console.log('✅ BroadcastChannel listener setup complete');
+       } else {
+         console.log('❌ BroadcastChannel not supported');
+       }
+
+       // Debug message to confirm fixes loaded
+       console.log('%c✅ NEWTAB.HTML BACKGROUND FIX LOADED SUCCESSFULLY!', 'color: #00ff00; font-size: 16px; font-weight: bold;');
+       console.log('🕐 Loaded at:', new Date().toLocaleTimeString());
+       console.log('🎨 applyNewtabBackground function:', typeof applyNewtabBackground);
+       console.log('📡 BroadcastChannel support:', typeof BroadcastChannel !== 'undefined');
+
+      // Ensure background is applied after theme system is ready
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => {
+          setTimeout(() => {
+            applyBackground();
+            applyNewtabBackground();
+          }, 100);
+        });
+      } else {
+        // DOM is already loaded
+        setTimeout(() => {
+          applyBackground();
+          applyNewtabBackground();
+        }, 100);
+      }
+
+      // Also apply background when theme system is loaded
+      if (window.carbonTheme && window.carbonTheme.isReady) {
+        applyBackground();
+        applyNewtabBackground();
+      } else {
+        setTimeout(() => {
+          applyBackground();
+          applyNewtabBackground();
+        }, 200);
+      }
 
       // Listen for theme and background changes from settings page
       window.addEventListener('storage', (event) => {
@@ -924,29 +1191,241 @@
         const body = document.body;
         const baseColor = getComputedStyle(document.documentElement).getPropertyValue('--theme-base').trim();
         particlesCanvas.classList.add('hidden');
-        const customBg = localStorage.getItem('carbon-custom-bg-global');
-        if (customBg) {
-          body.style.background = `url(${customBg}) center/cover fixed`;
-        } else {
-          switch (currentBackground) {
-            case 'solid':
-              body.style.background = baseColor;
-              break;
-            case 'pattern':
-              body.style.background = `${baseColor} url('data:image/svg+xml,<svg width="20" height="20" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><circle cx="10" cy="10" r="2" fill="%23ffffff" fill-opacity="0.2"/></svg>') repeat`;
-              break;
-            case 'particles':
-              body.style.background = baseColor;
-              particlesCanvas.classList.remove('hidden');
-              initParticles();
-              break;
-            case 'gradient':
-            default:
-              body.style.background = 'var(--theme-gradient)';
-              break;
-          }
-          body.style.backgroundAttachment = currentBackground === 'pattern' ? '' : 'fixed';
+        
+        // CACHE BUSTING DEBUG - This should show updated timestamp if new code is loaded
+        console.log('🚀 [NEWTAB] UPDATED CODE LOADED - Timestamp:', new Date().toLocaleTimeString());
+        console.log('🔧 [NEWTAB] CODE VERSION: 2024-12-28-v3 - With COMPREHENSIVE malformed gradient protection');
+        console.log('🎨 [NEWTAB] Applying newtab background...');
+        console.log('🎨 [NEWTAB] Background type:', newtabBackgroundType);
+        console.log('🎨 [NEWTAB] Current settings:', {
+          newtabBackgroundType,
+          newtabImageUrl,
+          newtabUnsplashCategory,
+          newtabGradientType,
+          newtabGradientDirection,
+          newtabGradientColors,
+          currentBackground
+        });
+        
+        // Set flag to protect our background from external changes
+        window.newtabBackgroundActive = true;
+        
+        // UNIVERSAL MALFORMED GRADIENT PROTECTION
+        // Override body.style.background setter to intercept malformed gradients
+        const originalStyleSetter = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'style').set;
+        const originalBackgroundSetter = Object.getOwnPropertyDescriptor(CSSStyleDeclaration.prototype, 'background');
+        
+        // Temporarily override to catch malformed gradients
+        let overrideActive = false;
+        if (!overrideActive) {
+          overrideActive = true;
+          Object.defineProperty(document.body.style, 'background', {
+            set: function(value) {
+              if (typeof value === 'string' && (
+                  value.includes('linear-gradient(to right, #, a)') ||
+                  value.includes('linear-gradient(to right, #,') ||
+                  value.includes(', #, ') ||
+                  value.includes(', a)'))) {
+                console.error('🚨 [NEWTAB] INTERCEPTED malformed gradient:', value);
+                console.error('🚨 [NEWTAB] Replacing with safe gradient');
+                const safeGradient = 'linear-gradient(135deg, #667eea, #764ba2)';
+                originalBackgroundSetter.set.call(this, safeGradient);
+                return;
+              }
+              originalBackgroundSetter.set.call(this, value);
+            },
+            get: originalBackgroundSetter.get,
+            configurable: true
+          });
+          
+          // Reset override after 5 seconds
+          setTimeout(() => {
+            Object.defineProperty(document.body.style, 'background', originalBackgroundSetter);
+            overrideActive = false;
+          }, 5000);
         }
+
+        switch (newtabBackgroundType) {
+          case 'theme':
+            console.log('🎨 [NEWTAB] Applying theme-based background...');
+            // Use theme gradient or legacy background system
+            const customBg = localStorage.getItem('carbon-custom-bg-global');
+            if (customBg) {
+              console.log('🎨 [NEWTAB] Using custom background image:', customBg);
+              body.style.background = `url(${customBg}) center/cover fixed`;
+              body.style.backgroundAttachment = 'fixed';
+            } else {
+              const baseColor = getComputedStyle(document.documentElement).getPropertyValue('--theme-base').trim();
+              console.log('🎨 [NEWTAB] Using legacy background system, type:', currentBackground, 'base color:', baseColor);
+              switch (currentBackground) {
+                case 'solid':
+                  console.log('🎨 [NEWTAB] Applied solid background:', baseColor);
+                  body.style.background = baseColor;
+                  body.style.backgroundAttachment = 'fixed';
+                  break;
+                case 'pattern':
+                  console.log('🎨 [NEWTAB] Applied pattern background');
+                  body.style.background = `${baseColor} url('data:image/svg+xml,<svg width="20" height="20" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><circle cx="10" cy="10" r="2" fill="%23ffffff" fill-opacity="0.2"/></svg>') repeat`;
+                  body.style.backgroundAttachment = '';
+                  break;
+                case 'particles':
+                  console.log('🎨 [NEWTAB] Applied particles background');
+                  body.style.background = baseColor;
+                  body.style.backgroundAttachment = 'fixed';
+                  particlesCanvas.classList.remove('hidden');
+                  initParticles();
+                  break;
+                case 'gradient':
+                default:
+                  console.log('🎨 [NEWTAB] Applied theme gradient background');
+                  body.style.background = 'var(--theme-gradient)';
+                  body.style.backgroundAttachment = 'fixed';
+                  break;
+              }
+            }
+            break;
+            
+          case 'image':
+            console.log('🎨 [NEWTAB] Applying custom image background...');
+            if (newtabImageUrl) {
+              console.log('🎨 [NEWTAB] Using image URL:', newtabImageUrl);
+              body.style.background = `url(${newtabImageUrl}) center/cover fixed`;
+              body.style.backgroundAttachment = 'fixed';
+            } else {
+              console.log('🎨 [NEWTAB] No image URL found, falling back to theme gradient');
+              body.style.background = 'var(--theme-gradient)';
+              body.style.backgroundAttachment = 'fixed';
+            }
+            break;
+            
+          case 'unsplash':
+            console.log('🎨 [NEWTAB] Applying Unsplash background...');
+            // Use unsplash image with category
+            const unsplashUrl = `https://source.unsplash.com/1920x1080/?${newtabUnsplashCategory}`;
+            console.log('🎨 [NEWTAB] Unsplash URL:', unsplashUrl, 'Category:', newtabUnsplashCategory);
+            body.style.background = `url(${unsplashUrl}) center/cover fixed`;
+            body.style.backgroundAttachment = 'fixed';
+            break;
+            
+          case 'gradient':
+            console.log('🎨 [NEWTAB] Applying custom gradient background...');
+            console.log('🔍 [NEWTAB] TRACE: Reached gradient case, starting validation...');
+            console.log('🎨 [NEWTAB] Gradient data debug:', {
+              newtabGradientColors,
+              newtabGradientType,
+              newtabGradientDirection,
+              firstColorSet: newtabGradientColors && newtabGradientColors[0],
+              isArray: Array.isArray(newtabGradientColors),
+              length: newtabGradientColors ? newtabGradientColors.length : 0
+            });
+            
+            if (newtabGradientColors && newtabGradientColors.length > 0) {
+              let colors = newtabGradientColors[0]; // Use first gradient set
+              console.log('🎨 [NEWTAB] First color set debug:', colors, 'Type:', typeof colors, 'IsArray:', Array.isArray(colors));
+              
+              // Handle different possible gradient color formats
+              if (!colors || !Array.isArray(colors)) {
+                console.log('🎨 [NEWTAB] Colors not nested array, using direct array');
+                colors = newtabGradientColors; // Maybe it's not nested
+              }
+              
+              console.log('🎨 [NEWTAB] Final colors array:', colors, 'Length:', colors ? colors.length : 0);
+              
+              if (colors && Array.isArray(colors) && colors.length >= 2) {
+                // Ensure colors are valid hex/rgb values
+                const color1 = colors[0] && colors[0].toString().trim();
+                const color2 = colors[1] && colors[1].toString().trim();
+                
+                console.log('🎨 [NEWTAB] Color validation debug:', {
+                  color1: color1,
+                  color2: color2,
+                  color1Type: typeof color1,
+                  color2Type: typeof color2,
+                  color1Length: color1 ? color1.length : 0,
+                  color2Length: color2 ? color2.length : 0,
+                  rawColors: colors
+                });
+                
+                // More robust color validation
+                const isValidColor = (color) => {
+                  if (!color || color === '' || color === '#' || color === 'a' || color.length <= 1) return false;
+                  // Check if it's a valid hex color or color name
+                  return /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(color) || 
+                         /^rgb\(/.test(color) || /^rgba\(/.test(color) || 
+                         /^hsl\(/.test(color) || /^hsla\(/.test(color) ||
+                         ['red', 'blue', 'green', 'yellow', 'purple', 'orange', 'pink', 'cyan'].includes(color.toLowerCase());
+                };
+                
+                if (isValidColor(color1) && isValidColor(color2)) {
+                  // Fix gradient direction - convert named directions to degrees if needed
+                  let direction = newtabGradientDirection || '135deg';
+                  if (direction === 'to right') direction = '90deg';
+                  if (direction === 'to left') direction = '270deg';
+                  if (direction === 'to bottom') direction = '180deg';
+                  if (direction === 'to top') direction = '0deg';
+                  
+                  const gradientPrefix = newtabGradientType === 'radial' ? 'radial-gradient(circle,' : `linear-gradient(${direction},`;
+                  const gradientStyle = `${gradientPrefix} ${color1}, ${color2})`;
+                  
+                  // SAFETY CHECK: Prevent malformed gradients from being applied
+                  if (gradientStyle.includes('#,') || gradientStyle.includes('a)') || gradientStyle.includes(', #') || gradientStyle.includes(', a')) {
+                    console.error('🚨 [NEWTAB] BLOCKED malformed gradient:', gradientStyle);
+                    console.error('🚨 [NEWTAB] Raw colors were:', {color1, color2, colors});
+                    // Apply default gradient instead
+                    const safeGradient = 'linear-gradient(135deg, #667eea, #764ba2)';
+                    console.log('🎨 [NEWTAB] Applied safe default gradient:', safeGradient);
+                    body.style.background = safeGradient;
+                    body.style.backgroundAttachment = 'fixed';
+                    return; // Exit early
+                  }
+                  
+                  console.log('🎨 [NEWTAB] Applied custom gradient:', gradientStyle);
+                  console.log('🎨 [NEWTAB] Colors used:', color1, 'to', color2);
+                  
+                  // Temporarily disable protection to apply our own background
+                  window.newtabBackgroundActive = false;
+                  body.style.background = gradientStyle;
+                  body.style.backgroundAttachment = 'fixed';
+                  // Re-enable protection after applying
+                  setTimeout(() => { window.newtabBackgroundActive = true; }, 100);
+                              } else {
+                console.log('🎨 [NEWTAB] Invalid color values, using default gradient colors. Invalid colors:', color1, color2);
+                // Use default gradient colors instead of theme gradient
+                const defaultColors = ['#667eea', '#764ba2'];
+                let direction = newtabGradientDirection || '135deg';
+                if (direction === 'to right') direction = '90deg';
+                if (direction === 'to left') direction = '270deg';
+                if (direction === 'to bottom') direction = '180deg';
+                if (direction === 'to top') direction = '0deg';
+                
+                const gradientPrefix = newtabGradientType === 'radial' ? 'radial-gradient(circle,' : `linear-gradient(${direction},`;
+                const defaultGradientStyle = `${gradientPrefix} ${defaultColors[0]}, ${defaultColors[1]})`;
+                
+                                 console.log('🎨 [NEWTAB] Applied default gradient:', defaultGradientStyle);
+                 // Temporarily disable protection to apply our own background
+                 window.newtabBackgroundActive = false;
+                 body.style.background = defaultGradientStyle;
+                 body.style.backgroundAttachment = 'fixed';
+                 // Re-enable protection after applying
+                 setTimeout(() => { window.newtabBackgroundActive = true; }, 100);
+              }
+              } else {
+                console.log('🎨 [NEWTAB] Invalid gradient colors array, falling back to theme gradient. Colors:', colors);
+                body.style.background = 'var(--theme-gradient)';
+                body.style.backgroundAttachment = 'fixed';
+              }
+            } else {
+              console.log('🎨 [NEWTAB] No gradient colors defined, falling back to theme gradient');
+              body.style.background = 'var(--theme-gradient)';
+              body.style.backgroundAttachment = 'fixed';
+            }
+            break;
+            
+          default:
+            console.log('🎨 [NEWTAB] Unknown background type, applying theme gradient as default');
+            body.style.background = 'var(--theme-gradient)';
+            body.style.backgroundAttachment = 'fixed';
+            break;
       }
 
       function initParticles() {
