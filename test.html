@@ -60,7 +60,6 @@
           };
           
           Object.assign(window.tailwind.config.theme.extend.colors, colorMap);
-          console.log('🎨 Updated Tailwind config with theme colors');
         }
       }
     </script>
@@ -88,9 +87,7 @@
     <script>
       // Ensure Firebase is loaded before initialization
       window.addEventListener('load', function() {
-        if (typeof firebase !== 'undefined') {
-          console.log('✅ Firebase SDK loaded successfully');
-        } else {
+        if (typeof firebase === 'undefined') {
           console.error('❌ Firebase SDK failed to load');
         }
       });
@@ -962,13 +959,6 @@
                       <i class="bx bx-movie text-rose"></i>
                       <span>Movies</span>
                     </button>
-                    <button
-                      id="carbon-movies-btn"
-                      class="menu-item"
-                    >
-                      <i class="bx bx-movie text-rose"></i>
-                      <span>Movies</span>
-                    </button>
 
                     <!-- Settings -->
                     <div class="menu-section-header">
@@ -1405,23 +1395,16 @@
       const redirectBtn = document.getElementById("redirect-btn");
       
       function redirectToCarbonWebsite() {
-        console.log("🔄 Redirect button clicked!");
-        
         const tab = getActiveTab();
         if (!tab) {
-          console.log("❌ No active tab found");
           return;
         }
         
         const currentUrl = tab.history[tab.pointer] || "";
-        console.log("🔍 Current URL:", currentUrl);
-        console.log("🔍 Tab pointer:", tab.pointer);
-        console.log("🔍 Tab history:", tab.history);
         
         // Check if current URL is a carbon:// URL
         if (currentUrl.startsWith("carbon://")) {
           const carbonPath = currentUrl.replace("carbon://", "");
-          console.log("🎯 Carbon path detected:", carbonPath);
           
           let redirectUrl = "https://carbon-git-cursor-align-authentication-64a676-cyabanzs-projects.vercel.app/";
           
@@ -1460,13 +1443,10 @@
               break;
           }
           
-          console.log("🚀 Redirecting to:", redirectUrl);
-          
           // Navigate to the redirect URL in a new tab
           const newTab = createTab(redirectUrl);
           setActiveTab(newTab.id);
         } else {
-          console.log("ℹ️ Not a carbon:// URL, redirecting to main website");
           // If not a carbon:// URL, just go to the main website
           const newTab = createTab("https://carbon-git-cursor-align-authentication-64a676-cyabanzs-projects.vercel.app/");
           setActiveTab(newTab.id);
@@ -1927,7 +1907,7 @@
                 // Conditionally load vertical-newtab.html for vertical tabs mode
                 if (verticalTabsMode) {
                   iframe.src = "/vertical-newtab.html";
-                  console.log('🔄 Loading vertical new tab layout');
+          
                 } else {
                   iframe.src = "/newtab.html";
                 }
@@ -2264,7 +2244,7 @@
             lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
           }, { merge: true });
           
-          console.log('Enhanced data synced to Firebase successfully');
+
         } catch (error) {
           console.error('Error syncing data to Firebase:', error);
         }
@@ -2375,7 +2355,7 @@
             saveTabsData();
             applyAllSettings();
             
-            console.log('All data restored from Firebase successfully');
+  
           }
         } catch (error) {
           console.error('Error restoring data from Firebase:', error);
@@ -2660,7 +2640,7 @@
       setTimeout(() => {
         const currentTab = tabs.find(t => t.id === activeTab);
         if (currentTab && currentTab.history[currentTab.pointer] === 'carbon://newtab') {
-          console.log('🔄 Refreshing newtab to switch layout mode');
+  
           renderTabContent(currentTab, true);
         }
       }, 300);
@@ -3201,17 +3181,6 @@
         dropdown.classList.add("hidden");
       };
 
-      document.getElementById("carbon-movies-btn").onclick = function () {
-        const tab = getActiveTab();
-        if (tab) {
-          updateTabHistory(tab, "carbon://movies");
-          updateAddressBar(tab);
-          renderTabs();
-          renderTabContent(tab);
-        }
-        dropdown.classList.add("hidden");
-      };
-
       document.getElementById("wisp-btn").onclick = function () {
         const tab = getActiveTab();
         if (tab) {
@@ -3501,11 +3470,10 @@
       document.addEventListener("keydown", (e) => {
         // PANIC KEY - Check this FIRST before any other shortcuts
         if (panicKey && panicKey.trim() !== '') {
-          console.log('🔑 Key pressed:', e.key.toLowerCase(), 'Panic key set to:', panicKey);
+  
           if (e.key.toLowerCase() === panicKey.toLowerCase()) {
             const panicUrl = localStorage.getItem('carbon-panic-url') || 'https://classroom.google.com';
-            console.log('🚨🚨🚨 PANIC KEY TRIGGERED! 🚨🚨🚨');
-            console.log('Redirecting to:', panicUrl);
+            
             e.preventDefault();
             e.stopPropagation();
             e.stopImmediatePropagation();
@@ -3517,7 +3485,7 @@
             try {
               window.top.location.href = panicUrl;
             } catch (error) {
-              console.log('Top location failed, using window.location');
+              
               window.location.href = panicUrl;
             }
             return false;
@@ -3525,7 +3493,7 @@
         } else {
           // Only log occasionally to avoid spam
           if (Math.random() < 0.01) {
-            console.log('⚠️ Panic key not set or empty. Current value:', panicKey);
+
           }
         }
         
@@ -3628,24 +3596,22 @@
           // Check if Firebase is already initialized
           if (!firebase.apps.length) {
             firebase.initializeApp(firebaseConfig);
-            console.log('✅ Firebase initialized successfully');
+    
           } else {
-            console.log('✅ Firebase already initialized');
+
           }
           
           auth = firebase.auth();
           db = firebase.firestore();
-          console.log('✅ Firebase services initialized');
+          
           
           // Set up auth state listener
           auth.onAuthStateChanged(function(user) {
             currentUser = user;
-            if (user) {
-              console.log('👤 User signed in:', user.email);
-              loadSettingsFromFirebase();
-            } else {
-              console.log('👤 User signed out, using local settings...');
-              loadLocalSettings();
+                          if (user) {
+                loadSettingsFromFirebase();
+              } else {
+                loadLocalSettings();
             }
           });
           
@@ -3722,31 +3688,16 @@
       
       // Load settings from localStorage (fallback)
       function loadLocalSettings() {
-        // Debug: Log all localStorage values
-        console.log('🔍 Debugging localStorage values:');
-        console.log('carbon-panic-key:', localStorage.getItem('carbon-panic-key'));
-        console.log('carbon-cloak-enabled:', localStorage.getItem('carbon-cloak-enabled'));
-        console.log('carbon-cloak-title:', localStorage.getItem('carbon-cloak-title'));
-        console.log('carbon-cloak-favicon:', localStorage.getItem('carbon-cloak-favicon'));
-        
         panicKey = localStorage.getItem('carbon-panic-key') || null;
         tabCloakingEnabled = localStorage.getItem('carbon-cloak-enabled') === 'true';
         cloakTitle = localStorage.getItem('carbon-cloak-title') || '';
         cloakFavicon = localStorage.getItem('carbon-cloak-favicon') || '';
-        
-        console.log('📚 Settings loaded from localStorage:', {
-          panicKey: panicKey,
-          cloakingEnabled: tabCloakingEnabled,
-          cloakTitle: cloakTitle,
-          cloakFavicon: cloakFavicon
-        });
         
         applyAllSettings();
       }
       
       // Apply all settings
       function applyAllSettings() {
-        console.log('🔧 Applying all settings...');
         applyTabCloaking();
         applyTeacherPrevention();
         applyClosePrevention();
@@ -3775,83 +3726,16 @@
         }
       }
       
-      // Manual reload function for debugging
-      window.reloadSettings = function() {
-        console.log('🔄 Manually reloading settings...');
-        loadLocalSettings();
-        if (currentUser) {
-          loadSettingsFromFirebase();
-        }
-      };
+
       
-      // Debug functions for testing
-      window.testPanicKey = function() {
-        console.log('🧪 Testing panic key. Current panic key:', panicKey);
-        console.log('💾 localStorage panic key:', localStorage.getItem('carbon-panic-key'));
-        if (panicKey) {
-          console.log('✅ Panic key is set. Try pressing:', panicKey);
-        } else {
-          console.log('❌ No panic key set. Set one in settings first.');
-        }
-      };
+
       
-      window.testTabCloaking = function() {
-        console.log('🧪 Testing tab cloaking:');
-        console.log('Enabled:', tabCloakingEnabled);
-        console.log('Title:', cloakTitle);
-        console.log('Favicon:', cloakFavicon);
-        console.log('Current document title:', document.title);
-        if (tabCloakingEnabled && cloakTitle) {
-          console.log('✅ Tab cloaking should be active');
-        } else {
-          console.log('❌ Tab cloaking not active. Enable in settings first.');
-        }
-      };
-      
-      // Manual trigger for testing
-      window.manualTabCloak = function(title, favicon) {
-        console.log('🎭 Manually triggering tab cloaking...');
-        tabCloakingEnabled = true;
-        cloakTitle = title || 'Google Classroom';
-        cloakFavicon = favicon || 'https://ssl.gstatic.com/classroom/favicon.png';
-        
-        localStorage.setItem('carbon-cloak-enabled', 'true');
-        localStorage.setItem('carbon-cloak-title', cloakTitle);
-        localStorage.setItem('carbon-cloak-favicon', cloakFavicon);
-        
-        applyTabCloaking();
-        console.log('✅ Manual tab cloaking applied');
-      };
-      
-      // Theme testing functions
-      window.testThemeSystem = function() {
-        console.log('🧪 Testing theme system:');
-        console.log('Theme system available:', !!window.carbonTheme);
-        if (window.carbonTheme) {
-          console.log('Current theme:', window.carbonTheme.getCurrentTheme());
-          console.log('Available themes:', Object.keys(window.carbonTheme.getAllThemes()));
-          console.log('Custom themes:', Object.keys(window.carbonTheme.customThemes));
-        }
-        console.log('Saved theme in localStorage:', localStorage.getItem('carbon-theme-global'));
-      };
-      
-      window.manualThemeChange = function(themeName) {
-        console.log('🎨 Manually changing theme to:', themeName);
-        if (window.carbonTheme) {
-          window.carbonTheme.applyTheme(themeName);
-          console.log('✅ Theme applied successfully');
-        } else {
-          console.log('❌ Theme system not available');
-        }
-      };
-      
-      // Check settings every 5 seconds to ensure they're loaded
+      // Periodically check if settings need to be reloaded
       setInterval(() => {
         if (!panicKey && !tabCloakingEnabled) {
           const storedPanicKey = localStorage.getItem('carbon-panic-key');
           const storedCloaking = localStorage.getItem('carbon-cloak-enabled');
           if (storedPanicKey || storedCloaking === 'true') {
-            console.log('🔄 Settings found in localStorage but not loaded. Reloading...');
             loadLocalSettings();
           }
         }
@@ -3859,40 +3743,16 @@
       
       // Tab cloaking functionality
       function applyTabCloaking() {
-        console.log('🎭 Applying tab cloaking with values:', {
-          enabled: tabCloakingEnabled,
-          enabledType: typeof tabCloakingEnabled,
-          title: cloakTitle,
-          titleType: typeof cloakTitle,
-          titleLength: cloakTitle ? cloakTitle.length : 0,
-          favicon: cloakFavicon,
-          faviconType: typeof cloakFavicon
-        });
-        
-        // More robust checking
         const isEnabled = (tabCloakingEnabled === true || tabCloakingEnabled === 'true');
         const hasTitle = cloakTitle && cloakTitle.trim() !== '';
         
-        console.log('🔍 Cloaking checks:', {
-          isEnabled: isEnabled,
-          hasTitle: hasTitle,
-          willApplyCloak: isEnabled && hasTitle
-        });
-        
         if (isEnabled && hasTitle) {
-          // Change the document title immediately
-          const newTitle = cloakTitle.trim();
-          document.title = newTitle;
-          console.log('✅ Document title changed from CARBON to:', document.title);
+          document.title = cloakTitle.trim();
           
           if (cloakFavicon && cloakFavicon.trim() !== '') {
             // Remove existing favicon links
             const existingLinks = document.querySelectorAll("link[rel*='icon']");
-            console.log('🗑️ Removing', existingLinks.length, 'existing favicon links');
-            existingLinks.forEach(link => {
-              console.log('🗑️ Removing favicon:', link.href);
-              link.remove();
-            });
+            existingLinks.forEach(link => link.remove());
             
             // Add new favicon with multiple formats for better compatibility
             const timestamp = new Date().getTime();
@@ -3917,13 +3777,8 @@
             appleLink.rel = 'apple-touch-icon';
             appleLink.href = faviconUrl + '?v=' + timestamp;
             document.head.appendChild(appleLink);
-            
-            console.log('✅ Added new favicon links for:', faviconUrl);
-          } else {
-            console.log('⚠️ No favicon URL provided or empty');
           }
         } else {
-          console.log('❌ Tab cloaking not applied - Enabled:', isEnabled, 'Has title:', hasTitle);
           document.title = 'CARBON';
           // Reset to default favicon if not cloaking
           const existingLinks = document.querySelectorAll("link[rel*='icon']");
@@ -4074,18 +3929,17 @@
       // Listen for settings changes from settings page
       window.addEventListener('message', (event) => {
         if (event.data && event.data.type === 'carbon-settings-updated') {
-          console.log('📨 Received settings update - Full data:', JSON.stringify(event.data, null, 2));
-          console.log('📨 Settings object:', JSON.stringify(event.data.settings, null, 2));
+
           
           const settings = event.data.settings;
           
           // Parse panic key
           panicKey = settings.panicKey || null;
-          console.log('🔑 Parsed panic key:', panicKey);
+          
           
           if (settings.panicUrl) {
             localStorage.setItem('carbon-panic-url', settings.panicUrl);
-            console.log('🔗 Set panic URL:', settings.panicUrl);
+            
           }
           
           // Parse tab cloaking - try multiple possible structures
@@ -4164,18 +4018,11 @@
             localStorage.setItem('carbon-custom-bg-global', settings.customBackground);
           }
           
-          console.log('✅ Final parsed settings:', {
-            panicKey: panicKey,
-            tabCloakingEnabled: tabCloakingEnabled,
-            cloakTitle: cloakTitle,
-            cloakFavicon: cloakFavicon,
-            theme: settings.theme,
-            background: settings.background
-          });
+
           
           applyAllSettings();
         } else if (event.data && event.data.type === 'carbon-settings-refresh') {
-          console.log('Refreshing settings from Firebase/localStorage');
+
           // Reload settings when settings page saves
           if (currentUser) {
             loadSettingsFromFirebase();
@@ -6234,7 +6081,7 @@
            return;
          }
          
-         console.log('Starting multiplayer game:', gameType, 'for user:', currentUser.uid);
+         
          
          closeShop();
          createGameLobby(gameType);
@@ -6267,11 +6114,7 @@
              console.log('Board length:', gameRoom.gameState.board.length);
              
              // Test helper functions
-             console.log('Testing Connect 4 helpers:');
-             console.log('Position (0,0) index:', getConnect4Index(0, 0), 'should be 0');
-             console.log('Position (5,6) index:', getConnect4Index(5, 6), 'should be 41');
-             console.log('Index 0 coords:', getConnect4RowCol(0), 'should be {row:0, col:0}');
-             console.log('Index 41 coords:', getConnect4RowCol(41), 'should be {row:5, col:6}');
+             
            }
 
           const docRef = await db.collection('game-rooms').add(gameRoom);
@@ -7424,11 +7267,11 @@
       else loadTabsData();
       
       // Initialize settings immediately - try both methods to ensure we get settings
-      console.log('🚀 Initializing settings on page load...');
+      
       loadLocalSettings(); // Load localStorage first for immediate effect
       
       // Initialize theme system with better error handling
-      console.log('🎨 Initializing theme system...');
+      
       setTimeout(initializeThemeSystem, 500); // Give more time for carbon-theme.js to load
       
       // Also load from Firebase if user is authenticated
@@ -8060,10 +7903,7 @@
          }, 1000);
 
          // Debug message to confirm fixes loaded
-         console.log('%c✅ TEST.HTML BACKGROUND FIX LOADED SUCCESSFULLY!', 'color: #00ff00; font-size: 16px; font-weight: bold;');
-         console.log('🕐 Loaded at:', new Date().toLocaleTimeString());
-         console.log('🔧 saveNewtabBackgroundSettings function:', typeof saveNewtabBackgroundSettings);
-         console.log('📡 BroadcastChannel support:', typeof BroadcastChannel !== 'undefined');
+         
 
     </script>
   </body>
