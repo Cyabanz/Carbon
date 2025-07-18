@@ -60,7 +60,6 @@
           };
           
           Object.assign(window.tailwind.config.theme.extend.colors, colorMap);
-          console.log('🎨 Updated Tailwind config with theme colors');
         }
       }
     </script>
@@ -88,9 +87,7 @@
     <script>
       // Ensure Firebase is loaded before initialization
       window.addEventListener('load', function() {
-        if (typeof firebase !== 'undefined') {
-          console.log('✅ Firebase SDK loaded successfully');
-        } else {
+        if (typeof firebase === 'undefined') {
           console.error('❌ Firebase SDK failed to load');
         }
       });
@@ -962,13 +959,6 @@
                       <i class="bx bx-movie text-rose"></i>
                       <span>Movies</span>
                     </button>
-                    <button
-                      id="carbon-movies-btn"
-                      class="menu-item"
-                    >
-                      <i class="bx bx-movie text-rose"></i>
-                      <span>Movies</span>
-                    </button>
 
                     <!-- Settings -->
                     <div class="menu-section-header">
@@ -1405,23 +1395,16 @@
       const redirectBtn = document.getElementById("redirect-btn");
       
       function redirectToCarbonWebsite() {
-        console.log("🔄 Redirect button clicked!");
-        
         const tab = getActiveTab();
         if (!tab) {
-          console.log("❌ No active tab found");
           return;
         }
         
         const currentUrl = tab.history[tab.pointer] || "";
-        console.log("🔍 Current URL:", currentUrl);
-        console.log("🔍 Tab pointer:", tab.pointer);
-        console.log("🔍 Tab history:", tab.history);
         
         // Check if current URL is a carbon:// URL
         if (currentUrl.startsWith("carbon://")) {
           const carbonPath = currentUrl.replace("carbon://", "");
-          console.log("🎯 Carbon path detected:", carbonPath);
           
           let redirectUrl = "https://carbon-git-cursor-align-authentication-64a676-cyabanzs-projects.vercel.app/";
           
@@ -1460,13 +1443,10 @@
               break;
           }
           
-          console.log("🚀 Redirecting to:", redirectUrl);
-          
           // Navigate to the redirect URL in a new tab
           const newTab = createTab(redirectUrl);
           setActiveTab(newTab.id);
         } else {
-          console.log("ℹ️ Not a carbon:// URL, redirecting to main website");
           // If not a carbon:// URL, just go to the main website
           const newTab = createTab("https://carbon-git-cursor-align-authentication-64a676-cyabanzs-projects.vercel.app/");
           setActiveTab(newTab.id);
@@ -1927,7 +1907,7 @@
                 // Conditionally load vertical-newtab.html for vertical tabs mode
                 if (verticalTabsMode) {
                   iframe.src = "/vertical-newtab.html";
-                  console.log('🔄 Loading vertical new tab layout');
+          
                 } else {
                   iframe.src = "/newtab.html";
                 }
@@ -2264,7 +2244,7 @@
             lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
           }, { merge: true });
           
-          console.log('Enhanced data synced to Firebase successfully');
+
         } catch (error) {
           console.error('Error syncing data to Firebase:', error);
         }
@@ -2375,7 +2355,7 @@
             saveTabsData();
             applyAllSettings();
             
-            console.log('All data restored from Firebase successfully');
+  
           }
         } catch (error) {
           console.error('Error restoring data from Firebase:', error);
@@ -2660,7 +2640,7 @@
       setTimeout(() => {
         const currentTab = tabs.find(t => t.id === activeTab);
         if (currentTab && currentTab.history[currentTab.pointer] === 'carbon://newtab') {
-          console.log('🔄 Refreshing newtab to switch layout mode');
+  
           renderTabContent(currentTab, true);
         }
       }, 300);
@@ -3201,17 +3181,6 @@
         dropdown.classList.add("hidden");
       };
 
-      document.getElementById("carbon-movies-btn").onclick = function () {
-        const tab = getActiveTab();
-        if (tab) {
-          updateTabHistory(tab, "carbon://movies");
-          updateAddressBar(tab);
-          renderTabs();
-          renderTabContent(tab);
-        }
-        dropdown.classList.add("hidden");
-      };
-
       document.getElementById("wisp-btn").onclick = function () {
         const tab = getActiveTab();
         if (tab) {
@@ -3501,11 +3470,10 @@
       document.addEventListener("keydown", (e) => {
         // PANIC KEY - Check this FIRST before any other shortcuts
         if (panicKey && panicKey.trim() !== '') {
-          console.log('🔑 Key pressed:', e.key.toLowerCase(), 'Panic key set to:', panicKey);
+  
           if (e.key.toLowerCase() === panicKey.toLowerCase()) {
             const panicUrl = localStorage.getItem('carbon-panic-url') || 'https://classroom.google.com';
-            console.log('🚨🚨🚨 PANIC KEY TRIGGERED! 🚨🚨🚨');
-            console.log('Redirecting to:', panicUrl);
+            
             e.preventDefault();
             e.stopPropagation();
             e.stopImmediatePropagation();
@@ -3517,7 +3485,7 @@
             try {
               window.top.location.href = panicUrl;
             } catch (error) {
-              console.log('Top location failed, using window.location');
+              
               window.location.href = panicUrl;
             }
             return false;
@@ -3525,7 +3493,7 @@
         } else {
           // Only log occasionally to avoid spam
           if (Math.random() < 0.01) {
-            console.log('⚠️ Panic key not set or empty. Current value:', panicKey);
+
           }
         }
         
@@ -3628,26 +3596,28 @@
           // Check if Firebase is already initialized
           if (!firebase.apps.length) {
             firebase.initializeApp(firebaseConfig);
-            console.log('✅ Firebase initialized successfully');
+    
           } else {
-            console.log('✅ Firebase already initialized');
+
           }
           
           auth = firebase.auth();
           db = firebase.firestore();
-          console.log('✅ Firebase services initialized');
+          
           
           // Set up auth state listener
-          auth.onAuthStateChanged(function(user) {
-            currentUser = user;
-            if (user) {
-              console.log('👤 User signed in:', user.email);
-              loadSettingsFromFirebase();
-            } else {
-              console.log('👤 User signed out, using local settings...');
-              loadLocalSettings();
-            }
-          });
+                      auth.onAuthStateChanged(function(user) {
+              currentUser = user;
+              if (user) {
+                loadSettingsFromFirebase();
+                loadShopDataFromFirebase().catch(error => {
+                  console.error('Error loading shop data:', error);
+                });
+              } else {
+                loadLocalSettings();
+                loadShopDataFromLocalStorage();
+              }
+            });
           
         } catch (error) {
           console.error('❌ Firebase initialization error:', error);
@@ -3722,31 +3692,16 @@
       
       // Load settings from localStorage (fallback)
       function loadLocalSettings() {
-        // Debug: Log all localStorage values
-        console.log('🔍 Debugging localStorage values:');
-        console.log('carbon-panic-key:', localStorage.getItem('carbon-panic-key'));
-        console.log('carbon-cloak-enabled:', localStorage.getItem('carbon-cloak-enabled'));
-        console.log('carbon-cloak-title:', localStorage.getItem('carbon-cloak-title'));
-        console.log('carbon-cloak-favicon:', localStorage.getItem('carbon-cloak-favicon'));
-        
         panicKey = localStorage.getItem('carbon-panic-key') || null;
         tabCloakingEnabled = localStorage.getItem('carbon-cloak-enabled') === 'true';
         cloakTitle = localStorage.getItem('carbon-cloak-title') || '';
         cloakFavicon = localStorage.getItem('carbon-cloak-favicon') || '';
-        
-        console.log('📚 Settings loaded from localStorage:', {
-          panicKey: panicKey,
-          cloakingEnabled: tabCloakingEnabled,
-          cloakTitle: cloakTitle,
-          cloakFavicon: cloakFavicon
-        });
         
         applyAllSettings();
       }
       
       // Apply all settings
       function applyAllSettings() {
-        console.log('🔧 Applying all settings...');
         applyTabCloaking();
         applyTeacherPrevention();
         applyClosePrevention();
@@ -3775,83 +3730,16 @@
         }
       }
       
-      // Manual reload function for debugging
-      window.reloadSettings = function() {
-        console.log('🔄 Manually reloading settings...');
-        loadLocalSettings();
-        if (currentUser) {
-          loadSettingsFromFirebase();
-        }
-      };
+
       
-      // Debug functions for testing
-      window.testPanicKey = function() {
-        console.log('🧪 Testing panic key. Current panic key:', panicKey);
-        console.log('💾 localStorage panic key:', localStorage.getItem('carbon-panic-key'));
-        if (panicKey) {
-          console.log('✅ Panic key is set. Try pressing:', panicKey);
-        } else {
-          console.log('❌ No panic key set. Set one in settings first.');
-        }
-      };
+
       
-      window.testTabCloaking = function() {
-        console.log('🧪 Testing tab cloaking:');
-        console.log('Enabled:', tabCloakingEnabled);
-        console.log('Title:', cloakTitle);
-        console.log('Favicon:', cloakFavicon);
-        console.log('Current document title:', document.title);
-        if (tabCloakingEnabled && cloakTitle) {
-          console.log('✅ Tab cloaking should be active');
-        } else {
-          console.log('❌ Tab cloaking not active. Enable in settings first.');
-        }
-      };
-      
-      // Manual trigger for testing
-      window.manualTabCloak = function(title, favicon) {
-        console.log('🎭 Manually triggering tab cloaking...');
-        tabCloakingEnabled = true;
-        cloakTitle = title || 'Google Classroom';
-        cloakFavicon = favicon || 'https://ssl.gstatic.com/classroom/favicon.png';
-        
-        localStorage.setItem('carbon-cloak-enabled', 'true');
-        localStorage.setItem('carbon-cloak-title', cloakTitle);
-        localStorage.setItem('carbon-cloak-favicon', cloakFavicon);
-        
-        applyTabCloaking();
-        console.log('✅ Manual tab cloaking applied');
-      };
-      
-      // Theme testing functions
-      window.testThemeSystem = function() {
-        console.log('🧪 Testing theme system:');
-        console.log('Theme system available:', !!window.carbonTheme);
-        if (window.carbonTheme) {
-          console.log('Current theme:', window.carbonTheme.getCurrentTheme());
-          console.log('Available themes:', Object.keys(window.carbonTheme.getAllThemes()));
-          console.log('Custom themes:', Object.keys(window.carbonTheme.customThemes));
-        }
-        console.log('Saved theme in localStorage:', localStorage.getItem('carbon-theme-global'));
-      };
-      
-      window.manualThemeChange = function(themeName) {
-        console.log('🎨 Manually changing theme to:', themeName);
-        if (window.carbonTheme) {
-          window.carbonTheme.applyTheme(themeName);
-          console.log('✅ Theme applied successfully');
-        } else {
-          console.log('❌ Theme system not available');
-        }
-      };
-      
-      // Check settings every 5 seconds to ensure they're loaded
+      // Periodically check if settings need to be reloaded
       setInterval(() => {
         if (!panicKey && !tabCloakingEnabled) {
           const storedPanicKey = localStorage.getItem('carbon-panic-key');
           const storedCloaking = localStorage.getItem('carbon-cloak-enabled');
           if (storedPanicKey || storedCloaking === 'true') {
-            console.log('🔄 Settings found in localStorage but not loaded. Reloading...');
             loadLocalSettings();
           }
         }
@@ -3859,40 +3747,16 @@
       
       // Tab cloaking functionality
       function applyTabCloaking() {
-        console.log('🎭 Applying tab cloaking with values:', {
-          enabled: tabCloakingEnabled,
-          enabledType: typeof tabCloakingEnabled,
-          title: cloakTitle,
-          titleType: typeof cloakTitle,
-          titleLength: cloakTitle ? cloakTitle.length : 0,
-          favicon: cloakFavicon,
-          faviconType: typeof cloakFavicon
-        });
-        
-        // More robust checking
         const isEnabled = (tabCloakingEnabled === true || tabCloakingEnabled === 'true');
         const hasTitle = cloakTitle && cloakTitle.trim() !== '';
         
-        console.log('🔍 Cloaking checks:', {
-          isEnabled: isEnabled,
-          hasTitle: hasTitle,
-          willApplyCloak: isEnabled && hasTitle
-        });
-        
         if (isEnabled && hasTitle) {
-          // Change the document title immediately
-          const newTitle = cloakTitle.trim();
-          document.title = newTitle;
-          console.log('✅ Document title changed from CARBON to:', document.title);
+          document.title = cloakTitle.trim();
           
           if (cloakFavicon && cloakFavicon.trim() !== '') {
             // Remove existing favicon links
             const existingLinks = document.querySelectorAll("link[rel*='icon']");
-            console.log('🗑️ Removing', existingLinks.length, 'existing favicon links');
-            existingLinks.forEach(link => {
-              console.log('🗑️ Removing favicon:', link.href);
-              link.remove();
-            });
+            existingLinks.forEach(link => link.remove());
             
             // Add new favicon with multiple formats for better compatibility
             const timestamp = new Date().getTime();
@@ -3917,13 +3781,8 @@
             appleLink.rel = 'apple-touch-icon';
             appleLink.href = faviconUrl + '?v=' + timestamp;
             document.head.appendChild(appleLink);
-            
-            console.log('✅ Added new favicon links for:', faviconUrl);
-          } else {
-            console.log('⚠️ No favicon URL provided or empty');
           }
         } else {
-          console.log('❌ Tab cloaking not applied - Enabled:', isEnabled, 'Has title:', hasTitle);
           document.title = 'CARBON';
           // Reset to default favicon if not cloaking
           const existingLinks = document.querySelectorAll("link[rel*='icon']");
@@ -4074,18 +3933,17 @@
       // Listen for settings changes from settings page
       window.addEventListener('message', (event) => {
         if (event.data && event.data.type === 'carbon-settings-updated') {
-          console.log('📨 Received settings update - Full data:', JSON.stringify(event.data, null, 2));
-          console.log('📨 Settings object:', JSON.stringify(event.data.settings, null, 2));
+
           
           const settings = event.data.settings;
           
           // Parse panic key
           panicKey = settings.panicKey || null;
-          console.log('🔑 Parsed panic key:', panicKey);
+          
           
           if (settings.panicUrl) {
             localStorage.setItem('carbon-panic-url', settings.panicUrl);
-            console.log('🔗 Set panic URL:', settings.panicUrl);
+            
           }
           
           // Parse tab cloaking - try multiple possible structures
@@ -4164,18 +4022,11 @@
             localStorage.setItem('carbon-custom-bg-global', settings.customBackground);
           }
           
-          console.log('✅ Final parsed settings:', {
-            panicKey: panicKey,
-            tabCloakingEnabled: tabCloakingEnabled,
-            cloakTitle: cloakTitle,
-            cloakFavicon: cloakFavicon,
-            theme: settings.theme,
-            background: settings.background
-          });
+
           
           applyAllSettings();
         } else if (event.data && event.data.type === 'carbon-settings-refresh') {
-          console.log('Refreshing settings from Firebase/localStorage');
+
           // Reload settings when settings page saves
           if (currentUser) {
             loadSettingsFromFirebase();
@@ -4195,10 +4046,13 @@
       }, 30000);
       
       // === CARBON SHOP SYSTEM ===
-      let userCurrency = parseInt(localStorage.getItem('carbon-currency') || '0');
-      let userFrames = JSON.parse(localStorage.getItem('carbon-frames') || '[]');
-      let userPets = JSON.parse(localStorage.getItem('carbon-pets') || '[]');
-      let userProfileFrames = JSON.parse(localStorage.getItem('carbon-profile-frames') || '[]');
+      let userCurrency = 0;
+      let userFrames = [];
+      let userPets = [];
+      let userProfileFrames = [];
+      let userPetData = {};
+      let userBadges = [];
+      let shopDataLoaded = false;
       
       const gameFrames = [
         { id: 'neon', name: 'Neon Glow', price: 500, color: '#00ffff', description: 'Electric neon border with pulsing glow effect' },
@@ -4330,10 +4184,7 @@
         { id: 'rare-collector', name: 'Rare Collector', description: 'Own 3 legendary pets', icon: '💎', reward: 1000 }
       ];
 
-      // Initialize user pet data with levels
-      let userPetData = JSON.parse(localStorage.getItem('carbon-pet-data') || '{}');
-      let userBadges = JSON.parse(localStorage.getItem('carbon-badges') || '[]');
-      let dailyMysteryUsed = localStorage.getItem('carbon-daily-mystery-date') === new Date().toDateString();
+      let dailyMysteryUsed = false;
 
       const profileFrames = [
         { id: 'red', name: 'Red Frame', price: 200, color: '#ff4444', description: 'Classic red border for your profile' },
@@ -4351,11 +4202,139 @@
         { id: 'memory', name: 'Memory Match', reward: 100, description: 'Match the carbon molecules' },
         { id: 'reaction', name: 'Reaction Test', reward: 75, description: 'Test your reaction speed' },
         { id: 'blackjack', name: 'Blackjack', reward: 200, description: 'Classic card game - beat the dealer!' },
+      ];
+
+      // === FIREBASE SHOP DATA MANAGEMENT ===
+      
+      async function loadShopDataFromFirebase() {
+        if (!currentUser || !db) {
+          loadShopDataFromLocalStorage();
+          return;
+        }
+        
+        try {
+          const docRef = db.collection('users').doc(currentUser.uid);
+          const doc = await docRef.get();
+          
+          if (doc.exists) {
+            const data = doc.data();
+            const shopData = data.shopData || {};
+            
+            userCurrency = shopData.currency || 0;
+            userFrames = shopData.frames || [];
+            userPets = shopData.pets || [];
+            userProfileFrames = shopData.profileFrames || [];
+            userPetData = shopData.petData || {};
+            userBadges = shopData.badges || [];
+            
+            // Load frame selections
+            if (shopData.selectedGameFrame) {
+              localStorage.setItem('carbon-selected-frame', shopData.selectedGameFrame);
+            }
+            if (shopData.selectedProfileFrame) {
+              localStorage.setItem('carbon-selected-profile-frame', shopData.selectedProfileFrame);
+            }
+            
+            // Check daily mystery box usage
+            const lastDailyUse = shopData.lastDailyMystery;
+            const today = new Date().toDateString();
+            dailyMysteryUsed = (lastDailyUse === today);
+            
+            // First time user bonus
+            if (userCurrency === 0 && !shopData.hasReceivedWelcomeBonus) {
+              userCurrency = 100;
+              await saveShopDataToFirebase({ welcomeBonus: true });
+              showNotification('Welcome to Carbon!', 'You received 100 Carbon Coins to get started!', 'success');
+            }
+          } else {
+            // New user - give welcome bonus
+            userCurrency = 100;
+            await saveShopDataToFirebase({ welcomeBonus: true });
+            showNotification('Welcome to Carbon!', 'You received 100 Carbon Coins to get started!', 'success');
+          }
+          
+          shopDataLoaded = true;
+          updateCurrencyDisplay();
+        } catch (error) {
+          console.error('Error loading shop data from Firebase:', error);
+          loadShopDataFromLocalStorage();
+        }
+      }
+      
+      async function saveShopDataToFirebase(options = {}) {
+        if (!currentUser || !db) {
+          saveShopDataToLocalStorage();
+          return;
+        }
+        
+        try {
+          const shopData = {
+            currency: userCurrency,
+            frames: userFrames,
+            pets: userPets,
+            profileFrames: userProfileFrames,
+            petData: userPetData,
+            badges: userBadges,
+            selectedGameFrame: localStorage.getItem('carbon-selected-frame') || 'default',
+            selectedProfileFrame: localStorage.getItem('carbon-selected-profile-frame') || 'default',
+            lastDailyMystery: dailyMysteryUsed ? new Date().toDateString() : null,
+            hasReceivedWelcomeBonus: options.welcomeBonus || true,
+            lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+          };
+          
+          await db.collection('users').doc(currentUser.uid).set({
+            shopData: shopData
+          }, { merge: true });
+          
+          // Also save to localStorage as backup
+          saveShopDataToLocalStorage();
+        } catch (error) {
+          console.error('Error saving shop data to Firebase:', error);
+          // Fallback to localStorage
+          saveShopDataToLocalStorage();
+        }
+      }
+      
+      function loadShopDataFromLocalStorage() {
+        userCurrency = parseInt(localStorage.getItem('carbon-currency') || '0');
+        userFrames = JSON.parse(localStorage.getItem('carbon-frames') || '[]');
+        userPets = JSON.parse(localStorage.getItem('carbon-pets') || '[]');
+        userProfileFrames = JSON.parse(localStorage.getItem('carbon-profile-frames') || '[]');
+        userPetData = JSON.parse(localStorage.getItem('carbon-pet-data') || '{}');
+        userBadges = JSON.parse(localStorage.getItem('carbon-badges') || '[]');
+        
+        const lastDailyUse = localStorage.getItem('carbon-daily-mystery-date');
+        const today = new Date().toDateString();
+        dailyMysteryUsed = (lastDailyUse === today);
+        
+        // First time user check for localStorage
+        if (userCurrency === 0 && !localStorage.getItem('carbon-currency-initialized')) {
+          userCurrency = 100;
+          localStorage.setItem('carbon-currency-initialized', 'true');
+          showNotification('Welcome to Carbon!', 'You received 100 Carbon Coins to get started!', 'success');
+        }
+        
+        shopDataLoaded = true;
+        updateCurrencyDisplay();
+      }
+      
+      function saveShopDataToLocalStorage() {
+        localStorage.setItem('carbon-currency', userCurrency.toString());
+        localStorage.setItem('carbon-frames', JSON.stringify(userFrames));
+        localStorage.setItem('carbon-pets', JSON.stringify(userPets));
+        localStorage.setItem('carbon-profile-frames', JSON.stringify(userProfileFrames));
+        localStorage.setItem('carbon-pet-data', JSON.stringify(userPetData));
+        localStorage.setItem('carbon-badges', JSON.stringify(userBadges));
+        
+        if (dailyMysteryUsed) {
+          localStorage.setItem('carbon-daily-mystery-date', new Date().toDateString());
+        }
+      }
         { id: 'roulette', name: 'Roulette', reward: 300, description: 'Spin the wheel and win big!' }
       ];
 
       // Mini-game implementations
-      function playClickerGame() {
+      async function playClickerGame() {
         let clicks = 0;
         let timeLeft = 10;
         
@@ -4386,15 +4365,15 @@
           timeDisplay.textContent = timeLeft;
           if (timeLeft <= 0) {
             clearInterval(timer);
-            endClickerGame(clicks);
+            await endClickerGame(clicks);
           }
         }, 1000);
         
-        function endClickerGame(finalClicks) {
+        async function endClickerGame(finalClicks) {
           const reward = Math.min(finalClicks * 5, 250); // Max 250 coins
           userCurrency += reward;
           updateCurrencyDisplay();
-          saveCurrencyToStorage();
+          await saveShopDataToFirebase();
           
           gameModal.innerHTML = `
             <div class="text-center">
@@ -4410,7 +4389,7 @@
         }
       }
       
-      function playMemoryGame() {
+      async function playMemoryGame() {
         const symbols = ['🔥', '⚡', '🌟', '💎', '🎮', '🚀'];
         let cards = [...symbols, ...symbols].sort(() => Math.random() - 0.5);
         let flipped = [];
@@ -4477,7 +4456,7 @@
           
           userCurrency += reward;
           updateCurrencyDisplay();
-          saveCurrencyToStorage();
+          await saveShopDataToFirebase();
           
           setTimeout(() => {
             gameModal.innerHTML = `
@@ -4495,7 +4474,7 @@
         }
       }
       
-      function playReactionGame() {
+      async function playReactionGame() {
         let gameStarted = false;
         let startTime = 0;
         
@@ -4550,7 +4529,7 @@
           
           userCurrency += reward;
           updateCurrencyDisplay();
-          saveCurrencyToStorage();
+          await saveShopDataToFirebase();
           
           reactionArea.innerHTML = `
             <div class="text-center">
@@ -4921,7 +4900,7 @@
               reward = bet * multiplier;
               userCurrency += reward;
               updateCurrencyDisplay();
-              saveCurrencyToStorage();
+              await saveShopDataToFirebase();
             }
             
             gameModal.querySelector('#game-result').classList.remove('hidden');
@@ -4940,7 +4919,21 @@
           }, 3000);
         });
       }
-      function openCarbonShop() {
+      async function openCarbonShop() {
+        // Ensure shop data is loaded before opening
+        if (!shopDataLoaded) {
+          try {
+            if (currentUser) {
+              await loadShopDataFromFirebase();
+            } else {
+              loadShopDataFromLocalStorage();
+            }
+          } catch (error) {
+            console.error('Error loading shop data:', error);
+            // Fallback to localStorage
+            loadShopDataFromLocalStorage();
+          }
+        }
         // Clean up any old waiting rooms when opening shop (helps with database hygiene)
         if (currentUser) {
           db.collection('game-rooms')
@@ -4953,7 +4946,7 @@
                 const roomAge = Date.now() - (room.createdAt?.toDate?.()?.getTime() || 0);
                 // Delete rooms older than 5 minutes
                 if (roomAge > 5 * 60 * 1000) {
-                  console.log('Cleaning up old waiting room:', doc.id);
+
                   doc.ref.delete();
                 }
               });
@@ -5452,7 +5445,7 @@
               const gameRoom = doc.data();
               // Only clean up if we're the host and the game is still waiting
               if (gameRoom.hostId === currentUser.uid && gameRoom.status === 'waiting') {
-                console.log('Cleaning up waiting room on shop close:', currentGameRoom);
+
                 db.collection('game-rooms').doc(currentGameRoom).delete();
               }
             }
@@ -5493,7 +5486,7 @@
         event.target.classList.remove('hover:bg-highlight-med', 'text-text');
       };
       
-      window.purchaseFrame = function(frameId) {
+      window.purchaseFrame = async function(frameId) {
         const frame = gameFrames.find(f => f.id === frameId);
         if (!frame || userFrames.includes(frameId) || userCurrency < frame.price) return;
         
@@ -5501,8 +5494,7 @@
         userFrames.push(frameId);
         
         updateCurrencyDisplay();
-        saveCurrencyToStorage();
-        saveFramesToStorage();
+        await saveShopDataToFirebase();
         
         // Refresh shop display
         closeShop();
@@ -5512,7 +5504,7 @@
         showNotification('Purchase Successful!', `You've unlocked the ${frame.name} frame!`, 'success');
       };
 
-      window.purchasePet = function(petId) {
+      window.purchasePet = async function(petId) {
         const pet = pets.find(p => p.id === petId);
         if (!pet || userPets.includes(petId) || userCurrency < pet.price) return;
         
@@ -5525,9 +5517,7 @@
         }
         
         updateCurrencyDisplay();
-        saveCurrencyToStorage();
-        savePetsToStorage();
-        savePetDataToStorage();
+        await saveShopDataToFirebase();
         
         // Check badges
         checkBadges();
@@ -5540,7 +5530,7 @@
         showNotification('Pet Adopted!', `You've adopted ${pet.name} ${pet.emoji}!`, 'success');
       };
 
-      window.purchaseProfileFrame = function(frameId) {
+      window.purchaseProfileFrame = async function(frameId) {
         const frame = profileFrames.find(f => f.id === frameId);
         if (!frame || userProfileFrames.includes(frameId) || userCurrency < frame.price) return;
         
@@ -5548,8 +5538,7 @@
         userProfileFrames.push(frameId);
         
         updateCurrencyDisplay();
-        saveCurrencyToStorage();
-        saveProfileFramesToStorage();
+        await saveShopDataToFirebase();
         
         // Refresh shop display
         closeShop();
@@ -5629,26 +5618,22 @@
          setTimeout(() => openCarbonShop(), 100);
        };
 
-       window.openLootBox = function(boxId) {
+       window.openLootBox = async function(boxId) {
          const box = lootBoxes.find(b => b.id === boxId);
          if (!box || userCurrency < box.price) return;
          
          // Check daily mystery box restriction
          if (box.isDaily) {
-           const today = new Date().toDateString();
-           const lastUsed = localStorage.getItem('carbon-daily-mystery-date');
-           
-           if (lastUsed === today) {
+           if (dailyMysteryUsed) {
              showNotification('Daily Limit Reached', 'You can only open one Daily Mystery Box per day!', 'warning');
              return;
            }
            
-           localStorage.setItem('carbon-daily-mystery-date', today);
+           dailyMysteryUsed = true;
          }
          
          // Deduct cost
          userCurrency -= box.price;
-         saveCurrencyToStorage();
          
          // Generate rewards
          const rewards = box.rewards.random ? generateRandomReward() : generateLootBoxRewards(box);
@@ -5675,11 +5660,7 @@
            }
          });
          
-         saveCurrencyToStorage();
-         saveFramesToStorage();
-         savePetsToStorage();
-         saveProfileFramesToStorage();
-         savePetDataToStorage();
+         await saveShopDataToFirebase();
          updateCurrencyDisplay();
          
          // Show rewards modal
@@ -5870,42 +5851,19 @@
          }, 10000);
        };
       
-      function updateCurrencyDisplay() {
+            function updateCurrencyDisplay() {
         const currencyEl = document.getElementById('shop-currency');
         if (currencyEl) currencyEl.textContent = userCurrency;
       }
+
       
-      function saveCurrencyToStorage() {
-        localStorage.setItem('carbon-currency', userCurrency.toString());
-      }
-      
-      function saveFramesToStorage() {
-        localStorage.setItem('carbon-frames', JSON.stringify(userFrames));
-      }
-
-      function savePetsToStorage() {
-        localStorage.setItem('carbon-pets', JSON.stringify(userPets));
-      }
-
-      function saveProfileFramesToStorage() {
-        localStorage.setItem('carbon-profile-frames', JSON.stringify(userProfileFrames));
-      }
-
-      function savePetDataToStorage() {
-        localStorage.setItem('carbon-pet-data', JSON.stringify(userPetData));
-      }
-
-      function saveBadgesToStorage() {
-        localStorage.setItem('carbon-badges', JSON.stringify(userBadges));
-      }
 
       // Gacha system functions
-      window.pullGacha = function(gachaId) {
+      window.pullGacha = async function(gachaId) {
         const gacha = gachaTypes.find(g => g.id === gachaId);
         if (!gacha || userCurrency < gacha.cost) return;
         
         userCurrency -= gacha.cost;
-        saveCurrencyToStorage();
         
         // Generate random item based on rates
         const rand = Math.random() * 100;
@@ -5936,10 +5894,7 @@
         }
         
         updateCurrencyDisplay();
-        saveCurrencyToStorage();
-        saveFramesToStorage();
-        savePetsToStorage();
-        saveProfileFramesToStorage();
+        await saveShopDataToFirebase();
         
         showGachaResults(gacha, rarity, rewards);
         
@@ -6060,7 +6015,7 @@
       }
 
       // Pet management functions
-      window.levelUpPet = function(petId) {
+      window.levelUpPet = async function(petId) {
         const pet = pets.find(p => p.id === petId);
         const petData = userPetData[petId] || { level: 1, xp: 0, battles: 0 };
         const levelUpCost = petData.level * 50;
@@ -6073,14 +6028,15 @@
         userPetData[petId] = petData;
         
         updateCurrencyDisplay();
-        saveCurrencyToStorage();
-        savePetDataToStorage();
+        await saveShopDataToFirebase();
         
         showNotification('Level Up!', `${pet.name} is now level ${petData.level}!`, 'success');
         
         // Check for level master badge
         if (petData.level >= 10 && !userBadges.includes('level-master')) {
-          earnBadge('level-master');
+          earnBadge('level-master').catch(error => {
+            console.error('Error earning badge:', error);
+          });
         }
         
         closeShop();
@@ -6130,7 +6086,7 @@
         }, 100);
       };
 
-      window.attemptFusion = function() {
+      window.attemptFusion = async function() {
         const pet1Id = document.getElementById('fusionPet1')?.value;
         const pet2Id = document.getElementById('fusionPet2')?.value;
         
@@ -6169,15 +6125,15 @@
         };
         
         updateCurrencyDisplay();
-        saveCurrencyToStorage();
-        savePetsToStorage();
-        savePetDataToStorage();
+        await saveShopDataToFirebase();
         
         showNotification('Fusion Success!', `Created ${fusionPet.name} at level ${fusionLevel}!`, 'success');
         
         // Check for fusion expert badge
         if (!userBadges.includes('fusion-expert')) {
-          earnBadge('fusion-expert');
+          earnBadge('fusion-expert').catch(error => {
+            console.error('Error earning badge:', error);
+          });
         }
         
         closeShop();
@@ -6187,7 +6143,7 @@
         }, 100);
       };
 
-      function earnBadge(badgeId) {
+      async function earnBadge(badgeId) {
         const badge = petBadges.find(b => b.id === badgeId);
         if (!badge || userBadges.includes(badgeId)) return;
         
@@ -6195,8 +6151,7 @@
         userCurrency += badge.reward;
         
         updateCurrencyDisplay();
-        saveCurrencyToStorage();
-        saveBadgesToStorage();
+        await saveShopDataToFirebase();
         
         showNotification('Badge Earned!', `${badge.icon} ${badge.name} - Earned ${badge.reward} coins!`, 'success');
       }
@@ -6205,12 +6160,12 @@
       function checkBadges() {
         // First pet badge
         if (userPets.length >= 1 && !userBadges.includes('first-pet')) {
-          earnBadge('first-pet');
+          earnBadge('first-pet').catch(error => console.error('Error earning badge:', error));
         }
         
         // Pet collector badge
         if (userPets.length >= 5 && !userBadges.includes('pet-collector')) {
-          earnBadge('pet-collector');
+          earnBadge('pet-collector').catch(error => console.error('Error earning badge:', error));
         }
         
         // Rare collector badge
@@ -6219,7 +6174,7 @@
           return pet && pet.rarity === 'legendary';
         });
         if (legendaryPets.length >= 3 && !userBadges.includes('rare-collector')) {
-          earnBadge('rare-collector');
+          earnBadge('rare-collector').catch(error => console.error('Error earning badge:', error));
         }
       }
 
@@ -6234,7 +6189,7 @@
            return;
          }
          
-         console.log('Starting multiplayer game:', gameType, 'for user:', currentUser.uid);
+         
          
          closeShop();
          createGameLobby(gameType);
@@ -6267,11 +6222,7 @@
              console.log('Board length:', gameRoom.gameState.board.length);
              
              // Test helper functions
-             console.log('Testing Connect 4 helpers:');
-             console.log('Position (0,0) index:', getConnect4Index(0, 0), 'should be 0');
-             console.log('Position (5,6) index:', getConnect4Index(5, 6), 'should be 41');
-             console.log('Index 0 coords:', getConnect4RowCol(0), 'should be {row:0, col:0}');
-             console.log('Index 41 coords:', getConnect4RowCol(41), 'should be {row:5, col:6}');
+             
            }
 
           const docRef = await db.collection('game-rooms').add(gameRoom);
@@ -7424,11 +7375,11 @@
       else loadTabsData();
       
       // Initialize settings immediately - try both methods to ensure we get settings
-      console.log('🚀 Initializing settings on page load...');
+      
       loadLocalSettings(); // Load localStorage first for immediate effect
       
       // Initialize theme system with better error handling
-      console.log('🎨 Initializing theme system...');
+      
       setTimeout(initializeThemeSystem, 500); // Give more time for carbon-theme.js to load
       
       // Also load from Firebase if user is authenticated
@@ -7494,11 +7445,16 @@
       }
 
       // Initialize Carbon Shop and Private Browsing
-      document.getElementById('carbon-shop-btn').addEventListener('click', (e) => {
+      document.getElementById('carbon-shop-btn').addEventListener('click', async (e) => {
         e.preventDefault();
         const dropdownMenu = document.getElementById('dropdown-menu');
         dropdownMenu.classList.add('hidden');
-        openCarbonShop();
+        try {
+          await openCarbonShop();
+        } catch (error) {
+          console.error('Error opening shop:', error);
+          showNotification('Error', 'Failed to open Carbon Shop. Please try again.', 'error');
+        }
       });
       
       document.getElementById('private-browsing-btn').addEventListener('click', (e) => {
@@ -7506,15 +7462,7 @@
         togglePrivateBrowsing();
       });
       
-      // Give users some starting currency if they're new
-      if (userCurrency === 0 && !localStorage.getItem('carbon-currency-initialized')) {
-        userCurrency = 100; // Starting bonus
-        saveCurrencyToStorage();
-        localStorage.setItem('carbon-currency-initialized', 'true');
-        setTimeout(() => {
-          showNotification('Welcome to Carbon!', 'You received 100 Carbon Coins to get started!', 'success');
-        }, 2000);
-      }
+
 
       // Initialize sortable for horizontal tabs
       const tabsContainer = document.getElementById("tabs-bar");
@@ -8060,10 +8008,7 @@
          }, 1000);
 
          // Debug message to confirm fixes loaded
-         console.log('%c✅ TEST.HTML BACKGROUND FIX LOADED SUCCESSFULLY!', 'color: #00ff00; font-size: 16px; font-weight: bold;');
-         console.log('🕐 Loaded at:', new Date().toLocaleTimeString());
-         console.log('🔧 saveNewtabBackgroundSettings function:', typeof saveNewtabBackgroundSettings);
-         console.log('📡 BroadcastChannel support:', typeof BroadcastChannel !== 'undefined');
+         
 
     </script>
   </body>
