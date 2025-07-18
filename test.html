@@ -3610,7 +3610,9 @@
               currentUser = user;
               if (user) {
                 loadSettingsFromFirebase();
-                loadShopDataFromFirebase();
+                loadShopDataFromFirebase().catch(error => {
+                  console.error('Error loading shop data:', error);
+                });
               } else {
                 loadLocalSettings();
                 loadShopDataFromLocalStorage();
@@ -4920,9 +4922,15 @@
       async function openCarbonShop() {
         // Ensure shop data is loaded before opening
         if (!shopDataLoaded) {
-          if (currentUser) {
-            await loadShopDataFromFirebase();
-          } else {
+          try {
+            if (currentUser) {
+              await loadShopDataFromFirebase();
+            } else {
+              loadShopDataFromLocalStorage();
+            }
+          } catch (error) {
+            console.error('Error loading shop data:', error);
+            // Fallback to localStorage
             loadShopDataFromLocalStorage();
           }
         }
@@ -6026,7 +6034,9 @@
         
         // Check for level master badge
         if (petData.level >= 10 && !userBadges.includes('level-master')) {
-          earnBadge('level-master');
+          earnBadge('level-master').catch(error => {
+            console.error('Error earning badge:', error);
+          });
         }
         
         closeShop();
@@ -6121,7 +6131,9 @@
         
         // Check for fusion expert badge
         if (!userBadges.includes('fusion-expert')) {
-          earnBadge('fusion-expert');
+          earnBadge('fusion-expert').catch(error => {
+            console.error('Error earning badge:', error);
+          });
         }
         
         closeShop();
@@ -6148,12 +6160,12 @@
       function checkBadges() {
         // First pet badge
         if (userPets.length >= 1 && !userBadges.includes('first-pet')) {
-          earnBadge('first-pet');
+          earnBadge('first-pet').catch(error => console.error('Error earning badge:', error));
         }
         
         // Pet collector badge
         if (userPets.length >= 5 && !userBadges.includes('pet-collector')) {
-          earnBadge('pet-collector');
+          earnBadge('pet-collector').catch(error => console.error('Error earning badge:', error));
         }
         
         // Rare collector badge
@@ -6162,7 +6174,7 @@
           return pet && pet.rarity === 'legendary';
         });
         if (legendaryPets.length >= 3 && !userBadges.includes('rare-collector')) {
-          earnBadge('rare-collector');
+          earnBadge('rare-collector').catch(error => console.error('Error earning badge:', error));
         }
       }
 
@@ -7437,7 +7449,12 @@
         e.preventDefault();
         const dropdownMenu = document.getElementById('dropdown-menu');
         dropdownMenu.classList.add('hidden');
-        await openCarbonShop();
+        try {
+          await openCarbonShop();
+        } catch (error) {
+          console.error('Error opening shop:', error);
+          showNotification('Error', 'Failed to open Carbon Shop. Please try again.', 'error');
+        }
       });
       
       document.getElementById('private-browsing-btn').addEventListener('click', (e) => {
