@@ -3606,14 +3606,16 @@
           
           
           // Set up auth state listener
-          auth.onAuthStateChanged(function(user) {
-            currentUser = user;
-                          if (user) {
+                      auth.onAuthStateChanged(function(user) {
+              currentUser = user;
+              if (user) {
                 loadSettingsFromFirebase();
+                loadShopDataFromFirebase();
               } else {
                 loadLocalSettings();
-            }
-          });
+                loadShopDataFromLocalStorage();
+              }
+            });
           
         } catch (error) {
           console.error('❌ Firebase initialization error:', error);
@@ -4042,10 +4044,13 @@
       }, 30000);
       
       // === CARBON SHOP SYSTEM ===
-      let userCurrency = parseInt(localStorage.getItem('carbon-currency') || '0');
-      let userFrames = JSON.parse(localStorage.getItem('carbon-frames') || '[]');
-      let userPets = JSON.parse(localStorage.getItem('carbon-pets') || '[]');
-      let userProfileFrames = JSON.parse(localStorage.getItem('carbon-profile-frames') || '[]');
+      let userCurrency = 0;
+      let userFrames = [];
+      let userPets = [];
+      let userProfileFrames = [];
+      let userPetData = {};
+      let userBadges = [];
+      let shopDataLoaded = false;
       
       const gameFrames = [
         { id: 'neon', name: 'Neon Glow', price: 500, color: '#00ffff', description: 'Electric neon border with pulsing glow effect' },
@@ -4177,10 +4182,7 @@
         { id: 'rare-collector', name: 'Rare Collector', description: 'Own 3 legendary pets', icon: '💎', reward: 1000 }
       ];
 
-      // Initialize user pet data with levels
-      let userPetData = JSON.parse(localStorage.getItem('carbon-pet-data') || '{}');
-      let userBadges = JSON.parse(localStorage.getItem('carbon-badges') || '[]');
-      let dailyMysteryUsed = localStorage.getItem('carbon-daily-mystery-date') === new Date().toDateString();
+      let dailyMysteryUsed = false;
 
       const profileFrames = [
         { id: 'red', name: 'Red Frame', price: 200, color: '#ff4444', description: 'Classic red border for your profile' },
@@ -4198,11 +4200,139 @@
         { id: 'memory', name: 'Memory Match', reward: 100, description: 'Match the carbon molecules' },
         { id: 'reaction', name: 'Reaction Test', reward: 75, description: 'Test your reaction speed' },
         { id: 'blackjack', name: 'Blackjack', reward: 200, description: 'Classic card game - beat the dealer!' },
+      ];
+
+      // === FIREBASE SHOP DATA MANAGEMENT ===
+      
+      async function loadShopDataFromFirebase() {
+        if (!currentUser || !db) {
+          loadShopDataFromLocalStorage();
+          return;
+        }
+        
+        try {
+          const docRef = db.collection('users').doc(currentUser.uid);
+          const doc = await docRef.get();
+          
+          if (doc.exists) {
+            const data = doc.data();
+            const shopData = data.shopData || {};
+            
+            userCurrency = shopData.currency || 0;
+            userFrames = shopData.frames || [];
+            userPets = shopData.pets || [];
+            userProfileFrames = shopData.profileFrames || [];
+            userPetData = shopData.petData || {};
+            userBadges = shopData.badges || [];
+            
+            // Load frame selections
+            if (shopData.selectedGameFrame) {
+              localStorage.setItem('carbon-selected-frame', shopData.selectedGameFrame);
+            }
+            if (shopData.selectedProfileFrame) {
+              localStorage.setItem('carbon-selected-profile-frame', shopData.selectedProfileFrame);
+            }
+            
+            // Check daily mystery box usage
+            const lastDailyUse = shopData.lastDailyMystery;
+            const today = new Date().toDateString();
+            dailyMysteryUsed = (lastDailyUse === today);
+            
+            // First time user bonus
+            if (userCurrency === 0 && !shopData.hasReceivedWelcomeBonus) {
+              userCurrency = 100;
+              await saveShopDataToFirebase({ welcomeBonus: true });
+              showNotification('Welcome to Carbon!', 'You received 100 Carbon Coins to get started!', 'success');
+            }
+          } else {
+            // New user - give welcome bonus
+            userCurrency = 100;
+            await saveShopDataToFirebase({ welcomeBonus: true });
+            showNotification('Welcome to Carbon!', 'You received 100 Carbon Coins to get started!', 'success');
+          }
+          
+          shopDataLoaded = true;
+          updateCurrencyDisplay();
+        } catch (error) {
+          console.error('Error loading shop data from Firebase:', error);
+          loadShopDataFromLocalStorage();
+        }
+      }
+      
+      async function saveShopDataToFirebase(options = {}) {
+        if (!currentUser || !db) {
+          saveShopDataToLocalStorage();
+          return;
+        }
+        
+        try {
+          const shopData = {
+            currency: userCurrency,
+            frames: userFrames,
+            pets: userPets,
+            profileFrames: userProfileFrames,
+            petData: userPetData,
+            badges: userBadges,
+            selectedGameFrame: localStorage.getItem('carbon-selected-frame') || 'default',
+            selectedProfileFrame: localStorage.getItem('carbon-selected-profile-frame') || 'default',
+            lastDailyMystery: dailyMysteryUsed ? new Date().toDateString() : null,
+            hasReceivedWelcomeBonus: options.welcomeBonus || true,
+            lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+          };
+          
+          await db.collection('users').doc(currentUser.uid).set({
+            shopData: shopData
+          }, { merge: true });
+          
+          // Also save to localStorage as backup
+          saveShopDataToLocalStorage();
+        } catch (error) {
+          console.error('Error saving shop data to Firebase:', error);
+          // Fallback to localStorage
+          saveShopDataToLocalStorage();
+        }
+      }
+      
+      function loadShopDataFromLocalStorage() {
+        userCurrency = parseInt(localStorage.getItem('carbon-currency') || '0');
+        userFrames = JSON.parse(localStorage.getItem('carbon-frames') || '[]');
+        userPets = JSON.parse(localStorage.getItem('carbon-pets') || '[]');
+        userProfileFrames = JSON.parse(localStorage.getItem('carbon-profile-frames') || '[]');
+        userPetData = JSON.parse(localStorage.getItem('carbon-pet-data') || '{}');
+        userBadges = JSON.parse(localStorage.getItem('carbon-badges') || '[]');
+        
+        const lastDailyUse = localStorage.getItem('carbon-daily-mystery-date');
+        const today = new Date().toDateString();
+        dailyMysteryUsed = (lastDailyUse === today);
+        
+        // First time user check for localStorage
+        if (userCurrency === 0 && !localStorage.getItem('carbon-currency-initialized')) {
+          userCurrency = 100;
+          localStorage.setItem('carbon-currency-initialized', 'true');
+          showNotification('Welcome to Carbon!', 'You received 100 Carbon Coins to get started!', 'success');
+        }
+        
+        shopDataLoaded = true;
+        updateCurrencyDisplay();
+      }
+      
+      function saveShopDataToLocalStorage() {
+        localStorage.setItem('carbon-currency', userCurrency.toString());
+        localStorage.setItem('carbon-frames', JSON.stringify(userFrames));
+        localStorage.setItem('carbon-pets', JSON.stringify(userPets));
+        localStorage.setItem('carbon-profile-frames', JSON.stringify(userProfileFrames));
+        localStorage.setItem('carbon-pet-data', JSON.stringify(userPetData));
+        localStorage.setItem('carbon-badges', JSON.stringify(userBadges));
+        
+        if (dailyMysteryUsed) {
+          localStorage.setItem('carbon-daily-mystery-date', new Date().toDateString());
+        }
+      }
         { id: 'roulette', name: 'Roulette', reward: 300, description: 'Spin the wheel and win big!' }
       ];
 
       // Mini-game implementations
-      function playClickerGame() {
+      async function playClickerGame() {
         let clicks = 0;
         let timeLeft = 10;
         
@@ -4233,15 +4363,15 @@
           timeDisplay.textContent = timeLeft;
           if (timeLeft <= 0) {
             clearInterval(timer);
-            endClickerGame(clicks);
+            await endClickerGame(clicks);
           }
         }, 1000);
         
-        function endClickerGame(finalClicks) {
+        async function endClickerGame(finalClicks) {
           const reward = Math.min(finalClicks * 5, 250); // Max 250 coins
           userCurrency += reward;
           updateCurrencyDisplay();
-          saveCurrencyToStorage();
+          await saveShopDataToFirebase();
           
           gameModal.innerHTML = `
             <div class="text-center">
@@ -4257,7 +4387,7 @@
         }
       }
       
-      function playMemoryGame() {
+      async function playMemoryGame() {
         const symbols = ['🔥', '⚡', '🌟', '💎', '🎮', '🚀'];
         let cards = [...symbols, ...symbols].sort(() => Math.random() - 0.5);
         let flipped = [];
@@ -4324,7 +4454,7 @@
           
           userCurrency += reward;
           updateCurrencyDisplay();
-          saveCurrencyToStorage();
+          await saveShopDataToFirebase();
           
           setTimeout(() => {
             gameModal.innerHTML = `
@@ -4342,7 +4472,7 @@
         }
       }
       
-      function playReactionGame() {
+      async function playReactionGame() {
         let gameStarted = false;
         let startTime = 0;
         
@@ -4397,7 +4527,7 @@
           
           userCurrency += reward;
           updateCurrencyDisplay();
-          saveCurrencyToStorage();
+          await saveShopDataToFirebase();
           
           reactionArea.innerHTML = `
             <div class="text-center">
@@ -4768,7 +4898,7 @@
               reward = bet * multiplier;
               userCurrency += reward;
               updateCurrencyDisplay();
-              saveCurrencyToStorage();
+              await saveShopDataToFirebase();
             }
             
             gameModal.querySelector('#game-result').classList.remove('hidden');
@@ -4787,7 +4917,15 @@
           }, 3000);
         });
       }
-      function openCarbonShop() {
+      async function openCarbonShop() {
+        // Ensure shop data is loaded before opening
+        if (!shopDataLoaded) {
+          if (currentUser) {
+            await loadShopDataFromFirebase();
+          } else {
+            loadShopDataFromLocalStorage();
+          }
+        }
         // Clean up any old waiting rooms when opening shop (helps with database hygiene)
         if (currentUser) {
           db.collection('game-rooms')
@@ -4800,7 +4938,7 @@
                 const roomAge = Date.now() - (room.createdAt?.toDate?.()?.getTime() || 0);
                 // Delete rooms older than 5 minutes
                 if (roomAge > 5 * 60 * 1000) {
-                  console.log('Cleaning up old waiting room:', doc.id);
+
                   doc.ref.delete();
                 }
               });
@@ -5299,7 +5437,7 @@
               const gameRoom = doc.data();
               // Only clean up if we're the host and the game is still waiting
               if (gameRoom.hostId === currentUser.uid && gameRoom.status === 'waiting') {
-                console.log('Cleaning up waiting room on shop close:', currentGameRoom);
+
                 db.collection('game-rooms').doc(currentGameRoom).delete();
               }
             }
@@ -5340,7 +5478,7 @@
         event.target.classList.remove('hover:bg-highlight-med', 'text-text');
       };
       
-      window.purchaseFrame = function(frameId) {
+      window.purchaseFrame = async function(frameId) {
         const frame = gameFrames.find(f => f.id === frameId);
         if (!frame || userFrames.includes(frameId) || userCurrency < frame.price) return;
         
@@ -5348,8 +5486,7 @@
         userFrames.push(frameId);
         
         updateCurrencyDisplay();
-        saveCurrencyToStorage();
-        saveFramesToStorage();
+        await saveShopDataToFirebase();
         
         // Refresh shop display
         closeShop();
@@ -5359,7 +5496,7 @@
         showNotification('Purchase Successful!', `You've unlocked the ${frame.name} frame!`, 'success');
       };
 
-      window.purchasePet = function(petId) {
+      window.purchasePet = async function(petId) {
         const pet = pets.find(p => p.id === petId);
         if (!pet || userPets.includes(petId) || userCurrency < pet.price) return;
         
@@ -5372,9 +5509,7 @@
         }
         
         updateCurrencyDisplay();
-        saveCurrencyToStorage();
-        savePetsToStorage();
-        savePetDataToStorage();
+        await saveShopDataToFirebase();
         
         // Check badges
         checkBadges();
@@ -5387,7 +5522,7 @@
         showNotification('Pet Adopted!', `You've adopted ${pet.name} ${pet.emoji}!`, 'success');
       };
 
-      window.purchaseProfileFrame = function(frameId) {
+      window.purchaseProfileFrame = async function(frameId) {
         const frame = profileFrames.find(f => f.id === frameId);
         if (!frame || userProfileFrames.includes(frameId) || userCurrency < frame.price) return;
         
@@ -5395,8 +5530,7 @@
         userProfileFrames.push(frameId);
         
         updateCurrencyDisplay();
-        saveCurrencyToStorage();
-        saveProfileFramesToStorage();
+        await saveShopDataToFirebase();
         
         // Refresh shop display
         closeShop();
@@ -5476,26 +5610,22 @@
          setTimeout(() => openCarbonShop(), 100);
        };
 
-       window.openLootBox = function(boxId) {
+       window.openLootBox = async function(boxId) {
          const box = lootBoxes.find(b => b.id === boxId);
          if (!box || userCurrency < box.price) return;
          
          // Check daily mystery box restriction
          if (box.isDaily) {
-           const today = new Date().toDateString();
-           const lastUsed = localStorage.getItem('carbon-daily-mystery-date');
-           
-           if (lastUsed === today) {
+           if (dailyMysteryUsed) {
              showNotification('Daily Limit Reached', 'You can only open one Daily Mystery Box per day!', 'warning');
              return;
            }
            
-           localStorage.setItem('carbon-daily-mystery-date', today);
+           dailyMysteryUsed = true;
          }
          
          // Deduct cost
          userCurrency -= box.price;
-         saveCurrencyToStorage();
          
          // Generate rewards
          const rewards = box.rewards.random ? generateRandomReward() : generateLootBoxRewards(box);
@@ -5522,11 +5652,7 @@
            }
          });
          
-         saveCurrencyToStorage();
-         saveFramesToStorage();
-         savePetsToStorage();
-         saveProfileFramesToStorage();
-         savePetDataToStorage();
+         await saveShopDataToFirebase();
          updateCurrencyDisplay();
          
          // Show rewards modal
@@ -5717,42 +5843,19 @@
          }, 10000);
        };
       
-      function updateCurrencyDisplay() {
+            function updateCurrencyDisplay() {
         const currencyEl = document.getElementById('shop-currency');
         if (currencyEl) currencyEl.textContent = userCurrency;
       }
+
       
-      function saveCurrencyToStorage() {
-        localStorage.setItem('carbon-currency', userCurrency.toString());
-      }
-      
-      function saveFramesToStorage() {
-        localStorage.setItem('carbon-frames', JSON.stringify(userFrames));
-      }
-
-      function savePetsToStorage() {
-        localStorage.setItem('carbon-pets', JSON.stringify(userPets));
-      }
-
-      function saveProfileFramesToStorage() {
-        localStorage.setItem('carbon-profile-frames', JSON.stringify(userProfileFrames));
-      }
-
-      function savePetDataToStorage() {
-        localStorage.setItem('carbon-pet-data', JSON.stringify(userPetData));
-      }
-
-      function saveBadgesToStorage() {
-        localStorage.setItem('carbon-badges', JSON.stringify(userBadges));
-      }
 
       // Gacha system functions
-      window.pullGacha = function(gachaId) {
+      window.pullGacha = async function(gachaId) {
         const gacha = gachaTypes.find(g => g.id === gachaId);
         if (!gacha || userCurrency < gacha.cost) return;
         
         userCurrency -= gacha.cost;
-        saveCurrencyToStorage();
         
         // Generate random item based on rates
         const rand = Math.random() * 100;
@@ -5783,10 +5886,7 @@
         }
         
         updateCurrencyDisplay();
-        saveCurrencyToStorage();
-        saveFramesToStorage();
-        savePetsToStorage();
-        saveProfileFramesToStorage();
+        await saveShopDataToFirebase();
         
         showGachaResults(gacha, rarity, rewards);
         
@@ -5907,7 +6007,7 @@
       }
 
       // Pet management functions
-      window.levelUpPet = function(petId) {
+      window.levelUpPet = async function(petId) {
         const pet = pets.find(p => p.id === petId);
         const petData = userPetData[petId] || { level: 1, xp: 0, battles: 0 };
         const levelUpCost = petData.level * 50;
@@ -5920,8 +6020,7 @@
         userPetData[petId] = petData;
         
         updateCurrencyDisplay();
-        saveCurrencyToStorage();
-        savePetDataToStorage();
+        await saveShopDataToFirebase();
         
         showNotification('Level Up!', `${pet.name} is now level ${petData.level}!`, 'success');
         
@@ -5977,7 +6076,7 @@
         }, 100);
       };
 
-      window.attemptFusion = function() {
+      window.attemptFusion = async function() {
         const pet1Id = document.getElementById('fusionPet1')?.value;
         const pet2Id = document.getElementById('fusionPet2')?.value;
         
@@ -6016,9 +6115,7 @@
         };
         
         updateCurrencyDisplay();
-        saveCurrencyToStorage();
-        savePetsToStorage();
-        savePetDataToStorage();
+        await saveShopDataToFirebase();
         
         showNotification('Fusion Success!', `Created ${fusionPet.name} at level ${fusionLevel}!`, 'success');
         
@@ -6034,7 +6131,7 @@
         }, 100);
       };
 
-      function earnBadge(badgeId) {
+      async function earnBadge(badgeId) {
         const badge = petBadges.find(b => b.id === badgeId);
         if (!badge || userBadges.includes(badgeId)) return;
         
@@ -6042,8 +6139,7 @@
         userCurrency += badge.reward;
         
         updateCurrencyDisplay();
-        saveCurrencyToStorage();
-        saveBadgesToStorage();
+        await saveShopDataToFirebase();
         
         showNotification('Badge Earned!', `${badge.icon} ${badge.name} - Earned ${badge.reward} coins!`, 'success');
       }
@@ -7337,11 +7433,11 @@
       }
 
       // Initialize Carbon Shop and Private Browsing
-      document.getElementById('carbon-shop-btn').addEventListener('click', (e) => {
+      document.getElementById('carbon-shop-btn').addEventListener('click', async (e) => {
         e.preventDefault();
         const dropdownMenu = document.getElementById('dropdown-menu');
         dropdownMenu.classList.add('hidden');
-        openCarbonShop();
+        await openCarbonShop();
       });
       
       document.getElementById('private-browsing-btn').addEventListener('click', (e) => {
@@ -7349,15 +7445,7 @@
         togglePrivateBrowsing();
       });
       
-      // Give users some starting currency if they're new
-      if (userCurrency === 0 && !localStorage.getItem('carbon-currency-initialized')) {
-        userCurrency = 100; // Starting bonus
-        saveCurrencyToStorage();
-        localStorage.setItem('carbon-currency-initialized', 'true');
-        setTimeout(() => {
-          showNotification('Welcome to Carbon!', 'You received 100 Carbon Coins to get started!', 'success');
-        }, 2000);
-      }
+
 
       // Initialize sortable for horizontal tabs
       const tabsContainer = document.getElementById("tabs-bar");
