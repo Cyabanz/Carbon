@@ -60,6 +60,7 @@
           };
           
           Object.assign(window.tailwind.config.theme.extend.colors, colorMap);
+          console.log('🎨 Updated Tailwind config with theme colors');
         }
       }
     </script>
@@ -84,115 +85,6 @@
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-    <script>
-      // Ensure Firebase is loaded before initialization
-      window.addEventListener('load', function() {
-        if (typeof firebase === 'undefined') {
-          console.error('❌ Firebase SDK failed to load');
-        }
-      });
-
-      // New Tab Background Settings
-      let newtabBackgroundType = 'theme';
-      let newtabImageUrl = '';
-      let newtabUnsplashCategory = 'nature';
-      let newtabUnsplashFrequency = 'daily';
-      let newtabGradientType = 'linear';
-      let newtabGradientDirection = 'to right';
-      let newtabGradientColors = ['#667eea', '#764ba2', '#f093fb'];
-
-      // New Tab Background Management
-      function loadNewtabBackgroundSettings() {
-        newtabBackgroundType = localStorage.getItem('carbon-newtab-bg-type') || 'theme';
-        newtabImageUrl = localStorage.getItem('carbon-newtab-image-url') || '';
-        newtabUnsplashCategory = localStorage.getItem('carbon-newtab-unsplash-category') || 'nature';
-        newtabUnsplashFrequency = localStorage.getItem('carbon-newtab-unsplash-frequency') || 'daily';
-        newtabGradientType = localStorage.getItem('carbon-newtab-gradient-type') || 'linear';
-        newtabGradientDirection = localStorage.getItem('carbon-newtab-gradient-direction') || 'to right';
-        const savedColors = localStorage.getItem('carbon-newtab-gradient-colors');
-        if (savedColors) {
-          newtabGradientColors = JSON.parse(savedColors);
-        }
-        
-        applyNewtabBackground();
-      }
-
-      async function applyNewtabBackground() {
-        const body = document.body;
-        const particlesCanvas = document.getElementById('particles-canvas');
-        
-        // Hide particles canvas by default
-        if (particlesCanvas) particlesCanvas.classList.add('hidden');
-        
-        // Reset body background classes
-        body.classList.remove('bg-gradient-to-br', 'from-base', 'via-surface', 'to-overlay');
-        body.style.background = '';
-        
-        switch (newtabBackgroundType) {
-          case 'theme':
-            // Use theme gradient
-            body.classList.add('bg-gradient-to-br', 'from-base', 'via-surface', 'to-overlay');
-            body.style.background = 'var(--theme-gradient)';
-            body.style.backgroundAttachment = 'fixed';
-            break;
-          case 'image':
-            if (newtabImageUrl) {
-              body.style.background = `url(${newtabImageUrl}) center/cover fixed`;
-            } else {
-              // Fallback to theme gradient
-              body.classList.add('bg-gradient-to-br', 'from-base', 'via-surface', 'to-overlay');
-              body.style.background = 'var(--theme-gradient)';
-              body.style.backgroundAttachment = 'fixed';
-            }
-            break;
-          case 'unsplash':
-            try {
-              const unsplashUrl = await getUnsplashImage(newtabUnsplashCategory);
-              if (unsplashUrl) {
-                body.style.background = `url(${unsplashUrl}) center/cover fixed`;
-              } else {
-                // Fallback to theme gradient
-                body.classList.add('bg-gradient-to-br', 'from-base', 'via-surface', 'to-overlay');
-                body.style.background = 'var(--theme-gradient)';
-                body.style.backgroundAttachment = 'fixed';
-              }
-            } catch (error) {
-              console.error('Error loading Unsplash image:', error);
-              // Fallback to theme gradient
-              body.classList.add('bg-gradient-to-br', 'from-base', 'via-surface', 'to-overlay');
-              body.style.background = 'var(--theme-gradient)';
-              body.style.backgroundAttachment = 'fixed';
-            }
-            break;
-          case 'gradient':
-            const gradientColors = newtabGradientColors.join(', ');
-            if (newtabGradientType === 'radial') {
-              body.style.background = `radial-gradient(circle, ${gradientColors}) fixed`;
-            } else if (newtabGradientType === 'conic') {
-              body.style.background = `conic-gradient(from 0deg, ${gradientColors}) fixed`;
-            } else {
-              body.style.background = `linear-gradient(${newtabGradientDirection}, ${gradientColors}) fixed`;
-            }
-            break;
-          default:
-            // Fallback to theme gradient
-            body.classList.add('bg-gradient-to-br', 'from-base', 'via-surface', 'to-overlay');
-            body.style.background = 'var(--theme-gradient)';
-            body.style.backgroundAttachment = 'fixed';
-            break;
-        }
-      }
-
-      async function getUnsplashImage(category = 'nature') {
-        try {
-          const response = await fetch(`https://source.unsplash.com/1920x1080/?${category}`);
-          return response.url;
-        } catch (error) {
-          console.error('Error fetching Unsplash image:', error);
-          return null;
-        }
-      }
-    </script>
 
     <style>
       .suggestion-box {
@@ -238,108 +130,6 @@
       }
       .dropdown-list button {
         font-size: 1rem;
-      }
-
-      /* Enhanced Menu Styling */
-      #dropdown-menu {
-        min-width: 280px;
-        max-width: 320px;
-        max-height: 80vh;
-        overflow-y: auto;
-        backdrop-filter: blur(20px);
-        background: rgba(31, 29, 46, 0.95);
-        border: 1px solid rgba(156, 207, 216, 0.2);
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-        z-index: 9999;
-      }
-
-      #dropdown-menu::-webkit-scrollbar {
-        width: 4px;
-      }
-
-      #dropdown-menu::-webkit-scrollbar-track {
-        background: rgba(64, 61, 82, 0.3);
-        border-radius: 2px;
-      }
-
-      #dropdown-menu::-webkit-scrollbar-thumb {
-        background: rgba(156, 207, 216, 0.5);
-        border-radius: 2px;
-      }
-
-      #dropdown-menu::-webkit-scrollbar-thumb:hover {
-        background: rgba(156, 207, 216, 0.7);
-      }
-
-      .menu-section-header {
-        font-size: 0.75rem;
-        font-weight: 600;
-        color: var(--theme-muted);
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-        padding: 0.75rem 1rem 0.5rem;
-        border-bottom: 1px solid rgba(156, 207, 216, 0.1);
-        margin-bottom: 0.5rem;
-        background: rgba(156, 207, 216, 0.05);
-      }
-
-      .menu-item {
-        display: flex;
-        align-items: center;
-        gap: 0.75rem;
-        padding: 0.75rem 1rem;
-        color: var(--theme-text);
-        transition: all 0.2s ease;
-        border-radius: 0.375rem;
-        margin: 0 0.25rem;
-        font-size: 0.875rem;
-        font-weight: 500;
-      }
-
-      .menu-item:hover {
-        background: rgba(156, 207, 216, 0.1);
-        transform: translateX(2px);
-      }
-
-      .menu-item i {
-        width: 1.25rem;
-        text-align: center;
-        font-size: 1rem;
-      }
-
-      .menu-item .shortcut {
-        margin-left: auto;
-        font-size: 0.75rem;
-        color: var(--theme-muted);
-        font-weight: 400;
-      }
-
-      .menu-item .badge {
-        margin-left: auto;
-        font-size: 0.625rem;
-        padding: 0.125rem 0.375rem;
-        border-radius: 0.75rem;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.025em;
-      }
-
-      .menu-item .badge.new {
-        background: rgba(246, 193, 119, 0.2);
-        color: var(--theme-gold);
-      }
-
-      /* Responsive menu adjustments */
-      @media (max-width: 768px) {
-        #dropdown-menu {
-          min-width: 260px;
-          max-width: 280px;
-        }
-        
-        .menu-item {
-          padding: 0.875rem 1rem;
-          font-size: 0.9rem;
-        }
       }
       
       /* Browser-style vertical tabs */
@@ -772,12 +562,6 @@
                     >
                       <i class="bx bx-network-chart text-pine"></i>Scramjet
                     </button>
-                    <button
-                      data-proxy="rammerhead"
-                      class="w-full flex items-center gap-2 px-3 py-2 text-text hover:bg-highlight-med transition-colors text-sm"
-                    >
-                      <i class="bx bx-shield-quarter text-gold"></i>Rammerhead
-                    </button>
                   </div>
                 </div>
 
@@ -830,143 +614,136 @@
                     </div>
                     
                     <!-- Tab Management -->
-                    <div class="menu-section-header">
+                    <div class="px-3 py-1 text-xs font-medium text-muted uppercase tracking-wide border-b border-highlight-med mb-2">
                       Tab Management
                     </div>
                     <button
                       id="duplicate-active-tab-btn"
-                      class="menu-item"
+                      class="w-full flex items-center gap-3 px-3 py-2 text-text hover:bg-highlight-med transition-colors text-sm"
                     >
                       <i class="bx bx-copy text-foam"></i>
                       <span>Duplicate Tab</span>
-                      <span class="shortcut">Ctrl+Shift+D</span>
+                      <span class="ml-auto text-xs text-muted">Ctrl+Shift+D</span>
                     </button>
                     <button
                       id="close-other-tabs-btn"
-                      class="menu-item"
+                      class="w-full flex items-center gap-3 px-3 py-2 text-text hover:bg-highlight-med transition-colors text-sm"
                     >
                       <i class="bx bx-x-circle text-love"></i>
                       <span>Close Other Tabs</span>
-                      <span class="shortcut">Ctrl+Shift+O</span>
+                      <span class="ml-auto text-xs text-muted">Ctrl+Shift+O</span>
                     </button>
                     <button
                       id="close-all-tabs-btn"
-                      class="menu-item"
+                      class="w-full flex items-center gap-3 px-3 py-2 text-text hover:bg-highlight-med transition-colors text-sm"
                     >
                       <i class="bx bx-x text-love"></i>
                       <span>Close All Tabs</span>
                     </button>
                     <button
                       id="reload-all-tabs-btn"
-                      class="menu-item"
+                      class="w-full flex items-center gap-3 px-3 py-2 text-text hover:bg-highlight-med transition-colors text-sm"
                     >
                       <i class="bx bx-refresh text-pine"></i>
                       <span>Reload All Tabs</span>
-                      <span class="shortcut">Ctrl+Shift+R</span>
+                      <span class="ml-auto text-xs text-muted">Ctrl+Shift+R</span>
                     </button>
                     <button
                       id="unpin-all-tabs-btn"
-                      class="menu-item"
+                      class="w-full flex items-center gap-3 px-3 py-2 text-text hover:bg-highlight-med transition-colors text-sm"
                     >
                       <i class="bx bx-pin text-foam"></i>
                       <span>Unpin All Tabs</span>
                     </button>
 
                     <!-- History & Tools -->
-                    <div class="menu-section-header">
+                    <div class="px-3 py-1 text-xs font-medium text-muted uppercase tracking-wide border-b border-highlight-med mb-2 mt-3">
                       History & Tools
                     </div>
                     <button
                       id="history-btn"
-                      class="menu-item"
+                      class="w-full flex items-center gap-3 px-3 py-2 text-text hover:bg-highlight-med transition-colors text-sm"
                     >
                       <i class="bx bx-history text-iris"></i>
                       <span>Show Tab History</span>
                     </button>
                     <button
                       id="global-history-btn"
-                      class="menu-item"
+                      class="w-full flex items-center gap-3 px-3 py-2 text-text hover:bg-highlight-med transition-colors text-sm"
                     >
                       <i class="bx bx-time text-iris"></i>
                       <span>Browse All History</span>
                     </button>
                     <button
                       id="clear-history-btn"
-                      class="menu-item"
+                      class="w-full flex items-center gap-3 px-3 py-2 text-text hover:bg-highlight-med transition-colors text-sm"
                     >
                       <i class="bx bx-trash text-love"></i>
                       <span>Clear History</span>
                     </button>
                     <button
                       id="restore-tabs-btn"
-                      class="menu-item"
+                      class="w-full flex items-center gap-3 px-3 py-2 text-text hover:bg-highlight-med transition-colors text-sm"
                     >
                       <i class="bx bx-history text-pine"></i>
                       <span>Restore Tabs</span>
                     </button>
 
                     <!-- Carbon Pages -->
-                    <div class="menu-section-header">
+                    <div class="px-3 py-1 text-xs font-medium text-muted uppercase tracking-wide border-b border-highlight-med mb-2 mt-3">
                       Carbon Pages
                     </div>
                     <button
                       id="carbon-account-btn"
-                      class="menu-item"
+                      class="w-full flex items-center gap-3 px-3 py-2 text-text hover:bg-highlight-med transition-colors text-sm"
                     >
                       <i class="bx bx-user text-foam"></i>
                       <span>Account Profile</span>
                     </button>
                     <button
                       id="carbon-settings-btn"
-                      class="menu-item"
+                      class="w-full flex items-center gap-3 px-3 py-2 text-text hover:bg-highlight-med transition-colors text-sm"
                     >
                       <i class="bx bx-cog text-iris"></i>
                       <span>Settings</span>
                     </button>
                     <button
                       id="carbon-games-btn"
-                      class="menu-item"
+                      class="w-full flex items-center gap-3 px-3 py-2 text-text hover:bg-highlight-med transition-colors text-sm"
                     >
                       <i class="bx bx-game text-gold"></i>
                       <span>Games</span>
                     </button>
                     <button
                       id="carbon-shop-btn"
-                      class="menu-item"
+                      class="w-full flex items-center gap-3 px-3 py-2 text-text hover:bg-highlight-med transition-colors text-sm"
                     >
                       <i class="bx bx-store text-pine"></i>
                       <span>Carbon Shop</span>
-                      <span class="badge new">NEW</span>
+                      <span class="ml-auto text-xs bg-gold/20 text-gold px-2 py-0.5 rounded-full">NEW</span>
                     </button>
                     <button
                       id="carbon-ai-btn"
-                      class="menu-item"
+                      class="w-full flex items-center gap-3 px-3 py-2 text-text hover:bg-highlight-med transition-colors text-sm"
                     >
                       <i class="bx bx-brain text-rose"></i>
                       <span>AI Assistant</span>
                     </button>
                     <button
                       id="carbon-vm-btn"
-                      class="menu-item"
+                      class="w-full flex items-center gap-3 px-3 py-2 text-text hover:bg-highlight-med transition-colors text-sm"
                     >
                       <i class="bx bx-server text-gold"></i>
                       <span>Carbon VM</span>
                     </button>
-                    <button
-                      id="carbon-movies-btn"
-                      class="menu-item"
-                    >
-                      <i class="bx bx-movie text-rose"></i>
-                      <span>Movies</span>
-                    </button>
 
                     <!-- Settings -->
-                    <div class="menu-section-header">
+                    <div class="px-3 py-1 text-xs font-medium text-muted uppercase tracking-wide border-b border-highlight-med mb-2 mt-3">
                       Settings
                     </div>
                     <button
                       id="wisp-btn"
-                      class="menu-item"
+                      class="w-full flex items-center gap-3 px-3 py-2 text-text hover:bg-highlight-med transition-colors text-sm"
                     >
                       <i class="bx bx-server text-muted"></i>
                       <span>Configure Wisp Server</span>
@@ -1206,14 +983,27 @@
       </div>
     </main>
     <script type="module" defer>
-      // --- Inlined for performance lol ---
-      import {
-        makeURL,
-        getProxied,
-        setProxy,
-        setTransport,
-        setWisp,
-      } from "/lethal.mjs";
+      // --- Proxy functions with error handling ---
+      let makeURL, getProxied, setProxy, setTransport, setWisp;
+      
+      try {
+        const lethalModule = await import("/lethal.mjs");
+        makeURL = lethalModule.makeURL;
+        getProxied = lethalModule.getProxied;
+        setProxy = lethalModule.setProxy;
+        setTransport = lethalModule.setTransport;
+        setWisp = lethalModule.setWisp;
+        console.log('✅ Lethal proxy module loaded successfully');
+      } catch (error) {
+        console.warn('⚠️ Lethal proxy module failed to load:', error);
+        // Provide fallback functions
+        makeURL = (url) => url;
+        getProxied = (url) => url;
+        setProxy = () => {};
+        setTransport = () => {};
+        setWisp = () => {};
+        console.log('🔄 Using fallback proxy functions');
+      }
       // --- END LETHAL IMPORTS ---
 
       const engines = {
@@ -1292,17 +1082,12 @@
       }
       function updateProxyToggleUI(proxy) {
         if (proxy === "scram") {
-          proxyToggleBtn.classList.remove("border-foam", "border-gold", "bg-gold/20");
-          proxyToggleBtn.classList.add("border-pine", "bg-pine/20");
+          proxyToggleBtn.classList.remove("border-foam");
+          proxyToggleBtn.classList.add("border-gold", "bg-gold/20");
           proxyToggleIcon.className = "bx bx-network-chart text-2xl";
           proxyToggleBtn.title = "Scramjet";
-        } else if (proxy === "rammerhead") {
-          proxyToggleBtn.classList.remove("border-foam", "border-pine", "bg-pine/20");
-          proxyToggleBtn.classList.add("border-gold", "bg-gold/20");
-          proxyToggleIcon.className = "bx bx-shield-quarter text-2xl";
-          proxyToggleBtn.title = "Rammerhead";
         } else {
-          proxyToggleBtn.classList.remove("border-gold", "bg-gold/20", "border-pine", "bg-pine/20");
+          proxyToggleBtn.classList.remove("border-gold", "bg-gold/20");
           proxyToggleBtn.classList.add("border-foam");
           proxyToggleIcon.className = "bx bx-cloud text-2xl";
           proxyToggleBtn.title = "UV";
@@ -1395,16 +1180,23 @@
       const redirectBtn = document.getElementById("redirect-btn");
       
       function redirectToCarbonWebsite() {
+        console.log("🔄 Redirect button clicked!");
+        
         const tab = getActiveTab();
         if (!tab) {
+          console.log("❌ No active tab found");
           return;
         }
         
         const currentUrl = tab.history[tab.pointer] || "";
+        console.log("🔍 Current URL:", currentUrl);
+        console.log("🔍 Tab pointer:", tab.pointer);
+        console.log("🔍 Tab history:", tab.history);
         
         // Check if current URL is a carbon:// URL
         if (currentUrl.startsWith("carbon://")) {
           const carbonPath = currentUrl.replace("carbon://", "");
+          console.log("🎯 Carbon path detected:", carbonPath);
           
           let redirectUrl = "https://carbon-git-cursor-align-authentication-64a676-cyabanzs-projects.vercel.app/";
           
@@ -1443,10 +1235,13 @@
               break;
           }
           
+          console.log("🚀 Redirecting to:", redirectUrl);
+          
           // Navigate to the redirect URL in a new tab
           const newTab = createTab(redirectUrl);
           setActiveTab(newTab.id);
         } else {
+          console.log("ℹ️ Not a carbon:// URL, redirecting to main website");
           // If not a carbon:// URL, just go to the main website
           const newTab = createTab("https://carbon-git-cursor-align-authentication-64a676-cyabanzs-projects.vercel.app/");
           setActiveTab(newTab.id);
@@ -1497,8 +1292,6 @@
           title = "AI Assistant";
         } else if (url === "carbon://vm") {
           title = "Virtual Machine";
-        } else if (url === "carbon://movies") {
-          title = "Movies";
         } else if (url === "carbon://multi") {
           title = "Multi Player";
         } else if (url) {
@@ -1907,7 +1700,7 @@
                 // Conditionally load vertical-newtab.html for vertical tabs mode
                 if (verticalTabsMode) {
                   iframe.src = "/vertical-newtab.html";
-          
+                  console.log('🔄 Loading vertical new tab layout');
                 } else {
                   iframe.src = "/newtab.html";
                 }
@@ -1929,9 +1722,6 @@
                 iframe.dataset.loadedUrl = url;
               } else if (url === "carbon://vm") {
                 iframe.src = "/vm.html";
-                iframe.dataset.loadedUrl = url;
-              } else if (url === "carbon://movies") {
-                iframe.src = "/movies.html";
                 iframe.dataset.loadedUrl = url;
               } else if (url === "carbon://multi") {
                 iframe.src = "/multi.html";
@@ -2244,7 +2034,7 @@
             lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
           }, { merge: true });
           
-
+          console.log('Enhanced data synced to Firebase successfully');
         } catch (error) {
           console.error('Error syncing data to Firebase:', error);
         }
@@ -2355,7 +2145,7 @@
             saveTabsData();
             applyAllSettings();
             
-  
+            console.log('All data restored from Firebase successfully');
           }
         } catch (error) {
           console.error('Error restoring data from Firebase:', error);
@@ -2640,7 +2430,7 @@
       setTimeout(() => {
         const currentTab = tabs.find(t => t.id === activeTab);
         if (currentTab && currentTab.history[currentTab.pointer] === 'carbon://newtab') {
-  
+          console.log('🔄 Refreshing newtab to switch layout mode');
           renderTabContent(currentTab, true);
         }
       }, 300);
@@ -3016,37 +2806,6 @@
           alert('Invalid choice or option not available.');
         }
       }
-
-      // Function to show tab history
-      function showTabHistory(tab) {
-        if (!tab || !tab.history || tab.history.length === 0) {
-          alert('No history available for this tab.');
-          return;
-        }
-        
-        let message = `Tab History for "${tab.title || 'Untitled Tab'}":\n\n`;
-        
-        tab.history.forEach((url, index) => {
-          const isCurrent = index === tab.pointer;
-          const prefix = isCurrent ? '→ ' : '  ';
-          const timestamp = new Date().toLocaleTimeString(); // In a real implementation, you'd store timestamps
-          message += `${prefix}${url}\n`;
-        });
-        
-        message += '\nEnter the number of the page to navigate to (or cancel to close):';
-        
-        const choice = prompt(message);
-        if (choice && !isNaN(choice)) {
-          const index = parseInt(choice) - 1;
-          if (index >= 0 && index < tab.history.length) {
-            tab.pointer = index;
-            updateAddressBar(tab);
-            renderTabContent(tab);
-          } else {
-            alert('Invalid selection.');
-          }
-        }
-      }
       const menuBtn = document.getElementById("menu-btn");
       const dropdown = document.getElementById("dropdown-menu");
       menuBtn.onclick = (e) => {
@@ -3066,16 +2825,6 @@
         tab.title = "New Tab";
         updateAddressBar(tab);
         renderTabContent(tab);
-        dropdown.classList.add("hidden");
-      };
-
-      document.getElementById("history-btn").onclick = function () {
-        const tab = getActiveTab();
-        if (tab && tab.history && tab.history.length > 0) {
-          showTabHistory(tab);
-        } else {
-          alert("No history available for this tab.");
-        }
         dropdown.classList.add("hidden");
       };
       document.getElementById("close-all-tabs-btn").onclick = function () {
@@ -3163,28 +2912,6 @@
         const tab = getActiveTab();
         if (tab) {
           updateTabHistory(tab, "carbon://vm");
-          updateAddressBar(tab);
-          renderTabs();
-          renderTabContent(tab);
-        }
-        dropdown.classList.add("hidden");
-      };
-
-      document.getElementById("carbon-movies-btn").onclick = function () {
-        const tab = getActiveTab();
-        if (tab) {
-          updateTabHistory(tab, "carbon://movies");
-          updateAddressBar(tab);
-          renderTabs();
-          renderTabContent(tab);
-        }
-        dropdown.classList.add("hidden");
-      };
-
-      document.getElementById("wisp-btn").onclick = function () {
-        const tab = getActiveTab();
-        if (tab) {
-          updateTabHistory(tab, "carbon://wisp");
           updateAddressBar(tab);
           renderTabs();
           renderTabContent(tab);
@@ -3466,14 +3193,16 @@
           }
         }
       });
+
       // -- Keyboard Shortcuts --
       document.addEventListener("keydown", (e) => {
         // PANIC KEY - Check this FIRST before any other shortcuts
         if (panicKey && panicKey.trim() !== '') {
-  
+          console.log('🔑 Key pressed:', e.key.toLowerCase(), 'Panic key set to:', panicKey);
           if (e.key.toLowerCase() === panicKey.toLowerCase()) {
             const panicUrl = localStorage.getItem('carbon-panic-url') || 'https://classroom.google.com';
-            
+            console.log('🚨🚨🚨 PANIC KEY TRIGGERED! 🚨🚨🚨');
+            console.log('Redirecting to:', panicUrl);
             e.preventDefault();
             e.stopPropagation();
             e.stopImmediatePropagation();
@@ -3485,7 +3214,7 @@
             try {
               window.top.location.href = panicUrl;
             } catch (error) {
-              
+              console.log('Top location failed, using window.location');
               window.location.href = panicUrl;
             }
             return false;
@@ -3493,7 +3222,7 @@
         } else {
           // Only log occasionally to avoid spam
           if (Math.random() < 0.01) {
-
+            console.log('⚠️ Panic key not set or empty. Current value:', panicKey);
           }
         }
         
@@ -3583,53 +3312,9 @@
       };
       
       // Initialize Firebase
-      let auth, db;
-      
-      function initializeFirebase() {
-        try {
-          if (typeof firebase === 'undefined') {
-            console.warn('⚠️ Firebase not loaded yet, retrying...');
-            setTimeout(initializeFirebase, 100);
-            return;
-          }
-          
-          // Check if Firebase is already initialized
-          if (!firebase.apps.length) {
-            firebase.initializeApp(firebaseConfig);
-    
-          } else {
-
-          }
-          
-          auth = firebase.auth();
-          db = firebase.firestore();
-          
-          
-          // Set up auth state listener
-                      auth.onAuthStateChanged(function(user) {
-              currentUser = user;
-              if (user) {
-                loadSettingsFromFirebase();
-                loadShopDataFromFirebase().catch(error => {
-                  console.error('Error loading shop data:', error);
-                });
-              } else {
-                loadLocalSettings();
-                loadShopDataFromLocalStorage();
-              }
-            });
-          
-        } catch (error) {
-          console.error('❌ Firebase initialization error:', error);
-        }
-      }
-      
-      // Initialize Firebase when page loads
-      if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initializeFirebase);
-      } else {
-        initializeFirebase();
-      }
+      firebase.initializeApp(firebaseConfig);
+      const auth = firebase.auth();
+      const db = firebase.firestore();
       
       let currentUser = null;
       let panicKey = null;
@@ -3692,16 +3377,31 @@
       
       // Load settings from localStorage (fallback)
       function loadLocalSettings() {
+        // Debug: Log all localStorage values
+        console.log('🔍 Debugging localStorage values:');
+        console.log('carbon-panic-key:', localStorage.getItem('carbon-panic-key'));
+        console.log('carbon-cloak-enabled:', localStorage.getItem('carbon-cloak-enabled'));
+        console.log('carbon-cloak-title:', localStorage.getItem('carbon-cloak-title'));
+        console.log('carbon-cloak-favicon:', localStorage.getItem('carbon-cloak-favicon'));
+        
         panicKey = localStorage.getItem('carbon-panic-key') || null;
         tabCloakingEnabled = localStorage.getItem('carbon-cloak-enabled') === 'true';
         cloakTitle = localStorage.getItem('carbon-cloak-title') || '';
         cloakFavicon = localStorage.getItem('carbon-cloak-favicon') || '';
+        
+        console.log('📚 Settings loaded from localStorage:', {
+          panicKey: panicKey,
+          cloakingEnabled: tabCloakingEnabled,
+          cloakTitle: cloakTitle,
+          cloakFavicon: cloakFavicon
+        });
         
         applyAllSettings();
       }
       
       // Apply all settings
       function applyAllSettings() {
+        console.log('🔧 Applying all settings...');
         applyTabCloaking();
         applyTeacherPrevention();
         applyClosePrevention();
@@ -3730,16 +3430,83 @@
         }
       }
       
-
+      // Manual reload function for debugging
+      window.reloadSettings = function() {
+        console.log('🔄 Manually reloading settings...');
+        loadLocalSettings();
+        if (currentUser) {
+          loadSettingsFromFirebase();
+        }
+      };
       
-
+      // Debug functions for testing
+      window.testPanicKey = function() {
+        console.log('🧪 Testing panic key. Current panic key:', panicKey);
+        console.log('💾 localStorage panic key:', localStorage.getItem('carbon-panic-key'));
+        if (panicKey) {
+          console.log('✅ Panic key is set. Try pressing:', panicKey);
+        } else {
+          console.log('❌ No panic key set. Set one in settings first.');
+        }
+      };
       
-      // Periodically check if settings need to be reloaded
+      window.testTabCloaking = function() {
+        console.log('🧪 Testing tab cloaking:');
+        console.log('Enabled:', tabCloakingEnabled);
+        console.log('Title:', cloakTitle);
+        console.log('Favicon:', cloakFavicon);
+        console.log('Current document title:', document.title);
+        if (tabCloakingEnabled && cloakTitle) {
+          console.log('✅ Tab cloaking should be active');
+        } else {
+          console.log('❌ Tab cloaking not active. Enable in settings first.');
+        }
+      };
+      
+      // Manual trigger for testing
+      window.manualTabCloak = function(title, favicon) {
+        console.log('🎭 Manually triggering tab cloaking...');
+        tabCloakingEnabled = true;
+        cloakTitle = title || 'Google Classroom';
+        cloakFavicon = favicon || 'https://ssl.gstatic.com/classroom/favicon.png';
+        
+        localStorage.setItem('carbon-cloak-enabled', 'true');
+        localStorage.setItem('carbon-cloak-title', cloakTitle);
+        localStorage.setItem('carbon-cloak-favicon', cloakFavicon);
+        
+        applyTabCloaking();
+        console.log('✅ Manual tab cloaking applied');
+      };
+      
+      // Theme testing functions
+      window.testThemeSystem = function() {
+        console.log('🧪 Testing theme system:');
+        console.log('Theme system available:', !!window.carbonTheme);
+        if (window.carbonTheme) {
+          console.log('Current theme:', window.carbonTheme.getCurrentTheme());
+          console.log('Available themes:', Object.keys(window.carbonTheme.getAllThemes()));
+          console.log('Custom themes:', Object.keys(window.carbonTheme.customThemes));
+        }
+        console.log('Saved theme in localStorage:', localStorage.getItem('carbon-theme-global'));
+      };
+      
+      window.manualThemeChange = function(themeName) {
+        console.log('🎨 Manually changing theme to:', themeName);
+        if (window.carbonTheme) {
+          window.carbonTheme.applyTheme(themeName);
+          console.log('✅ Theme applied successfully');
+        } else {
+          console.log('❌ Theme system not available');
+        }
+      };
+      
+      // Check settings every 5 seconds to ensure they're loaded
       setInterval(() => {
         if (!panicKey && !tabCloakingEnabled) {
           const storedPanicKey = localStorage.getItem('carbon-panic-key');
           const storedCloaking = localStorage.getItem('carbon-cloak-enabled');
           if (storedPanicKey || storedCloaking === 'true') {
+            console.log('🔄 Settings found in localStorage but not loaded. Reloading...');
             loadLocalSettings();
           }
         }
@@ -3747,16 +3514,40 @@
       
       // Tab cloaking functionality
       function applyTabCloaking() {
+        console.log('🎭 Applying tab cloaking with values:', {
+          enabled: tabCloakingEnabled,
+          enabledType: typeof tabCloakingEnabled,
+          title: cloakTitle,
+          titleType: typeof cloakTitle,
+          titleLength: cloakTitle ? cloakTitle.length : 0,
+          favicon: cloakFavicon,
+          faviconType: typeof cloakFavicon
+        });
+        
+        // More robust checking
         const isEnabled = (tabCloakingEnabled === true || tabCloakingEnabled === 'true');
         const hasTitle = cloakTitle && cloakTitle.trim() !== '';
         
+        console.log('🔍 Cloaking checks:', {
+          isEnabled: isEnabled,
+          hasTitle: hasTitle,
+          willApplyCloak: isEnabled && hasTitle
+        });
+        
         if (isEnabled && hasTitle) {
-          document.title = cloakTitle.trim();
+          // Change the document title immediately
+          const newTitle = cloakTitle.trim();
+          document.title = newTitle;
+          console.log('✅ Document title changed from CARBON to:', document.title);
           
           if (cloakFavicon && cloakFavicon.trim() !== '') {
             // Remove existing favicon links
             const existingLinks = document.querySelectorAll("link[rel*='icon']");
-            existingLinks.forEach(link => link.remove());
+            console.log('🗑️ Removing', existingLinks.length, 'existing favicon links');
+            existingLinks.forEach(link => {
+              console.log('🗑️ Removing favicon:', link.href);
+              link.remove();
+            });
             
             // Add new favicon with multiple formats for better compatibility
             const timestamp = new Date().getTime();
@@ -3781,8 +3572,13 @@
             appleLink.rel = 'apple-touch-icon';
             appleLink.href = faviconUrl + '?v=' + timestamp;
             document.head.appendChild(appleLink);
+            
+            console.log('✅ Added new favicon links for:', faviconUrl);
+          } else {
+            console.log('⚠️ No favicon URL provided or empty');
           }
         } else {
+          console.log('❌ Tab cloaking not applied - Enabled:', isEnabled, 'Has title:', hasTitle);
           document.title = 'CARBON';
           // Reset to default favicon if not cloaking
           const existingLinks = document.querySelectorAll("link[rel*='icon']");
@@ -3914,6 +3710,7 @@
         if (user) {
           console.log('👤 User signed in, loading all settings and data...');
           loadSettingsFromFirebase();
+          loadShopDataFromFirebase(); // Load shop data from Firebase
           // Load themes from Firebase if theme system is available
           if (window.carbonTheme) {
             window.carbonTheme.loadThemesFromFirebase();
@@ -3927,23 +3724,25 @@
         } else {
           console.log('👤 User signed out, using local settings...');
           loadLocalSettings();
+          loadShopDataFromLocalStorage(); // Load shop data from localStorage
         }
       });
       
       // Listen for settings changes from settings page
       window.addEventListener('message', (event) => {
         if (event.data && event.data.type === 'carbon-settings-updated') {
-
+          console.log('📨 Received settings update - Full data:', JSON.stringify(event.data, null, 2));
+          console.log('📨 Settings object:', JSON.stringify(event.data.settings, null, 2));
           
           const settings = event.data.settings;
           
           // Parse panic key
           panicKey = settings.panicKey || null;
-          
+          console.log('🔑 Parsed panic key:', panicKey);
           
           if (settings.panicUrl) {
             localStorage.setItem('carbon-panic-url', settings.panicUrl);
-            
+            console.log('🔗 Set panic URL:', settings.panicUrl);
           }
           
           // Parse tab cloaking - try multiple possible structures
@@ -4022,11 +3821,18 @@
             localStorage.setItem('carbon-custom-bg-global', settings.customBackground);
           }
           
-
+          console.log('✅ Final parsed settings:', {
+            panicKey: panicKey,
+            tabCloakingEnabled: tabCloakingEnabled,
+            cloakTitle: cloakTitle,
+            cloakFavicon: cloakFavicon,
+            theme: settings.theme,
+            background: settings.background
+          });
           
           applyAllSettings();
         } else if (event.data && event.data.type === 'carbon-settings-refresh') {
-
+          console.log('Refreshing settings from Firebase/localStorage');
           // Reload settings when settings page saves
           if (currentUser) {
             loadSettingsFromFirebase();
@@ -4149,6 +3955,7 @@
         { id: 'shadow-cat', name: 'Shadow Cat', description: 'Fusion of Pixel Cat + Friendly Ghost', emoji: '🐱👻', rarity: 'epic', basePower: 65, fusion: ['cat', 'ghost'] },
         { id: 'rainbow-dragon', name: 'Rainbow Dragon', description: 'Fusion of Cyber Dragon + Rainbow Unicorn', emoji: '🐉🦄', rarity: 'cosmic', basePower: 250, fusion: ['dragon', 'unicorn'] }
       ];
+
       // Gacha system
       const gachaTypes = [
         {
@@ -4185,25 +3992,7 @@
       ];
 
       let dailyMysteryUsed = false;
-
-      const profileFrames = [
-        { id: 'red', name: 'Red Frame', price: 200, color: '#ff4444', description: 'Classic red border for your profile' },
-        { id: 'blue', name: 'Blue Frame', price: 200, color: '#4444ff', description: 'Cool blue border for your profile' },
-        { id: 'orange', name: 'Orange Frame', price: 200, color: '#ff8844', description: 'Vibrant orange border for your profile' },
-        { id: 'green', name: 'Green Frame', price: 200, color: '#44ff44', description: 'Nature green border for your profile' },
-        { id: 'purple', name: 'Purple Frame', price: 200, color: '#8844ff', description: 'Royal purple border for your profile' },
-        { id: 'gold', name: 'Gold Frame', price: 500, color: '#ffd700', description: 'Premium gold border for your profile' },
-        { id: 'silver', name: 'Silver Frame', price: 300, color: '#c0c0c0', description: 'Elegant silver border for your profile' },
-        { id: 'rainbow', name: 'Rainbow Frame', price: 800, color: 'linear-gradient(45deg, #ff0000, #ff8000, #ffff00, #00ff00, #0080ff, #8000ff)', description: 'Animated rainbow border' }
-      ];
-
-      const miniGames = [
-        { id: 'clicker', name: 'Carbon Clicker', reward: 50, description: 'Click as fast as you can!' },
-        { id: 'memory', name: 'Memory Match', reward: 100, description: 'Match the carbon molecules' },
-        { id: 'reaction', name: 'Reaction Test', reward: 75, description: 'Test your reaction speed' },
-        { id: 'blackjack', name: 'Blackjack', reward: 200, description: 'Classic card game - beat the dealer!' },
-      ];
-
+      
       // === FIREBASE SHOP DATA MANAGEMENT ===
       
       async function loadShopDataFromFirebase() {
@@ -4330,11 +4119,28 @@
           localStorage.setItem('carbon-daily-mystery-date', new Date().toDateString());
         }
       }
+
+      const profileFrames = [
+        { id: 'red', name: 'Red Frame', price: 200, color: '#ff4444', description: 'Classic red border for your profile' },
+        { id: 'blue', name: 'Blue Frame', price: 200, color: '#4444ff', description: 'Cool blue border for your profile' },
+        { id: 'orange', name: 'Orange Frame', price: 200, color: '#ff8844', description: 'Vibrant orange border for your profile' },
+        { id: 'green', name: 'Green Frame', price: 200, color: '#44ff44', description: 'Nature green border for your profile' },
+        { id: 'purple', name: 'Purple Frame', price: 200, color: '#8844ff', description: 'Royal purple border for your profile' },
+        { id: 'gold', name: 'Gold Frame', price: 500, color: '#ffd700', description: 'Premium gold border for your profile' },
+        { id: 'silver', name: 'Silver Frame', price: 300, color: '#c0c0c0', description: 'Elegant silver border for your profile' },
+        { id: 'rainbow', name: 'Rainbow Frame', price: 800, color: 'linear-gradient(45deg, #ff0000, #ff8000, #ffff00, #00ff00, #0080ff, #8000ff)', description: 'Animated rainbow border' }
+      ];
+
+      const miniGames = [
+        { id: 'clicker', name: 'Carbon Clicker', reward: 50, description: 'Click as fast as you can!' },
+        { id: 'memory', name: 'Memory Match', reward: 100, description: 'Match the carbon molecules' },
+        { id: 'reaction', name: 'Reaction Test', reward: 75, description: 'Test your reaction speed' },
+        { id: 'blackjack', name: 'Blackjack', reward: 200, description: 'Classic card game - beat the dealer!' },
         { id: 'roulette', name: 'Roulette', reward: 300, description: 'Spin the wheel and win big!' }
       ];
 
       // Mini-game implementations
-      async function playClickerGame() {
+      function playClickerGame() {
         let clicks = 0;
         let timeLeft = 10;
         
@@ -4365,15 +4171,15 @@
           timeDisplay.textContent = timeLeft;
           if (timeLeft <= 0) {
             clearInterval(timer);
-            await endClickerGame(clicks);
+            endClickerGame(clicks);
           }
         }, 1000);
         
-        async function endClickerGame(finalClicks) {
+        function endClickerGame(finalClicks) {
           const reward = Math.min(finalClicks * 5, 250); // Max 250 coins
           userCurrency += reward;
           updateCurrencyDisplay();
-          await saveShopDataToFirebase();
+          saveCurrencyToStorage();
           
           gameModal.innerHTML = `
             <div class="text-center">
@@ -4389,7 +4195,7 @@
         }
       }
       
-      async function playMemoryGame() {
+      function playMemoryGame() {
         const symbols = ['🔥', '⚡', '🌟', '💎', '🎮', '🚀'];
         let cards = [...symbols, ...symbols].sort(() => Math.random() - 0.5);
         let flipped = [];
@@ -4456,7 +4262,7 @@
           
           userCurrency += reward;
           updateCurrencyDisplay();
-          await saveShopDataToFirebase();
+          saveCurrencyToStorage();
           
           setTimeout(() => {
             gameModal.innerHTML = `
@@ -4474,7 +4280,7 @@
         }
       }
       
-      async function playReactionGame() {
+      function playReactionGame() {
         let gameStarted = false;
         let startTime = 0;
         
@@ -4529,7 +4335,7 @@
           
           userCurrency += reward;
           updateCurrencyDisplay();
-          await saveShopDataToFirebase();
+          saveCurrencyToStorage();
           
           reactionArea.innerHTML = `
             <div class="text-center">
@@ -4900,7 +4706,7 @@
               reward = bet * multiplier;
               userCurrency += reward;
               updateCurrencyDisplay();
-              await saveShopDataToFirebase();
+              saveCurrencyToStorage();
             }
             
             gameModal.querySelector('#game-result').classList.remove('hidden');
@@ -4919,21 +4725,8 @@
           }, 3000);
         });
       }
-      async function openCarbonShop() {
-        // Ensure shop data is loaded before opening
-        if (!shopDataLoaded) {
-          try {
-            if (currentUser) {
-              await loadShopDataFromFirebase();
-            } else {
-              loadShopDataFromLocalStorage();
-            }
-          } catch (error) {
-            console.error('Error loading shop data:', error);
-            // Fallback to localStorage
-            loadShopDataFromLocalStorage();
-          }
-        }
+      
+      function openCarbonShop() {
         // Clean up any old waiting rooms when opening shop (helps with database hygiene)
         if (currentUser) {
           db.collection('game-rooms')
@@ -4946,7 +4739,7 @@
                 const roomAge = Date.now() - (room.createdAt?.toDate?.()?.getTime() || 0);
                 // Delete rooms older than 5 minutes
                 if (roomAge > 5 * 60 * 1000) {
-
+                  console.log('Cleaning up old waiting room:', doc.id);
                   doc.ref.delete();
                 }
               });
@@ -5445,7 +5238,7 @@
               const gameRoom = doc.data();
               // Only clean up if we're the host and the game is still waiting
               if (gameRoom.hostId === currentUser.uid && gameRoom.status === 'waiting') {
-
+                console.log('Cleaning up waiting room on shop close:', currentGameRoom);
                 db.collection('game-rooms').doc(currentGameRoom).delete();
               }
             }
@@ -5486,7 +5279,7 @@
         event.target.classList.remove('hover:bg-highlight-med', 'text-text');
       };
       
-      window.purchaseFrame = async function(frameId) {
+      window.purchaseFrame = function(frameId) {
         const frame = gameFrames.find(f => f.id === frameId);
         if (!frame || userFrames.includes(frameId) || userCurrency < frame.price) return;
         
@@ -5494,7 +5287,8 @@
         userFrames.push(frameId);
         
         updateCurrencyDisplay();
-        await saveShopDataToFirebase();
+        saveCurrencyToStorage();
+        saveFramesToStorage();
         
         // Refresh shop display
         closeShop();
@@ -5504,7 +5298,7 @@
         showNotification('Purchase Successful!', `You've unlocked the ${frame.name} frame!`, 'success');
       };
 
-      window.purchasePet = async function(petId) {
+      window.purchasePet = function(petId) {
         const pet = pets.find(p => p.id === petId);
         if (!pet || userPets.includes(petId) || userCurrency < pet.price) return;
         
@@ -5517,7 +5311,9 @@
         }
         
         updateCurrencyDisplay();
-        await saveShopDataToFirebase();
+        saveCurrencyToStorage();
+        savePetsToStorage();
+        savePetDataToStorage();
         
         // Check badges
         checkBadges();
@@ -5530,7 +5326,7 @@
         showNotification('Pet Adopted!', `You've adopted ${pet.name} ${pet.emoji}!`, 'success');
       };
 
-      window.purchaseProfileFrame = async function(frameId) {
+      window.purchaseProfileFrame = function(frameId) {
         const frame = profileFrames.find(f => f.id === frameId);
         if (!frame || userProfileFrames.includes(frameId) || userCurrency < frame.price) return;
         
@@ -5538,7 +5334,8 @@
         userProfileFrames.push(frameId);
         
         updateCurrencyDisplay();
-        await saveShopDataToFirebase();
+        saveCurrencyToStorage();
+        saveProfileFramesToStorage();
         
         // Refresh shop display
         closeShop();
@@ -5573,6 +5370,7 @@
         closeShop();
         setTimeout(() => openCarbonShop(), 100);
       };
+      
              window.playMiniGame = function(gameId) {
          closeShop();
          
@@ -5618,22 +5416,26 @@
          setTimeout(() => openCarbonShop(), 100);
        };
 
-       window.openLootBox = async function(boxId) {
+       window.openLootBox = function(boxId) {
          const box = lootBoxes.find(b => b.id === boxId);
          if (!box || userCurrency < box.price) return;
          
          // Check daily mystery box restriction
          if (box.isDaily) {
-           if (dailyMysteryUsed) {
+           const today = new Date().toDateString();
+           const lastUsed = localStorage.getItem('carbon-daily-mystery-date');
+           
+           if (lastUsed === today) {
              showNotification('Daily Limit Reached', 'You can only open one Daily Mystery Box per day!', 'warning');
              return;
            }
            
-           dailyMysteryUsed = true;
+           localStorage.setItem('carbon-daily-mystery-date', today);
          }
          
          // Deduct cost
          userCurrency -= box.price;
+         saveCurrencyToStorage();
          
          // Generate rewards
          const rewards = box.rewards.random ? generateRandomReward() : generateLootBoxRewards(box);
@@ -5660,7 +5462,11 @@
            }
          });
          
-         await saveShopDataToFirebase();
+         saveCurrencyToStorage();
+         saveFramesToStorage();
+         savePetsToStorage();
+         saveProfileFramesToStorage();
+         savePetDataToStorage();
          updateCurrencyDisplay();
          
          // Show rewards modal
@@ -5851,19 +5657,60 @@
          }, 10000);
        };
       
-            function updateCurrencyDisplay() {
+      function updateCurrencyDisplay() {
         const currencyEl = document.getElementById('shop-currency');
         if (currencyEl) currencyEl.textContent = userCurrency;
       }
-
       
+      function saveCurrencyToStorage() {
+        localStorage.setItem('carbon-currency', userCurrency.toString());
+        if (currentUser && shopDataLoaded) {
+          saveShopDataToFirebase();
+        }
+      }
+      
+              function saveFramesToStorage() {
+          localStorage.setItem('carbon-frames', JSON.stringify(userFrames));
+          if (currentUser && shopDataLoaded) {
+            saveShopDataToFirebase();
+          }
+        }
+
+              function savePetsToStorage() {
+          localStorage.setItem('carbon-pets', JSON.stringify(userPets));
+          if (currentUser && shopDataLoaded) {
+            saveShopDataToFirebase();
+          }
+        }
+
+              function saveProfileFramesToStorage() {
+          localStorage.setItem('carbon-profile-frames', JSON.stringify(userProfileFrames));
+          if (currentUser && shopDataLoaded) {
+            saveShopDataToFirebase();
+          }
+        }
+
+              function savePetDataToStorage() {
+          localStorage.setItem('carbon-pet-data', JSON.stringify(userPetData));
+          if (currentUser && shopDataLoaded) {
+            saveShopDataToFirebase();
+          }
+        }
+
+              function saveBadgesToStorage() {
+          localStorage.setItem('carbon-badges', JSON.stringify(userBadges));
+          if (currentUser && shopDataLoaded) {
+            saveShopDataToFirebase();
+          }
+        }
 
       // Gacha system functions
-      window.pullGacha = async function(gachaId) {
+      window.pullGacha = function(gachaId) {
         const gacha = gachaTypes.find(g => g.id === gachaId);
         if (!gacha || userCurrency < gacha.cost) return;
         
         userCurrency -= gacha.cost;
+        saveCurrencyToStorage();
         
         // Generate random item based on rates
         const rand = Math.random() * 100;
@@ -5894,7 +5741,10 @@
         }
         
         updateCurrencyDisplay();
-        await saveShopDataToFirebase();
+        saveCurrencyToStorage();
+        saveFramesToStorage();
+        savePetsToStorage();
+        saveProfileFramesToStorage();
         
         showGachaResults(gacha, rarity, rewards);
         
@@ -6015,7 +5865,7 @@
       }
 
       // Pet management functions
-      window.levelUpPet = async function(petId) {
+      window.levelUpPet = function(petId) {
         const pet = pets.find(p => p.id === petId);
         const petData = userPetData[petId] || { level: 1, xp: 0, battles: 0 };
         const levelUpCost = petData.level * 50;
@@ -6028,15 +5878,14 @@
         userPetData[petId] = petData;
         
         updateCurrencyDisplay();
-        await saveShopDataToFirebase();
+        saveCurrencyToStorage();
+        savePetDataToStorage();
         
         showNotification('Level Up!', `${pet.name} is now level ${petData.level}!`, 'success');
         
         // Check for level master badge
         if (petData.level >= 10 && !userBadges.includes('level-master')) {
-          earnBadge('level-master').catch(error => {
-            console.error('Error earning badge:', error);
-          });
+          earnBadge('level-master');
         }
         
         closeShop();
@@ -6086,7 +5935,7 @@
         }, 100);
       };
 
-      window.attemptFusion = async function() {
+      window.attemptFusion = function() {
         const pet1Id = document.getElementById('fusionPet1')?.value;
         const pet2Id = document.getElementById('fusionPet2')?.value;
         
@@ -6125,15 +5974,15 @@
         };
         
         updateCurrencyDisplay();
-        await saveShopDataToFirebase();
+        saveCurrencyToStorage();
+        savePetsToStorage();
+        savePetDataToStorage();
         
         showNotification('Fusion Success!', `Created ${fusionPet.name} at level ${fusionLevel}!`, 'success');
         
         // Check for fusion expert badge
         if (!userBadges.includes('fusion-expert')) {
-          earnBadge('fusion-expert').catch(error => {
-            console.error('Error earning badge:', error);
-          });
+          earnBadge('fusion-expert');
         }
         
         closeShop();
@@ -6143,7 +5992,7 @@
         }, 100);
       };
 
-      async function earnBadge(badgeId) {
+      function earnBadge(badgeId) {
         const badge = petBadges.find(b => b.id === badgeId);
         if (!badge || userBadges.includes(badgeId)) return;
         
@@ -6151,7 +6000,8 @@
         userCurrency += badge.reward;
         
         updateCurrencyDisplay();
-        await saveShopDataToFirebase();
+        saveCurrencyToStorage();
+        saveBadgesToStorage();
         
         showNotification('Badge Earned!', `${badge.icon} ${badge.name} - Earned ${badge.reward} coins!`, 'success');
       }
@@ -6160,12 +6010,12 @@
       function checkBadges() {
         // First pet badge
         if (userPets.length >= 1 && !userBadges.includes('first-pet')) {
-          earnBadge('first-pet').catch(error => console.error('Error earning badge:', error));
+          earnBadge('first-pet');
         }
         
         // Pet collector badge
         if (userPets.length >= 5 && !userBadges.includes('pet-collector')) {
-          earnBadge('pet-collector').catch(error => console.error('Error earning badge:', error));
+          earnBadge('pet-collector');
         }
         
         // Rare collector badge
@@ -6174,7 +6024,7 @@
           return pet && pet.rarity === 'legendary';
         });
         if (legendaryPets.length >= 3 && !userBadges.includes('rare-collector')) {
-          earnBadge('rare-collector').catch(error => console.error('Error earning badge:', error));
+          earnBadge('rare-collector');
         }
       }
 
@@ -6189,7 +6039,7 @@
            return;
          }
          
-         
+         console.log('Starting multiplayer game:', gameType, 'for user:', currentUser.uid);
          
          closeShop();
          createGameLobby(gameType);
@@ -6222,7 +6072,11 @@
              console.log('Board length:', gameRoom.gameState.board.length);
              
              // Test helper functions
-             
+             console.log('Testing Connect 4 helpers:');
+             console.log('Position (0,0) index:', getConnect4Index(0, 0), 'should be 0');
+             console.log('Position (5,6) index:', getConnect4Index(5, 6), 'should be 41');
+             console.log('Index 0 coords:', getConnect4RowCol(0), 'should be {row:0, col:0}');
+             console.log('Index 41 coords:', getConnect4RowCol(41), 'should be {row:5, col:6}');
            }
 
           const docRef = await db.collection('game-rooms').add(gameRoom);
@@ -6252,6 +6106,7 @@
           currentPlayer: 'red'
         };
       }
+
       function showGameLobby(gameRoom, roomId, isHost) {
         const modal = document.createElement('div');
         modal.className = 'fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[9999]';
@@ -6594,6 +6449,7 @@
           showNotification('Error', 'Failed to find opponent', 'error');
         }
       };
+
                            async function joinGame(roomId) {
           try {
             // Get the game room to determine the game type
@@ -7375,12 +7231,20 @@
       else loadTabsData();
       
       // Initialize settings immediately - try both methods to ensure we get settings
-      
+      console.log('🚀 Initializing settings on page load...');
       loadLocalSettings(); // Load localStorage first for immediate effect
       
-      // Initialize theme system with better error handling
+      // Initialize shop data
+      console.log('🛒 Initializing shop data...');
+      if (currentUser) {
+        loadShopDataFromFirebase();
+      } else {
+        loadShopDataFromLocalStorage();
+      }
       
-      setTimeout(initializeThemeSystem, 500); // Give more time for carbon-theme.js to load
+      // Initialize theme system
+      console.log('🎨 Initializing theme system...');
+      initializeThemeSystem();
       
       // Also load from Firebase if user is authenticated
       if (auth.currentUser) {
@@ -7389,11 +7253,9 @@
       } else {
         console.log('👤 No user authenticated, using localStorage settings only');
       }
+      
       // Initialize theme system connection to Firebase
       function initializeThemeSystem() {
-        let retryCount = 0;
-        const maxRetries = 50; // 5 seconds max wait time
-        
         // Wait for carbon theme to be available
         const checkThemeSystem = () => {
           if (window.carbonTheme) {
@@ -7413,31 +7275,26 @@
             const savedTheme = localStorage.getItem('carbon-theme-global') || 'rose-pine';
             window.carbonTheme.applyTheme(savedTheme);
             
-            // Listen for theme changes and sync to Firebase
-            const originalApplyTheme = window.carbonTheme.applyTheme;
-            window.carbonTheme.applyTheme = function(themeName) {
-              const result = originalApplyTheme.call(this, themeName);
-              
-              // Update Tailwind config when theme changes
-              const themeData = this.getTheme(themeName);
-              if (themeData && typeof updateTailwindConfig === 'function') {
-                updateTailwindConfig(themeData);
-              }
-              
-              // Sync theme change to Firebase if user is authenticated
-              if (currentUser) {
-                setTimeout(() => syncAllDataToFirebase(), 500);
-              }
-              return result;
-            };
+                         // Listen for theme changes and sync to Firebase
+             const originalApplyTheme = window.carbonTheme.applyTheme;
+             window.carbonTheme.applyTheme = function(themeName) {
+               const result = originalApplyTheme.call(this, themeName);
+               
+               // Update Tailwind config when theme changes
+               const themeData = this.getTheme(themeName);
+               if (themeData && typeof updateTailwindConfig === 'function') {
+                 updateTailwindConfig(themeData);
+               }
+               
+               // Sync theme change to Firebase if user is authenticated
+               if (currentUser) {
+                 setTimeout(() => syncAllDataToFirebase(), 500);
+               }
+               return result;
+             };
             
           } else {
-            retryCount++;
-            if (retryCount >= maxRetries) {
-              console.error('❌ Carbon theme system failed to load after', maxRetries, 'retries');
-              return;
-            }
-            console.log('⏳ Waiting for Carbon theme system... (attempt', retryCount, '/', maxRetries, ')');
+            console.log('⏳ Waiting for Carbon theme system...');
             setTimeout(checkThemeSystem, 100);
           }
         };
@@ -7445,16 +7302,11 @@
       }
 
       // Initialize Carbon Shop and Private Browsing
-      document.getElementById('carbon-shop-btn').addEventListener('click', async (e) => {
+      document.getElementById('carbon-shop-btn').addEventListener('click', (e) => {
         e.preventDefault();
         const dropdownMenu = document.getElementById('dropdown-menu');
         dropdownMenu.classList.add('hidden');
-        try {
-          await openCarbonShop();
-        } catch (error) {
-          console.error('Error opening shop:', error);
-          showNotification('Error', 'Failed to open Carbon Shop. Please try again.', 'error');
-        }
+        openCarbonShop();
       });
       
       document.getElementById('private-browsing-btn').addEventListener('click', (e) => {
@@ -7462,7 +7314,15 @@
         togglePrivateBrowsing();
       });
       
-
+      // Give users some starting currency if they're new
+      if (userCurrency === 0 && !localStorage.getItem('carbon-currency-initialized')) {
+        userCurrency = 100; // Starting bonus
+        saveCurrencyToStorage();
+        localStorage.setItem('carbon-currency-initialized', 'true');
+        setTimeout(() => {
+          showNotification('Welcome to Carbon!', 'You received 100 Carbon Coins to get started!', 'success');
+        }, 2000);
+      }
 
       // Initialize sortable for horizontal tabs
       const tabsContainer = document.getElementById("tabs-bar");
@@ -7512,45 +7372,43 @@
         },
       });
 
-      // Background System - Apply settings from settings.html
-      let currentBackground = 'gradient';
-      const validBackgrounds = ['gradient', 'solid', 'pattern', 'particles', 'custom'];
+      // New Tab Background System - Apply settings from settings.html
+      let newtabBackgroundType = 'theme';
+      let newtabImageUrl = '';
+      let newtabUnsplashCategory = 'nature';
+      let newtabUnsplashFrequency = 'daily';
+      let newtabGradientType = 'linear';
+      let newtabGradientDirection = 'to right';
+      let newtabGradientColors = ['#667eea', '#764ba2', '#f093fb'];
 
-      function initializeBackgroundSystem() {
-        // Load saved background preference
-        const savedBg = localStorage.getItem('carbon-background-global') || 'gradient';
-        if (validBackgrounds.includes(savedBg)) {
-          currentBackground = savedBg;
-        }
-
-        // Load newtab background settings (this will apply the background)
+      function initializeNewtabBackgroundSystem() {
+        // Load saved newtab background preference
         loadNewtabBackgroundSettings();
-
-        // Listen for background changes from settings page
+        
+        // Listen for newtab background changes from settings page
         window.addEventListener('storage', (event) => {
-          if (event.key === 'carbon-background-global' && event.newValue) {
-            currentBackground = event.newValue;
-            applyBackground();
-          }
-          if (event.key === 'carbon-newtab-bg-type' || 
-              event.key === 'carbon-newtab-image-url' || 
-              event.key === 'carbon-newtab-unsplash-category' || 
-              event.key === 'carbon-newtab-unsplash-frequency' || 
-              event.key === 'carbon-newtab-gradient-type' || 
-              event.key === 'carbon-newtab-gradient-direction' || 
-              event.key === 'carbon-newtab-gradient-colors') {
-            loadNewtabBackgroundSettings();
+          if (event.key === 'carbon-newtab-bg-type' && event.newValue) {
+            newtabBackgroundType = event.newValue;
+            applyNewtabBackground();
           }
         });
 
         // Listen for theme broadcast messages
         window.addEventListener('message', (event) => {
           if (event.data && event.data.type === 'carbon-settings-updated') {
-            if (event.data.settings.background) {
-              currentBackground = event.data.settings.background;
-              applyBackground();
+            if (event.data.settings.newtabBackgroundType) {
+              newtabBackgroundType = event.data.settings.newtabBackgroundType;
+              newtabImageUrl = event.data.settings.newtabImageUrl || '';
+              newtabUnsplashCategory = event.data.settings.newtabUnsplashCategory || 'nature';
+              newtabUnsplashFrequency = event.data.settings.newtabUnsplashFrequency || 'daily';
+              newtabGradientType = event.data.settings.newtabGradientType || 'linear';
+              newtabGradientDirection = event.data.settings.newtabGradientDirection || 'to right';
+              newtabGradientColors = event.data.settings.newtabGradientColors || ['#667eea', '#764ba2', '#f093fb'];
+              applyNewtabBackground();
             }
           }
+          
+          // Listen for newtab background updates
           if (event.data && event.data.type === 'carbon-newtab-bg-updated') {
             const settings = event.data.settings;
             newtabBackgroundType = settings.type;
@@ -7565,49 +7423,6 @@
         });
       }
 
-      function applyBackground() {
-        const body = document.body;
-        const particlesCanvas = document.getElementById('particles-canvas');
-        const baseColor = getComputedStyle(document.documentElement).getPropertyValue('--theme-base') || '#191724';
-        
-        // Hide particles canvas by default
-        if (particlesCanvas) particlesCanvas.classList.add('hidden');
-        
-        // Reset body background - preserve the existing gradient classes if we're using gradient
-        if (currentBackground !== 'gradient') {
-          body.classList.remove('bg-gradient-to-br', 'from-base', 'via-surface', 'to-overlay');
-          body.style.background = '';
-        }
-        
-        const customBg = localStorage.getItem('carbon-custom-bg-global');
-        
-        if (currentBackground === 'custom' && customBg) {
-          body.style.background = `url(${customBg}) center/cover fixed`;
-        } else {
-          switch (currentBackground) {
-            case 'solid':
-              body.style.background = baseColor;
-              break;
-            case 'pattern':
-              body.style.background = `${baseColor} url('data:image/svg+xml,<svg width="20" height="20" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><circle cx="10" cy="10" r="2" fill="%23ffffff" fill-opacity="0.2"/></svg>') repeat`;
-              break;
-            case 'particles':
-              body.style.background = baseColor;
-              if (particlesCanvas) {
-                particlesCanvas.classList.remove('hidden');
-                initParticles();
-              }
-              break;
-            case 'gradient':
-            default:
-              body.classList.add('bg-gradient-to-br', 'from-base', 'via-surface', 'to-overlay');
-              body.style.background = '';
-              break;
-          }
-        }
-      }
-
-      // New Tab Background Management
       function loadNewtabBackgroundSettings() {
         newtabBackgroundType = localStorage.getItem('carbon-newtab-bg-type') || 'theme';
         newtabImageUrl = localStorage.getItem('carbon-newtab-image-url') || '';
@@ -7630,14 +7445,13 @@
         // Hide particles canvas by default
         if (particlesCanvas) particlesCanvas.classList.add('hidden');
         
-        // Reset body background classes
+        // Reset body background
         body.classList.remove('bg-gradient-to-br', 'from-base', 'via-surface', 'to-overlay');
         body.style.background = '';
         
         switch (newtabBackgroundType) {
           case 'theme':
             // Use theme gradient
-            body.classList.add('bg-gradient-to-br', 'from-base', 'via-surface', 'to-overlay');
             body.style.background = 'var(--theme-gradient)';
             body.style.backgroundAttachment = 'fixed';
             break;
@@ -7645,8 +7459,6 @@
             if (newtabImageUrl) {
               body.style.background = `url(${newtabImageUrl}) center/cover fixed`;
             } else {
-              // Fallback to theme gradient
-              body.classList.add('bg-gradient-to-br', 'from-base', 'via-surface', 'to-overlay');
               body.style.background = 'var(--theme-gradient)';
               body.style.backgroundAttachment = 'fixed';
             }
@@ -7657,15 +7469,11 @@
               if (unsplashUrl) {
                 body.style.background = `url(${unsplashUrl}) center/cover fixed`;
               } else {
-                // Fallback to theme gradient
-                body.classList.add('bg-gradient-to-br', 'from-base', 'via-surface', 'to-overlay');
                 body.style.background = 'var(--theme-gradient)';
                 body.style.backgroundAttachment = 'fixed';
               }
             } catch (error) {
               console.error('Error loading Unsplash image:', error);
-              // Fallback to theme gradient
-              body.classList.add('bg-gradient-to-br', 'from-base', 'via-surface', 'to-overlay');
               body.style.background = 'var(--theme-gradient)';
               body.style.backgroundAttachment = 'fixed';
             }
@@ -7673,16 +7481,17 @@
           case 'gradient':
             const gradientColors = newtabGradientColors.join(', ');
             if (newtabGradientType === 'radial') {
-              body.style.background = `radial-gradient(circle, ${gradientColors}) fixed`;
+              body.style.background = `radial-gradient(circle, ${gradientColors})`;
+              body.style.backgroundAttachment = 'fixed';
             } else if (newtabGradientType === 'conic') {
-              body.style.background = `conic-gradient(from 0deg, ${gradientColors}) fixed`;
+              body.style.background = `conic-gradient(from 0deg, ${gradientColors})`;
+              body.style.backgroundAttachment = 'fixed';
             } else {
-              body.style.background = `linear-gradient(${newtabGradientDirection}, ${gradientColors}) fixed`;
+              body.style.background = `linear-gradient(${newtabGradientDirection}, ${gradientColors})`;
+              body.style.backgroundAttachment = 'fixed';
             }
             break;
           default:
-            // Fallback to theme gradient
-            body.classList.add('bg-gradient-to-br', 'from-base', 'via-surface', 'to-overlay');
             body.style.background = 'var(--theme-gradient)';
             body.style.backgroundAttachment = 'fixed';
             break;
@@ -7766,31 +7575,41 @@
         });
       }
 
-      async function loadBackgroundFromFirebase(uid) {
+      async function loadNewtabBackgroundFromFirebase(uid) {
         try {
           const userDoc = await db.collection('users').doc(uid).get();
           if (userDoc.exists) {
             const userData = userDoc.data();
             const settings = userData.settings || {};
             
-            if (settings.background && validBackgrounds.includes(settings.background)) {
-              currentBackground = settings.background;
-              localStorage.setItem('carbon-background-global', currentBackground);
+            if (settings.newtabBackgroundType) {
+              newtabBackgroundType = settings.newtabBackgroundType;
+              newtabImageUrl = settings.newtabImageUrl || '';
+              newtabUnsplashCategory = settings.newtabUnsplashCategory || 'nature';
+              newtabUnsplashFrequency = settings.newtabUnsplashFrequency || 'daily';
+              newtabGradientType = settings.newtabGradientType || 'linear';
+              newtabGradientDirection = settings.newtabGradientDirection || 'to right';
+              newtabGradientColors = settings.newtabGradientColors || ['#667eea', '#764ba2', '#f093fb'];
+              
+              // Save to localStorage for consistency
+              localStorage.setItem('carbon-newtab-bg-type', newtabBackgroundType);
+              localStorage.setItem('carbon-newtab-image-url', newtabImageUrl);
+              localStorage.setItem('carbon-newtab-unsplash-category', newtabUnsplashCategory);
+              localStorage.setItem('carbon-newtab-unsplash-frequency', newtabUnsplashFrequency);
+              localStorage.setItem('carbon-newtab-gradient-type', newtabGradientType);
+              localStorage.setItem('carbon-newtab-gradient-direction', newtabGradientDirection);
+              localStorage.setItem('carbon-newtab-gradient-colors', JSON.stringify(newtabGradientColors));
             }
             
-            if (settings.customBackground) {
-              localStorage.setItem('carbon-custom-bg-global', settings.customBackground);
-            }
-            
-            applyBackground();
+            applyNewtabBackground();
           }
         } catch (error) {
-          console.error('Error loading background from Firebase:', error);
+          console.error('Error loading newtab background from Firebase:', error);
         }
       }
 
-              // Initialize background system
-        initializeBackgroundSystem();
+              // Initialize newtab background system
+        initializeNewtabBackgroundSystem();
         
         // Export frame data for iframe container integration
         window.carbonFrames = {
@@ -7918,98 +7737,6 @@
              window.carbonFrames.setActiveFrame(event.data.frameId);
            }
          });
-
-        // Save newtab background settings and notify other windows
-        function saveNewtabBackgroundSettings() {
-          localStorage.setItem('carbon-newtab-bg-type', newtabBackgroundType);
-          localStorage.setItem('carbon-newtab-image-url', newtabImageUrl || '');
-          localStorage.setItem('carbon-newtab-unsplash-category', newtabUnsplashCategory || 'nature');
-          localStorage.setItem('carbon-newtab-unsplash-frequency', newtabUnsplashFrequency || 'daily');
-          localStorage.setItem('carbon-newtab-gradient-type', newtabGradientType || 'linear');
-          localStorage.setItem('carbon-newtab-gradient-direction', newtabGradientDirection || 'to right');
-          localStorage.setItem('carbon-newtab-gradient-colors', JSON.stringify(newtabGradientColors || []));
-          
-          console.log('🔄 Sending newtab background update to other windows...', {
-            type: newtabBackgroundType,
-            imageUrl: newtabImageUrl,
-            unsplashCategory: newtabUnsplashCategory
-          });
-          
-          // Notify newtab pages about the change via BroadcastChannel
-          try {
-            if (typeof BroadcastChannel !== 'undefined') {
-              const channel = new BroadcastChannel('carbon-settings');
-              channel.postMessage({
-                type: 'carbon-newtab-bg-updated',
-                settings: {
-                  type: newtabBackgroundType,
-                  imageUrl: newtabImageUrl,
-                  unsplashCategory: newtabUnsplashCategory,
-                  unsplashFrequency: newtabUnsplashFrequency,
-                  gradientType: newtabGradientType,
-                  gradientDirection: newtabGradientDirection,
-                  gradientColors: newtabGradientColors
-                }
-              });
-              console.log('✅ Broadcast sent via BroadcastChannel');
-            }
-          } catch (e) {
-            console.log('❌ BroadcastChannel failed:', e);
-          }
-          
-          // Also try postMessage to parent window
-          if (window.parent && window.parent !== window) {
-            try {
-              window.parent.postMessage({
-                type: 'carbon-newtab-bg-updated',
-                settings: {
-                  type: newtabBackgroundType,
-                  imageUrl: newtabImageUrl,
-                  unsplashCategory: newtabUnsplashCategory,
-                  unsplashFrequency: newtabUnsplashFrequency,
-                  gradientType: newtabGradientType,
-                  gradientDirection: newtabGradientDirection,
-                  gradientColors: newtabGradientColors
-                }
-              }, '*');
-              console.log('✅ PostMessage sent to parent window');
-            } catch (e) {
-              console.log('❌ PostMessage to parent failed:', e);
-            }
-          }
-        }
-
-        // Call saveNewtabBackgroundSettings whenever newtab settings change
-        // Override the existing loadNewtabBackgroundSettings to also save
-        const originalLoadNewtabBackgroundSettings = loadNewtabBackgroundSettings;
-        loadNewtabBackgroundSettings = function() {
-          originalLoadNewtabBackgroundSettings();
-          // Call save to notify other windows whenever settings are loaded/changed
-          setTimeout(saveNewtabBackgroundSettings, 100);
-        };
-
-        // Also watch for localStorage changes and trigger saving
-        const originalSetItem = localStorage.setItem;
-        localStorage.setItem = function(key, value) {
-          const result = originalSetItem.call(this, key, value);
-          if (key.startsWith('carbon-newtab-') || key === 'carbon-background-global') {
-            console.log('🔄 localStorage change detected for:', key, '=', value);
-            setTimeout(() => {
-              loadNewtabBackgroundSettings(); // This will trigger save
-            }, 50);
-          }
-          return result;
-        };
-
-                 // Trigger initial save to notify any open newtab pages
-         setTimeout(() => {
-           console.log('🚀 Initial saveNewtabBackgroundSettings call');
-           saveNewtabBackgroundSettings();
-         }, 1000);
-
-         // Debug message to confirm fixes loaded
-         
-
     </script>
   </body>
 </html>
