@@ -983,14 +983,27 @@
       </div>
     </main>
     <script type="module" defer>
-      // --- Inlined for performance lol ---
-      import {
-        makeURL,
-        getProxied,
-        setProxy,
-        setTransport,
-        setWisp,
-      } from "/lethal.mjs";
+      // --- Proxy functions with error handling ---
+      let makeURL, getProxied, setProxy, setTransport, setWisp;
+      
+      try {
+        const lethalModule = await import("/lethal.mjs");
+        makeURL = lethalModule.makeURL;
+        getProxied = lethalModule.getProxied;
+        setProxy = lethalModule.setProxy;
+        setTransport = lethalModule.setTransport;
+        setWisp = lethalModule.setWisp;
+        console.log('✅ Lethal proxy module loaded successfully');
+      } catch (error) {
+        console.warn('⚠️ Lethal proxy module failed to load:', error);
+        // Provide fallback functions
+        makeURL = (url) => url;
+        getProxied = (url) => url;
+        setProxy = () => {};
+        setTransport = () => {};
+        setWisp = () => {};
+        console.log('🔄 Using fallback proxy functions');
+      }
       // --- END LETHAL IMPORTS ---
 
       const engines = {
