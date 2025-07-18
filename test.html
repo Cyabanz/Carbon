@@ -3601,7 +3601,13 @@
         try {
           if (typeof firebase === 'undefined') {
             console.warn('Firebase not loaded yet, retrying...');
-            setTimeout(initializeFirebase, 100);
+            setTimeout(initializeFirebase, 200);
+            return;
+          }
+          
+          if (typeof firebase.initializeApp !== 'function') {
+            console.warn('Firebase SDK not fully loaded, retrying...');
+            setTimeout(initializeFirebase, 200);
             return;
           }
           
@@ -3613,6 +3619,8 @@
           auth = firebase.auth();
           db = firebase.firestore();
           
+          console.log('✅ Firebase auth and firestore ready');
+          
           // Set up auth state listener
           auth.onAuthStateChanged(function(user) {
             currentUser = user;
@@ -3621,18 +3629,24 @@
             if (user) {
               console.log('👤 User signed in, loading all settings and data...');
               loadSettingsFromFirebase();
-              loadShopDataFromFirebase().catch(error => {
-                console.error('Error loading shop data:', error);
-              });
+              if (typeof loadShopDataFromFirebase === 'function') {
+                loadShopDataFromFirebase().catch(error => {
+                  console.error('Error loading shop data:', error);
+                });
+              }
               // Load themes from Firebase if theme system is available
               if (window.carbonTheme) {
                 window.carbonTheme.loadThemesFromFirebase();
               }
               // Load frames from Firebase
-              loadFramesFromFirebase();
+              if (typeof loadFramesFromFirebase === 'function') {
+                loadFramesFromFirebase();
+              }
               // Also restore browser data from Firebase
               setTimeout(() => {
-                restoreAllDataFromFirebase();
+                if (typeof restoreAllDataFromFirebase === 'function') {
+                  restoreAllDataFromFirebase();
+                }
               }, 1000);
             } else {
               console.log('👤 User signed out, using local settings...');
@@ -3648,7 +3662,7 @@
       
       // Initialize Firebase when ready
       window.addEventListener('load', () => {
-        setTimeout(initializeFirebase, 100);
+        setTimeout(initializeFirebase, 500);
       });
       
       let currentUser = null;
@@ -4350,11 +4364,17 @@
           localStorage.setItem('carbon-daily-mystery-date', new Date().toDateString());
         }
       }
+
+      const miniGames = [
+        { id: 'clicker', name: 'Carbon Clicker', reward: 50, description: 'Click as fast as you can!' },
+        { id: 'memory', name: 'Memory Match', reward: 100, description: 'Match the carbon molecules' },
+        { id: 'reaction', name: 'Reaction Test', reward: 75, description: 'Test your reaction speed' },
+        { id: 'blackjack', name: 'Blackjack', reward: 200, description: 'Classic card game - beat the dealer!' },
         { id: 'roulette', name: 'Roulette', reward: 300, description: 'Spin the wheel and win big!' }
       ];
 
       // Mini-game implementations
-      async function playClickerGame() {
+      function playClickerGame() {
         let clicks = 0;
         let timeLeft = 10;
         
