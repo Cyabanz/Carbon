@@ -1913,11 +1913,18 @@
         return;
       }
       
-      // Validate and sanitize input
+      // Check if original text contains profanity
+      const originalText = text;
       const sanitizedText = sanitizeText(text, 1000);
+      
       if (!sanitizedText) {
         alert('Invalid comment text');
         return;
+      }
+      
+      // Show notification if profanity was filtered
+      if (originalText !== sanitizedText) {
+        showTemporaryNotification('Your comment has been filtered for inappropriate content.');
       }
       
       const validatedGameId = validateGameId(currentGameId);
@@ -1964,11 +1971,18 @@
         return;
       }
       
-      // Validate and sanitize input
+      // Check if original text contains profanity
+      const originalText = text;
       const sanitizedText = sanitizeText(text, 500);
+      
       if (!sanitizedText) {
         alert('Invalid reply text');
         return;
+      }
+      
+      // Show notification if profanity was filtered
+      if (originalText !== sanitizedText) {
+        showTemporaryNotification('Your reply has been filtered for inappropriate content.');
       }
       
       const validatedGameId = validateGameId(currentGameId);
@@ -2176,10 +2190,166 @@
       return /^[a-zA-Z0-9_-]+$/.test(id) ? id : null;
     }
 
+    // Profanity filter function
+    function filterProfanity(text) {
+      if (!text) return text;
+      
+      // Common profanity words and variations (case-insensitive)
+      const profanityList = [
+        // Common profanities
+        /\b(fuck|fucking|fucker|fck|fk)\b/gi,
+        /\b(shit|shitting|shitter)\b/gi,
+        /\b(bitch|bitching|bitcher)\b/gi,
+        /\b(ass|asshole|asshat)\b/gi,
+        /\b(dick|dickhead|dickwad)\b/gi,
+        /\b(pussy|pussies)\b/gi,
+        /\b(cock|cockhead|cockwad)\b/gi,
+        /\b(tits|titties|boobs|boobies)\b/gi,
+        /\b(nigga|nigger|nig)\b/gi,
+        /\b(fag|faggot|faggy)\b/gi,
+        /\b(cunt|cunty)\b/gi,
+        /\b(whore|whoring|slut|slutty)\b/gi,
+        /\b(bastard|bastards)\b/gi,
+        /\b(damn|damnit|dammit)\b/gi,
+        /\b(hell|hellish)\b/gi,
+        /\b(god\s*dammit|goddamn|goddamnit)\b/gi,
+        /\b(jesus\s*christ|jesus\s*fuck)\b/gi,
+        /\b(mother\s*fucker|motherfucking|mofo)\b/gi,
+        /\b(son\s*of\s*a\s*bitch|sob)\b/gi,
+        /\b(piece\s*of\s*shit|pos)\b/gi,
+        /\b(dumb\s*ass|dumbass)\b/gi,
+        /\b(smart\s*ass|smartass)\b/gi,
+        /\b(hard\s*ass|hardass)\b/gi,
+        /\b(bad\s*ass|badass)\b/gi,
+        /\b(big\s*ass|bigass)\b/gi,
+        /\b(lazy\s*ass|lazyass)\b/gi,
+        /\b(stupid\s*ass|stupidass)\b/gi,
+        /\b(crazy\s*ass|crazyass)\b/gi,
+        /\b(fat\s*ass|fatass)\b/gi,
+        /\b(skinny\s*ass|skinnyass)\b/gi,
+        /\b(ugly\s*ass|uglyass)\b/gi,
+        /\b(pretty\s*ass|prettyass)\b/gi,
+        /\b(nice\s*ass|niceass)\b/gi,
+        /\b(cool\s*ass|coolass)\b/gi,
+        /\b(hot\s*ass|hotass)\b/gi,
+        /\b(sexy\s*ass|sexyass)\b/gi,
+        /\b(tight\s*ass|tightass)\b/gi,
+        /\b(loose\s*ass|looseass)\b/gi,
+        /\b(round\s*ass|roundass)\b/gi,
+        /\b(flat\s*ass|flatass)\b/gi,
+        /\b(big\s*tits|bigtits)\b/gi,
+        /\b(small\s*tits|smalltits)\b/gi,
+        /\b(nice\s*tits|nicetits)\b/gi,
+        /\b(sexy\s*tits|sexytits)\b/gi,
+        /\b(hot\s*tits|hottits)\b/gi,
+        /\b(big\s*boobs|bigboobs)\b/gi,
+        /\b(small\s*boobs|smallboobs)\b/gi,
+        /\b(nice\s*boobs|niceboobs)\b/gi,
+        /\b(sexy\s*boobs|sexyboobs)\b/gi,
+        /\b(hot\s*boobs|hotboobs)\b/gi,
+        // Common leetspeak variations
+        /\b(f\*ck|f\*\*k|f\*\*\*k)\b/gi,
+        /\b(s\*it|s\*\*t|s\*\*\*t)\b/gi,
+        /\b(b\*tch|b\*\*ch|b\*\*\*ch)\b/gi,
+        /\b(a\*s|a\*\*s|a\*\*\*s)\b/gi,
+        /\b(d\*ck|d\*\*k|d\*\*\*k)\b/gi,
+        /\b(p\*ssy|p\*\*sy|p\*\*\*sy)\b/gi,
+        /\b(c\*ck|c\*\*k|c\*\*\*k)\b/gi,
+        /\b(t\*ts|t\*\*s|t\*\*\*s)\b/gi,
+        /\b(n\*gga|n\*\*ga|n\*\*\*ga)\b/gi,
+        /\b(f\*g|f\*\*g|f\*\*\*g)\b/gi,
+        /\b(c\*nt|c\*\*t|c\*\*\*t)\b/gi,
+        /\b(w\*re|w\*\*e|w\*\*\*e)\b/gi,
+        /\b(sl\*t|sl\*\*t|sl\*\*\*t)\b/gi,
+        // Number substitutions
+        /\b(f\*ck|f\*\*k|f\*\*\*k)\b/gi,
+        /\b(s\*it|s\*\*t|s\*\*\*t)\b/gi,
+        /\b(b\*tch|b\*\*ch|b\*\*\*ch)\b/gi,
+        /\b(a\*s|a\*\*s|a\*\*\*s)\b/gi,
+        /\b(d\*ck|d\*\*k|d\*\*\*k)\b/gi,
+        /\b(p\*ssy|p\*\*sy|p\*\*\*sy)\b/gi,
+        /\b(c\*ck|c\*\*k|c\*\*\*k)\b/gi,
+        /\b(t\*ts|t\*\*s|t\*\*\*s)\b/gi,
+        /\b(n\*gga|n\*\*ga|n\*\*\*ga)\b/gi,
+        /\b(f\*g|f\*\*g|f\*\*\*g)\b/gi,
+        /\b(c\*nt|c\*\*t|c\*\*\*t)\b/gi,
+        /\b(w\*re|w\*\*e|w\*\*\*e)\b/gi,
+        /\b(sl\*t|sl\*\*t|sl\*\*\*t)\b/gi,
+        // Common misspellings and variations
+        /\b(fuk|fuking|fuker)\b/gi,
+        /\b(sht|shting|shter)\b/gi,
+        /\b(btch|btching|btcher)\b/gi,
+        /\b(as|ashole|ashat)\b/gi,
+        /\b(dck|dckhead|dckwad)\b/gi,
+        /\b(ps|psies)\b/gi,
+        /\b(ck|ckhead|ckwad)\b/gi,
+        /\b(tts|tties|bbs|bbies)\b/gi,
+        /\b(nga|nger|ng)\b/gi,
+        /\b(fg|fggt|fggy)\b/gi,
+        /\b(cnt|cnty)\b/gi,
+        /\b(whre|whring|slt|slty)\b/gi,
+        /\b(bstrd|bstrds)\b/gi,
+        /\b(dmn|dmnit|dmmt)\b/gi,
+        /\b(hll|hllsh)\b/gi,
+        /\b(gd\s*dmmit|gddmn|gddmnit)\b/gi,
+        /\b(js\s*chrst|js\s*fk)\b/gi,
+        /\b(mthr\s*fkr|mthrfking|mfo)\b/gi,
+        /\b(sn\s*of\s*a\s*btch|sob)\b/gi,
+        /\b(pc\s*of\s*sht|pos)\b/gi,
+        /\b(dmb\s*as|dmbas)\b/gi,
+        /\b(smrt\s*as|smrtas)\b/gi,
+        /\b(hrd\s*as|hrdas)\b/gi,
+        /\b(bd\s*as|bdas)\b/gi,
+        /\b(bg\s*as|bgas)\b/gi,
+        /\b(lzy\s*as|lzyas)\b/gi,
+        /\b(stpd\s*as|stpdas)\b/gi,
+        /\b(crzy\s*as|crzyas)\b/gi,
+        /\b(ft\s*as|ftas)\b/gi,
+        /\b(sknny\s*as|sknnyas)\b/gi,
+        /\b(ugly\s*as|uglyas)\b/gi,
+        /\b(prtty\s*as|prttyas)\b/gi,
+        /\b(nc\s*as|ncas)\b/gi,
+        /\b(cl\s*as|clas)\b/gi,
+        /\b(ht\s*as|htas)\b/gi,
+        /\b(sxy\s*as|sxyas)\b/gi,
+        /\b(tght\s*as|tghtas)\b/gi,
+        /\b(lse\s*as|lseas)\b/gi,
+        /\b(rnd\s*as|rndas)\b/gi,
+        /\b(flt\s*as|fltas)\b/gi,
+        /\b(bg\s*tts|bgtts)\b/gi,
+        /\b(sml\s*tts|smltts)\b/gi,
+        /\b(nc\s*tts|nctts)\b/gi,
+        /\b(sxy\s*tts|sxytts)\b/gi,
+        /\b(ht\s*tts|httts)\b/gi,
+        /\b(bg\s*bbs|bgbbs)\b/gi,
+        /\b(sml\s*bbs|smlbbs)\b/gi,
+        /\b(nc\s*bbs|ncbbs)\b/gi,
+        /\b(sxy\s*bbs|sxybbs)\b/gi,
+        /\b(ht\s*bbs|htbbs)\b/gi
+      ];
+      
+      let filteredText = text;
+      
+      // Replace profanity with asterisks
+      profanityList.forEach(pattern => {
+        filteredText = filteredText.replace(pattern, (match) => {
+          return '*'.repeat(match.length);
+        });
+      });
+      
+      return filteredText;
+    }
+
     function sanitizeText(text, maxLength = 10000) {
       if (!text) return '';
+      
+      // First filter profanity
+      let sanitizedText = filterProfanity(text);
+      
       // Remove null bytes and limit length
-      return text.replace(/\0/g, '').substring(0, maxLength);
+      sanitizedText = sanitizedText.replace(/\0/g, '').substring(0, maxLength);
+      
+      return sanitizedText;
     }
 
     // Update comments UI
