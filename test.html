@@ -3583,59 +3583,43 @@
       };
       
       // Initialize Firebase
-      let auth, db;
-      
-      function initializeFirebase() {
-        try {
-          if (typeof firebase === 'undefined') {
-            console.warn('⚠️ Firebase not loaded yet, retrying...');
-            setTimeout(initializeFirebase, 100);
-            return;
-          }
-          
-          // Check if Firebase is already initialized
-          if (!firebase.apps.length) {
-            firebase.initializeApp(firebaseConfig);
-    
-          } else {
-
-          }
-          
-          auth = firebase.auth();
-          db = firebase.firestore();
-          
-          
-          // Set up auth state listener
-                      auth.onAuthStateChanged(function(user) {
-              currentUser = user;
-              if (user) {
-                loadSettingsFromFirebase();
-                loadShopDataFromFirebase().catch(error => {
-                  console.error('Error loading shop data:', error);
-                });
-              } else {
-                loadLocalSettings();
-                loadShopDataFromLocalStorage();
-              }
-            });
-          
-        } catch (error) {
-          console.error('❌ Firebase initialization error:', error);
-        }
-      }
-      
-      // Initialize Firebase when page loads
-      if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initializeFirebase);
-      } else {
-        initializeFirebase();
-      }
+      firebase.initializeApp(firebaseConfig);
+      const auth = firebase.auth();
+      const db = firebase.firestore();
       
       let currentUser = null;
       let panicKey = null;
       let tabCloakingEnabled = false;
       let cloakTitle = '';
       let cloakFavicon = '';
+      
+      // Set up auth state listener
+      auth.onAuthStateChanged(function(user) {
+        currentUser = user;
+        updateUserProfile(user);
+        
+        if (user) {
+          console.log('👤 User signed in, loading all settings and data...');
+          loadSettingsFromFirebase();
+          loadShopDataFromFirebase().catch(error => {
+            console.error('Error loading shop data:', error);
+          });
+          // Load themes from Firebase if theme system is available
+          if (window.carbonTheme) {
+            window.carbonTheme.loadThemesFromFirebase();
+          }
+          // Load frames from Firebase
+          loadFramesFromFirebase();
+          // Also restore browser data from Firebase
+          setTimeout(() => {
+            restoreAllDataFromFirebase();
+          }, 1000);
+        } else {
+          console.log('👤 User signed out, using local settings...');
+          loadLocalSettings();
+          loadShopDataFromLocalStorage();
+        }
+      });
       
       // Settings sync from Firebase
       async function loadSettingsFromFirebase() {
@@ -4365,15 +4349,18 @@
           timeDisplay.textContent = timeLeft;
           if (timeLeft <= 0) {
             clearInterval(timer);
-            await endClickerGame(clicks);
+            endClickerGame(clicks);
           }
         }, 1000);
         
-        async function endClickerGame(finalClicks) {
+        function endClickerGame(finalClicks) {
           const reward = Math.min(finalClicks * 5, 250); // Max 250 coins
           userCurrency += reward;
           updateCurrencyDisplay();
-          await saveShopDataToFirebase();
+          saveCurrencyToStorage();
+          if (currentUser) {
+            saveShopDataToFirebase();
+          }
           
           gameModal.innerHTML = `
             <div class="text-center">
@@ -4456,7 +4443,10 @@
           
           userCurrency += reward;
           updateCurrencyDisplay();
-          await saveShopDataToFirebase();
+          saveCurrencyToStorage();
+          if (currentUser) {
+            saveShopDataToFirebase();
+          }
           
           setTimeout(() => {
             gameModal.innerHTML = `
@@ -4529,7 +4519,10 @@
           
           userCurrency += reward;
           updateCurrencyDisplay();
-          await saveShopDataToFirebase();
+          saveCurrencyToStorage();
+          if (currentUser) {
+            saveShopDataToFirebase();
+          }
           
           reactionArea.innerHTML = `
             <div class="text-center">
@@ -4900,7 +4893,10 @@
               reward = bet * multiplier;
               userCurrency += reward;
               updateCurrencyDisplay();
-              await saveShopDataToFirebase();
+              saveCurrencyToStorage();
+              if (currentUser) {
+                saveShopDataToFirebase();
+              }
             }
             
             gameModal.querySelector('#game-result').classList.remove('hidden');
@@ -5855,8 +5851,14 @@
         const currencyEl = document.getElementById('shop-currency');
         if (currencyEl) currencyEl.textContent = userCurrency;
       }
-
       
+      function saveCurrencyToStorage() {
+        localStorage.setItem('carbon-currency', userCurrency.toString());
+      }
+      
+      function saveFramesToStorage() {
+        localStorage.setItem('carbon-frames', JSON.stringify(userFrames));
+      }
 
       // Gacha system functions
       window.pullGacha = async function(gachaId) {
@@ -7375,8 +7377,11 @@
       else loadTabsData();
       
       // Initialize settings immediately - try both methods to ensure we get settings
-      
-      loadLocalSettings(); // Load localStorage first for immediate effect
+      if (currentUser) {
+        loadSettingsFromFirebase();
+      } else {
+        loadLocalSettings();
+      }
       
       // Initialize theme system with better error handling
       
