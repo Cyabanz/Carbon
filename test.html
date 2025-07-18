@@ -1206,14 +1206,26 @@
       </div>
     </main>
     <script type="module" defer>
-      // --- Inlined for performance lol ---
-      import {
-        makeURL,
-        getProxied,
-        setProxy,
-        setTransport,
-        setWisp,
-      } from "/lethal.mjs";
+      // --- Proxy functions with fallback handling ---
+      let makeURL, getProxied, setProxy, setTransport, setWisp;
+      
+      try {
+        const lethalModule = await import("/lethal.mjs");
+        makeURL = lethalModule.makeURL;
+        getProxied = lethalModule.getProxied;
+        setProxy = lethalModule.setProxy;
+        setTransport = lethalModule.setTransport;
+        setWisp = lethalModule.setWisp;
+        console.log('✅ Lethal proxy module loaded successfully');
+      } catch (error) {
+        console.warn('⚠️ Lethal proxy module failed to load:', error);
+        // Provide fallback functions
+        makeURL = (url, search) => url.startsWith('http') ? url : `https://${search.replace('%s', encodeURIComponent(url))}`;
+        getProxied = async (url) => url;
+        setProxy = (proxy) => console.log('Proxy set to:', proxy);
+        setTransport = (transport) => console.log('Transport set to:', transport);
+        setWisp = (wisp) => console.log('Wisp set to:', wisp);
+      }
       // --- END LETHAL IMPORTS ---
 
       const engines = {
@@ -3582,44 +3594,68 @@
         measurementId: "G-Y2K1RQYE74"
       };
       
-      // Initialize Firebase
-      firebase.initializeApp(firebaseConfig);
-      const auth = firebase.auth();
-      const db = firebase.firestore();
+      // Initialize Firebase with proper loading check
+      let auth, db;
+      
+      function initializeFirebase() {
+        try {
+          if (typeof firebase === 'undefined') {
+            console.warn('Firebase not loaded yet, retrying...');
+            setTimeout(initializeFirebase, 100);
+            return;
+          }
+          
+          if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+            console.log('✅ Firebase initialized successfully');
+          }
+          
+          auth = firebase.auth();
+          db = firebase.firestore();
+          
+          // Set up auth state listener
+          auth.onAuthStateChanged(function(user) {
+            currentUser = user;
+            updateUserProfile(user);
+            
+            if (user) {
+              console.log('👤 User signed in, loading all settings and data...');
+              loadSettingsFromFirebase();
+              loadShopDataFromFirebase().catch(error => {
+                console.error('Error loading shop data:', error);
+              });
+              // Load themes from Firebase if theme system is available
+              if (window.carbonTheme) {
+                window.carbonTheme.loadThemesFromFirebase();
+              }
+              // Load frames from Firebase
+              loadFramesFromFirebase();
+              // Also restore browser data from Firebase
+              setTimeout(() => {
+                restoreAllDataFromFirebase();
+              }, 1000);
+            } else {
+              console.log('👤 User signed out, using local settings...');
+              loadLocalSettings();
+              loadShopDataFromLocalStorage();
+            }
+          });
+          
+        } catch (error) {
+          console.error('❌ Firebase initialization error:', error);
+        }
+      }
+      
+      // Initialize Firebase when ready
+      window.addEventListener('load', () => {
+        setTimeout(initializeFirebase, 100);
+      });
       
       let currentUser = null;
       let panicKey = null;
       let tabCloakingEnabled = false;
       let cloakTitle = '';
       let cloakFavicon = '';
-      
-      // Set up auth state listener
-      auth.onAuthStateChanged(function(user) {
-        currentUser = user;
-        updateUserProfile(user);
-        
-        if (user) {
-          console.log('👤 User signed in, loading all settings and data...');
-          loadSettingsFromFirebase();
-          loadShopDataFromFirebase().catch(error => {
-            console.error('Error loading shop data:', error);
-          });
-          // Load themes from Firebase if theme system is available
-          if (window.carbonTheme) {
-            window.carbonTheme.loadThemesFromFirebase();
-          }
-          // Load frames from Firebase
-          loadFramesFromFirebase();
-          // Also restore browser data from Firebase
-          setTimeout(() => {
-            restoreAllDataFromFirebase();
-          }, 1000);
-        } else {
-          console.log('👤 User signed out, using local settings...');
-          loadLocalSettings();
-          loadShopDataFromLocalStorage();
-        }
-      });
       
       // Settings sync from Firebase
       async function loadSettingsFromFirebase() {
@@ -8013,7 +8049,7 @@
          }, 1000);
 
          // Debug message to confirm fixes loaded
-         
+         console.log('🔧 Carbon Browser test.html fixes applied and ready');
 
     </script>
   </body>
