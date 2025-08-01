@@ -514,8 +514,18 @@
         console.log(`🔍 Platform detected: ${platform}, CSRF path: ${csrfPath}`);
         
         const res = await fetch(csrfPath);
-        if (!res.ok) throw new Error('Failed to get CSRF token');
-        const json = await res.json();
+        if (!res.ok) throw new Error(`Failed to get CSRF token: ${res.status} ${res.statusText}`);
+        
+        const responseText = await res.text();
+        console.log('CSRF Raw response:', responseText);
+        let json;
+        try {
+          json = JSON.parse(responseText);
+        } catch (parseError) {
+          console.error('CSRF JSON parse error:', parseError, 'Response:', responseText);
+          throw new Error(`Invalid CSRF JSON response: ${responseText.substring(0, 100)}...`);
+        }
+        
         csrfToken = json.csrfToken;
         return true;
       } catch (error) {
@@ -587,7 +597,15 @@
         console.log(`📡 API response status: ${res.status}`);
         console.log(`📡 API response headers:`, Object.fromEntries(res.headers.entries()));
         
-        const data = await res.json();
+        const responseText = await res.text();
+        console.log('📡 Raw VM response:', responseText);
+        let data;
+        try {
+          data = JSON.parse(responseText);
+        } catch (parseError) {
+          console.error('VM JSON parse error:', parseError, 'Response:', responseText);
+          throw new Error(`Invalid VM JSON response: ${responseText.substring(0, 100)}...`);
+        }
         
         if (!res.ok) {
           if (res.status === 429) {
@@ -825,7 +843,15 @@
           body: JSON.stringify({ sessionId })
         });
         
-        const data = await res.json();
+        const responseText = await res.text();
+        console.log('Share Raw response:', responseText);
+        let data;
+        try {
+          data = JSON.parse(responseText);
+        } catch (parseError) {
+          console.error('Share JSON parse error:', parseError, 'Response:', responseText);
+          throw new Error(`Invalid Share JSON response: ${responseText.substring(0, 100)}...`);
+        }
         
         if (res.ok) {
           isSessionShared = true;
@@ -874,7 +900,15 @@
           body: JSON.stringify({ sessionId: joinSessionId })
         });
         
-        const data = await res.json();
+        const responseText = await res.text();
+        console.log('Join Raw response:', responseText);
+        let data;
+        try {
+          data = JSON.parse(responseText);
+        } catch (parseError) {
+          console.error('Join JSON parse error:', parseError, 'Response:', responseText);
+          throw new Error(`Invalid Join JSON response: ${responseText.substring(0, 100)}...`);
+        }
         
         if (!res.ok) {
           if (res.status === 404) {
