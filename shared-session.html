@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Hyperbeam Shared Session - CARBON</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <!-- XSS Protection Headers -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' https:; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://www.gstatic.com https://cdn.jsdelivr.net https://apis.google.com https://unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://unpkg.com https://cdn.jsdelivr.net; font-src 'self' https://fonts.gstatic.com https://unpkg.com; img-src 'self' data: https:; media-src 'self' blob: https:; connect-src 'self' https: ws: wss:; frame-src 'self' https:;">
+  <meta http-equiv="X-Content-Type-Options" content="nosniff">
+  <meta http-equiv="X-XSS-Protection" content="1; mode=block">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
+  <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+  <script src="carbon-theme.js"></script>
+  
+  <script>
+    function setConfig() {
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        inter: ["Inter", "sans-serif"],
+                    },
+                    colors: {
+                        base: "#191724",
+                        surface: "#1f1d2e",
+                        overlay: "#26233a",
+                        muted: "#6e6a86",
+                        subtle: "#908caa",
+                        text: "#e0def4",
+                        love: "#eb6f92",
+                        gold: "#f6c177",
+                        rose: "#ebbcba",
+                        pine: "#31748f",
+                        foam: "#9ccfd8",
+                        iris: "#c4a7e7",
+                        "highlight-low": "#21202e",
+                        "highlight-med": "#403d52",
+                        "highlight-high": "#524f67"
+                    },
+                },
+            },
+        };
+    }
+    setConfig();
+  </script>
+  
+  <style>
+    :root {
+      --theme-base: #191724;
+      --theme-surface: #1f1d2e;
+      --theme-overlay: #26233a;
+      --theme-muted: #6e6a86;
+      --theme-subtle: #908caa;
+      --theme-text: #e0def4;
+      --theme-love: #eb6f92;
+      --theme-gold: #f6c177;
+      --theme-rose: #ebbcba;
+      --theme-pine: #31748f;
+      --theme-foam: #9ccfd8;
+      --theme-iris: #c4a7e7;
+    }
+
+    body {
+      background: var(--theme-base);
+      color: var(--theme-text);
+      font-family: 'Inter', sans-serif;
+    }
+
+    .shared-session-container {
+      background: var(--theme-surface);
+      border: 1px solid var(--theme-pine);
+      border-radius: 12px;
+    }
+
+    .user-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--theme-pine), var(--theme-iris));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      color: white;
+      font-size: 14px;
+    }
+
+    .share-code {
+      font-family: 'Courier New', monospace;
+      background: var(--theme-overlay);
+      border: 1px solid var(--theme-muted);
+      border-radius: 6px;
+      padding: 8px 12px;
+      color: var(--theme-foam);
+    }
+
+    .status-indicator {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #10b981;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    .user-list {
+      max-height: 200px;
+      overflow-y: auto;
+    }
+
+    .user-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px;
+      border-radius: 6px;
+      transition: background-color 0.2s;
+    }
+
+    .user-item:hover {
+      background: var(--theme-overlay);
+    }
+
+    .user-item.creator {
+      background: rgba(156, 207, 216, 0.1);
+      border: 1px solid rgba(156, 207, 216, 0.3);
+    }
+  </style>
+</head>
+<body class="min-h-screen p-4">
+  <div class="max-w-6xl mx-auto">
+    <!-- Header -->
+    <div class="text-center mb-8">
+      <h1 class="text-4xl font-bold mb-2" style="color: var(--theme-foam);">
+        <i class='bx bx-share-alt text-4xl mr-3'></i>
+        Hyperbeam Shared Session
+      </h1>
+      <p class="text-lg" style="color: var(--theme-subtle);">
+        Create or join a shared virtual machine session
+      </p>
+    </div>
+
+    <!-- Main Content -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      
+      <!-- Left Panel - Session Management -->
+      <div class="lg:col-span-1 space-y-6">
+        
+        <!-- Create Session -->
+        <div class="shared-session-container p-6">
+          <h2 class="text-xl font-bold mb-4" style="color: var(--theme-foam);">
+            <i class='bx bx-plus-circle mr-2'></i>
+            Create New Session
+          </h2>
+          <p class="text-sm mb-4" style="color: var(--theme-subtle);">
+            Create a new shared session and invite others to join
+          </p>
+          <button id="createSessionBtn" class="w-full bg-gradient-to-r from-pine to-iris text-white font-semibold py-3 px-4 rounded-lg hover:opacity-90 transition-opacity">
+            <i class='bx bx-play mr-2'></i>
+            Create Shared Session
+          </button>
+        </div>
+
+        <!-- Join Session -->
+        <div class="shared-session-container p-6">
+          <h2 class="text-xl font-bold mb-4" style="color: var(--theme-foam);">
+            <i class='bx bx-log-in mr-2'></i>
+            Join Session
+          </h2>
+          <p class="text-sm mb-4" style="color: var(--theme-subtle);">
+            Enter a share code to join an existing session
+          </p>
+          <div class="space-y-3">
+            <input 
+              type="text" 
+              id="shareCodeInput" 
+              placeholder="Enter share code (e.g., ABC123)" 
+              class="w-full px-3 py-2 rounded-lg border border-muted bg-overlay text-text focus:border-pine focus:outline-none"
+              maxlength="6"
+              style="text-transform: uppercase;"
+            >
+            <button id="joinSessionBtn" class="w-full bg-gradient-to-r from-rose to-love text-white font-semibold py-3 px-4 rounded-lg hover:opacity-90 transition-opacity">
+              <i class='bx bx-enter mr-2'></i>
+              Join Session
+            </button>
+          </div>
+        </div>
+
+        <!-- Session Info -->
+        <div id="sessionInfo" class="shared-session-container p-6 hidden">
+          <h2 class="text-xl font-bold mb-4" style="color: var(--theme-foam);">
+            <i class='bx bx-info-circle mr-2'></i>
+            Session Info
+          </h2>
+          <div class="space-y-3">
+            <div>
+              <label class="text-sm font-medium" style="color: var(--theme-subtle);">Share Code:</label>
+              <div class="share-code mt-1" id="currentShareCode"></div>
+            </div>
+            <div>
+              <label class="text-sm font-medium" style="color: var(--theme-subtle);">Status:</label>
+              <div class="flex items-center gap-2 mt-1">
+                <div class="status-indicator"></div>
+                <span id="sessionStatus" style="color: var(--theme-foam);">Active</span>
+              </div>
+            </div>
+            <div>
+              <label class="text-sm font-medium" style="color: var(--theme-subtle);">Users Online:</label>
+              <span id="userCount" class="text-lg font-bold" style="color: var(--theme-iris);">0</span>
+            </div>
+            <button id="leaveSessionBtn" class="w-full bg-red-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-red-700 transition-colors">
+              <i class='bx bx-exit mr-2'></i>
+              Leave Session
+            </button>
+          </div>
+        </div>
+
+        <!-- Users List -->
+        <div id="usersList" class="shared-session-container p-6 hidden">
+          <h2 class="text-xl font-bold mb-4" style="color: var(--theme-foam);">
+            <i class='bx bx-group mr-2'></i>
+            Connected Users
+          </h2>
+          <div class="user-list" id="usersListContent">
+            <!-- Users will be populated here -->
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Right Panel - VM Display -->
+      <div class="lg:col-span-2">
+        <div class="shared-session-container p-6">
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="text-xl font-bold" style="color: var(--theme-foam);">
+              <i class='bx bx-desktop mr-2'></i>
+              Virtual Machine
+            </h2>
+            <div id="connectionStatus" class="flex items-center gap-2">
+              <div class="status-indicator"></div>
+              <span style="color: var(--theme-subtle);">Connecting...</span>
+            </div>
+          </div>
+          
+          <div id="vmContainer" class="relative">
+            <div id="loadingState" class="flex items-center justify-center h-64 bg-overlay rounded-lg">
+              <div class="text-center">
+                <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-pine mx-auto mb-4"></div>
+                <p style="color: var(--theme-subtle);">Loading virtual machine...</p>
+              </div>
+            </div>
+            
+            <div id="vmFrame" class="hidden">
+              <iframe id="hyperbeamFrame" src="" class="w-full h-96 rounded-lg border border-muted" frameborder="0" allowfullscreen></iframe>
+            </div>
+            
+            <div id="errorState" class="hidden flex items-center justify-center h-64 bg-overlay rounded-lg">
+              <div class="text-center">
+                <i class='bx bx-error-circle text-4xl mb-4' style="color: var(--theme-love);"></i>
+                <p id="errorMessage" style="color: var(--theme-subtle);">Failed to load session</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Share Modal -->
+    <div id="shareModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+      <div class="bg-surface p-6 rounded-lg max-w-md w-full mx-4">
+        <h3 class="text-xl font-bold mb-4" style="color: var(--theme-foam);">
+          <i class='bx bx-share mr-2'></i>
+          Share Session
+        </h3>
+        <p class="text-sm mb-4" style="color: var(--theme-subtle);">
+          Share this code with others to let them join your session:
+        </p>
+        <div class="share-code text-center text-lg font-bold mb-4" id="modalShareCode"></div>
+        <div class="flex gap-2">
+          <button id="copyShareCodeBtn" class="flex-1 bg-pine text-white font-semibold py-2 px-4 rounded-lg hover:opacity-90 transition-opacity">
+            <i class='bx bx-copy mr-2'></i>
+            Copy Code
+          </button>
+          <button id="closeShareModalBtn" class="flex-1 bg-muted text-text font-semibold py-2 px-4 rounded-lg hover:bg-overlay transition-colors">
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    class SharedSessionManager {
+      constructor() {
+        this.currentSession = null;
+        this.websocket = null;
+        this.shareCode = null;
+        this.isCreator = false;
+        
+        this.initializeEventListeners();
+      }
+
+      initializeEventListeners() {
+        // Create session button
+        document.getElementById('createSessionBtn').addEventListener('click', () => {
+          this.createSession();
+        });
+
+        // Join session button
+        document.getElementById('joinSessionBtn').addEventListener('click', () => {
+          this.joinSession();
+        });
+
+        // Leave session button
+        document.getElementById('leaveSessionBtn').addEventListener('click', () => {
+          this.leaveSession();
+        });
+
+        // Share code input
+        document.getElementById('shareCodeInput').addEventListener('input', (e) => {
+          e.target.value = e.target.value.toUpperCase();
+        });
+
+        // Copy share code button
+        document.getElementById('copyShareCodeBtn').addEventListener('click', () => {
+          this.copyShareCode();
+        });
+
+        // Close share modal button
+        document.getElementById('closeShareModalBtn').addEventListener('click', () => {
+          this.hideShareModal();
+        });
+
+        // Enter key on share code input
+        document.getElementById('shareCodeInput').addEventListener('keypress', (e) => {
+          if (e.key === 'Enter') {
+            this.joinSession();
+          }
+        });
+      }
+
+      async createSession() {
+        try {
+          this.showLoading('Creating shared session...');
+          
+          const response = await fetch('/api/vm/shared/create', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            }
+          });
+
+          if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Failed to create session');
+          }
+
+          const sessionData = await response.json();
+          this.currentSession = sessionData;
+          this.shareCode = sessionData.shareCode;
+          this.isCreator = true;
+
+          this.showSession(sessionData);
+          this.connectWebSocket();
+          this.showShareModal();
+          
+        } catch (error) {
+          console.error('Error creating session:', error);
+          this.showError(error.message);
+        }
+      }
+
+      async joinSession() {
+        const shareCode = document.getElementById('shareCodeInput').value.trim();
+        
+        if (!shareCode) {
+          this.showError('Please enter a share code');
+          return;
+        }
+
+        try {
+          this.showLoading('Joining shared session...');
+          
+          const response = await fetch('/api/vm/shared/join', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ shareCode })
+          });
+
+          if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Failed to join session');
+          }
+
+          const sessionData = await response.json();
+          this.currentSession = sessionData;
+          this.shareCode = sessionData.shareCode;
+          this.isCreator = false;
+
+          this.showSession(sessionData);
+          this.connectWebSocket();
+          
+          // Clear input
+          document.getElementById('shareCodeInput').value = '';
+          
+        } catch (error) {
+          console.error('Error joining session:', error);
+          this.showError(error.message);
+        }
+      }
+
+      async leaveSession() {
+        if (!this.shareCode) return;
+
+        try {
+          await fetch('/api/vm/shared/leave', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ shareCode: this.shareCode })
+          });
+        } catch (error) {
+          console.error('Error leaving session:', error);
+        }
+
+        this.disconnectWebSocket();
+        this.hideSession();
+      }
+
+      connectWebSocket() {
+        if (!this.shareCode) return;
+
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const wsUrl = `${protocol}//${window.location.host}?shareCode=${this.shareCode}`;
+        
+        this.websocket = new WebSocket(wsUrl);
+
+        this.websocket.onopen = () => {
+          console.log('WebSocket connected');
+          this.updateConnectionStatus('Connected', true);
+        };
+
+        this.websocket.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data);
+            this.handleWebSocketMessage(data);
+          } catch (error) {
+            console.error('Error parsing WebSocket message:', error);
+          }
+        };
+
+        this.websocket.onclose = () => {
+          console.log('WebSocket disconnected');
+          this.updateConnectionStatus('Disconnected', false);
+        };
+
+        this.websocket.onerror = (error) => {
+          console.error('WebSocket error:', error);
+          this.updateConnectionStatus('Error', false);
+        };
+      }
+
+      disconnectWebSocket() {
+        if (this.websocket) {
+          this.websocket.close();
+          this.websocket = null;
+        }
+      }
+
+      handleWebSocketMessage(data) {
+        switch (data.type) {
+          case 'session_info':
+            this.updateUsersList(data.users);
+            break;
+            
+          case 'user_joined':
+            this.addUser(data.user);
+            this.updateUserCount(data.totalUsers);
+            this.showNotification(`${data.user.ip} joined the session`);
+            break;
+            
+          case 'user_left':
+            this.removeUser(data.user);
+            this.updateUserCount(data.totalUsers);
+            this.showNotification(`${data.user.ip} left the session`);
+            break;
+            
+          case 'session_terminated':
+            this.showError(`Session terminated: ${data.reason}`);
+            this.hideSession();
+            break;
+            
+          case 'pong':
+            // Keep connection alive
+            break;
+        }
+      }
+
+      showSession(sessionData) {
+        // Show session info
+        document.getElementById('sessionInfo').classList.remove('hidden');
+        document.getElementById('usersList').classList.remove('hidden');
+        
+        // Update session info
+        document.getElementById('currentShareCode').textContent = sessionData.shareCode;
+        document.getElementById('sessionStatus').textContent = 'Active';
+        
+        // Show VM
+        document.getElementById('loadingState').classList.add('hidden');
+        document.getElementById('vmFrame').classList.remove('hidden');
+        document.getElementById('errorState').classList.add('hidden');
+        
+        // Set iframe source
+        document.getElementById('hyperbeamFrame').src = sessionData.url;
+        
+        // Update users
+        this.updateUsersList(sessionData.users || []);
+        this.updateUserCount(sessionData.users?.length || 0);
+      }
+
+      hideSession() {
+        document.getElementById('sessionInfo').classList.add('hidden');
+        document.getElementById('usersList').classList.add('hidden');
+        document.getElementById('vmFrame').classList.add('hidden');
+        document.getElementById('loadingState').classList.remove('hidden');
+        
+        this.currentSession = null;
+        this.shareCode = null;
+        this.isCreator = false;
+      }
+
+      updateUsersList(users) {
+        const container = document.getElementById('usersListContent');
+        container.innerHTML = '';
+
+        users.forEach(user => {
+          const userElement = document.createElement('div');
+          userElement.className = `user-item ${user.isCreator ? 'creator' : ''}`;
+          
+          const avatar = document.createElement('div');
+          avatar.className = 'user-avatar';
+          avatar.textContent = user.ip.slice(-2).toUpperCase();
+          
+          const info = document.createElement('div');
+          info.className = 'flex-1';
+          
+          const name = document.createElement('div');
+          name.className = 'font-medium';
+          name.textContent = user.ip;
+          
+          const role = document.createElement('div');
+          role.className = 'text-xs';
+          role.textContent = user.isCreator ? 'Creator' : 'User';
+          role.style.color = 'var(--theme-muted)';
+          
+          info.appendChild(name);
+          info.appendChild(role);
+          
+          userElement.appendChild(avatar);
+          userElement.appendChild(info);
+          
+          container.appendChild(userElement);
+        });
+      }
+
+      addUser(user) {
+        const container = document.getElementById('usersListContent');
+        const userElement = document.createElement('div');
+        userElement.className = `user-item ${user.isCreator ? 'creator' : ''}`;
+        userElement.id = `user-${user.ip}`;
+        
+        const avatar = document.createElement('div');
+        avatar.className = 'user-avatar';
+        avatar.textContent = user.ip.slice(-2).toUpperCase();
+        
+        const info = document.createElement('div');
+        info.className = 'flex-1';
+        
+        const name = document.createElement('div');
+        name.className = 'font-medium';
+        name.textContent = user.ip;
+        
+        const role = document.createElement('div');
+        role.className = 'text-xs';
+        role.textContent = user.isCreator ? 'Creator' : 'User';
+        role.style.color = 'var(--theme-muted)';
+        
+        info.appendChild(name);
+        info.appendChild(role);
+        
+        userElement.appendChild(avatar);
+        userElement.appendChild(info);
+        
+        container.appendChild(userElement);
+      }
+
+      removeUser(user) {
+        const userElement = document.getElementById(`user-${user.ip}`);
+        if (userElement) {
+          userElement.remove();
+        }
+      }
+
+      updateUserCount(count) {
+        document.getElementById('userCount').textContent = count;
+      }
+
+      updateConnectionStatus(status, isConnected) {
+        const statusElement = document.getElementById('connectionStatus');
+        const indicator = statusElement.querySelector('.status-indicator');
+        const text = statusElement.querySelector('span');
+        
+        text.textContent = status;
+        
+        if (isConnected) {
+          indicator.style.background = '#10b981';
+        } else {
+          indicator.style.background = '#ef4444';
+        }
+      }
+
+      showLoading(message) {
+        document.getElementById('loadingState').classList.remove('hidden');
+        document.getElementById('vmFrame').classList.add('hidden');
+        document.getElementById('errorState').classList.add('hidden');
+        
+        const loadingText = document.querySelector('#loadingState p');
+        if (loadingText) {
+          loadingText.textContent = message;
+        }
+      }
+
+      showError(message) {
+        document.getElementById('loadingState').classList.add('hidden');
+        document.getElementById('vmFrame').classList.add('hidden');
+        document.getElementById('errorState').classList.remove('hidden');
+        
+        document.getElementById('errorMessage').textContent = message;
+      }
+
+      showShareModal() {
+        if (this.shareCode) {
+          document.getElementById('modalShareCode').textContent = this.shareCode;
+          document.getElementById('shareModal').classList.remove('hidden');
+          document.getElementById('shareModal').classList.add('flex');
+        }
+      }
+
+      hideShareModal() {
+        document.getElementById('shareModal').classList.add('hidden');
+        document.getElementById('shareModal').classList.remove('flex');
+      }
+
+      copyShareCode() {
+        if (this.shareCode) {
+          navigator.clipboard.writeText(this.shareCode).then(() => {
+            this.showNotification('Share code copied to clipboard!');
+          }).catch(() => {
+            this.showNotification('Failed to copy share code');
+          });
+        }
+      }
+
+      showNotification(message) {
+        // Create a simple notification
+        const notification = document.createElement('div');
+        notification.className = 'fixed top-4 right-4 bg-surface border border-pine text-text px-4 py-2 rounded-lg shadow-lg z-50';
+        notification.textContent = message;
+        
+        document.body.appendChild(notification);
+        
+        setTimeout(() => {
+          notification.remove();
+        }, 3000);
+      }
+    }
+
+    // Initialize the shared session manager
+    const sessionManager = new SharedSessionManager();
+
+    // Handle page unload
+    window.addEventListener('beforeunload', () => {
+      if (sessionManager.shareCode) {
+        sessionManager.leaveSession();
+      }
+    });
+  </script>
+</body>
+</html>
