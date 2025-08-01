@@ -213,7 +213,19 @@ module.exports = async function handler(req, res) {
           });
         }
 
-        const sessionData = await hyperbeamResponse.json();
+        let sessionData;
+        try {
+          sessionData = await hyperbeamResponse.json();
+        } catch (error) {
+          console.error('Failed to parse Hyperbeam response as JSON:', error.message);
+          const responseText = await hyperbeamResponse.text().catch(() => 'Unable to read response');
+          console.error('Response content:', responseText);
+          return res.status(500).json({ 
+            error: "Invalid response from Hyperbeam API",
+            details: "Expected JSON but received HTML or malformed response"
+          });
+        }
+        
         console.log("📦 Session data received:", JSON.stringify(sessionData, null, 2));
         
         // Hyperbeam API returns session_id, embed_url, admin_token
