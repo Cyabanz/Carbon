@@ -469,7 +469,7 @@
               </div>
 
               <!-- Address Bar -->
-              <form id="address-bar-form" class="flex-1 relative flex justify-center pl-16 pr-4">
+              <form id="address-bar-form" class="max-w-7xl full relative mx-auto flex justify-center">
                 <div class="relative">
                   <i class="bx bx-lock-alt absolute left-3 top-1/2 transform -translate-y-1/2 text-foam text-sm"></i>
 <input
@@ -478,7 +478,7 @@
                      spellcheck="false"
                      autocomplete="off"
                      placeholder="Search or enter website URL"
-                     class="w-[40rem] max-w-3xl h-10 pl-9 pr-12 bg-highlight-med border border-overlay text-text rounded-full text-base focus:outline-none focus:ring-2 focus:ring-foam focus:border-transparent placeholder-muted"
+                     class="w-[36rem] max-w-2xl h-10 pl-9 pr-12 bg-highlight-med border border-overlay text-text rounded-full text-base focus:outline-none focus:ring-2 focus:ring-foam focus:border-transparent placeholder-muted"
                    />                  <button type="submit" class="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted hover:text-text">
                     <i class="bx bx-search text-sm"></i>
                   </button>
@@ -594,7 +594,7 @@
                   </button>
                   <div
                     id="dropdown-menu"
-                    class="hidden absolute right-0 top-10 bg-overlay border border-highlight-med rounded-lg shadow-lg z-50 py-2 min-w-64 max-h-[80vh] overflow-y-auto scrollbar-hide"
+                    class="hidden absolute right-0 top-10 bg-overlay border border-highlight-med rounded-lg shadow-lg z-50 py-2 min-w-64"
                   >
                     <!-- User Profile -->
                     <div id="user-profile-section" class="hidden px-3 py-3 border-b border-highlight-med mb-2">
@@ -983,27 +983,14 @@
       </div>
     </main>
     <script type="module" defer>
-      // --- Proxy functions with error handling ---
-      let makeURL, getProxied, setProxy, setTransport, setWisp;
-      
-      try {
-        const lethalModule = await import("/lethal.mjs");
-        makeURL = lethalModule.makeURL;
-        getProxied = lethalModule.getProxied;
-        setProxy = lethalModule.setProxy;
-        setTransport = lethalModule.setTransport;
-        setWisp = lethalModule.setWisp;
-        console.log('✅ Lethal proxy module loaded successfully');
-      } catch (error) {
-        console.warn('⚠️ Lethal proxy module failed to load:', error);
-        // Provide fallback functions
-        makeURL = (url) => url;
-        getProxied = (url) => url;
-        setProxy = () => {};
-        setTransport = () => {};
-        setWisp = () => {};
-        console.log('🔄 Using fallback proxy functions');
-      }
+      // --- Inlined for performance lol ---
+      import {
+        makeURL,
+        getProxied,
+        setProxy,
+        setTransport,
+        setWisp,
+      } from "/lethal.mjs";
       // --- END LETHAL IMPORTS ---
 
       const engines = {
@@ -3710,7 +3697,6 @@
         if (user) {
           console.log('👤 User signed in, loading all settings and data...');
           loadSettingsFromFirebase();
-          loadShopDataFromFirebase(); // Load shop data from Firebase
           // Load themes from Firebase if theme system is available
           if (window.carbonTheme) {
             window.carbonTheme.loadThemesFromFirebase();
@@ -3724,7 +3710,6 @@
         } else {
           console.log('👤 User signed out, using local settings...');
           loadLocalSettings();
-          loadShopDataFromLocalStorage(); // Load shop data from localStorage
         }
       });
       
@@ -3852,13 +3837,10 @@
       }, 30000);
       
       // === CARBON SHOP SYSTEM ===
-      let userCurrency = 0;
-      let userFrames = [];
-      let userPets = [];
-      let userProfileFrames = [];
-      let userPetData = {};
-      let userBadges = [];
-      let shopDataLoaded = false;
+      let userCurrency = parseInt(localStorage.getItem('carbon-currency') || '0');
+      let userFrames = JSON.parse(localStorage.getItem('carbon-frames') || '[]');
+      let userPets = JSON.parse(localStorage.getItem('carbon-pets') || '[]');
+      let userProfileFrames = JSON.parse(localStorage.getItem('carbon-profile-frames') || '[]');
       
       const gameFrames = [
         { id: 'neon', name: 'Neon Glow', price: 500, color: '#00ffff', description: 'Electric neon border with pulsing glow effect' },
@@ -3991,134 +3973,10 @@
         { id: 'rare-collector', name: 'Rare Collector', description: 'Own 3 legendary pets', icon: '💎', reward: 1000 }
       ];
 
-      let dailyMysteryUsed = false;
-      
-      // === FIREBASE SHOP DATA MANAGEMENT ===
-      
-      async function loadShopDataFromFirebase() {
-        if (!currentUser || !db) {
-          loadShopDataFromLocalStorage();
-          return;
-        }
-        
-        try {
-          const docRef = db.collection('users').doc(currentUser.uid);
-          const doc = await docRef.get();
-          
-          if (doc.exists) {
-            const data = doc.data();
-            const shopData = data.shopData || {};
-            
-            userCurrency = shopData.currency || 0;
-            userFrames = shopData.frames || [];
-            userPets = shopData.pets || [];
-            userProfileFrames = shopData.profileFrames || [];
-            userPetData = shopData.petData || {};
-            userBadges = shopData.badges || [];
-            
-            // Load frame selections
-            if (shopData.selectedGameFrame) {
-              localStorage.setItem('carbon-selected-frame', shopData.selectedGameFrame);
-            }
-            if (shopData.selectedProfileFrame) {
-              localStorage.setItem('carbon-selected-profile-frame', shopData.selectedProfileFrame);
-            }
-            
-            // Check daily mystery box usage
-            const lastDailyUse = shopData.lastDailyMystery;
-            const today = new Date().toDateString();
-            dailyMysteryUsed = (lastDailyUse === today);
-            
-            // First time user bonus
-            if (userCurrency === 0 && !shopData.hasReceivedWelcomeBonus) {
-              userCurrency = 100;
-              await saveShopDataToFirebase({ welcomeBonus: true });
-              showNotification('Welcome to Carbon!', 'You received 100 Carbon Coins to get started!', 'success');
-            }
-          } else {
-            // New user - give welcome bonus
-            userCurrency = 100;
-            await saveShopDataToFirebase({ welcomeBonus: true });
-            showNotification('Welcome to Carbon!', 'You received 100 Carbon Coins to get started!', 'success');
-          }
-          
-          shopDataLoaded = true;
-          updateCurrencyDisplay();
-        } catch (error) {
-          console.error('Error loading shop data from Firebase:', error);
-          loadShopDataFromLocalStorage();
-        }
-      }
-      
-      async function saveShopDataToFirebase(options = {}) {
-        if (!currentUser || !db) {
-          saveShopDataToLocalStorage();
-          return;
-        }
-        
-        try {
-          const shopData = {
-            currency: userCurrency,
-            frames: userFrames,
-            pets: userPets,
-            profileFrames: userProfileFrames,
-            petData: userPetData,
-            badges: userBadges,
-            selectedGameFrame: localStorage.getItem('carbon-selected-frame') || 'default',
-            selectedProfileFrame: localStorage.getItem('carbon-selected-profile-frame') || 'default',
-            lastDailyMystery: dailyMysteryUsed ? new Date().toDateString() : null,
-            hasReceivedWelcomeBonus: options.welcomeBonus || true,
-            lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
-          };
-          
-          await db.collection('users').doc(currentUser.uid).set({
-            shopData: shopData
-          }, { merge: true });
-          
-          // Also save to localStorage as backup
-          saveShopDataToLocalStorage();
-        } catch (error) {
-          console.error('Error saving shop data to Firebase:', error);
-          // Fallback to localStorage
-          saveShopDataToLocalStorage();
-        }
-      }
-      
-      function loadShopDataFromLocalStorage() {
-        userCurrency = parseInt(localStorage.getItem('carbon-currency') || '0');
-        userFrames = JSON.parse(localStorage.getItem('carbon-frames') || '[]');
-        userPets = JSON.parse(localStorage.getItem('carbon-pets') || '[]');
-        userProfileFrames = JSON.parse(localStorage.getItem('carbon-profile-frames') || '[]');
-        userPetData = JSON.parse(localStorage.getItem('carbon-pet-data') || '{}');
-        userBadges = JSON.parse(localStorage.getItem('carbon-badges') || '[]');
-        
-        const lastDailyUse = localStorage.getItem('carbon-daily-mystery-date');
-        const today = new Date().toDateString();
-        dailyMysteryUsed = (lastDailyUse === today);
-        
-        // First time user check for localStorage
-        if (userCurrency === 0 && !localStorage.getItem('carbon-currency-initialized')) {
-          userCurrency = 100;
-          localStorage.setItem('carbon-currency-initialized', 'true');
-          showNotification('Welcome to Carbon!', 'You received 100 Carbon Coins to get started!', 'success');
-        }
-        
-        shopDataLoaded = true;
-        updateCurrencyDisplay();
-      }
-      
-      function saveShopDataToLocalStorage() {
-        localStorage.setItem('carbon-currency', userCurrency.toString());
-        localStorage.setItem('carbon-frames', JSON.stringify(userFrames));
-        localStorage.setItem('carbon-pets', JSON.stringify(userPets));
-        localStorage.setItem('carbon-profile-frames', JSON.stringify(userProfileFrames));
-        localStorage.setItem('carbon-pet-data', JSON.stringify(userPetData));
-        localStorage.setItem('carbon-badges', JSON.stringify(userBadges));
-        
-        if (dailyMysteryUsed) {
-          localStorage.setItem('carbon-daily-mystery-date', new Date().toDateString());
-        }
-      }
+      // Initialize user pet data with levels
+      let userPetData = JSON.parse(localStorage.getItem('carbon-pet-data') || '{}');
+      let userBadges = JSON.parse(localStorage.getItem('carbon-badges') || '[]');
+      let dailyMysteryUsed = localStorage.getItem('carbon-daily-mystery-date') === new Date().toDateString();
 
       const profileFrames = [
         { id: 'red', name: 'Red Frame', price: 200, color: '#ff4444', description: 'Classic red border for your profile' },
@@ -5664,45 +5522,27 @@
       
       function saveCurrencyToStorage() {
         localStorage.setItem('carbon-currency', userCurrency.toString());
-        if (currentUser && shopDataLoaded) {
-          saveShopDataToFirebase();
-        }
       }
       
-              function saveFramesToStorage() {
-          localStorage.setItem('carbon-frames', JSON.stringify(userFrames));
-          if (currentUser && shopDataLoaded) {
-            saveShopDataToFirebase();
-          }
-        }
+      function saveFramesToStorage() {
+        localStorage.setItem('carbon-frames', JSON.stringify(userFrames));
+      }
 
-              function savePetsToStorage() {
-          localStorage.setItem('carbon-pets', JSON.stringify(userPets));
-          if (currentUser && shopDataLoaded) {
-            saveShopDataToFirebase();
-          }
-        }
+      function savePetsToStorage() {
+        localStorage.setItem('carbon-pets', JSON.stringify(userPets));
+      }
 
-              function saveProfileFramesToStorage() {
-          localStorage.setItem('carbon-profile-frames', JSON.stringify(userProfileFrames));
-          if (currentUser && shopDataLoaded) {
-            saveShopDataToFirebase();
-          }
-        }
+      function saveProfileFramesToStorage() {
+        localStorage.setItem('carbon-profile-frames', JSON.stringify(userProfileFrames));
+      }
 
-              function savePetDataToStorage() {
-          localStorage.setItem('carbon-pet-data', JSON.stringify(userPetData));
-          if (currentUser && shopDataLoaded) {
-            saveShopDataToFirebase();
-          }
-        }
+      function savePetDataToStorage() {
+        localStorage.setItem('carbon-pet-data', JSON.stringify(userPetData));
+      }
 
-              function saveBadgesToStorage() {
-          localStorage.setItem('carbon-badges', JSON.stringify(userBadges));
-          if (currentUser && shopDataLoaded) {
-            saveShopDataToFirebase();
-          }
-        }
+      function saveBadgesToStorage() {
+        localStorage.setItem('carbon-badges', JSON.stringify(userBadges));
+      }
 
       // Gacha system functions
       window.pullGacha = function(gachaId) {
@@ -7233,14 +7073,6 @@
       // Initialize settings immediately - try both methods to ensure we get settings
       console.log('🚀 Initializing settings on page load...');
       loadLocalSettings(); // Load localStorage first for immediate effect
-      
-      // Initialize shop data
-      console.log('🛒 Initializing shop data...');
-      if (currentUser) {
-        loadShopDataFromFirebase();
-      } else {
-        loadShopDataFromLocalStorage();
-      }
       
       // Initialize theme system
       console.log('🎨 Initializing theme system...');
