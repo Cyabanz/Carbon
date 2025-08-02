@@ -58,7 +58,7 @@ function cleanupSession(sessionId) {
     if (session.limitTimer) clearTimeout(session.limitTimer);
     if (session.inactivityTimer) clearTimeout(session.inactivityTimer);
     
-    // Update IP session count
+    // Update IP session count for session owner
     const ipSessions = rateLimitStore.get(session.clientIP) || [];
     const updatedSessions = ipSessions.filter(id => id !== sessionId);
     
@@ -66,6 +66,20 @@ function cleanupSession(sessionId) {
       rateLimitStore.set(session.clientIP, updatedSessions);
     } else {
       rateLimitStore.del(session.clientIP);
+    }
+    
+    // Clean up rate limiting for participants in shared sessions
+    if (session.participants && session.participants.length > 0) {
+      session.participants.forEach(participantIP => {
+        const participantSessions = rateLimitStore.get(participantIP) || [];
+        const updatedParticipantSessions = participantSessions.filter(id => id !== sessionId);
+        
+        if (updatedParticipantSessions.length > 0) {
+          rateLimitStore.set(participantIP, updatedParticipantSessions);
+        } else {
+          rateLimitStore.del(participantIP);
+        }
+      });
     }
     
     // Remove from session store
@@ -78,6 +92,229 @@ async function terminateSession(sessionId, reason = 'timeout') {
   
   await terminateHyperbeamSession(sessionId);
   cleanupSession(sessionId);
+}
+
+async function handleShareSession(event, clientIP) {
+  console.log(`🔗 Share Session Request: ${event.httpMethod} ${event.path}`);
+  
+  const headers = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, x-csrf-token'
+  };
+  
+  // Handle preflight
+  if (event.httpMethod === "OPTIONS") {
+    return { statusCode: 200, headers, body: '' };
+  }
+  
+  if (event.httpMethod !== "POST") {
+    return { 
+      statusCode: 405, 
+      headers, 
+      body: JSON.stringify({ error: "Method not allowed" }) 
+    };
+  }
+  
+  try {
+    // Parse cookies and verify CSRF
+    const cookies = cookie.parse(event.headers.cookie || "");
+    const secret = cookies.csrfSecret;
+    const csrfToken = event.headers["x-csrf-token"];
+    
+    if (!secret || !csrfToken) {
+      return { 
+        statusCode: 403, 
+        headers, 
+        body: JSON.stringify({ error: "Missing CSRF credentials" }) 
+      };
+    }
+    
+    if (!tokens.verify(secret, csrfToken)) {
+      return { 
+        statusCode: 403, 
+        headers, 
+        body: JSON.stringify({ error: "Invalid CSRF token" }) 
+      };
+    }
+
+    const requestBody = JSON.parse(event.body || '{}');
+    const { sessionId } = requestBody;
+    
+    if (!validateSessionId(sessionId)) {
+      return { 
+        statusCode: 400, 
+        headers, 
+        body: JSON.stringify({ error: "Invalid session ID" }) 
+      };
+    }
+
+    const session = sessionStore.get(sessionId);
+    if (!session) {
+      return { 
+        statusCode: 404, 
+        headers, 
+        body: JSON.stringify({ error: "Session not found or expired" }) 
+      };
+    }
+
+    if (session.clientIP !== clientIP) {
+      return { 
+        statusCode: 403, 
+        headers, 
+        body: JSON.stringify({ error: "Access denied" }) 
+      };
+    }
+
+    // Mark session as shared
+    session.isShared = true;
+    session.sharedAt = Date.now();
+    sessionStore.set(sessionId, session);
+
+    console.log(`📤 Session ${sessionId} shared by ${clientIP}`);
+    return { 
+      statusCode: 200, 
+      headers, 
+      body: JSON.stringify({ ok: true, shared: true }) 
+    };
+    
+  } catch (error) {
+    console.error('Share session error:', error);
+    return { 
+      statusCode: 500, 
+      headers, 
+      body: JSON.stringify({ 
+        error: "Internal server error",
+        details: error.message
+      }) 
+    };
+  }
+}
+
+async function handleJoinSession(event, clientIP) {
+  console.log(`🔗 Join Session Request: ${event.httpMethod} ${event.path}`);
+  
+  const headers = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, x-csrf-token'
+  };
+  
+  // Handle preflight
+  if (event.httpMethod === "OPTIONS") {
+    return { statusCode: 200, headers, body: '' };
+  }
+  
+  if (event.httpMethod !== "POST") {
+    return { 
+      statusCode: 405, 
+      headers, 
+      body: JSON.stringify({ error: "Method not allowed" }) 
+    };
+  }
+  
+  try {
+    // Parse cookies and verify CSRF
+    const cookies = cookie.parse(event.headers.cookie || "");
+    const secret = cookies.csrfSecret;
+    const csrfToken = event.headers["x-csrf-token"];
+    
+    if (!secret || !csrfToken) {
+      return { 
+        statusCode: 403, 
+        headers, 
+        body: JSON.stringify({ error: "Missing CSRF credentials" }) 
+      };
+    }
+    
+    if (!tokens.verify(secret, csrfToken)) {
+      return { 
+        statusCode: 403, 
+        headers, 
+        body: JSON.stringify({ error: "Invalid CSRF token" }) 
+      };
+    }
+
+    const requestBody = JSON.parse(event.body || '{}');
+    const { sessionId } = requestBody;
+    
+    if (!validateSessionId(sessionId)) {
+      return { 
+        statusCode: 400, 
+        headers, 
+        body: JSON.stringify({ error: "Invalid session ID" }) 
+      };
+    }
+
+    const session = sessionStore.get(sessionId);
+    if (!session) {
+      return { 
+        statusCode: 404, 
+        headers, 
+        body: JSON.stringify({ error: "Session not found or expired" }) 
+      };
+    }
+
+    if (!session.isShared) {
+      return { 
+        statusCode: 403, 
+        headers, 
+        body: JSON.stringify({ error: "Session is not shared" }) 
+      };
+    }
+
+    // Check rate limiting for joining sessions
+    const ipSessions = rateLimitStore.get(clientIP) || [];
+    if (ipSessions.length >= MAX_SESSIONS_PER_IP) {
+      return { 
+        statusCode: 429, 
+        headers, 
+        body: JSON.stringify({ 
+          error: `Rate limit exceeded. Maximum ${MAX_SESSIONS_PER_IP} sessions allowed per IP.`,
+          retryAfter: 300
+        }) 
+      };
+    }
+
+    // Add joiner to session participants
+    if (!session.participants) {
+      session.participants = [];
+    }
+    
+    if (!session.participants.includes(clientIP)) {
+      session.participants.push(clientIP);
+    }
+    
+    session.lastJoinedAt = Date.now();
+    sessionStore.set(sessionId, session);
+
+    // Add to rate limit tracking for this IP
+    rateLimitStore.set(clientIP, [...ipSessions, sessionId]);
+
+    console.log(`📥 Client ${clientIP} joined session ${sessionId}`);
+    
+    return { 
+      statusCode: 200, 
+      headers, 
+      body: JSON.stringify({
+        url: session.url,
+        expiresAt: session.expiresAt,
+        id: sessionId,
+        joined: true
+      }) 
+    };
+    
+  } catch (error) {
+    console.error('Join session error:', error);
+    return { 
+      statusCode: 500, 
+      headers, 
+      body: JSON.stringify({ 
+        error: "Internal server error",
+        details: error.message
+      }) 
+    };
+  }
 }
 
 exports.handler = async function(event, context) {
@@ -105,6 +342,15 @@ exports.handler = async function(event, context) {
   
   const clientIP = getClientIP(event);
   console.log(`Client IP: ${clientIP}`);
+  
+  // Handle sub-routes for session sharing
+  if (event.path && event.path.includes('/share')) {
+    return await handleShareSession(event, clientIP);
+  }
+  
+  if (event.path && event.path.includes('/join')) {
+    return await handleJoinSession(event, clientIP);
+  }
   
   try {
     if (event.httpMethod === "POST") {

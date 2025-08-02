@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Debug Session Sharing</title>
+  <script src="platform-detector.js"></script>
+</head>
+<body>
+  <h1>Debug Session Sharing</h1>
+  <button onclick="testEndpoints()">Test All Endpoints</button>
+  <div id="results"></div>
+
+  <script>
+    window.platformDetector = {
+      detectPlatform: detectPlatform,
+      getFunctionPath: getFunctionPath,
+      getApiBaseUrl: getApiBaseUrl
+    };
+
+    async function testEndpoints() {
+      const results = document.getElementById('results');
+      results.innerHTML = '<h2>Testing endpoints...</h2>';
+      
+      try {
+        // Test 1: CSRF Token
+        results.innerHTML += '<h3>1. Testing CSRF Token Endpoint</h3>';
+        const csrfPath = window.platformDetector.getFunctionPath('vm/csrf-token');
+        results.innerHTML += `<p>URL: ${csrfPath}</p>`;
+        
+        const csrfRes = await fetch(csrfPath);
+        const csrfText = await csrfRes.text();
+        results.innerHTML += `<p>Status: ${csrfRes.status}</p>`;
+        results.innerHTML += `<p>Response: <code>${csrfText}</code></p>`;
+        
+        let csrfData;
+        try {
+          csrfData = JSON.parse(csrfText);
+          results.innerHTML += `<p style="color: green;">✅ CSRF JSON parsed successfully</p>`;
+        } catch (e) {
+          results.innerHTML += `<p style="color: red;">❌ CSRF JSON parse failed: ${e.message}</p>`;
+          return;
+        }
+
+        const csrfToken = csrfData.csrfToken;
+        results.innerHTML += `<p>CSRF Token: ${csrfToken.substring(0, 20)}...</p>`;
+
+        // Test 2: VM Endpoint (with CSRF)
+        results.innerHTML += '<h3>2. Testing VM Endpoint</h3>';
+        const vmPath = window.platformDetector.getFunctionPath('vm');
+        results.innerHTML += `<p>URL: ${vmPath}</p>`;
+        
+        const vmRes = await fetch(vmPath, {
+          method: "POST",
+          headers: {
+            "x-csrf-token": csrfToken,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({})
+        });
+        
+        const vmText = await vmRes.text();
+        results.innerHTML += `<p>Status: ${vmRes.status}</p>`;
+        results.innerHTML += `<p>Response: <code>${vmText.substring(0, 200)}...</code></p>`;
+        
+        try {
+          const vmData = JSON.parse(vmText);
+          results.innerHTML += `<p style="color: green;">✅ VM JSON parsed successfully</p>`;
+        } catch (e) {
+          results.innerHTML += `<p style="color: red;">❌ VM JSON parse failed: ${e.message}</p>`;
+        }
+
+        // Test 3: Share Endpoint
+        results.innerHTML += '<h3>3. Testing Share Endpoint</h3>';
+        const sharePath = window.platformDetector.getFunctionPath('vm/share');
+        results.innerHTML += `<p>URL: ${sharePath}</p>`;
+        
+        const shareRes = await fetch(sharePath, {
+          method: "POST",
+          headers: {
+            "x-csrf-token": csrfToken,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ sessionId: "test-session" })
+        });
+        
+        const shareText = await shareRes.text();
+        results.innerHTML += `<p>Status: ${shareRes.status}</p>`;
+        results.innerHTML += `<p>Response: <code>${shareText}</code></p>`;
+        
+        try {
+          const shareData = JSON.parse(shareText);
+          results.innerHTML += `<p style="color: green;">✅ Share JSON parsed successfully</p>`;
+        } catch (e) {
+          results.innerHTML += `<p style="color: red;">❌ Share JSON parse failed: ${e.message}</p>`;
+        }
+
+        // Test 4: Join Endpoint
+        results.innerHTML += '<h3>4. Testing Join Endpoint</h3>';
+        const joinPath = window.platformDetector.getFunctionPath('vm/join');
+        results.innerHTML += `<p>URL: ${joinPath}</p>`;
+        
+        const joinRes = await fetch(joinPath, {
+          method: "POST",
+          headers: {
+            "x-csrf-token": csrfToken,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ sessionId: "test-session" })
+        });
+        
+        const joinText = await joinRes.text();
+        results.innerHTML += `<p>Status: ${joinRes.status}</p>`;
+        results.innerHTML += `<p>Response: <code>${joinText}</code></p>`;
+        
+        try {
+          const joinData = JSON.parse(joinText);
+          results.innerHTML += `<p style="color: green;">✅ Join JSON parsed successfully</p>`;
+        } catch (e) {
+          results.innerHTML += `<p style="color: red;">❌ Join JSON parse failed: ${e.message}</p>`;
+        }
+
+        results.innerHTML += '<h3>✅ All tests completed!</h3>';
+
+      } catch (error) {
+        results.innerHTML += `<h3 style="color: red;">❌ Test failed: ${error.message}</h3>`;
+        console.error('Test error:', error);
+      }
+    }
+  </script>
+</body>
+</html>

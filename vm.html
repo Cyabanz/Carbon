@@ -245,6 +245,22 @@
       • Auto-terminate after <strong>30 seconds</strong> of inactivity<br>
       • Rate limit: <strong>2 sessions per IP address</strong>
     </div>
+
+    <!-- Join Session Section -->
+    <div id="join-section" class="session-info">
+      <strong><i class='bx bx-user-plus'></i> Join Shared Session</strong><br>
+      <p style="margin: 0.5rem 0; color: var(--theme-subtle);">Enter a session ID to join an existing shared session</p>
+      <div class="flex flex-wrap gap-3 mt-3">
+        <input type="text" id="join-session-input" placeholder="Enter session ID..." 
+               style="flex: 1; min-width: 200px; padding: 0.75rem; border: 1px solid var(--theme-overlay); 
+                      background: var(--theme-base); color: var(--theme-text); border-radius: 8px;
+                      font-family: 'Courier New', monospace;">
+        <button id="join-btn">
+          <i class='bx bx-log-in'></i>
+          Join Session
+        </button>
+      </div>
+    </div>
     
     <div class="flex flex-wrap gap-3 mb-4">
       <button id="create-btn">
@@ -254,6 +270,10 @@
       <button id="terminate-btn" class="hidden">
         <i class='bx bx-stop-circle'></i>
         Terminate Session
+      </button>
+      <button id="share-btn" class="hidden">
+        <i class='bx bx-share-alt'></i>
+        Share Session
       </button>
       <button id="fullscreen-btn" class="hidden" onclick="toggleFullscreen()">
         <i class='bx bx-fullscreen'></i>
@@ -274,6 +294,16 @@
     <div id="session-info" class="session-info hidden">
       <strong><i class='bx bx-check-circle'></i> Session Active</strong><br>
       <span id="session-details"></span>
+      <div id="share-info" class="hidden" style="margin-top: 1rem; padding: 1rem; background: var(--theme-overlay); border-radius: 8px;">
+        <strong><i class='bx bx-share-alt'></i> Session Shared</strong><br>
+        <p style="margin: 0.5rem 0; color: var(--theme-subtle);">Others can join using this session ID:</p>
+        <div style="display: flex; gap: 0.5rem; align-items: center; margin-top: 0.5rem;">
+          <code id="share-session-id" style="flex: 1; padding: 0.5rem; background: var(--theme-base); border-radius: 4px; font-family: 'Courier New', monospace;"></code>
+          <button id="copy-session-id" style="padding: 0.5rem 1rem; background: var(--theme-foam); color: var(--theme-base); border: none; border-radius: 4px; cursor: pointer;">
+            <i class='bx bx-copy'></i>
+          </button>
+        </div>
+      </div>
     </div>
     
     <div id="hb-container" class="hidden"></div>
@@ -301,6 +331,8 @@
     let csrfToken = null;
     let isCreatingSession = false;
     let hyperbeamSession = null;
+    let isSessionShared = false;
+    let isJoiningSession = false;
     let particlesAnimation = null;
 
     // Sync background from profile.html
@@ -482,8 +514,18 @@
         console.log(`🔍 Platform detected: ${platform}, CSRF path: ${csrfPath}`);
         
         const res = await fetch(csrfPath);
-        if (!res.ok) throw new Error('Failed to get CSRF token');
-        const json = await res.json();
+        if (!res.ok) throw new Error(`Failed to get CSRF token: ${res.status} ${res.statusText}`);
+        
+        const responseText = await res.text();
+        console.log('CSRF Raw response:', responseText);
+        let json;
+        try {
+          json = JSON.parse(responseText);
+        } catch (parseError) {
+          console.error('CSRF JSON parse error:', parseError, 'Response:', responseText);
+          throw new Error(`Invalid CSRF JSON response: ${responseText.substring(0, 100)}...`);
+        }
+        
         csrfToken = json.csrfToken;
         return true;
       } catch (error) {
@@ -555,7 +597,15 @@
         console.log(`📡 API response status: ${res.status}`);
         console.log(`📡 API response headers:`, Object.fromEntries(res.headers.entries()));
         
-        const data = await res.json();
+        const responseText = await res.text();
+        console.log('📡 Raw VM response:', responseText);
+        let data;
+        try {
+          data = JSON.parse(responseText);
+        } catch (parseError) {
+          console.error('VM JSON parse error:', parseError, 'Response:', responseText);
+          throw new Error(`Invalid VM JSON response: ${responseText.substring(0, 100)}...`);
+        }
         
         if (!res.ok) {
           if (res.status === 429) {
@@ -609,9 +659,11 @@
           });
           
           document.getElementById('terminate-btn').classList.remove('hidden');
+          document.getElementById('share-btn').classList.remove('hidden');
           document.getElementById('fullscreen-btn').classList.remove('hidden');
           document.getElementById('timer-bar').classList.remove('hidden');
           document.getElementById('create-btn').classList.add('hidden');
+          document.getElementById('join-section').classList.add('hidden');
           
           updateSessionInfo(data);
           setStatus("Session created successfully!", "success");
@@ -767,6 +819,193 @@
       cleanupSession();
     }
 
+    async function shareSession() {
+      if (!sessionId) {
+        setStatus("No active session to share.", "error");
+        return;
+      }
+
+      try {
+        if (!(await getCsrfToken())) {
+          return;
+        }
+
+        setStatus("Sharing session...", "info");
+        
+        const platform = window.platformDetector.detectPlatform();
+        const sharePath = window.platformDetector.getFunctionPath('vm/share');
+        const res = await fetch(sharePath, {
+          method: "POST",
+          headers: {
+            "x-csrf-token": csrfToken,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ sessionId })
+        });
+        
+        const responseText = await res.text();
+        console.log('Share Raw response:', responseText);
+        let data;
+        try {
+          data = JSON.parse(responseText);
+        } catch (parseError) {
+          console.error('Share JSON parse error:', parseError, 'Response:', responseText);
+          throw new Error(`Invalid Share JSON response: ${responseText.substring(0, 100)}...`);
+        }
+        
+        if (res.ok) {
+          isSessionShared = true;
+          document.getElementById('share-session-id').textContent = sessionId;
+          document.getElementById('share-info').classList.remove('hidden');
+          document.getElementById('share-btn').classList.add('hidden');
+          setStatus("Session shared successfully! Others can now join using the session ID.", "success");
+        } else {
+          setStatus(`Error sharing session: ${data.error}`, "error");
+        }
+      } catch (error) {
+        setStatus(`Network error: ${error.message}`, "error");
+      }
+    }
+
+    async function joinSession() {
+      const joinSessionId = document.getElementById('join-session-input').value.trim();
+      
+      if (!joinSessionId) {
+        setStatus("Please enter a session ID to join.", "error");
+        return;
+      }
+
+      if (isJoiningSession) return;
+      
+      isJoiningSession = true;
+      const joinBtn = document.getElementById('join-btn');
+      joinBtn.disabled = true;
+      joinBtn.innerHTML = '<i class="bx bx-loader-alt bx-spin"></i> Joining...';
+      
+      try {
+        if (!(await getCsrfToken())) {
+          return;
+        }
+
+        setStatus("Joining session...", "info");
+        
+        const platform = window.platformDetector.detectPlatform();
+        const joinPath = window.platformDetector.getFunctionPath('vm/join');
+        const res = await fetch(joinPath, {
+          method: "POST",
+          headers: {
+            "x-csrf-token": csrfToken,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ sessionId: joinSessionId })
+        });
+        
+        const responseText = await res.text();
+        console.log('Join Raw response:', responseText);
+        let data;
+        try {
+          data = JSON.parse(responseText);
+        } catch (parseError) {
+          console.error('Join JSON parse error:', parseError, 'Response:', responseText);
+          throw new Error(`Invalid Join JSON response: ${responseText.substring(0, 100)}...`);
+        }
+        
+        if (!res.ok) {
+          if (res.status === 404) {
+            setStatus("Session not found or has expired.", "error");
+          } else if (res.status === 403) {
+            setStatus("Session is not shared or access denied.", "error");
+          } else if (res.status === 429) {
+            setStatus(`Rate limit exceeded: ${data.error}. Please try again in ${Math.ceil(data.retryAfter / 60)} minutes.`, "error");
+          } else {
+            setStatus(`Error joining session: ${data.error}`, "error");
+          }
+          return;
+        }
+        
+        if (!data.url || !data.expiresAt) {
+          setStatus("Invalid session data received from server.", "error");
+          return;
+        }
+        
+        sessionId = joinSessionId;
+        expiresAt = data.expiresAt;
+        
+        // Initialize Hyperbeam SDK with shared session
+        const container = document.getElementById('hb-container');
+        container.classList.remove('hidden');
+        
+        try {
+          if (typeof window.hyperbeam !== 'function') {
+            throw new Error('Hyperbeam SDK not loaded properly. Please refresh the page and try again.');
+          }
+          
+          hyperbeamSession = await window.hyperbeam(container, data.url, {
+            timeout: 10000
+          });
+          
+          // Hide join section and show session controls
+          document.getElementById('join-section').classList.add('hidden');
+          document.getElementById('terminate-btn').classList.remove('hidden');
+          document.getElementById('fullscreen-btn').classList.remove('hidden');
+          document.getElementById('timer-bar').classList.remove('hidden');
+          document.getElementById('create-btn').classList.add('hidden');
+          
+          updateSessionInfo(data);
+          setStatus("Successfully joined shared session!", "success");
+          startTimer();
+          startPing();
+          
+        } catch (sdkError) {
+          console.error('Hyperbeam SDK error:', sdkError);
+          setStatus("Failed to initialize shared session. Please try again.", "error");
+          cleanupSession();
+        }
+        
+      } catch (error) {
+        setStatus(`Network error: ${error.message}`, "error");
+      } finally {
+        isJoiningSession = false;
+        joinBtn.disabled = false;
+        joinBtn.innerHTML = '<i class="bx bx-log-in"></i> Join Session';
+      }
+    }
+
+    function copySessionId() {
+      const sessionIdElement = document.getElementById('share-session-id');
+      const sessionIdText = sessionIdElement.textContent;
+      
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(sessionIdText).then(() => {
+          setStatus("Session ID copied to clipboard!", "success");
+        }).catch(() => {
+          fallbackCopyToClipboard(sessionIdText);
+        });
+      } else {
+        fallbackCopyToClipboard(sessionIdText);
+      }
+    }
+
+    function fallbackCopyToClipboard(text) {
+      const textArea = document.createElement("textarea");
+      textArea.value = text;
+      textArea.style.position = "fixed";
+      textArea.style.left = "-999999px";
+      textArea.style.top = "-999999px";
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+      
+      try {
+        document.execCommand('copy');
+        setStatus("Session ID copied to clipboard!", "success");
+      } catch (err) {
+        setStatus("Failed to copy session ID. Please copy manually: " + text, "error");
+      }
+      
+      document.body.removeChild(textArea);
+    }
+
     function cleanupSession() {
       stopPing();
       stopTimer();
@@ -786,8 +1025,15 @@
       container.innerHTML = '';
       container.classList.add('hidden');
       document.getElementById('terminate-btn').classList.add('hidden');
+      document.getElementById('share-btn').classList.add('hidden');
       document.getElementById('fullscreen-btn').classList.add('hidden');
       document.getElementById('create-btn').classList.remove('hidden');
+      document.getElementById('join-section').classList.remove('hidden');
+      document.getElementById('share-info').classList.add('hidden');
+      
+      // Reset sharing state
+      isSessionShared = false;
+      document.getElementById('join-session-input').value = '';
       
       sessionId = null;
       expiresAt = null;
@@ -837,6 +1083,9 @@
     // Event listeners
     document.getElementById('create-btn').onclick = createSession;
     document.getElementById('terminate-btn').onclick = terminateSession;
+    document.getElementById('share-btn').onclick = shareSession;
+    document.getElementById('join-btn').onclick = joinSession;
+    document.getElementById('copy-session-id').onclick = copySessionId;
     
     // Handle page visibility changes to pause/resume activity pings
     document.addEventListener('visibilitychange', () => {

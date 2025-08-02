@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Session Sharing Test Suite</title>
+  <script src="platform-detector.js"></script>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      margin: 2rem;
+      background: #f5f5f5;
+      color: #333;
+    }
+    .container {
+      max-width: 1000px;
+      margin: 0 auto;
+      background: white;
+      padding: 2rem;
+      border-radius: 12px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+    }
+    h1 { color: #2c3e50; margin-bottom: 1.5rem; }
+    h2 { color: #34495e; margin-top: 2rem; }
+    .test-section {
+      margin: 1.5rem 0;
+      padding: 1rem;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      background: #f9f9f9;
+    }
+    .test-result {
+      margin: 0.5rem 0;
+      padding: 0.5rem;
+      border-radius: 4px;
+      font-weight: bold;
+    }
+    .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+    .error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+    .info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+    .warning { background: #fff3cd; color: #856404; border: 1px solid #ffeaa7; }
+    button {
+      background: #007bff;
+      color: white;
+      border: none;
+      padding: 0.75rem 1.5rem;
+      border-radius: 6px;
+      cursor: pointer;
+      margin: 0.5rem;
+      font-size: 14px;
+    }
+    button:hover { background: #0056b3; }
+    button:disabled { background: #6c757d; cursor: not-allowed; }
+    input {
+      padding: 0.5rem;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      margin: 0.5rem;
+      width: 200px;
+    }
+    .session-info {
+      background: #e3f2fd;
+      padding: 1rem;
+      border-radius: 6px;
+      margin: 1rem 0;
+      font-family: monospace;
+    }
+    .log {
+      background: #f8f9fa;
+      padding: 1rem;
+      border: 1px solid #e9ecef;
+      border-radius: 4px;
+      max-height: 200px;
+      overflow-y: auto;
+      font-family: monospace;
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🧪 Session Sharing Test Suite</h1>
+    
+    <div class="test-section">
+      <h2>Test Environment</h2>
+      <div id="env-info"></div>
+    </div>
+
+    <div class="test-section">
+      <h2>1. CSRF Token Test</h2>
+      <button onclick="testCsrfToken()">Test CSRF Token</button>
+      <div id="csrf-result"></div>
+    </div>
+
+    <div class="test-section">
+      <h2>2. Create Session Test</h2>
+      <button onclick="testCreateSession()">Create Test Session</button>
+      <div id="create-result"></div>
+      <div id="session-info" class="session-info" style="display: none;"></div>
+    </div>
+
+    <div class="test-section">
+      <h2>3. Share Session Test</h2>
+      <button onclick="testShareSession()" id="share-btn" disabled>Share Session</button>
+      <div id="share-result"></div>
+    </div>
+
+    <div class="test-section">
+      <h2>4. Join Session Test</h2>
+      <input type="text" id="join-session-id" placeholder="Enter session ID to join">
+      <button onclick="testJoinSession()">Join Session</button>
+      <div id="join-result"></div>
+    </div>
+
+    <div class="test-section">
+      <h2>5. Rate Limiting Test</h2>
+      <button onclick="testRateLimit()">Test Rate Limiting</button>
+      <div id="rate-limit-result"></div>
+    </div>
+
+    <div class="test-section">
+      <h2>6. Session Cleanup Test</h2>
+      <button onclick="testSessionCleanup()">Test Session Cleanup</button>
+      <div id="cleanup-result"></div>
+    </div>
+
+    <div class="test-section">
+      <h2>7. Error Handling Test</h2>
+      <button onclick="testErrorHandling()">Test Error Scenarios</button>
+      <div id="error-result"></div>
+    </div>
+
+    <div class="test-section">
+      <h2>Test Log</h2>
+      <button onclick="clearLog()">Clear Log</button>
+      <div id="test-log" class="log"></div>
+    </div>
+  </div>
+
+  <script>
+    let testSessionId = null;
+    let csrfToken = null;
+    let testResults = {};
+
+    // Initialize environment info
+    window.platformDetector = {
+      detectPlatform: detectPlatform,
+      getFunctionPath: getFunctionPath,
+      getApiBaseUrl: getApiBaseUrl
+    };
+
+    function log(message, type = 'info') {
+      const timestamp = new Date().toLocaleTimeString();
+      const logElement = document.getElementById('test-log');
+      const logLine = document.createElement('div');
+      logLine.innerHTML = `[${timestamp}] ${type.toUpperCase()}: ${message}`;
+      logLine.style.color = type === 'error' ? '#d32f2f' : type === 'success' ? '#2e7d32' : '#1976d2';
+      logElement.appendChild(logLine);
+      logElement.scrollTop = logElement.scrollHeight;
+      console.log(`[TEST ${type.toUpperCase()}] ${message}`);
+    }
+
+    function clearLog() {
+      document.getElementById('test-log').innerHTML = '';
+    }
+
+    function showResult(elementId, message, type) {
+      const element = document.getElementById(elementId);
+      element.innerHTML = `<div class="test-result ${type}">${message}</div>`;
+      log(message, type);
+    }
+
+    function updateSessionInfo(sessionData) {
+      const infoEl = document.getElementById('session-info');
+      if (sessionData) {
+        infoEl.innerHTML = `
+          <strong>Session Active:</strong><br>
+          ID: ${sessionData.id}<br>
+          Expires: ${new Date(sessionData.expiresAt).toLocaleString()}
+        `;
+        infoEl.style.display = 'block';
+        document.getElementById('share-btn').disabled = false;
+      } else {
+        infoEl.style.display = 'none';
+        document.getElementById('share-btn').disabled = true;
+      }
+    }
+
+    // Initialize environment info
+    document.addEventListener('DOMContentLoaded', () => {
+      const platform = window.platformDetector.detectPlatform();
+      const apiBase = window.platformDetector.getApiBaseUrl();
+      document.getElementById('env-info').innerHTML = `
+        <div class="test-result info">
+          Platform: ${platform}<br>
+          API Base: ${apiBase}<br>
+          Test Page Loaded: ${new Date().toLocaleString()}
+        </div>
+      `;
+      log('Test suite initialized');
+    });
+
+    async function testCsrfToken() {
+      try {
+        log('Testing CSRF token generation...');
+        const csrfPath = window.platformDetector.getFunctionPath('vm/csrf-token');
+        const res = await fetch(csrfPath);
+        
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+        }
+        
+        const data = await res.json();
+        csrfToken = data.csrfToken;
+        
+        if (csrfToken) {
+          showResult('csrf-result', `✅ CSRF token generated successfully: ${csrfToken.substring(0, 20)}...`, 'success');
+          testResults.csrf = true;
+        } else {
+          throw new Error('CSRF token not found in response');
+        }
+      } catch (error) {
+        showResult('csrf-result', `❌ CSRF token test failed: ${error.message}`, 'error');
+        testResults.csrf = false;
+      }
+    }
+
+    async function testCreateSession() {
+      try {
+        if (!csrfToken) {
+          await testCsrfToken();
+          if (!csrfToken) {
+            throw new Error('Cannot proceed without CSRF token');
+          }
+        }
+
+        log('Testing session creation...');
+        const vmPath = window.platformDetector.getFunctionPath('vm');
+        const res = await fetch(vmPath, {
+          method: "POST",
+          headers: {
+            "x-csrf-token": csrfToken,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({})
+        });
+        
+        const data = await res.json();
+        
+        if (!res.ok) {
+          if (res.status === 500 && data.details && data.details.includes('HYPERBEAM_API_KEY')) {
+            showResult('create-result', `⚠️ HYPERBEAM_API_KEY not configured - this is expected in test environment`, 'warning');
+            testResults.createSession = 'warning';
+            return;
+          }
+          throw new Error(`HTTP ${res.status}: ${data.error || res.statusText}`);
+        }
+        
+        if (data.id && data.url && data.expiresAt) {
+          testSessionId = data.id;
+          updateSessionInfo(data);
+          showResult('create-result', `✅ Session created successfully: ${data.id}`, 'success');
+          testResults.createSession = true;
+        } else {
+          throw new Error('Invalid session data received');
+        }
+      } catch (error) {
+        showResult('create-result', `❌ Session creation failed: ${error.message}`, 'error');
+        testResults.createSession = false;
+      }
+    }
+
+    async function testShareSession() {
+      try {
+        if (!testSessionId) {
+          throw new Error('No session to share. Create a session first.');
+        }
+
+        log('Testing session sharing...');
+        const sharePath = window.platformDetector.getFunctionPath('vm/share');
+        const res = await fetch(sharePath, {
+          method: "POST",
+          headers: {
+            "x-csrf-token": csrfToken,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ sessionId: testSessionId })
+        });
+        
+        const data = await res.json();
+        
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status}: ${data.error || res.statusText}`);
+        }
+        
+        if (data.shared) {
+          document.getElementById('join-session-id').value = testSessionId;
+          showResult('share-result', `✅ Session shared successfully: ${testSessionId}`, 'success');
+          testResults.shareSession = true;
+        } else {
+          throw new Error('Session sharing failed');
+        }
+      } catch (error) {
+        showResult('share-result', `❌ Session sharing failed: ${error.message}`, 'error');
+        testResults.shareSession = false;
+      }
+    }
+
+    async function testJoinSession() {
+      try {
+        const joinSessionId = document.getElementById('join-session-id').value.trim();
+        if (!joinSessionId) {
+          throw new Error('Please enter a session ID to join');
+        }
+
+        log('Testing session joining...');
+        const joinPath = window.platformDetector.getFunctionPath('vm/join');
+        const res = await fetch(joinPath, {
+          method: "POST",
+          headers: {
+            "x-csrf-token": csrfToken,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ sessionId: joinSessionId })
+        });
+        
+        const data = await res.json();
+        
+        if (!res.ok) {
+          if (res.status === 403 && data.error.includes('not shared')) {
+            showResult('join-result', `⚠️ Cannot join - session not shared yet. Share the session first.`, 'warning');
+            testResults.joinSession = 'warning';
+            return;
+          }
+          throw new Error(`HTTP ${res.status}: ${data.error || res.statusText}`);
+        }
+        
+        if (data.joined && data.url) {
+          showResult('join-result', `✅ Successfully joined session: ${joinSessionId}`, 'success');
+          testResults.joinSession = true;
+        } else {
+          throw new Error('Session join failed');
+        }
+      } catch (error) {
+        showResult('join-result', `❌ Session join failed: ${error.message}`, 'error');
+        testResults.joinSession = false;
+      }
+    }
+
+    async function testRateLimit() {
+      try {
+        log('Testing rate limiting...');
+        const sessions = [];
+        
+        // Try to create multiple sessions to test rate limiting
+        for (let i = 0; i < 3; i++) {
+          try {
+            const vmPath = window.platformDetector.getFunctionPath('vm');
+            const res = await fetch(vmPath, {
+              method: "POST",
+              headers: {
+                "x-csrf-token": csrfToken,
+                "Content-Type": "application/json"
+              },
+              body: JSON.stringify({})
+            });
+            
+            const data = await res.json();
+            
+            if (res.status === 429) {
+              showResult('rate-limit-result', `✅ Rate limiting working correctly - got 429 after ${i} sessions`, 'success');
+              testResults.rateLimit = true;
+              return;
+            } else if (res.status === 500 && data.details && data.details.includes('HYPERBEAM_API_KEY')) {
+              showResult('rate-limit-result', `⚠️ Cannot test rate limiting - HYPERBEAM_API_KEY not configured`, 'warning');
+              testResults.rateLimit = 'warning';
+              return;
+            } else if (res.ok) {
+              sessions.push(data.id);
+              log(`Created session ${i + 1}: ${data.id}`);
+            }
+          } catch (error) {
+            log(`Session creation ${i + 1} failed: ${error.message}`);
+          }
+        }
+        
+        if (sessions.length >= 2) {
+          showResult('rate-limit-result', `⚠️ Created ${sessions.length} sessions - rate limiting may not be working properly`, 'warning');
+          testResults.rateLimit = 'warning';
+        } else {
+          showResult('rate-limit-result', `✅ Rate limiting appears to be working`, 'success');
+          testResults.rateLimit = true;
+        }
+      } catch (error) {
+        showResult('rate-limit-result', `❌ Rate limit test failed: ${error.message}`, 'error');
+        testResults.rateLimit = false;
+      }
+    }
+
+    async function testSessionCleanup() {
+      try {
+        if (!testSessionId) {
+          throw new Error('No session to cleanup. Create a session first.');
+        }
+
+        log('Testing session cleanup...');
+        const vmPath = window.platformDetector.getFunctionPath('vm');
+        const res = await fetch(vmPath, {
+          method: "DELETE",
+          headers: {
+            "x-csrf-token": csrfToken,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ sessionId: testSessionId })
+        });
+        
+        const data = await res.json();
+        
+        if (res.ok) {
+          testSessionId = null;
+          updateSessionInfo(null);
+          showResult('cleanup-result', `✅ Session cleanup successful`, 'success');
+          testResults.cleanup = true;
+        } else {
+          throw new Error(`HTTP ${res.status}: ${data.error || res.statusText}`);
+        }
+      } catch (error) {
+        showResult('cleanup-result', `❌ Session cleanup failed: ${error.message}`, 'error');
+        testResults.cleanup = false;
+      }
+    }
+
+    async function testErrorHandling() {
+      try {
+        log('Testing error handling scenarios...');
+        const errors = [];
+
+        // Test 1: Invalid session ID for sharing
+        try {
+          const sharePath = window.platformDetector.getFunctionPath('vm/share');
+          const res = await fetch(sharePath, {
+            method: "POST",
+            headers: {
+              "x-csrf-token": csrfToken,
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ sessionId: "invalid-session-id" })
+          });
+          
+          if (res.status === 404) {
+            errors.push('✅ Invalid session ID properly rejected for sharing');
+          } else {
+            errors.push('❌ Invalid session ID not properly handled for sharing');
+          }
+        } catch (e) {
+          errors.push(`❌ Share error test failed: ${e.message}`);
+        }
+
+        // Test 2: Join non-existent session
+        try {
+          const joinPath = window.platformDetector.getFunctionPath('vm/join');
+          const res = await fetch(joinPath, {
+            method: "POST",
+            headers: {
+              "x-csrf-token": csrfToken,
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ sessionId: "non-existent-session" })
+          });
+          
+          if (res.status === 404) {
+            errors.push('✅ Non-existent session properly rejected for joining');
+          } else {
+            errors.push('❌ Non-existent session not properly handled for joining');
+          }
+        } catch (e) {
+          errors.push(`❌ Join error test failed: ${e.message}`);
+        }
+
+        // Test 3: Missing CSRF token
+        try {
+          const vmPath = window.platformDetector.getFunctionPath('vm');
+          const res = await fetch(vmPath, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({})
+          });
+          
+          if (res.status === 403) {
+            errors.push('✅ Missing CSRF token properly rejected');
+          } else {
+            errors.push('❌ Missing CSRF token not properly handled');
+          }
+        } catch (e) {
+          errors.push(`❌ CSRF error test failed: ${e.message}`);
+        }
+
+        const errorResult = errors.join('<br>');
+        const hasErrors = errors.some(error => error.includes('❌'));
+        
+        showResult('error-result', errorResult, hasErrors ? 'warning' : 'success');
+        testResults.errorHandling = !hasErrors;
+        
+      } catch (error) {
+        showResult('error-result', `❌ Error handling test failed: ${error.message}`, 'error');
+        testResults.errorHandling = false;
+      }
+    }
+
+    // Run all tests
+    async function runAllTests() {
+      log('Starting comprehensive test suite...');
+      await testCsrfToken();
+      await new Promise(resolve => setTimeout(resolve, 500));
+      await testCreateSession();
+      await new Promise(resolve => setTimeout(resolve, 500));
+      await testShareSession();
+      await new Promise(resolve => setTimeout(resolve, 500));
+      await testJoinSession();
+      await new Promise(resolve => setTimeout(resolve, 500));
+      await testErrorHandling();
+      await new Promise(resolve => setTimeout(resolve, 500));
+      await testSessionCleanup();
+      
+      // Generate summary
+      const passed = Object.values(testResults).filter(r => r === true).length;
+      const warnings = Object.values(testResults).filter(r => r === 'warning').length;
+      const failed = Object.values(testResults).filter(r => r === false).length;
+      
+      log(`Test suite completed: ${passed} passed, ${warnings} warnings, ${failed} failed`, 
+           failed > 0 ? 'error' : warnings > 0 ? 'warning' : 'success');
+    }
+
+    // Add a button to run all tests
+    document.addEventListener('DOMContentLoaded', () => {
+      const button = document.createElement('button');
+      button.textContent = '🚀 Run All Tests';
+      button.onclick = runAllTests;
+      button.style.fontSize = '16px';
+      button.style.padding = '1rem 2rem';
+      button.style.marginBottom = '2rem';
+      document.querySelector('.container').insertBefore(button, document.querySelector('.test-section'));
+    });
+  </script>
+</body>
+</html>
