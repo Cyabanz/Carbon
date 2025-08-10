@@ -50,6 +50,29 @@
     window.Filter = SimpleContentFilter;
     console.log('Content filter class loaded');
   </script>
+
+  <!-- Emoji Support Package -->
+  <script src="https://unpkg.com/emoji-js@8.0.0/lib/emoji.js"></script>
+  <script>
+    // Initialize emoji support
+    window.emojiConverter = new EmojiConvertor();
+    window.emojiConverter.replace_mode = 'unified';
+    window.emojiConverter.allow_native = true;
+    
+    // Common reaction emojis
+    window.reactionEmojis = [
+      { emoji: '👍', name: 'thumbs_up', unicode: '1f44d' },
+      { emoji: '❤️', name: 'heart', unicode: '2764' },
+      { emoji: '😂', name: 'joy', unicode: '1f602' },
+      { emoji: '😮', name: 'open_mouth', unicode: '1f62e' },
+      { emoji: '😢', name: 'cry', unicode: '1f622' },
+      { emoji: '😡', name: 'rage', unicode: '1f621' },
+      { emoji: '🔥', name: 'fire', unicode: '1f525' },
+      { emoji: '🎉', name: 'tada', unicode: '1f389' }
+    ];
+    
+    console.log('Emoji converter loaded');
+  </script>
   
   <script>
     // Tailwind config with theme colors
@@ -378,6 +401,116 @@
     @keyframes spin {
       0% { transform: rotate(0deg); }
       100% { transform: rotate(360deg); }
+    }
+
+    /* Reaction Styles */
+    .reaction-button {
+      background: var(--theme-overlay);
+      border: 1px solid var(--theme-highlight-med);
+      border-radius: 20px;
+      padding: 6px 12px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+      cursor: pointer;
+      font-size: 14px;
+    }
+
+    .reaction-button:hover {
+      background: var(--theme-highlight-med);
+      border-color: var(--theme-foam);
+      transform: scale(1.05);
+    }
+
+    .reaction-button.active {
+      background: var(--theme-foam);
+      border-color: var(--theme-foam);
+      color: var(--theme-base);
+    }
+
+    .reaction-button.active:hover {
+      background: var(--theme-pine);
+    }
+
+    .reaction-picker {
+      background: var(--theme-surface);
+      border: 1px solid var(--theme-overlay);
+      border-radius: 12px;
+      padding: 8px;
+      display: flex;
+      gap: 4px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      position: absolute;
+      z-index: 1000;
+      opacity: 0;
+      visibility: hidden;
+      transform: scale(0.95);
+      transition: all 0.2s ease;
+    }
+
+    .reaction-picker.show {
+      opacity: 1;
+      visibility: visible;
+      transform: scale(1);
+    }
+
+    .emoji-option {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      font-size: 18px;
+    }
+
+    .emoji-option:hover {
+      background: var(--theme-highlight-med);
+      transform: scale(1.2);
+    }
+
+    .reactions-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid var(--theme-overlay);
+    }
+
+    .add-reaction-btn {
+      background: var(--theme-overlay);
+      border: 1px dashed var(--theme-highlight-med);
+      border-radius: 20px;
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      color: var(--theme-muted);
+    }
+
+    .add-reaction-btn:hover {
+      background: var(--theme-highlight-med);
+      border-color: var(--theme-foam);
+      color: var(--theme-foam);
+      transform: scale(1.1);
+    }
+
+    /* Reaction animations */
+    @keyframes reactionPop {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.3); }
+      100% { transform: scale(1); }
+    }
+
+    .reaction-animate {
+      animation: reactionPop 0.3s ease;
     }
   </style>
 </head>
@@ -844,6 +977,9 @@
     let friendsList = [];
     let onlineFriends = [];
     let chatUnsubscribe = null;
+    let activeReactionPicker = null;
+    let reactionListeners = new Map();
+    let userCache = new Map();
 
     // Initialize content filter when available
     function initializeContentFilter() {
@@ -1228,7 +1364,7 @@
       }
 
       container.innerHTML = posts.map(post => `
-        <div class="post-card">
+        <div class="post-card" id="post-${post.id}">
           <div class="post-author">
             <img src="${post.authorPhoto || 'https://via.placeholder.com/40'}" alt="Avatar" class="author-avatar">
             <div>
@@ -1241,8 +1377,82 @@
           </div>
           <h4 class="font-bold text-rp-text mb-2">${sanitizeText(post.title)}</h4>
           <div class="text-rp-text">${sanitizeContent(post.content)}</div>
+          
+          <!-- Reactions Section -->
+          <div class="reactions-container" id="reactions-${post.id}">
+            ${generateReactionsHTML(post.reactions || {}, post.id)}
+          </div>
         </div>
       `).join('');
+      
+      // Setup reaction listeners for all posts and cache user data
+      posts.forEach(post => {
+        setupPostReactions(post.id, post.reactions || {});
+        // Cache author information
+        if (post.authorId && post.authorName) {
+          userCache.set(post.authorId, sanitizeText(post.authorName));
+        }
+      });
+    }
+
+    function generateReactionsHTML(reactions, postId) {
+      let reactionsHTML = '';
+      
+      // Display existing reactions
+      Object.entries(reactions).forEach(([emoji, data]) => {
+        if (data.count > 0) {
+          const isActive = currentUser && data.users && data.users.includes(currentUser.uid);
+          const userNames = data.users ? data.users.map(uid => getUserDisplayName(uid)).join(', ') : 'Loading...';
+          reactionsHTML += `
+            <button class="reaction-button ${isActive ? 'active' : ''}" 
+                    onclick="toggleReaction('${postId}', '${emoji}')"
+                    title="Reacted by: ${userNames}">
+              <span class="text-lg">${emoji}</span>
+              <span class="text-xs">${data.count}</span>
+            </button>
+          `;
+        }
+      });
+      
+      // Add reaction picker button
+      if (currentUser) {
+        reactionsHTML += `
+          <div class="relative">
+            <button class="add-reaction-btn" onclick="showReactionPicker('${postId}', this)" title="Add reaction">
+              <i class='bx bx-plus'></i>
+            </button>
+            <div class="reaction-picker" id="picker-${postId}">
+              ${window.reactionEmojis.map(emoji => `
+                <div class="emoji-option" onclick="addReaction('${postId}', '${emoji.emoji}')" title="${emoji.name}">
+                  ${emoji.emoji}
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        `;
+      }
+      
+      return reactionsHTML;
+    }
+
+    function getUserDisplayName(uid) {
+      if (userCache.has(uid)) {
+        return userCache.get(uid);
+      }
+      
+      // Get from current posts if available
+      const posts = document.querySelectorAll('.post-card');
+      for (const post of posts) {
+        const authorElement = post.querySelector('.post-author .font-medium');
+        if (post.id.includes(uid) || authorElement) {
+          const name = authorElement?.textContent || 'User';
+          userCache.set(uid, name);
+          return name;
+        }
+      }
+      
+      // Fallback - could enhance this to fetch from Firebase
+      return 'User';
     }
 
     async function createPost(event) {
@@ -1268,7 +1478,8 @@
           authorRank: userRank,
           createdAt: firebase.firestore.FieldValue.serverTimestamp(),
           likes: 0,
-          replies: 0
+          replies: 0,
+          reactions: {}
         });
 
         // Update forum post count
@@ -1396,6 +1607,8 @@
 
     function hideForumViewModal() {
       document.getElementById('forumViewModal').classList.remove('show');
+      hideActiveReactionPicker();
+      cleanupReactionListeners();
       currentForumId = null;
     }
 
@@ -2222,6 +2435,145 @@
       if (!timestamp) return '';
       const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
       return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
+
+    // REACTION SYSTEM FUNCTIONS
+    function setupPostReactions(postId, reactions) {
+      // Setup real-time listener for reactions
+      if (reactionListeners.has(postId)) {
+        reactionListeners.get(postId)(); // Unsubscribe previous listener
+      }
+      
+      const unsubscribe = db.collection('forums').doc(currentForumId).collection('posts').doc(postId)
+        .onSnapshot((doc) => {
+          if (doc.exists) {
+            const data = doc.data();
+            updateReactionsDisplay(postId, data.reactions || {});
+          }
+        });
+      
+      reactionListeners.set(postId, unsubscribe);
+    }
+
+    function updateReactionsDisplay(postId, reactions) {
+      const container = document.getElementById(`reactions-${postId}`);
+      if (container) {
+        container.innerHTML = generateReactionsHTML(reactions, postId);
+      }
+    }
+
+    function showReactionPicker(postId, button) {
+      if (!currentUser) {
+        showLoginPrompt();
+        return;
+      }
+      
+      // Hide any active picker
+      hideActiveReactionPicker();
+      
+      const picker = document.getElementById(`picker-${postId}`);
+      if (picker) {
+        // Position picker above the button
+        const rect = button.getBoundingClientRect();
+        picker.style.bottom = '40px';
+        picker.style.left = '0';
+        
+        picker.classList.add('show');
+        activeReactionPicker = picker;
+        
+        // Hide picker when clicking outside
+        setTimeout(() => {
+          document.addEventListener('click', hidePickerOnClickOutside);
+        }, 0);
+      }
+    }
+
+    function hideActiveReactionPicker() {
+      if (activeReactionPicker) {
+        activeReactionPicker.classList.remove('show');
+        activeReactionPicker = null;
+        document.removeEventListener('click', hidePickerOnClickOutside);
+      }
+    }
+
+    function hidePickerOnClickOutside(event) {
+      if (activeReactionPicker && !activeReactionPicker.contains(event.target) && 
+          !event.target.closest('.add-reaction-btn')) {
+        hideActiveReactionPicker();
+      }
+    }
+
+    async function addReaction(postId, emoji) {
+      if (!currentUser || !currentForumId) return;
+      
+      hideActiveReactionPicker();
+      
+      try {
+        const postRef = db.collection('forums').doc(currentForumId).collection('posts').doc(postId);
+        const postDoc = await postRef.get();
+        
+        if (!postDoc.exists) return;
+        
+        const postData = postDoc.data();
+        const reactions = postData.reactions || {};
+        
+        // Initialize reaction if it doesn't exist
+        if (!reactions[emoji]) {
+          reactions[emoji] = {
+            count: 0,
+            users: []
+          };
+        }
+        
+        // Check if user already reacted with this emoji
+        if (reactions[emoji].users.includes(currentUser.uid)) {
+          // Remove reaction
+          reactions[emoji].count = Math.max(0, reactions[emoji].count - 1);
+          reactions[emoji].users = reactions[emoji].users.filter(uid => uid !== currentUser.uid);
+          
+          // Remove emoji completely if no reactions left
+          if (reactions[emoji].count === 0) {
+            delete reactions[emoji];
+          }
+        } else {
+          // Add reaction
+          reactions[emoji].count++;
+          reactions[emoji].users.push(currentUser.uid);
+        }
+        
+        // Update post with new reactions
+        await postRef.update({ reactions });
+        
+        // Add animation to the reaction button
+        animateReaction(postId, emoji);
+        
+      } catch (error) {
+        console.error('Error adding reaction:', error);
+      }
+    }
+
+    async function toggleReaction(postId, emoji) {
+      // Same as addReaction - allows clicking existing reactions to toggle
+      await addReaction(postId, emoji);
+    }
+
+    function animateReaction(postId, emoji) {
+      // Find the reaction button and animate it
+      const button = document.querySelector(`#reactions-${postId} .reaction-button[onclick*="${emoji}"]`);
+      if (button) {
+        button.classList.add('reaction-animate');
+        setTimeout(() => {
+          button.classList.remove('reaction-animate');
+        }, 300);
+      }
+    }
+
+
+
+    // Cleanup reaction listeners when needed
+    function cleanupReactionListeners() {
+      reactionListeners.forEach(unsubscribe => unsubscribe());
+      reactionListeners.clear();
     }
 
     // Close modals when clicking outside
