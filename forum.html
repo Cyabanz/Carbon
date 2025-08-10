@@ -1,0 +1,1051 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Forum - CARBON</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+  <script src="carbon-theme.js"></script>
+  
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  
+  <!-- DOMPurify for XSS protection -->
+  <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.5/dist/purify.min.js"></script>
+  
+  <!-- Bad Words Filter Package -->
+  <script src="https://cdn.jsdelivr.net/npm/bad-words@3.0.4/lib/badwords.js"></script>
+  
+  <script>
+    // Tailwind config with theme colors
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            'rp-base': '#191724',
+            'rp-surface': '#1f1d2e',
+            'rp-overlay': '#26233a',
+            'rp-muted': '#6e6a86',
+            'rp-subtle': '#908caa',
+            'rp-text': '#e0def4',
+            'rp-love': '#eb6f92',
+            'rp-gold': '#f6c177',
+            'rp-rose': '#ebbcba',
+            'rp-pine': '#31748f',
+            'rp-foam': '#9ccfd8',
+            'rp-iris': '#c4a7e7',
+            'rp-highlight-low': '#21202e',
+            'rp-highlight-med': '#403d52',
+            'rp-highlight-high': '#524f67'
+          }
+        }
+      }
+    }
+  </script>
+  
+  <style>
+    :root {
+      --text-color: #e0def4;
+      --surface-color: #1f1d2e;
+      --overlay-color: #26233a;
+      --highlight-med: #403d52;
+      --highlight-high: #524f67;
+      --foam: #9ccfd8;
+      --love: #eb6f92;
+      --gold: #f6c177;
+      --pine: #31748f;
+      --iris: #c4a7e7;
+      --muted: #6e6a86;
+      --subtle: #908caa;
+
+      /* Theme variables - Rose Pine (default) */
+      --theme-base: #191724;
+      --theme-surface: #1f1d2e;
+      --theme-overlay: #26233a;
+      --theme-muted: #6e6a86;
+      --theme-subtle: #908caa;
+      --theme-text: #e0def4;
+      --theme-love: #eb6f92;
+      --theme-gold: #f6c177;
+      --theme-rose: #ebbcba;
+      --theme-pine: #31748f;
+      --theme-foam: #9ccfd8;
+      --theme-iris: #c4a7e7;
+      --theme-highlight-low: #21202e;
+      --theme-highlight-med: #403d52;
+      --theme-highlight-high: #524f67;
+      --theme-gradient: linear-gradient(135deg, #191724 0%, #1f1d2e 50%, #26233a 100%);
+    }
+    
+    body {
+      background: var(--theme-gradient);
+      background-attachment: fixed;
+      line-height: 1.6;
+    }
+
+    /* Enhanced Typography */
+    .text-display {
+      font-size: 2.5rem;
+      font-weight: 700;
+      letter-spacing: -0.025em;
+    }
+
+    .text-heading {
+      font-size: 1.875rem;
+      font-weight: 600;
+      letter-spacing: -0.025em;
+    }
+
+    .text-subheading {
+      font-size: 1.25rem;
+      font-weight: 500;
+    }
+
+    /* Enhanced Cards */
+    .card {
+      background: var(--theme-surface);
+      border: 1px solid var(--theme-overlay);
+      border-radius: 12px;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+      backdrop-filter: blur(8px);
+    }
+
+    .card-hover {
+      transition: all 0.3s ease;
+    }
+
+    .card-hover:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px -1px rgba(0, 0, 0, 0.4);
+      border-color: var(--theme-foam);
+    }
+
+    /* Enhanced Buttons */
+    .btn-primary {
+      background: var(--theme-foam);
+      color: var(--theme-base);
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-weight: 500;
+      transition: all 0.2s ease;
+      border: none;
+      cursor: pointer;
+    }
+
+    .btn-primary:hover {
+      background: var(--theme-pine);
+      transform: translateY(-1px);
+    }
+
+    .btn-secondary {
+      background: var(--theme-overlay);
+      color: var(--theme-text);
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-weight: 500;
+      transition: all 0.2s ease;
+      border: 1px solid var(--theme-highlight-med);
+      cursor: pointer;
+    }
+
+    .btn-secondary:hover {
+      background: var(--theme-highlight-med);
+      border-color: var(--theme-foam);
+    }
+
+    .btn-danger {
+      background: var(--theme-love);
+      color: var(--theme-text);
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-weight: 500;
+      transition: all 0.2s ease;
+      border: none;
+      cursor: pointer;
+    }
+
+    .btn-danger:hover {
+      background: #d14d72;
+      transform: translateY(-1px);
+    }
+
+    /* Rank Badges */
+    .rank-owner {
+      background: linear-gradient(135deg, #f6c177, #eb6f92);
+      color: #191724;
+    }
+
+    .rank-admin {
+      background: linear-gradient(135deg, #eb6f92, #c4a7e7);
+      color: #191724;
+    }
+
+    .rank-moderator {
+      background: linear-gradient(135deg, #9ccfd8, #31748f);
+      color: #191724;
+    }
+
+    .rank-member {
+      background: var(--theme-overlay);
+      color: var(--theme-text);
+      border: 1px solid var(--theme-highlight-med);
+    }
+
+    .rank-badge {
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    /* Forum Categories */
+    .category-card {
+      background: var(--theme-surface);
+      border: 1px solid var(--theme-overlay);
+      border-radius: 12px;
+      padding: 20px;
+      transition: all 0.3s ease;
+      cursor: pointer;
+    }
+
+    .category-card:hover {
+      border-color: var(--theme-foam);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px -1px rgba(0, 0, 0, 0.4);
+    }
+
+    .category-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      margin-bottom: 12px;
+    }
+
+    /* Search and Filter Styles */
+    .search-input {
+      background: var(--theme-overlay);
+      border: 1px solid var(--theme-highlight-med);
+      border-radius: 8px;
+      padding: 12px 16px;
+      color: var(--theme-text);
+      width: 100%;
+      transition: all 0.2s ease;
+    }
+
+    .search-input:focus {
+      outline: none;
+      border-color: var(--theme-foam);
+      box-shadow: 0 0 0 3px rgba(156, 207, 216, 0.1);
+    }
+
+    .search-input::placeholder {
+      color: var(--theme-muted);
+    }
+
+    /* Post Styles */
+    .post-card {
+      background: var(--theme-surface);
+      border: 1px solid var(--theme-overlay);
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 16px;
+      transition: all 0.3s ease;
+    }
+
+    .post-card:hover {
+      border-color: var(--theme-highlight-med);
+    }
+
+    .post-author {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .author-avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      object-fit: cover;
+    }
+
+    /* Modal Styles */
+    .modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.8);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.3s ease;
+    }
+
+    .modal.show {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .modal-content {
+      background: var(--theme-surface);
+      border: 1px solid var(--theme-overlay);
+      border-radius: 12px;
+      padding: 24px;
+      max-width: 500px;
+      width: 90%;
+      max-height: 80vh;
+      overflow-y: auto;
+    }
+
+    /* Responsive Design */
+    @media (max-width: 768px) {
+      .text-display {
+        font-size: 2rem;
+      }
+      
+      .text-heading {
+        font-size: 1.5rem;
+      }
+    }
+
+    /* Animations */
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .fade-in {
+      animation: fadeIn 0.3s ease-out;
+    }
+
+    /* Loading Spinner */
+    .spinner {
+      border: 2px solid var(--theme-overlay);
+      border-radius: 50%;
+      border-top: 2px solid var(--theme-foam);
+      width: 20px;
+      height: 20px;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+
+<body class="bg-rp-base min-h-screen text-rp-text font-[Inter] antialiased">
+  <!-- Particles Canvas -->
+  <canvas id="particles-canvas" class="fixed inset-0 pointer-events-none hidden"></canvas>
+
+  <!-- Navbar -->
+  <nav class="flex items-center justify-between px-6 py-4 bg-rp-surface/80 border-b border-rp-overlay backdrop-blur-sm fixed top-0 left-0 right-0 z-50">
+    <div class="flex items-center gap-6">
+      <a href="index.html" class="text-xl font-bold text-rp-foam tracking-tight">CARBON</a>
+      <div class="hidden md:flex items-center gap-4">
+        <a href="index.html" class="text-rp-subtle hover:text-rp-text transition-colors">Home</a>
+        <a href="profile.html" class="text-rp-subtle hover:text-rp-text transition-colors">Profile</a>
+        <a href="forum.html" class="text-rp-foam font-medium">Forum</a>
+      </div>
+    </div>
+    <div class="flex items-center gap-4">
+      <div id="userSection"></div>
+    </div>
+  </nav>
+
+  <!-- LOGIN SCREEN -->
+  <div id="loginScreen" class="flex flex-col items-center justify-center h-screen w-full bg-rp-base fixed left-0 top-0 z-50">
+    <div class="bg-rp-surface rounded-xl shadow-2xl p-8 border border-rp-overlay max-w-md w-full mx-4">
+      <div class="text-center mb-8">
+        <h1 class="text-2xl font-bold text-rp-foam mb-2">Join the Forum</h1>
+        <p class="text-rp-subtle">Sign in to participate in discussions</p>
+      </div>
+      <button onclick="googleSignIn()" class="w-full flex items-center justify-center gap-3 bg-rp-foam hover:bg-rp-foam/90 text-rp-base font-medium px-6 py-3 rounded-lg transition-all duration-200">
+        <i class='bx bxl-google text-xl'></i>
+        Continue with Google
+      </button>
+      <div id="loginError" class="text-rp-love mt-4 text-sm text-center hidden"></div>
+    </div>
+  </div>
+
+  <!-- MAIN FORUM CONTENT -->
+  <main id="forumContent" class="pt-24 pb-16 max-w-7xl mx-auto px-6 hidden">
+    <!-- Forum Header -->
+    <div class="card p-8 mb-8">
+      <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <div>
+          <h1 class="text-display text-rp-text mb-2">CARBON Forum</h1>
+          <p class="text-rp-subtle">Connect, discuss, and share with the community</p>
+        </div>
+        <div class="flex items-center gap-3">
+          <span id="userRank" class="rank-badge rank-member">Member</span>
+          <button id="createForumBtn" class="btn-primary hidden" onclick="showCreateForumModal()">
+            <i class='bx bx-plus mr-2'></i>
+            Create Forum
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Search and Filters -->
+    <div class="card p-6 mb-8">
+      <div class="flex flex-col md:flex-row gap-4">
+        <div class="flex-1">
+          <div class="relative">
+            <input type="text" id="searchInput" placeholder="Search forums and posts..." class="search-input pl-12">
+            <i class='bx bx-search absolute left-4 top-1/2 transform -translate-y-1/2 text-rp-muted'></i>
+          </div>
+        </div>
+        <div class="flex gap-3">
+          <select id="categoryFilter" class="search-input min-w-[150px]">
+            <option value="">All Categories</option>
+            <option value="general">General</option>
+            <option value="gaming">Gaming</option>
+            <option value="tech">Technology</option>
+            <option value="support">Support</option>
+            <option value="announcements">Announcements</option>
+          </select>
+          <select id="sortFilter" class="search-input min-w-[150px]">
+            <option value="recent">Most Recent</option>
+            <option value="popular">Most Popular</option>
+            <option value="oldest">Oldest</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Forum Categories -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8" id="categoriesGrid">
+      <!-- Categories will be loaded dynamically -->
+    </div>
+
+    <!-- Forum Lists -->
+    <div class="space-y-6" id="forumsContainer">
+      <!-- Forums will be loaded dynamically -->
+    </div>
+  </main>
+
+  <!-- Create Forum Modal -->
+  <div id="createForumModal" class="modal">
+    <div class="modal-content">
+      <div class="flex items-center justify-between mb-6">
+        <h2 class="text-heading text-rp-text">Create New Forum</h2>
+        <button onclick="hideCreateForumModal()" class="text-rp-muted hover:text-rp-text">
+          <i class='bx bx-x text-2xl'></i>
+        </button>
+      </div>
+      <form id="createForumForm" onsubmit="createForum(event)">
+        <div class="space-y-4">
+          <div>
+            <label class="block text-rp-text font-medium mb-2">Forum Name</label>
+            <input type="text" id="forumName" class="search-input" placeholder="Enter forum name" required>
+          </div>
+          <div>
+            <label class="block text-rp-text font-medium mb-2">Description</label>
+            <textarea id="forumDescription" class="search-input" rows="3" placeholder="Describe what this forum is about" required></textarea>
+          </div>
+          <div>
+            <label class="block text-rp-text font-medium mb-2">Category</label>
+            <select id="forumCategory" class="search-input" required>
+              <option value="">Select a category</option>
+              <option value="general">General</option>
+              <option value="gaming">Gaming</option>
+              <option value="tech">Technology</option>
+              <option value="support">Support</option>
+              <option value="announcements">Announcements</option>
+            </select>
+          </div>
+          <div class="flex gap-3 pt-4">
+            <button type="submit" class="btn-primary flex-1">
+              <i class='bx bx-plus mr-2'></i>
+              Create Forum
+            </button>
+            <button type="button" onclick="hideCreateForumModal()" class="btn-secondary">
+              Cancel
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Forum View Modal -->
+  <div id="forumViewModal" class="modal">
+    <div class="modal-content" style="max-width: 800px; max-height: 90vh;">
+      <div class="flex items-center justify-between mb-6">
+        <div>
+          <h2 id="forumTitle" class="text-heading text-rp-text"></h2>
+          <p id="forumDesc" class="text-rp-subtle"></p>
+        </div>
+        <button onclick="hideForumViewModal()" class="text-rp-muted hover:text-rp-text">
+          <i class='bx bx-x text-2xl'></i>
+        </button>
+      </div>
+      
+      <!-- New Post Form -->
+      <div class="card p-4 mb-6">
+        <form id="newPostForm" onsubmit="createPost(event)">
+          <div class="space-y-3">
+            <input type="text" id="postTitle" class="search-input" placeholder="Post title..." required>
+            <textarea id="postContent" class="search-input" rows="3" placeholder="What's on your mind?" required></textarea>
+            <div class="flex justify-end">
+              <button type="submit" class="btn-primary">
+                <i class='bx bx-send mr-2'></i>
+                Post
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
+
+      <!-- Posts Container -->
+      <div id="postsContainer" class="space-y-4 max-h-96 overflow-y-auto">
+        <!-- Posts will be loaded dynamically -->
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // FIREBASE CONFIGURATION
+    const firebaseConfig = {
+      apiKey: "AIzaSyC4ilHYP1T-kdXbWPoHJHhD2aj0pNWmMec",
+      authDomain: "carbon-services.firebaseapp.com",
+      projectId: "carbon-services",
+      storageBucket: "carbon-services.firebasestorage.app",
+      messagingSenderId: "288385472070",
+      appId: "1:288385472070:web:c4be3ff186e248fc645c47",
+      measurementId: "G-Y2K1RQYE74"
+    };
+
+    // Initialize Firebase
+    document.addEventListener('DOMContentLoaded', function() {
+      try {
+        if (typeof firebase !== 'undefined') {
+          firebase.initializeApp(firebaseConfig);
+          window.auth = firebase.auth();
+          window.db = firebase.firestore();
+        } else {
+          console.error('Firebase SDK not loaded');
+        }
+      } catch (error) {
+        console.error('Error initializing Firebase:', error);
+      }
+    });
+
+    // Fallback initialization
+    if (typeof firebase !== 'undefined') {
+      try {
+        firebase.initializeApp(firebaseConfig);
+      } catch (error) {
+        // App might already be initialized
+      }
+    }
+
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+
+    // Global variables
+    let currentUser = null;
+    let userRank = 'member';
+    let currentForumId = null;
+    let badWordsFilter = null;
+
+    // Initialize bad words filter
+    if (typeof Filter !== 'undefined') {
+      badWordsFilter = new Filter();
+    }
+
+    // XSS Protection Functions using DOMPurify
+    function sanitizeHTML(dirty) {
+      return DOMPurify.sanitize(dirty, { ALLOWED_TAGS: [], ALLOWED_ATTR: [] });
+    }
+
+    function sanitizeHTMLWithBasicTags(dirty) {
+      return DOMPurify.sanitize(dirty, { 
+        ALLOWED_TAGS: ['b', 'i', 'em', 'strong', 'br', 'p'], 
+        ALLOWED_ATTR: [] 
+      });
+    }
+
+    function sanitizeText(text) {
+      if (!text) return '';
+      let sanitized = sanitizeHTML(String(text));
+      // Apply bad words filter if available
+      if (badWordsFilter) {
+        sanitized = badWordsFilter.clean(sanitized);
+      }
+      return sanitized;
+    }
+
+    function sanitizeContent(content) {
+      if (!content) return '';
+      let sanitized = sanitizeHTMLWithBasicTags(String(content));
+      // Apply bad words filter if available
+      if (badWordsFilter) {
+        sanitized = badWordsFilter.clean(sanitized);
+      }
+      return sanitized;
+    }
+
+    // AUTHENTICATION FUNCTIONS
+    function googleSignIn() {
+      if (typeof firebase === 'undefined' || !firebase.auth) {
+        console.error('Firebase not loaded yet');
+        return;
+      }
+      const authInstance = window.auth || auth;
+      if (!authInstance) {
+        console.error('Firebase Auth not initialized');
+        return;
+      }
+      const provider = new firebase.auth.GoogleAuthProvider();
+      authInstance.signInWithPopup(provider)
+        .catch((error) => {
+          const loginError = document.getElementById('loginError');
+          if (loginError) {
+            loginError.innerText = error.message;
+            loginError.classList.remove('hidden');
+          }
+        });
+    }
+
+    function signOut() {
+      const authInstance = window.auth || auth;
+      if (authInstance) {
+        authInstance.signOut().then(() => location.reload());
+      }
+    }
+
+    // USER MANAGEMENT FUNCTIONS
+    async function ensureUserDoc(user) {
+      const userRef = db.collection('users').doc(user.uid);
+      const doc = await userRef.get();
+      if (!doc.exists) {
+        await userRef.set({
+          displayName: user.displayName || "",
+          photoURL: user.photoURL || "",
+          email: user.email || "",
+          username: "",
+          rank: "member",
+          joinedAt: firebase.firestore.FieldValue.serverTimestamp(),
+          lastSeen: firebase.firestore.FieldValue.serverTimestamp(),
+          status: "online",
+          forumPosts: 0,
+          reputation: 0
+        });
+      }
+    }
+
+    async function getUserRank(uid) {
+      try {
+        const doc = await db.collection('users').doc(uid).get();
+        if (doc.exists) {
+          const userData = doc.data();
+          return userData.rank || 'member';
+        }
+        return 'member';
+      } catch (error) {
+        console.error('Error getting user rank:', error);
+        return 'member';
+      }
+    }
+
+    async function updateUserRank(uid, rank) {
+      try {
+        await db.collection('users').doc(uid).update({
+          rank: rank,
+          lastSeen: firebase.firestore.FieldValue.serverTimestamp()
+        });
+      } catch (error) {
+        console.error('Error updating user rank:', error);
+      }
+    }
+
+    // FORUM FUNCTIONS
+    async function loadCategories() {
+      const categories = [
+        { id: 'general', name: 'General Discussion', icon: 'bx-chat', color: '#9ccfd8', description: 'General community discussions' },
+        { id: 'gaming', name: 'Gaming', icon: 'bx-game', color: '#eb6f92', description: 'Gaming discussions and tips' },
+        { id: 'tech', name: 'Technology', icon: 'bx-code-alt', color: '#f6c177', description: 'Tech news and discussions' },
+        { id: 'support', name: 'Support', icon: 'bx-help-circle', color: '#c4a7e7', description: 'Get help and support' },
+        { id: 'announcements', name: 'Announcements', icon: 'bx-megaphone', color: '#31748f', description: 'Official announcements' }
+      ];
+
+      const categoriesGrid = document.getElementById('categoriesGrid');
+      categoriesGrid.innerHTML = categories.map(category => `
+        <div class="category-card" onclick="filterByCategory('${category.id}')">
+          <div class="category-icon" style="background: ${category.color}20; color: ${category.color};">
+            <i class='bx ${category.icon}'></i>
+          </div>
+          <h3 class="font-bold text-rp-text mb-2">${sanitizeText(category.name)}</h3>
+          <p class="text-rp-subtle text-sm">${sanitizeText(category.description)}</p>
+        </div>
+      `).join('');
+    }
+
+    async function loadForums() {
+      try {
+        const querySnapshot = await db.collection('forums').orderBy('createdAt', 'desc').get();
+        const forums = [];
+        querySnapshot.forEach((doc) => {
+          forums.push({ id: doc.id, ...doc.data() });
+        });
+
+        displayForums(forums);
+      } catch (error) {
+        console.error('Error loading forums:', error);
+      }
+    }
+
+    function displayForums(forums) {
+      const container = document.getElementById('forumsContainer');
+      if (forums.length === 0) {
+        container.innerHTML = `
+          <div class="card p-8 text-center">
+            <i class='bx bx-chat text-4xl text-rp-muted mb-4'></i>
+            <h3 class="text-subheading text-rp-text mb-2">No forums found</h3>
+            <p class="text-rp-subtle">Be the first to create a forum!</p>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = forums.map(forum => `
+        <div class="card p-6 card-hover cursor-pointer" onclick="openForum('${forum.id}', '${sanitizeText(forum.name)}', '${sanitizeText(forum.description)}')">
+          <div class="flex items-start justify-between">
+            <div class="flex-1">
+              <div class="flex items-center gap-3 mb-2">
+                <h3 class="text-subheading text-rp-text font-bold">${sanitizeText(forum.name)}</h3>
+                <span class="rank-badge" style="background: var(--theme-${forum.category === 'announcements' ? 'love' : 'overlay'});">
+                  ${sanitizeText(forum.category)}
+                </span>
+              </div>
+              <p class="text-rp-subtle mb-4">${sanitizeText(forum.description)}</p>
+              <div class="flex items-center gap-4 text-sm text-rp-muted">
+                <span><i class='bx bx-message mr-1'></i>${forum.postCount || 0} posts</span>
+                <span><i class='bx bx-user mr-1'></i>Created by ${sanitizeText(forum.createdBy)}</span>
+                <span><i class='bx bx-time mr-1'></i>${formatDate(forum.createdAt)}</span>
+              </div>
+            </div>
+            <div class="flex flex-col items-end">
+              <i class='bx bx-chevron-right text-2xl text-rp-muted'></i>
+            </div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    async function createForum(event) {
+      event.preventDefault();
+      
+      if (userRank !== 'owner' && userRank !== 'admin') {
+        alert('Only owners and admins can create forums');
+        return;
+      }
+
+      const name = document.getElementById('forumName').value;
+      const description = document.getElementById('forumDescription').value;
+      const category = document.getElementById('forumCategory').value;
+
+      try {
+        await db.collection('forums').add({
+          name: sanitizeText(name),
+          description: sanitizeText(description),
+          category: category,
+          createdBy: currentUser.displayName || 'Anonymous',
+          createdById: currentUser.uid,
+          createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+          postCount: 0,
+          lastActivity: firebase.firestore.FieldValue.serverTimestamp()
+        });
+
+        hideCreateForumModal();
+        document.getElementById('createForumForm').reset();
+        loadForums();
+      } catch (error) {
+        console.error('Error creating forum:', error);
+        alert('Error creating forum. Please try again.');
+      }
+    }
+
+    function openForum(forumId, title, description) {
+      currentForumId = forumId;
+      document.getElementById('forumTitle').textContent = title;
+      document.getElementById('forumDesc').textContent = description;
+      document.getElementById('forumViewModal').classList.add('show');
+      loadPosts(forumId);
+    }
+
+    async function loadPosts(forumId) {
+      try {
+        const querySnapshot = await db.collection('forums').doc(forumId).collection('posts')
+          .orderBy('createdAt', 'desc').get();
+        const posts = [];
+        querySnapshot.forEach((doc) => {
+          posts.push({ id: doc.id, ...doc.data() });
+        });
+
+        displayPosts(posts);
+      } catch (error) {
+        console.error('Error loading posts:', error);
+      }
+    }
+
+    function displayPosts(posts) {
+      const container = document.getElementById('postsContainer');
+      if (posts.length === 0) {
+        container.innerHTML = `
+          <div class="text-center py-8">
+            <i class='bx bx-message text-3xl text-rp-muted mb-2'></i>
+            <p class="text-rp-subtle">No posts yet. Be the first to start the conversation!</p>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = posts.map(post => `
+        <div class="post-card">
+          <div class="post-author">
+            <img src="${post.authorPhoto || 'https://via.placeholder.com/40'}" alt="Avatar" class="author-avatar">
+            <div>
+              <div class="flex items-center gap-2">
+                <span class="font-medium text-rp-text">${sanitizeText(post.authorName)}</span>
+                <span class="rank-badge rank-${post.authorRank || 'member'}">${post.authorRank || 'member'}</span>
+              </div>
+              <span class="text-sm text-rp-muted">${formatDate(post.createdAt)}</span>
+            </div>
+          </div>
+          <h4 class="font-bold text-rp-text mb-2">${sanitizeText(post.title)}</h4>
+          <div class="text-rp-text">${sanitizeContent(post.content)}</div>
+        </div>
+      `).join('');
+    }
+
+    async function createPost(event) {
+      event.preventDefault();
+      
+      if (!currentUser || !currentForumId) return;
+
+      const title = document.getElementById('postTitle').value;
+      const content = document.getElementById('postContent').value;
+
+      try {
+        await db.collection('forums').doc(currentForumId).collection('posts').add({
+          title: sanitizeText(title),
+          content: sanitizeContent(content),
+          authorName: currentUser.displayName || 'Anonymous',
+          authorId: currentUser.uid,
+          authorPhoto: currentUser.photoURL || '',
+          authorRank: userRank,
+          createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+          likes: 0,
+          replies: 0
+        });
+
+        // Update forum post count
+        await db.collection('forums').doc(currentForumId).update({
+          postCount: firebase.firestore.FieldValue.increment(1),
+          lastActivity: firebase.firestore.FieldValue.serverTimestamp()
+        });
+
+        // Update user post count
+        await db.collection('users').doc(currentUser.uid).update({
+          forumPosts: firebase.firestore.FieldValue.increment(1)
+        });
+
+        document.getElementById('newPostForm').reset();
+        loadPosts(currentForumId);
+      } catch (error) {
+        console.error('Error creating post:', error);
+        alert('Error creating post. Please try again.');
+      }
+    }
+
+    // SEARCH AND FILTER FUNCTIONS
+    function setupSearchAndFilters() {
+      const searchInput = document.getElementById('searchInput');
+      const categoryFilter = document.getElementById('categoryFilter');
+      const sortFilter = document.getElementById('sortFilter');
+
+      let searchTimeout;
+      searchInput.addEventListener('input', () => {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(performSearch, 300);
+      });
+
+      categoryFilter.addEventListener('change', performSearch);
+      sortFilter.addEventListener('change', performSearch);
+    }
+
+    async function performSearch() {
+      const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+      const categoryFilter = document.getElementById('categoryFilter').value;
+      const sortBy = document.getElementById('sortFilter').value;
+
+      try {
+        let query = db.collection('forums');
+        
+        if (categoryFilter) {
+          query = query.where('category', '==', categoryFilter);
+        }
+
+        // Apply sorting
+        switch (sortBy) {
+          case 'recent':
+            query = query.orderBy('lastActivity', 'desc');
+            break;
+          case 'popular':
+            query = query.orderBy('postCount', 'desc');
+            break;
+          case 'oldest':
+            query = query.orderBy('createdAt', 'asc');
+            break;
+          default:
+            query = query.orderBy('createdAt', 'desc');
+        }
+
+        const querySnapshot = await query.get();
+        let forums = [];
+        querySnapshot.forEach((doc) => {
+          forums.push({ id: doc.id, ...doc.data() });
+        });
+
+        // Apply search filter on client side (Firestore doesn't support full-text search)
+        if (searchTerm) {
+          forums = forums.filter(forum => 
+            forum.name.toLowerCase().includes(searchTerm) ||
+            forum.description.toLowerCase().includes(searchTerm)
+          );
+        }
+
+        displayForums(forums);
+      } catch (error) {
+        console.error('Error performing search:', error);
+      }
+    }
+
+    function filterByCategory(category) {
+      document.getElementById('categoryFilter').value = category;
+      performSearch();
+    }
+
+    // MODAL FUNCTIONS
+    function showCreateForumModal() {
+      document.getElementById('createForumModal').classList.add('show');
+    }
+
+    function hideCreateForumModal() {
+      document.getElementById('createForumModal').classList.remove('show');
+    }
+
+    function hideForumViewModal() {
+      document.getElementById('forumViewModal').classList.remove('show');
+      currentForumId = null;
+    }
+
+    // UTILITY FUNCTIONS
+    function formatDate(timestamp) {
+      if (!timestamp) return 'Just now';
+      const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+      const now = new Date();
+      const diffMs = now - date;
+      const diffMins = Math.floor(diffMs / 60000);
+      const diffHours = Math.floor(diffMs / 3600000);
+      const diffDays = Math.floor(diffMs / 86400000);
+
+      if (diffMins < 1) return 'Just now';
+      if (diffMins < 60) return `${diffMins}m ago`;
+      if (diffHours < 24) return `${diffHours}h ago`;
+      if (diffDays < 7) return `${diffDays}d ago`;
+      return date.toLocaleDateString();
+    }
+
+    function updateUserSection() {
+      const userSection = document.getElementById('userSection');
+      if (currentUser) {
+        userSection.innerHTML = `
+          <div class="flex items-center gap-3">
+            <img src="${currentUser.photoURL || 'https://via.placeholder.com/32'}" alt="Profile" class="w-8 h-8 rounded-full">
+            <span class="text-rp-text font-medium hidden md:block">${sanitizeText(currentUser.displayName || 'User')}</span>
+            <span class="rank-badge rank-${userRank}">${userRank}</span>
+            <button onclick="signOut()" class="text-rp-muted hover:text-rp-text">
+              <i class='bx bx-log-out text-xl'></i>
+            </button>
+          </div>
+        `;
+      } else {
+        userSection.innerHTML = '';
+      }
+    }
+
+    // AUTH STATE OBSERVER
+    auth.onAuthStateChanged(async (user) => {
+      if (user) {
+        currentUser = user;
+        await ensureUserDoc(user);
+        userRank = await getUserRank(user.uid);
+        
+        // Update UI based on user rank
+        const rankBadge = document.getElementById('userRank');
+        if (rankBadge) {
+          rankBadge.textContent = userRank;
+          rankBadge.className = `rank-badge rank-${userRank}`;
+        }
+
+        // Show create forum button for owners and admins
+        const createBtn = document.getElementById('createForumBtn');
+        if (createBtn && (userRank === 'owner' || userRank === 'admin')) {
+          createBtn.classList.remove('hidden');
+        }
+
+        updateUserSection();
+        document.getElementById('loginScreen').classList.add('hidden');
+        document.getElementById('forumContent').classList.remove('hidden');
+        
+        // Load forum data
+        loadCategories();
+        loadForums();
+        setupSearchAndFilters();
+      } else {
+        currentUser = null;
+        userRank = 'member';
+        document.getElementById('loginScreen').classList.remove('hidden');
+        document.getElementById('forumContent').classList.add('hidden');
+      }
+    });
+
+    // Close modals when clicking outside
+    document.addEventListener('click', (e) => {
+      if (e.target.classList.contains('modal')) {
+        hideCreateForumModal();
+        hideForumViewModal();
+      }
+    });
+
+    // Keyboard shortcuts
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        hideCreateForumModal();
+        hideForumViewModal();
+      }
+    });
+  </script>
+</body>
+</html>
