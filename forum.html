@@ -401,23 +401,24 @@
     </div>
   </nav>
 
-  <!-- LOGIN SCREEN -->
-  <div id="loginScreen" class="flex flex-col items-center justify-center h-screen w-full bg-rp-base fixed left-0 top-0 z-50">
-    <div class="bg-rp-surface rounded-xl shadow-2xl p-8 border border-rp-overlay max-w-md w-full mx-4">
-      <div class="text-center mb-8">
-        <h1 class="text-2xl font-bold text-rp-foam mb-2">Join the Forum</h1>
-        <p class="text-rp-subtle">Sign in to participate in discussions</p>
-      </div>
-      <button onclick="googleSignIn()" class="w-full flex items-center justify-center gap-3 bg-rp-foam hover:bg-rp-foam/90 text-rp-base font-medium px-6 py-3 rounded-lg transition-all duration-200">
-        <i class='bx bxl-google text-xl'></i>
-        Continue with Google
-      </button>
-      <div id="loginError" class="text-rp-love mt-4 text-sm text-center hidden"></div>
+  <!-- LOGIN PROMPT (Optional) -->
+  <div id="loginPrompt" class="fixed top-20 right-6 bg-rp-surface rounded-xl shadow-2xl p-6 border border-rp-overlay max-w-sm z-40 hidden">
+    <div class="text-center mb-6">
+      <h3 class="text-lg font-bold text-rp-foam mb-2">Join the Discussion</h3>
+      <p class="text-rp-subtle text-sm">Sign in to create forums and post messages</p>
     </div>
+    <button onclick="googleSignIn()" class="w-full flex items-center justify-center gap-3 bg-rp-foam hover:bg-rp-foam/90 text-rp-base font-medium px-4 py-2 rounded-lg transition-all duration-200 mb-3">
+      <i class='bx bxl-google text-lg'></i>
+      Sign In
+    </button>
+    <button onclick="hideLoginPrompt()" class="w-full text-rp-muted hover:text-rp-text text-sm">
+      Browse as Guest
+    </button>
+    <div id="loginError" class="text-rp-love mt-3 text-sm text-center hidden"></div>
   </div>
 
   <!-- MAIN FORUM CONTENT -->
-  <main id="forumContent" class="pt-24 pb-16 max-w-7xl mx-auto px-6 hidden">
+  <main id="forumContent" class="pt-24 pb-16 max-w-7xl mx-auto px-6">
     <!-- Forum Header -->
     <div class="card p-8 mb-8">
       <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
@@ -426,10 +427,14 @@
           <p class="text-rp-subtle">Connect, discuss, and share with the community</p>
         </div>
         <div class="flex items-center gap-3">
-          <span id="userRank" class="rank-badge rank-member">Member</span>
+          <span id="userRank" class="rank-badge rank-member hidden">Guest</span>
           <button id="createForumBtn" class="btn-primary hidden" onclick="showCreateForumModal()">
             <i class='bx bx-plus mr-2'></i>
             Create Forum
+          </button>
+          <button id="signInBtn" class="btn-secondary" onclick="showLoginPrompt()">
+            <i class='bx bx-log-in mr-2'></i>
+            Sign In
           </button>
         </div>
       </div>
@@ -531,8 +536,16 @@
       </div>
       
       <!-- New Post Form -->
-      <div class="card p-4 mb-6">
-        <form id="newPostForm" onsubmit="createPost(event)">
+      <div class="card p-4 mb-6" id="newPostSection">
+        <div id="guestPostMessage" class="text-center py-6">
+          <i class='bx bx-message-add text-3xl text-rp-muted mb-3'></i>
+          <p class="text-rp-subtle mb-4">Sign in to join the conversation and post in this forum</p>
+          <button onclick="showLoginPrompt()" class="btn-primary">
+            <i class='bx bx-log-in mr-2'></i>
+            Sign In to Post
+          </button>
+        </div>
+        <form id="newPostForm" onsubmit="createPost(event)" class="hidden">
           <div class="space-y-3">
             <input type="text" id="postTitle" class="search-input" placeholder="Post title..." required>
             <textarea id="postContent" class="search-input" rows="3" placeholder="What's on your mind?" required></textarea>
@@ -862,6 +875,12 @@
     async function createForum(event) {
       event.preventDefault();
       
+      if (!currentUser) {
+        showLoginPrompt();
+        hideCreateForumModal();
+        return;
+      }
+      
       if (userRank !== 'owner' && userRank !== 'admin') {
         alert('Only owners and admins can create forums');
         return;
@@ -948,7 +967,12 @@
     async function createPost(event) {
       event.preventDefault();
       
-      if (!currentUser || !currentForumId) return;
+      if (!currentUser) {
+        showLoginPrompt();
+        return;
+      }
+      
+      if (!currentForumId) return;
 
       const title = document.getElementById('postTitle').value;
       const content = document.getElementById('postContent').value;
@@ -1055,6 +1079,10 @@
 
     // MODAL FUNCTIONS
     function showCreateForumModal() {
+      if (!currentUser) {
+        showLoginPrompt();
+        return;
+      }
       document.getElementById('createForumModal').classList.add('show');
     }
 
@@ -1065,6 +1093,14 @@
     function hideForumViewModal() {
       document.getElementById('forumViewModal').classList.remove('show');
       currentForumId = null;
+    }
+
+    function showLoginPrompt() {
+      document.getElementById('loginPrompt').classList.remove('hidden');
+    }
+
+    function hideLoginPrompt() {
+      document.getElementById('loginPrompt').classList.add('hidden');
     }
 
     // UTILITY FUNCTIONS
@@ -1086,7 +1122,12 @@
 
     function updateUserSection() {
       const userSection = document.getElementById('userSection');
+      const signInBtn = document.getElementById('signInBtn');
+      const userRankBadge = document.getElementById('userRank');
+      const createBtn = document.getElementById('createForumBtn');
+      
       if (currentUser) {
+        // Show authenticated user UI
         userSection.innerHTML = `
           <div class="flex items-center gap-3">
             <img src="${currentUser.photoURL || 'https://via.placeholder.com/32'}" alt="Profile" class="w-8 h-8 rounded-full">
@@ -1097,8 +1138,46 @@
             </button>
           </div>
         `;
+        
+        // Hide sign in button and show user rank
+        if (signInBtn) signInBtn.classList.add('hidden');
+        if (userRankBadge) {
+          userRankBadge.textContent = userRank;
+          userRankBadge.className = `rank-badge rank-${userRank}`;
+          userRankBadge.classList.remove('hidden');
+        }
+        
+        // Show create forum button for owners and admins
+        if (createBtn && (userRank === 'owner' || userRank === 'admin')) {
+          createBtn.classList.remove('hidden');
+        }
+        
+        // Show post form in forums
+        const guestMessage = document.getElementById('guestPostMessage');
+        const postForm = document.getElementById('newPostForm');
+        if (guestMessage) guestMessage.classList.add('hidden');
+        if (postForm) postForm.classList.remove('hidden');
+        
+        // Hide login prompt
+        hideLoginPrompt();
       } else {
-        userSection.innerHTML = '';
+        // Show guest user UI
+        userSection.innerHTML = `
+          <button onclick="showLoginPrompt()" class="text-rp-muted hover:text-rp-text">
+            <i class='bx bx-log-in text-xl'></i>
+          </button>
+        `;
+        
+        // Show sign in button and hide user rank
+        if (signInBtn) signInBtn.classList.remove('hidden');
+        if (userRankBadge) userRankBadge.classList.add('hidden');
+        if (createBtn) createBtn.classList.add('hidden');
+        
+        // Show guest message in forums
+        const guestMessage = document.getElementById('guestPostMessage');
+        const postForm = document.getElementById('newPostForm');
+        if (guestMessage) guestMessage.classList.remove('hidden');
+        if (postForm) postForm.classList.add('hidden');
       }
     }
 
@@ -1140,7 +1219,7 @@
 
     // Separate auth state handler for better management
     async function handleAuthStateChange(user) {
-      console.log('Auth state changed:', user ? `Signed in as ${user.email}` : 'Signed out');
+      console.log('Auth state changed:', user ? `Signed in as ${user.email}` : 'Browsing as guest');
       
       if (user) {
         currentUser = user;
@@ -1150,38 +1229,25 @@
           userRank = await getUserRank(user.uid);
           console.log('User rank:', userRank);
           
-          // Update UI based on user rank
-          const rankBadge = document.getElementById('userRank');
-          if (rankBadge) {
-            rankBadge.textContent = userRank;
-            rankBadge.className = `rank-badge rank-${userRank}`;
-          }
-
-          // Show create forum button for owners and admins
-          const createBtn = document.getElementById('createForumBtn');
-          if (createBtn && (userRank === 'owner' || userRank === 'admin')) {
-            createBtn.classList.remove('hidden');
-          }
-
           updateUserSection();
-          document.getElementById('loginScreen').classList.add('hidden');
-          document.getElementById('forumContent').classList.remove('hidden');
-          
-          // Load forum data
-          loadCategories();
-          loadForums();
-          setupSearchAndFilters();
           
           console.log('Forum UI updated for authenticated user');
         } catch (error) {
           console.error('Error handling authenticated user:', error);
         }
       } else {
-        console.log('User signed out, showing login screen');
+        console.log('Browsing as guest');
         currentUser = null;
-        userRank = 'member';
-        document.getElementById('loginScreen').classList.remove('hidden');
-        document.getElementById('forumContent').classList.add('hidden');
+        userRank = 'guest';
+        updateUserSection();
+      }
+      
+      // Always show forum content (both for guests and authenticated users)
+      // Load forum data regardless of auth state
+      if (!document.querySelector('#categoriesGrid').innerHTML) {
+        loadCategories();
+        loadForums();
+        setupSearchAndFilters();
       }
     }
 
@@ -1259,6 +1325,12 @@
         hideCreateForumModal();
         hideForumViewModal();
       }
+      
+      // Hide login prompt when clicking outside
+      if (!e.target.closest('#loginPrompt') && !e.target.closest('#signInBtn') && 
+          !e.target.closest('button[onclick*="showLoginPrompt"]')) {
+        hideLoginPrompt();
+      }
     });
 
     // Keyboard shortcuts
@@ -1266,7 +1338,18 @@
       if (e.key === 'Escape') {
         hideCreateForumModal();
         hideForumViewModal();
+        hideLoginPrompt();
       }
+    });
+
+    // Load forum content immediately for guests
+    document.addEventListener('DOMContentLoaded', () => {
+      // Show forum content immediately
+      console.log('Page loaded, initializing forum for guest browsing');
+      loadCategories();
+      loadForums();
+      setupSearchAndFilters();
+      updateUserSection(); // Initialize guest UI
     });
   </script>
 </body>
