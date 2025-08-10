@@ -667,7 +667,8 @@
         </h4>
         <ul style="margin: 0; padding-left: 1.2rem; color: var(--theme-muted); font-size: 0.85rem;">
           <li>Paste the full session link shared with you</li>
-          <li>Or enter just the session ID (8-character code)</li>
+          <li>Or enter just the session ID (any length)</li>
+          <li>Supports various formats: abc123, abc-123, session URLs</li>
           <li>You'll be connected to the shared session instantly</li>
         </ul>
       </div>
@@ -1343,17 +1344,25 @@
         return;
       }
       
-      // Extract session ID from URL if full link is provided
-      if (sessionToJoin.includes('session=')) {
-        const urlParams = new URLSearchParams(sessionToJoin.split('?')[1]);
-        sessionToJoin = urlParams.get('session') || sessionToJoin;
-      }
-      
-      // Validate session ID format (assuming it's alphanumeric)
-      if (!/^[a-zA-Z0-9]{8,}$/.test(sessionToJoin)) {
-        setStatus("Invalid session ID format.", "error");
-        return;
-      }
+             // Extract session ID from URL if full link is provided
+       if (sessionToJoin.includes('session=')) {
+         try {
+           const url = new URL(sessionToJoin.startsWith('http') ? sessionToJoin : `https://${sessionToJoin}`);
+           sessionToJoin = url.searchParams.get('session') || sessionToJoin;
+         } catch {
+           // If URL parsing fails, try simpler extraction
+           const match = sessionToJoin.match(/session=([^&]+)/);
+           if (match) {
+             sessionToJoin = match[1];
+           }
+         }
+       }
+       
+       // More flexible validation - just check it's not empty and has reasonable length
+       if (!sessionToJoin || sessionToJoin.length < 3) {
+         setStatus("Please enter a valid session ID or URL.", "error");
+         return;
+       }
       
       joinBtn.disabled = true;
       joinBtnText.textContent = 'Joining...';
@@ -1392,48 +1401,83 @@
       }
     }
 
-    async function joinSession(sessionId) {
-      try {
-        // Instead of creating a new session, we'll connect to the existing one
-        // This would typically get the session URL from the server
-        const sessionUrl = `https://demo.hyperbeam.com/session/${sessionId}`;
-        
-        // Initialize Hyperbeam session
-        const container = document.getElementById('hb-container');
-        container.classList.remove('hidden');
-        
-        if (typeof window.hyperbeam !== 'function') {
-          throw new Error('Hyperbeam SDK not loaded properly. Please refresh the page and try again.');
-        }
-        
-        hyperbeamSession = await window.hyperbeam(container, sessionUrl, {
-          timeout: 10000
-        });
-        
-        // Update UI
-        document.getElementById('terminate-btn').classList.remove('hidden');
-        document.getElementById('share-btn').classList.remove('hidden');
-        document.getElementById('fullscreen-btn').classList.remove('hidden');
-        document.getElementById('create-btn').classList.add('hidden');
-        document.getElementById('join-btn').classList.add('hidden');
-        
-        // Set session info (without timer since we're joining existing session)
-        updateSessionInfo({
-          id: sessionId,
-          expiresAt: Date.now() + (4 * 60 * 1000) // Assume 4 minutes remaining
-        });
-        
-        // Add current user as participant
-        addParticipant('You', 'participant', true);
-        
-        // Set global session ID for sharing
-        window.sessionId = sessionId;
-        
-      } catch (error) {
-        console.error('Error joining session:', error);
-        throw error;
-      }
-    }
+         async function joinSession(sessionId) {
+       try {
+         // Get session URL - this should come from your server in a real implementation
+         // For now, we'll try to construct a reasonable URL
+         let sessionUrl;
+         
+         // If sessionId looks like a full URL, use it directly
+         if (sessionId.startsWith('http')) {
+           sessionUrl = sessionId;
+         } else {
+           // Try to get the actual session URL from the server
+           try {
+             if (!(await getCsrfToken())) {
+               throw new Error('Failed to get security token');
+             }
+             
+             const platform = window.platformDetector.detectPlatform();
+             const vmPath = window.platformDetector.getFunctionPath('vm/join');
+             
+             const response = await fetch(vmPath, {
+               method: 'POST',
+               headers: {
+                 'x-csrf-token': csrfToken,
+                 'Content-Type': 'application/json'
+               },
+               body: JSON.stringify({ sessionId })
+             });
+             
+             if (response.ok) {
+               const data = await response.json();
+               sessionUrl = data.url;
+             } else {
+               throw new Error('Session not found on server');
+             }
+           } catch (serverError) {
+             console.warn('Server join failed, trying direct connection:', serverError);
+             // Fallback to direct URL construction
+             sessionUrl = `https://demo.hyperbeam.com/${sessionId}`;
+           }
+         }
+         
+         // Initialize Hyperbeam session
+         const container = document.getElementById('hb-container');
+         container.classList.remove('hidden');
+         
+         if (typeof window.hyperbeam !== 'function') {
+           throw new Error('Hyperbeam SDK not loaded properly. Please refresh the page and try again.');
+         }
+         
+         hyperbeamSession = await window.hyperbeam(container, sessionUrl, {
+           timeout: 10000
+         });
+         
+         // Update UI
+         document.getElementById('terminate-btn').classList.remove('hidden');
+         document.getElementById('share-btn').classList.remove('hidden');
+         document.getElementById('fullscreen-btn').classList.remove('hidden');
+         document.getElementById('create-btn').classList.add('hidden');
+         document.getElementById('join-btn').classList.add('hidden');
+         
+         // Set session info (without timer since we're joining existing session)
+         updateSessionInfo({
+           id: sessionId,
+           expiresAt: Date.now() + (4 * 60 * 1000) // Assume 4 minutes remaining
+         });
+         
+         // Add current user as participant
+         addParticipant('You', 'participant', true);
+         
+         // Set global session ID for sharing
+         sessionId = sessionId;
+         
+       } catch (error) {
+         console.error('Error joining session:', error);
+         throw error;
+       }
+     }
 
     function updateParticipantsList() {
       const participantsList = document.getElementById('participantsList');
