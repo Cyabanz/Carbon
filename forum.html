@@ -424,7 +424,7 @@
       <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
           <h1 class="text-display text-rp-text mb-2">CARBON Forum</h1>
-          <p class="text-rp-subtle">Connect, discuss, and share with the community</p>
+          <p class="text-rp-subtle">Connect, discuss, and share with the community. Create your own forums!</p>
         </div>
         <div class="flex items-center gap-3">
           <span id="userRank" class="rank-badge rank-member hidden">Guest</span>
@@ -545,11 +545,17 @@
         <div class="space-y-4">
           <div>
             <label class="block text-rp-text font-medium mb-2">Forum Name</label>
-            <input type="text" id="forumName" class="search-input" placeholder="Enter forum name" required>
+            <input type="text" id="forumName" class="search-input" placeholder="Enter forum name (3-50 characters)" maxlength="50" required>
+            <p class="text-xs text-rp-muted mt-1">
+              <span id="nameCharCount">0</span>/50 characters
+            </p>
           </div>
           <div>
             <label class="block text-rp-text font-medium mb-2">Description</label>
-            <textarea id="forumDescription" class="search-input" rows="3" placeholder="Describe what this forum is about" required></textarea>
+            <textarea id="forumDescription" class="search-input" rows="3" placeholder="Describe what this forum is about (10-200 characters)" maxlength="200" required></textarea>
+            <p class="text-xs text-rp-muted mt-1">
+              <span id="descCharCount">0</span>/200 characters
+            </p>
           </div>
           <div>
             <label class="block text-rp-text font-medium mb-2">Category</label>
@@ -914,6 +920,7 @@
           lastSeen: firebase.firestore.FieldValue.serverTimestamp(),
           status: "online",
           forumPosts: 0,
+          forumsCreated: 0,
           reputation: 0,
           friends: [],
           blockedUsers: []
@@ -995,7 +1002,8 @@
           <div class="card p-8 text-center">
             <i class='bx bx-chat text-4xl text-rp-muted mb-4'></i>
             <h3 class="text-subheading text-rp-text mb-2">No forums found</h3>
-            <p class="text-rp-subtle">Be the first to create a forum!</p>
+            <p class="text-rp-subtle mb-4">Be the first to create a forum and start a discussion!</p>
+            ${currentUser ? '<button onclick="showCreateForumModal()" class="btn-primary"><i class="bx bx-plus mr-2"></i>Create First Forum</button>' : '<button onclick="showLoginPrompt()" class="btn-secondary"><i class="bx bx-log-in mr-2"></i>Sign In to Create Forums</button>'}
           </div>
         `;
         return;
@@ -1034,31 +1042,69 @@
         hideCreateForumModal();
         return;
       }
+
+      const name = document.getElementById('forumName').value.trim();
+      const description = document.getElementById('forumDescription').value.trim();
+      const category = document.getElementById('forumCategory').value;
+
+      // Validate inputs
+      if (!name || name.length < 3) {
+        alert('Forum name must be at least 3 characters long');
+        return;
+      }
       
-      if (userRank !== 'owner' && userRank !== 'admin') {
-        alert('Only owners and admins can create forums');
+      if (name.length > 50) {
+        alert('Forum name must be 50 characters or less');
+        return;
+      }
+      
+      if (!description || description.length < 10) {
+        alert('Forum description must be at least 10 characters long');
+        return;
+      }
+      
+      if (description.length > 200) {
+        alert('Forum description must be 200 characters or less');
         return;
       }
 
-      const name = document.getElementById('forumName').value;
-      const description = document.getElementById('forumDescription').value;
-      const category = document.getElementById('forumCategory').value;
-
       try {
+        // Check if forum name already exists
+        const existingForum = await db.collection('forums')
+          .where('name', '==', sanitizeText(name))
+          .get();
+        
+        if (!existingForum.empty) {
+          alert('A forum with this name already exists. Please choose a different name.');
+          return;
+        }
+
         await db.collection('forums').add({
           name: sanitizeText(name),
           description: sanitizeText(description),
           category: category,
-          createdBy: currentUser.displayName || 'Anonymous',
+          createdBy: sanitizeText(currentUser.displayName || 'Anonymous'),
           createdById: currentUser.uid,
+          createdByRank: userRank,
           createdAt: firebase.firestore.FieldValue.serverTimestamp(),
           postCount: 0,
-          lastActivity: firebase.firestore.FieldValue.serverTimestamp()
+          lastActivity: firebase.firestore.FieldValue.serverTimestamp(),
+          isActive: true,
+          memberCount: 1,
+          moderators: [currentUser.uid] // Creator becomes moderator of their forum
+        });
+
+        // Update user's forum creation count
+        await db.collection('users').doc(currentUser.uid).update({
+          forumsCreated: firebase.firestore.FieldValue.increment(1)
         });
 
         hideCreateForumModal();
         document.getElementById('createForumForm').reset();
         loadForums();
+        
+        // Show success message
+        alert('Forum created successfully! You are now the moderator of this forum.');
       } catch (error) {
         console.error('Error creating forum:', error);
         alert('Error creating forum. Please try again.');
@@ -1238,6 +1284,29 @@
         return;
       }
       document.getElementById('createForumModal').classList.add('show');
+      
+      // Setup character counters for the form
+      const forumNameInput = document.getElementById('forumName');
+      const forumDescInput = document.getElementById('forumDescription');
+      const nameCharCount = document.getElementById('nameCharCount');
+      const descCharCount = document.getElementById('descCharCount');
+      
+      // Reset counters
+      nameCharCount.textContent = '0';
+      descCharCount.textContent = '0';
+      
+      // Add event listeners for character counting
+      forumNameInput.addEventListener('input', (e) => {
+        const count = e.target.value.length;
+        nameCharCount.textContent = count;
+        nameCharCount.className = count > 45 ? 'text-rp-love' : count > 35 ? 'text-rp-gold' : 'text-rp-muted';
+      });
+      
+      forumDescInput.addEventListener('input', (e) => {
+        const count = e.target.value.length;
+        descCharCount.textContent = count;
+        descCharCount.className = count > 180 ? 'text-rp-love' : count > 150 ? 'text-rp-gold' : 'text-rp-muted';
+      });
     }
 
     function hideCreateForumModal() {
@@ -1342,8 +1411,8 @@
           userRankBadge.classList.remove('hidden');
         }
         
-        // Show create forum button for owners and admins
-        if (createBtn && (userRank === 'owner' || userRank === 'admin')) {
+        // Show create forum button for all authenticated users
+        if (createBtn) {
           createBtn.classList.remove('hidden');
         }
         
