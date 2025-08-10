@@ -2684,6 +2684,9 @@
     }
 
     function signOut() {
+      // Cleanup presence before signing out
+      cleanupPresence();
+      
       const authInstance = auth || window.auth;
       if (authInstance) {
         authInstance.signOut().then(() => {
@@ -3512,6 +3515,9 @@
       const createBtn = document.getElementById('createForumBtn');
       
       if (currentUser) {
+        // Initialize presence tracking
+        initializePresence();
+        
         // Show authenticated user UI
         userSection.innerHTML = `
           <div class="flex items-center gap-3">
@@ -5754,58 +5760,181 @@ What are your thoughts on this?`;
       }
     }
 
-    // Simulate online users (in a real app, this would be tracked via presence)
-    function updateOnlineUsers() {
-      // Generate mock online users
-      const mockUsers = [
-        { name: 'Alex', id: 'user1', avatar: 'A' },
-        { name: 'Jordan', id: 'user2', avatar: 'J' },
-        { name: 'Sam', id: 'user3', avatar: 'S' },
-        { name: 'Taylor', id: 'user4', avatar: 'T' },
-        { name: 'Casey', id: 'user5', avatar: 'C' }
-      ];
+    // Real-time presence tracking with Firebase
+    // REQUIRED FIRESTORE SECURITY RULES for 'presence' collection:
+    // rules_version = '2';
+    // service cloud.firestore {
+    //   match /databases/{database}/documents {
+    //     match /presence/{userId} {
+    //       allow read: if true; // Anyone can see who's online
+    //       allow write: if request.auth != null && request.auth.uid == userId;
+    //     }
+    //   }
+    // }
+    let presenceRef;
+    let onlineUsersListener;
+    let onlineUsers = new Map();
 
-      // Simulate random number of online users
-      const onlineUserCount = Math.floor(Math.random() * 5) + 1;
-      const onlineUsers = mockUsers.slice(0, onlineUserCount);
+    function initializePresence() {
+      if (!currentUser || !db) return;
+
+      const userId = currentUser.uid;
+      const userDisplayName = currentUser.displayName || currentUser.email?.split('@')[0] || 'Anonymous';
       
-      // Add current user if logged in
-      if (currentUser) {
-        onlineUsers.unshift({
-          name: currentUser.displayName || 'You',
-          id: currentUser.uid,
-          avatar: (currentUser.displayName || 'You').charAt(0).toUpperCase()
-        });
+      // Reference to user's presence in Firestore
+      presenceRef = db.collection('presence').doc(userId);
+      
+      // Set user as online
+      presenceRef.set({
+        userId: userId,
+        displayName: userDisplayName,
+        email: currentUser.email,
+        photoURL: currentUser.photoURL || null,
+        lastSeen: firebase.firestore.FieldValue.serverTimestamp(),
+        isOnline: true,
+        joinedAt: firebase.firestore.FieldValue.serverTimestamp()
+      }).then(() => {
+        console.log('User presence set:', userDisplayName);
+      }).catch(error => {
+        console.error('Error setting presence:', error);
+      });
+
+      // Set user as offline when they leave
+      presenceRef.onDisconnect().update({
+        isOnline: false,
+        lastSeen: firebase.firestore.FieldValue.serverTimestamp()
+      });
+
+      // Update last seen every 30 seconds while online
+      setInterval(() => {
+        if (presenceRef && currentUser) {
+          presenceRef.update({
+            lastSeen: firebase.firestore.FieldValue.serverTimestamp()
+          });
+        }
+      }, 30000);
+
+      // Listen to all online users
+      setupOnlineUsersListener();
+    }
+
+    function setupOnlineUsersListener() {
+      if (onlineUsersListener) {
+        onlineUsersListener();
       }
 
+      // Listen to users who were online in the last 5 minutes
+      const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+      
+      onlineUsersListener = db.collection('presence')
+        .where('lastSeen', '>', firebase.firestore.Timestamp.fromDate(fiveMinutesAgo))
+        .onSnapshot(snapshot => {
+          onlineUsers.clear();
+          
+          snapshot.forEach(doc => {
+            const userData = doc.data();
+            const lastSeen = userData.lastSeen?.toDate();
+            const isRecentlyActive = lastSeen && (Date.now() - lastSeen.getTime()) < 2 * 60 * 1000; // 2 minutes
+            
+            onlineUsers.set(doc.id, {
+              userId: userData.userId,
+              displayName: userData.displayName,
+              email: userData.email,
+              photoURL: userData.photoURL,
+              isOnline: userData.isOnline && isRecentlyActive,
+              lastSeen: lastSeen,
+              avatar: (userData.displayName || 'U').charAt(0).toUpperCase()
+            });
+          });
+          
+          updateOnlineUsersDisplay();
+        });
+    }
+
+    function updateOnlineUsersDisplay() {
+      const onlineUsersList = Array.from(onlineUsers.values()).filter(user => user.isOnline);
+      const onlineCount = onlineUsersList.length;
+
       // Update online count displays
-      document.getElementById('onlineCount').textContent = onlineUsers.length;
-      document.getElementById('onlineCountIndicator').textContent = onlineUsers.length;
+      document.getElementById('onlineCount').textContent = onlineCount;
+      document.getElementById('onlineCountIndicator').textContent = onlineCount;
 
       // Update online users list
       const onlineUsersContent = document.getElementById('onlineUsersContent');
-      onlineUsersContent.innerHTML = onlineUsers.map(user => `
-        <div class="online-user-item">
-          <div class="online-user-avatar">${user.avatar}</div>
-          <div class="flex-1">
-            <div class="text-sm font-medium text-rp-text">${user.name}</div>
-            <div class="text-xs text-rp-muted">${user.id === (currentUser?.uid) ? 'You' : 'Active now'}</div>
+      
+      if (onlineCount === 0) {
+        onlineUsersContent.innerHTML = '<div class="text-center text-rp-muted py-2">No users currently online</div>';
+        return;
+      }
+
+      onlineUsersContent.innerHTML = onlineUsersList.map(user => {
+        const isCurrentUser = currentUser && user.userId === currentUser.uid;
+        const timeAgo = user.lastSeen ? formatTimeAgo(user.lastSeen) : 'Just now';
+        
+        return `
+          <div class="online-user-item">
+            ${user.photoURL ? 
+              `<img src="${user.photoURL}" alt="${user.displayName}" class="online-user-avatar" style="object-fit: cover;">` :
+              `<div class="online-user-avatar">${user.avatar}</div>`
+            }
+            <div class="flex-1">
+              <div class="text-sm font-medium text-rp-text">
+                ${user.displayName}${isCurrentUser ? ' (You)' : ''}
+              </div>
+              <div class="text-xs text-rp-muted">
+                ${isCurrentUser ? 'Active now' : `Active ${timeAgo}`}
+              </div>
+            </div>
+            <div class="online-user-status" style="background: ${user.isOnline ? '#22c55e' : '#6b7280'}"></div>
           </div>
-          <div class="online-user-status"></div>
-        </div>
-      `).join('');
+        `;
+      }).join('');
+    }
+
+    function formatTimeAgo(date) {
+      const seconds = Math.floor((Date.now() - date.getTime()) / 1000);
+      
+      if (seconds < 60) return 'just now';
+      if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
+      if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
+      return `${Math.floor(seconds / 86400)}d ago`;
+    }
+
+    function cleanupPresence() {
+      if (presenceRef && currentUser) {
+        presenceRef.update({
+          isOnline: false,
+          lastSeen: firebase.firestore.FieldValue.serverTimestamp()
+        });
+      }
+      
+      if (onlineUsersListener) {
+        onlineUsersListener();
+      }
+    }
+
+    // Update online users periodically to check for inactive users
+    function updateOnlineUsers() {
+      if (currentUser) {
+        updateOnlineUsersDisplay();
+      } else {
+        // Show 0 for guests
+        document.getElementById('onlineCount').textContent = 0;
+        document.getElementById('onlineCountIndicator').textContent = 0;
+        document.getElementById('onlineUsersContent').innerHTML = 
+          '<div class="text-center text-rp-muted py-2">Sign in to see online users</div>';
+      }
     }
 
     function initializeForumEnhancements() {
-      // Update online users every 30 seconds
+      // Update online users display
       updateOnlineUsers();
-      setInterval(updateOnlineUsers, 30000);
-
+      
       // Update forum counts when forums load
       updateForumCounts(0, 0);
     }
 
-    document.addEventListener('DOMContentLoaded', () => {
+                  document.addEventListener('DOMContentLoaded', () => {
       // Show forum content immediately
       console.log('Page loaded, initializing forum for guest browsing');
       loadCategories();
@@ -5813,6 +5942,28 @@ What are your thoughts on this?`;
       setupSearchAndFilters();
       updateUserSection(); // Initialize guest UI
       initializeForumEnhancements();
+      
+      // Cleanup presence when page is unloaded
+      window.addEventListener('beforeunload', cleanupPresence);
+      window.addEventListener('unload', cleanupPresence);
+      
+      // Handle visibility changes (tab switching)
+      document.addEventListener('visibilitychange', () => {
+        if (currentUser && presenceRef) {
+          if (document.hidden) {
+            // Tab is hidden, user is likely inactive
+            presenceRef.update({
+              lastSeen: firebase.firestore.FieldValue.serverTimestamp()
+            });
+          } else {
+            // Tab is visible again, user is active
+            presenceRef.update({
+              isOnline: true,
+              lastSeen: firebase.firestore.FieldValue.serverTimestamp()
+            });
+          }
+        }
+      });
       
       // Setup friends sidebar toggle
       const friendsToggle = document.getElementById('friendsSidebarToggle');
