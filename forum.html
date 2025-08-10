@@ -512,6 +512,202 @@
     .reaction-animate {
       animation: reactionPop 0.3s ease;
     }
+
+    /* Achievement Styles */
+    .achievement-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 8px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      background: linear-gradient(135deg, var(--theme-gold), var(--theme-iris));
+      color: var(--theme-base);
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+
+    .achievement-badge.rare {
+      background: linear-gradient(135deg, var(--theme-love), var(--theme-iris));
+    }
+
+    .achievement-badge.epic {
+      background: linear-gradient(135deg, var(--theme-iris), var(--theme-pine));
+    }
+
+    .achievement-badge.legendary {
+      background: linear-gradient(135deg, var(--theme-gold), var(--theme-love));
+      animation: shimmer 2s infinite;
+    }
+
+    @keyframes shimmer {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.05); opacity: 0.9; }
+    }
+
+    .achievement-notification {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: var(--theme-surface);
+      border: 2px solid var(--theme-gold);
+      border-radius: 12px;
+      padding: 16px;
+      max-width: 300px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+      z-index: 9999;
+      transform: translateX(350px);
+      transition: all 0.4s ease;
+    }
+
+    .achievement-notification.show {
+      transform: translateX(0);
+    }
+
+    .achievement-progress {
+      background: var(--theme-overlay);
+      border-radius: 8px;
+      height: 8px;
+      overflow: hidden;
+      margin-top: 8px;
+    }
+
+    .achievement-progress-bar {
+      background: linear-gradient(90deg, var(--theme-foam), var(--theme-iris));
+      height: 100%;
+      transition: width 0.3s ease;
+      border-radius: 8px;
+    }
+
+    .achievements-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 16px;
+    }
+
+    .achievement-card {
+      background: var(--theme-surface);
+      border: 1px solid var(--theme-overlay);
+      border-radius: 12px;
+      padding: 16px;
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .achievement-card:hover {
+      border-color: var(--theme-foam);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
+    }
+
+    .achievement-card.unlocked {
+      border-color: var(--theme-gold);
+      background: linear-gradient(135deg, var(--theme-surface), var(--theme-overlay));
+    }
+
+    .achievement-card.unlocked::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, var(--theme-gold), var(--theme-iris));
+    }
+
+    .achievement-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      margin: 0 auto 12px;
+      background: var(--theme-overlay);
+      color: var(--theme-muted);
+    }
+
+    .achievement-card.unlocked .achievement-icon {
+      background: linear-gradient(135deg, var(--theme-gold), var(--theme-iris));
+      color: var(--theme-base);
+    }
+
+    .achievement-rarity {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      padding: 2px 6px;
+      border-radius: 6px;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .achievement-rarity.common { background: var(--theme-overlay); color: var(--theme-text); }
+    .achievement-rarity.rare { background: var(--theme-love); color: white; }
+    .achievement-rarity.epic { background: var(--theme-iris); color: white; }
+    .achievement-rarity.legendary { background: var(--theme-gold); color: var(--theme-base); }
+
+    /* Achievement Modal */
+    .achievements-modal .modal-content {
+      max-width: 800px;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+
+    /* Stats Display */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    .stat-card {
+      background: var(--theme-overlay);
+      border-radius: 8px;
+      padding: 12px;
+      text-align: center;
+    }
+
+    .stat-value {
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--theme-foam);
+    }
+
+    .stat-label {
+      font-size: 12px;
+      color: var(--theme-subtle);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .achievement-filter {
+      padding: 8px 16px;
+      border-radius: 20px;
+      border: 1px solid var(--theme-overlay);
+      background: transparent;
+      color: var(--theme-text);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      font-size: 14px;
+    }
+
+    .achievement-filter:hover {
+      border-color: var(--theme-foam);
+      color: var(--theme-foam);
+    }
+
+    .achievement-filter.active {
+      background: var(--theme-foam);
+      border-color: var(--theme-foam);
+      color: var(--theme-base);
+    }
   </style>
 </head>
 
@@ -527,6 +723,10 @@
         <a href="index.html" class="text-rp-subtle hover:text-rp-text transition-colors">Home</a>
         <a href="profile.html" class="text-rp-subtle hover:text-rp-text transition-colors">Profile</a>
         <a href="forum.html" class="text-rp-foam font-medium">Forum</a>
+        <button id="achievementsBtn" onclick="showAchievementsModal()" class="text-rp-subtle hover:text-rp-text transition-colors hidden flex items-center gap-1">
+          <i class='bx bx-trophy'></i>
+          Achievements
+        </button>
       </div>
     </div>
     <div class="flex items-center gap-4">
@@ -892,6 +1092,76 @@
     </div>
   </div>
 
+  <!-- Achievements Modal -->
+  <div id="achievementsModal" class="modal achievements-modal">
+    <div class="modal-content">
+      <div class="flex items-center justify-between mb-6">
+        <h2 class="text-heading text-rp-text flex items-center gap-3">
+          <i class='bx bx-trophy text-rp-gold'></i>
+          Achievements
+        </h2>
+        <button onclick="hideAchievementsModal()" class="text-rp-muted hover:text-rp-text">
+          <i class='bx bx-x text-2xl'></i>
+        </button>
+      </div>
+      
+      <!-- User Stats -->
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-value" id="totalAchievements">0</div>
+          <div class="stat-label">Unlocked</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="totalPoints">0</div>
+          <div class="stat-label">Points</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="completionRate">0%</div>
+          <div class="stat-label">Completion</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="userRankDisplay">Newcomer</div>
+          <div class="stat-label">Rank</div>
+        </div>
+      </div>
+
+      <!-- Achievement Categories -->
+      <div class="mb-6">
+        <div class="flex items-center gap-3 mb-4">
+          <button class="achievement-filter active" data-category="all">All</button>
+          <button class="achievement-filter" data-category="forum">Forum</button>
+          <button class="achievement-filter" data-category="social">Social</button>
+          <button class="achievement-filter" data-category="special">Special</button>
+        </div>
+      </div>
+      
+      <!-- Achievements Grid -->
+      <div class="achievements-grid" id="achievementsGrid">
+        <!-- Achievements will be loaded dynamically -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Achievement Notification Template -->
+  <div id="achievementNotificationTemplate" class="achievement-notification" style="display: none;">
+    <div class="flex items-start gap-3">
+      <div class="achievement-icon">
+        <i class='bx bx-trophy'></i>
+      </div>
+      <div class="flex-1">
+        <h4 class="font-bold text-rp-text mb-1">Achievement Unlocked!</h4>
+        <p class="text-sm text-rp-subtle mb-2" id="achievementName">Achievement Name</p>
+        <div class="achievement-badge" id="achievementBadge">
+          <i class='bx bx-star'></i>
+          <span>+10 XP</span>
+        </div>
+      </div>
+      <button onclick="hideAchievementNotification(this)" class="text-rp-muted hover:text-rp-text">
+        <i class='bx bx-x'></i>
+      </button>
+    </div>
+  </div>
+
   <script>
     // FIREBASE CONFIGURATION
     const firebaseConfig = {
@@ -980,6 +1250,8 @@
     let activeReactionPicker = null;
     let reactionListeners = new Map();
     let userCache = new Map();
+    let userAchievements = [];
+    let achievementDefinitions = [];
 
     // Initialize content filter when available
     function initializeContentFilter() {
@@ -998,6 +1270,173 @@
 
     // Initialize content filter after a small delay to ensure Filter class is loaded
     setTimeout(initializeContentFilter, 50);
+
+    // Initialize achievement definitions
+    function initializeAchievements() {
+      achievementDefinitions = [
+        // Forum Achievements
+        {
+          id: 'first_post',
+          name: 'First Steps',
+          description: 'Create your first forum post',
+          icon: 'bx-edit',
+          category: 'forum',
+          rarity: 'common',
+          points: 10,
+          condition: (stats) => stats.forumPosts >= 1
+        },
+        {
+          id: 'post_master',
+          name: 'Post Master',
+          description: 'Create 10 forum posts',
+          icon: 'bx-message-detail',
+          category: 'forum',
+          rarity: 'rare',
+          points: 50,
+          condition: (stats) => stats.forumPosts >= 10
+        },
+        {
+          id: 'forum_creator',
+          name: 'Forum Founder',
+          description: 'Create your first forum',
+          icon: 'bx-plus-circle',
+          category: 'forum',
+          rarity: 'rare',
+          points: 75,
+          condition: (stats) => stats.forumsCreated >= 1
+        },
+        {
+          id: 'prolific_creator',
+          name: 'Prolific Creator',
+          description: 'Create 5 forums',
+          icon: 'bx-crown',
+          category: 'forum',
+          rarity: 'epic',
+          points: 200,
+          condition: (stats) => stats.forumsCreated >= 5
+        },
+        {
+          id: 'reaction_giver',
+          name: 'Reactor',
+          description: 'Give 25 reactions to posts',
+          icon: 'bx-heart',
+          category: 'forum',
+          rarity: 'common',
+          points: 25,
+          condition: (stats) => stats.reactionsGiven >= 25
+        },
+        {
+          id: 'popular_post',
+          name: 'Popular',
+          description: 'Receive 10 reactions on a single post',
+          icon: 'bx-trending-up',
+          category: 'forum',
+          rarity: 'rare',
+          points: 100,
+          condition: (stats) => stats.maxReactionsOnPost >= 10
+        },
+
+        // Social Achievements
+        {
+          id: 'first_friend',
+          name: 'Social Butterfly',
+          description: 'Add your first friend',
+          icon: 'bx-user-plus',
+          category: 'social',
+          rarity: 'common',
+          points: 20,
+          condition: (stats) => stats.friendsCount >= 1
+        },
+        {
+          id: 'friend_collector',
+          name: 'Friend Collector',
+          description: 'Have 10 friends',
+          icon: 'bx-group',
+          category: 'social',
+          rarity: 'rare',
+          points: 75,
+          condition: (stats) => stats.friendsCount >= 10
+        },
+        {
+          id: 'chat_starter',
+          name: 'Conversationalist',
+          description: 'Send 50 chat messages',
+          icon: 'bx-chat',
+          category: 'social',
+          rarity: 'common',
+          points: 30,
+          condition: (stats) => stats.messagesSent >= 50
+        },
+        {
+          id: 'chat_master',
+          name: 'Chat Master',
+          description: 'Send 500 chat messages',
+          icon: 'bx-message-rounded-dots',
+          category: 'social',
+          rarity: 'epic',
+          points: 150,
+          condition: (stats) => stats.messagesSent >= 500
+        },
+
+        // Special Achievements
+        {
+          id: 'early_adopter',
+          name: 'Early Adopter',
+          description: 'Join during the first week',
+          icon: 'bx-time',
+          category: 'special',
+          rarity: 'epic',
+          points: 250,
+          condition: (stats) => {
+            const joinDate = new Date(stats.joinedAt);
+            const launchDate = new Date('2024-01-01'); // Adjust launch date
+            return (joinDate - launchDate) < (7 * 24 * 60 * 60 * 1000);
+          }
+        },
+        {
+          id: 'daily_visitor',
+          name: 'Daily Visitor',
+          description: 'Visit the forum for 7 consecutive days',
+          icon: 'bx-calendar-check',
+          category: 'special',
+          rarity: 'rare',
+          points: 100,
+          condition: (stats) => stats.consecutiveDays >= 7
+        },
+        {
+          id: 'night_owl',
+          name: 'Night Owl',
+          description: 'Post between midnight and 6 AM',
+          icon: 'bx-moon',
+          category: 'special',
+          rarity: 'common',
+          points: 15,
+          condition: (stats) => stats.lateNightPosts >= 1
+        },
+        {
+          id: 'century_club',
+          name: 'Century Club',
+          description: 'Reach 100 total forum posts',
+          icon: 'bx-trophy',
+          category: 'forum',
+          rarity: 'legendary',
+          points: 500,
+          condition: (stats) => stats.forumPosts >= 100
+        },
+        {
+          id: 'social_hub',
+          name: 'Social Hub',
+          description: 'Have 50 friends',
+          icon: 'bx-network-chart',
+          category: 'social',
+          rarity: 'legendary',
+          points: 300,
+          condition: (stats) => stats.friendsCount >= 50
+        }
+      ];
+    }
+
+    initializeAchievements();
 
     // XSS Protection Functions using DOMPurify
     function sanitizeHTML(dirty) {
@@ -1104,7 +1543,14 @@
           forumsCreated: 0,
           reputation: 0,
           friends: [],
-          blockedUsers: []
+          blockedUsers: [],
+          messagesSent: 0,
+          reactionsGiven: 0,
+          maxReactionsOnPost: 0,
+          consecutiveDays: 0,
+          lateNightPosts: 0,
+          totalAchievementPoints: 0,
+          achievements: {}
         });
       } else {
         // Update last seen and status for existing users
@@ -1282,10 +1728,14 @@
           moderators: [currentUser.uid] // Creator becomes moderator of their forum
         });
 
-        // Update user's forum creation count
+        // Update user's forum creation count and check achievements
         await db.collection('users').doc(currentUser.uid).update({
           forumsCreated: firebase.firestore.FieldValue.increment(1)
         });
+
+        // Check for achievements
+        const stats = await getUserStats();
+        await checkAchievements(stats);
 
         hideCreateForumModal();
         document.getElementById('createForumForm').reset();
@@ -1488,10 +1938,8 @@
           lastActivity: firebase.firestore.FieldValue.serverTimestamp()
         });
 
-        // Update user post count
-        await db.collection('users').doc(currentUser.uid).update({
-          forumPosts: firebase.firestore.FieldValue.increment(1)
-        });
+        // Update user post count and track achievement
+        await trackForumPost();
 
         document.getElementById('newPostForm').reset();
         loadPosts(currentForumId);
@@ -1853,8 +2301,13 @@
         const friendsToggle = document.getElementById('friendsSidebarToggle');
         if (friendsToggle) friendsToggle.classList.remove('hidden');
         
-        // Load friends data
+        // Show achievements button
+        const achievementsBtn = document.getElementById('achievementsBtn');
+        if (achievementsBtn) achievementsBtn.classList.remove('hidden');
+        
+        // Load friends data and achievements
         loadFriends();
+        loadUserAchievements();
         
         // Hide login prompt
         hideLoginPrompt();
@@ -1880,6 +2333,10 @@
         // Hide friends toggle button
         const friendsToggle = document.getElementById('friendsSidebarToggle');
         if (friendsToggle) friendsToggle.classList.add('hidden');
+        
+        // Hide achievements button
+        const achievementsBtn = document.getElementById('achievementsBtn');
+        if (achievementsBtn) achievementsBtn.classList.add('hidden');
         
         // Close friends sidebar
         const friendsSidebar = document.getElementById('friendsChatSidebar');
@@ -2308,6 +2765,10 @@
         
         loadFriendRequests();
         loadFriends();
+        
+        // Check achievements for new friend
+        const stats = await getUserStats();
+        await checkAchievements(stats);
       } catch (error) {
         console.error('Error accepting friend request:', error);
         alert('Error accepting friend request');
@@ -2425,6 +2886,9 @@
         
         input.value = '';
         document.getElementById('charCount').textContent = '0';
+        
+        // Track message sent for achievements
+        await trackMessageSent();
       } catch (error) {
         console.error('Error sending message:', error);
         alert('Error sending message');
@@ -2544,6 +3008,11 @@
         // Update post with new reactions
         await postRef.update({ reactions });
         
+        // Track reaction given for achievements (only when adding, not removing)
+        if (!reactions[emoji].users.includes(currentUser.uid)) {
+          await trackReactionGiven();
+        }
+        
         // Add animation to the reaction button
         animateReaction(postId, emoji);
         
@@ -2576,6 +3045,279 @@
       reactionListeners.clear();
     }
 
+    // ACHIEVEMENT SYSTEM FUNCTIONS
+    async function checkAchievements(userStats) {
+      if (!currentUser) return;
+      
+      const newlyUnlocked = [];
+      
+      for (const achievement of achievementDefinitions) {
+        const isAlreadyUnlocked = userAchievements.some(a => a.id === achievement.id);
+        
+        if (!isAlreadyUnlocked && achievement.condition(userStats)) {
+          newlyUnlocked.push(achievement);
+          
+          // Add to user's achievements
+          userAchievements.push({
+            id: achievement.id,
+            unlockedAt: new Date(),
+            points: achievement.points
+          });
+          
+          // Update database
+          await unlockAchievement(achievement.id, achievement.points);
+          
+          // Show notification
+          showAchievementNotification(achievement);
+        }
+      }
+      
+      return newlyUnlocked;
+    }
+
+    async function unlockAchievement(achievementId, points) {
+      if (!currentUser) return;
+      
+      try {
+        const userRef = db.collection('users').doc(currentUser.uid);
+        await userRef.update({
+          [`achievements.${achievementId}`]: {
+            unlockedAt: firebase.firestore.FieldValue.serverTimestamp(),
+            points: points
+          },
+          totalAchievementPoints: firebase.firestore.FieldValue.increment(points)
+        });
+      } catch (error) {
+        console.error('Error unlocking achievement:', error);
+      }
+    }
+
+    async function getUserStats() {
+      if (!currentUser) return {};
+      
+      try {
+        const userDoc = await db.collection('users').doc(currentUser.uid).get();
+        const userData = userDoc.data();
+        
+        // Count friends
+        const friendsCount = (userData.friends || []).length;
+        
+        // Get additional stats
+        const stats = {
+          forumPosts: userData.forumPosts || 0,
+          forumsCreated: userData.forumsCreated || 0,
+          friendsCount: friendsCount,
+          messagesSent: userData.messagesSent || 0,
+          reactionsGiven: userData.reactionsGiven || 0,
+          maxReactionsOnPost: userData.maxReactionsOnPost || 0,
+          joinedAt: userData.joinedAt?.toDate() || new Date(),
+          consecutiveDays: userData.consecutiveDays || 0,
+          lateNightPosts: userData.lateNightPosts || 0,
+          totalAchievementPoints: userData.totalAchievementPoints || 0
+        };
+        
+        return stats;
+      } catch (error) {
+        console.error('Error getting user stats:', error);
+        return {};
+      }
+    }
+
+    async function loadUserAchievements() {
+      if (!currentUser) return;
+      
+      try {
+        const userDoc = await db.collection('users').doc(currentUser.uid).get();
+        const userData = userDoc.data();
+        const achievements = userData.achievements || {};
+        
+        userAchievements = Object.entries(achievements).map(([id, data]) => ({
+          id,
+          unlockedAt: data.unlockedAt?.toDate() || new Date(),
+          points: data.points || 0
+        }));
+      } catch (error) {
+        console.error('Error loading user achievements:', error);
+        userAchievements = [];
+      }
+    }
+
+    function showAchievementNotification(achievement) {
+      const template = document.getElementById('achievementNotificationTemplate');
+      const notification = template.cloneNode(true);
+      notification.id = 'achievementNotification';
+      notification.style.display = 'block';
+      
+      // Update content
+      notification.querySelector('#achievementName').textContent = achievement.name;
+      notification.querySelector('.achievement-icon i').className = `bx ${achievement.icon}`;
+      
+      const badge = notification.querySelector('#achievementBadge');
+      badge.className = `achievement-badge ${achievement.rarity}`;
+      badge.querySelector('span').textContent = `+${achievement.points} XP`;
+      
+      // Add to page
+      document.body.appendChild(notification);
+      
+      // Show with animation
+      setTimeout(() => {
+        notification.classList.add('show');
+      }, 100);
+      
+      // Auto-hide after 5 seconds
+      setTimeout(() => {
+        hideAchievementNotification(notification);
+      }, 5000);
+    }
+
+    function hideAchievementNotification(notification) {
+      if (typeof notification === 'object') {
+        notification.classList.remove('show');
+        setTimeout(() => {
+          if (notification.parentNode) {
+            notification.parentNode.removeChild(notification);
+          }
+        }, 400);
+      } else {
+        // If called with 'this' from template
+        const notif = notification.closest('.achievement-notification');
+        hideAchievementNotification(notif);
+      }
+    }
+
+    function showAchievementsModal() {
+      if (!currentUser) {
+        showLoginPrompt();
+        return;
+      }
+      
+      document.getElementById('achievementsModal').classList.add('show');
+      loadAchievementsDisplay();
+    }
+
+    function hideAchievementsModal() {
+      document.getElementById('achievementsModal').classList.remove('show');
+    }
+
+    async function loadAchievementsDisplay() {
+      const stats = await getUserStats();
+      await loadUserAchievements();
+      
+      // Update stats display
+      const unlockedCount = userAchievements.length;
+      const totalCount = achievementDefinitions.length;
+      const totalPoints = userAchievements.reduce((sum, ach) => sum + ach.points, 0);
+      const completionRate = Math.round((unlockedCount / totalCount) * 100);
+      
+      document.getElementById('totalAchievements').textContent = `${unlockedCount}/${totalCount}`;
+      document.getElementById('totalPoints').textContent = totalPoints;
+      document.getElementById('completionRate').textContent = `${completionRate}%`;
+      document.getElementById('userRankDisplay').textContent = getUserRankFromPoints(totalPoints);
+      
+      // Display achievements
+      displayAchievements('all');
+    }
+
+    function displayAchievements(category) {
+      const grid = document.getElementById('achievementsGrid');
+      const filteredAchievements = category === 'all' 
+        ? achievementDefinitions 
+        : achievementDefinitions.filter(a => a.category === category);
+      
+      grid.innerHTML = filteredAchievements.map(achievement => {
+        const isUnlocked = userAchievements.some(a => a.id === achievement.id);
+        const stats = {}; // We'll get this from the display call
+        const progress = getAchievementProgress(achievement, stats);
+        
+        return `
+          <div class="achievement-card ${isUnlocked ? 'unlocked' : ''}">
+            <div class="achievement-rarity ${achievement.rarity}">${achievement.rarity}</div>
+            <div class="achievement-icon">
+              <i class='bx ${achievement.icon}'></i>
+            </div>
+            <h3 class="font-bold text-rp-text text-center mb-2">${achievement.name}</h3>
+            <p class="text-sm text-rp-subtle text-center mb-3">${achievement.description}</p>
+            <div class="flex items-center justify-between">
+              <span class="achievement-badge ${achievement.rarity}">
+                <i class='bx bx-star'></i>
+                ${achievement.points} XP
+              </span>
+              ${isUnlocked ? 
+                '<span class="text-rp-foam text-sm">✓ Unlocked</span>' : 
+                progress > 0 ? `
+                  <div class="achievement-progress">
+                    <div class="achievement-progress-bar" style="width: ${Math.min(progress * 100, 100)}%"></div>
+                  </div>
+                ` : '<span class="text-rp-muted text-sm">Locked</span>'
+              }
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function getAchievementProgress(achievement, stats) {
+      // This would calculate progress for progressive achievements
+      // For now, return 0 for locked, 1 for unlocked
+      const isUnlocked = userAchievements.some(a => a.id === achievement.id);
+      return isUnlocked ? 1 : 0;
+    }
+
+    function getUserRankFromPoints(points) {
+      if (points >= 1000) return 'Legend';
+      if (points >= 500) return 'Master';
+      if (points >= 250) return 'Expert';
+      if (points >= 100) return 'Advanced';
+      if (points >= 50) return 'Intermediate';
+      if (points >= 10) return 'Beginner';
+      return 'Newcomer';
+    }
+
+    // Achievement tracking functions
+    async function trackForumPost() {
+      if (!currentUser) return;
+      
+      // Check if it's a late night post
+      const hour = new Date().getHours();
+      const isLateNight = hour >= 0 && hour < 6;
+      
+      const updateData = {
+        forumPosts: firebase.firestore.FieldValue.increment(1)
+      };
+      
+      if (isLateNight) {
+        updateData.lateNightPosts = firebase.firestore.FieldValue.increment(1);
+      }
+      
+      await db.collection('users').doc(currentUser.uid).update(updateData);
+      
+      // Check achievements
+      const stats = await getUserStats();
+      await checkAchievements(stats);
+    }
+
+    async function trackReactionGiven() {
+      if (!currentUser) return;
+      
+      await db.collection('users').doc(currentUser.uid).update({
+        reactionsGiven: firebase.firestore.FieldValue.increment(1)
+      });
+      
+      const stats = await getUserStats();
+      await checkAchievements(stats);
+    }
+
+    async function trackMessageSent() {
+      if (!currentUser) return;
+      
+      await db.collection('users').doc(currentUser.uid).update({
+        messagesSent: firebase.firestore.FieldValue.increment(1)
+      });
+      
+      const stats = await getUserStats();
+      await checkAchievements(stats);
+    }
+
     // Close modals when clicking outside
     document.addEventListener('click', (e) => {
       if (e.target.classList.contains('modal')) {
@@ -2584,6 +3326,7 @@
         hideChatModal();
         hideAddFriendsModal();
         hideDeleteForumModal();
+        hideAchievementsModal();
       }
       
       // Hide login prompt when clicking outside
@@ -2602,6 +3345,7 @@
         hideChatModal();
         hideAddFriendsModal();
         hideDeleteForumModal();
+        hideAchievementsModal();
       }
       
       // Send message on Enter
@@ -2656,6 +3400,23 @@
         searchTimeout = setTimeout(() => {
           searchUsers(e.target.value);
         }, 300);
+      });
+
+      // Achievement filter functionality
+      document.addEventListener('click', (e) => {
+        if (e.target.classList.contains('achievement-filter')) {
+          // Remove active class from all filters
+          document.querySelectorAll('.achievement-filter').forEach(btn => {
+            btn.classList.remove('active');
+          });
+          
+          // Add active class to clicked filter
+          e.target.classList.add('active');
+          
+          // Filter achievements
+          const category = e.target.dataset.category;
+          displayAchievements(category);
+        }
       });
     });
   </script>
