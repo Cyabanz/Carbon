@@ -586,13 +586,19 @@
   <div id="forumViewModal" class="modal">
     <div class="modal-content" style="max-width: 800px; max-height: 90vh;">
       <div class="flex items-center justify-between mb-6">
-        <div>
+        <div class="flex-1">
           <h2 id="forumTitle" class="text-heading text-rp-text"></h2>
           <p id="forumDesc" class="text-rp-subtle"></p>
         </div>
-        <button onclick="hideForumViewModal()" class="text-rp-muted hover:text-rp-text">
-          <i class='bx bx-x text-2xl'></i>
-        </button>
+        <div class="flex items-center gap-2">
+          <button id="deleteForumBtn" onclick="confirmDeleteForum()" class="btn-danger text-sm hidden" title="Delete Forum">
+            <i class='bx bx-trash mr-1'></i>
+            Delete
+          </button>
+          <button onclick="hideForumViewModal()" class="text-rp-muted hover:text-rp-text">
+            <i class='bx bx-x text-2xl'></i>
+          </button>
+        </div>
       </div>
       
       <!-- New Post Form -->
@@ -709,6 +715,45 @@
           <div id="noRequests" class="text-center text-rp-subtle py-4">
             No pending friend requests
           </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Delete Forum Confirmation Modal -->
+  <div id="deleteForumModal" class="modal">
+    <div class="modal-content" style="max-width: 400px;">
+      <div class="text-center mb-6">
+        <div class="w-16 h-16 bg-rp-love/20 rounded-full flex items-center justify-center mx-auto mb-4">
+          <i class='bx bx-trash text-2xl text-rp-love'></i>
+        </div>
+        <h2 class="text-heading text-rp-text mb-2">Delete Forum</h2>
+        <p class="text-rp-subtle">Are you sure you want to delete this forum?</p>
+        <p class="text-rp-love text-sm mt-2">⚠️ This action cannot be undone. All posts and messages will be permanently lost.</p>
+      </div>
+      
+      <div class="space-y-4">
+        <div class="bg-rp-overlay/50 rounded-lg p-4">
+          <h3 class="font-medium text-rp-text mb-2">Forum Details:</h3>
+          <p class="text-sm text-rp-subtle"><strong>Name:</strong> <span id="deleteForumName"></span></p>
+          <p class="text-sm text-rp-subtle"><strong>Posts:</strong> <span id="deleteForumPosts">0</span></p>
+        </div>
+        
+        <div>
+          <label class="block text-rp-text font-medium mb-2">
+            Type "DELETE" to confirm:
+          </label>
+          <input type="text" id="deleteConfirmInput" class="search-input" placeholder="Type DELETE here" autocomplete="off">
+        </div>
+        
+        <div class="flex gap-3">
+          <button id="confirmDeleteBtn" onclick="deleteForum()" class="btn-danger flex-1" disabled>
+            <i class='bx bx-trash mr-2'></i>
+            Delete Forever
+          </button>
+          <button onclick="hideDeleteForumModal()" class="btn-secondary flex-1">
+            Cancel
+          </button>
         </div>
       </div>
     </div>
@@ -1009,29 +1054,36 @@
         return;
       }
 
-      container.innerHTML = forums.map(forum => `
-        <div class="card p-6 card-hover cursor-pointer" onclick="openForum('${forum.id}', '${sanitizeText(forum.name)}', '${sanitizeText(forum.description)}')">
-          <div class="flex items-start justify-between">
-            <div class="flex-1">
-              <div class="flex items-center gap-3 mb-2">
-                <h3 class="text-subheading text-rp-text font-bold">${sanitizeText(forum.name)}</h3>
-                <span class="rank-badge" style="background: var(--theme-${forum.category === 'announcements' ? 'love' : 'overlay'});">
-                  ${sanitizeText(forum.category)}
-                </span>
+      container.innerHTML = forums.map(forum => {
+        const isOwner = currentUser && forum.createdById === currentUser.uid;
+        const canDelete = isOwner || (currentUser && (userRank === 'owner' || userRank === 'admin'));
+        
+        return `
+          <div class="card p-6 card-hover cursor-pointer" onclick="openForum('${forum.id}', '${sanitizeText(forum.name)}', '${sanitizeText(forum.description)}')">
+            <div class="flex items-start justify-between">
+              <div class="flex-1">
+                <div class="flex items-center gap-3 mb-2">
+                  <h3 class="text-subheading text-rp-text font-bold">${sanitizeText(forum.name)}</h3>
+                  <span class="rank-badge" style="background: var(--theme-${forum.category === 'announcements' ? 'love' : 'overlay'});">
+                    ${sanitizeText(forum.category)}
+                  </span>
+                  ${isOwner ? '<span class="rank-badge rank-owner text-xs">Your Forum</span>' : ''}
+                </div>
+                <p class="text-rp-subtle mb-4">${sanitizeText(forum.description)}</p>
+                <div class="flex items-center gap-4 text-sm text-rp-muted">
+                  <span><i class='bx bx-message mr-1'></i>${forum.postCount || 0} posts</span>
+                  <span><i class='bx bx-user mr-1'></i>Created by ${sanitizeText(forum.createdBy)}</span>
+                  <span><i class='bx bx-time mr-1'></i>${formatDate(forum.createdAt)}</span>
+                </div>
               </div>
-              <p class="text-rp-subtle mb-4">${sanitizeText(forum.description)}</p>
-              <div class="flex items-center gap-4 text-sm text-rp-muted">
-                <span><i class='bx bx-message mr-1'></i>${forum.postCount || 0} posts</span>
-                <span><i class='bx bx-user mr-1'></i>Created by ${sanitizeText(forum.createdBy)}</span>
-                <span><i class='bx bx-time mr-1'></i>${formatDate(forum.createdAt)}</span>
+              <div class="flex flex-col items-end gap-2">
+                ${canDelete ? '<i class="bx bx-trash text-rp-love text-sm opacity-0 group-hover:opacity-100 transition-opacity" title="You can delete this forum"></i>' : ''}
+                <i class='bx bx-chevron-right text-2xl text-rp-muted'></i>
               </div>
-            </div>
-            <div class="flex flex-col items-end">
-              <i class='bx bx-chevron-right text-2xl text-rp-muted'></i>
             </div>
           </div>
-        </div>
-      `).join('');
+        `;
+      }).join('');
     }
 
     async function createForum(event) {
@@ -1111,12 +1163,41 @@
       }
     }
 
-    function openForum(forumId, title, description) {
+    async function openForum(forumId, title, description) {
       currentForumId = forumId;
       document.getElementById('forumTitle').textContent = title;
       document.getElementById('forumDesc').textContent = description;
       document.getElementById('forumViewModal').classList.add('show');
+      
+      // Check if current user is the forum owner and show delete button
+      await checkForumOwnership(forumId);
+      
       loadPosts(forumId);
+    }
+
+    async function checkForumOwnership(forumId) {
+      const deleteBtn = document.getElementById('deleteForumBtn');
+      
+      if (!currentUser || !deleteBtn) {
+        if (deleteBtn) deleteBtn.classList.add('hidden');
+        return;
+      }
+      
+      try {
+        const forumDoc = await db.collection('forums').doc(forumId).get();
+        if (forumDoc.exists) {
+          const forumData = forumDoc.data();
+          // Show delete button if current user is the creator or has owner/admin rank
+          if (forumData.createdById === currentUser.uid || userRank === 'owner' || userRank === 'admin') {
+            deleteBtn.classList.remove('hidden');
+          } else {
+            deleteBtn.classList.add('hidden');
+          }
+        }
+      } catch (error) {
+        console.error('Error checking forum ownership:', error);
+        deleteBtn.classList.add('hidden');
+      }
     }
 
     async function loadPosts(forumId) {
@@ -1339,6 +1420,139 @@
       document.getElementById('addFriendsModal').classList.remove('show');
       document.getElementById('userSearchInput').value = '';
       document.getElementById('userSearchResults').innerHTML = '<div id="searchPlaceholder" class="text-center text-rp-subtle py-8"><i class="bx bx-search text-3xl mb-2 block"></i><p>Search for users to add as friends</p></div>';
+    }
+
+    async function confirmDeleteForum() {
+      if (!currentUser || !currentForumId) return;
+      
+      try {
+        // Get forum details for confirmation
+        const forumDoc = await db.collection('forums').doc(currentForumId).get();
+        if (forumDoc.exists) {
+          const forumData = forumDoc.data();
+          
+          // Check if user has permission to delete
+          if (forumData.createdById !== currentUser.uid && userRank !== 'owner' && userRank !== 'admin') {
+            alert('You do not have permission to delete this forum');
+            return;
+          }
+          
+          // Populate confirmation modal
+          document.getElementById('deleteForumName').textContent = forumData.name;
+          document.getElementById('deleteForumPosts').textContent = forumData.postCount || 0;
+          document.getElementById('deleteConfirmInput').value = '';
+          document.getElementById('confirmDeleteBtn').disabled = true;
+          
+          // Show confirmation modal
+          document.getElementById('deleteForumModal').classList.add('show');
+          
+          // Setup confirmation input listener
+          setupDeleteConfirmation();
+        }
+      } catch (error) {
+        console.error('Error preparing forum deletion:', error);
+        alert('Error loading forum details');
+      }
+    }
+
+    function setupDeleteConfirmation() {
+      const input = document.getElementById('deleteConfirmInput');
+      const confirmBtn = document.getElementById('confirmDeleteBtn');
+      
+      // Remove existing listeners
+      input.removeEventListener('input', handleDeleteInput);
+      
+      // Add new listener
+      input.addEventListener('input', handleDeleteInput);
+      
+      function handleDeleteInput(e) {
+        const value = e.target.value.trim();
+        confirmBtn.disabled = value !== 'DELETE';
+        
+        if (value === 'DELETE') {
+          confirmBtn.classList.remove('opacity-50');
+        } else {
+          confirmBtn.classList.add('opacity-50');
+        }
+      }
+    }
+
+    function hideDeleteForumModal() {
+      document.getElementById('deleteForumModal').classList.remove('show');
+      document.getElementById('deleteConfirmInput').value = '';
+      document.getElementById('confirmDeleteBtn').disabled = true;
+    }
+
+    async function deleteForum() {
+      if (!currentUser || !currentForumId) return;
+      
+      const confirmText = document.getElementById('deleteConfirmInput').value.trim();
+      if (confirmText !== 'DELETE') {
+        alert('Please type "DELETE" to confirm');
+        return;
+      }
+      
+      try {
+        // Get forum details before deletion for validation
+        const forumDoc = await db.collection('forums').doc(currentForumId).get();
+        if (!forumDoc.exists) {
+          alert('Forum not found');
+          hideDeleteForumModal();
+          return;
+        }
+        
+        const forumData = forumDoc.data();
+        
+        // Final permission check
+        if (forumData.createdById !== currentUser.uid && userRank !== 'owner' && userRank !== 'admin') {
+          alert('You do not have permission to delete this forum');
+          hideDeleteForumModal();
+          return;
+        }
+        
+        // Show loading state
+        const confirmBtn = document.getElementById('confirmDeleteBtn');
+        const originalText = confirmBtn.innerHTML;
+        confirmBtn.innerHTML = '<div class="spinner w-4 h-4 mr-2"></div>Deleting...';
+        confirmBtn.disabled = true;
+        
+        // Delete all posts in the forum first
+        const postsSnapshot = await db.collection('forums').doc(currentForumId).collection('posts').get();
+        const batch = db.batch();
+        
+        postsSnapshot.forEach((doc) => {
+          batch.delete(doc.ref);
+        });
+        
+        // Delete the forum document
+        batch.delete(db.collection('forums').doc(currentForumId));
+        
+        // Commit the batch deletion
+        await batch.commit();
+        
+        // Update user's forum creation count if they were the creator
+        if (forumData.createdById === currentUser.uid) {
+          await db.collection('users').doc(currentUser.uid).update({
+            forumsCreated: firebase.firestore.FieldValue.increment(-1)
+          });
+        }
+        
+        // Hide modals and refresh forum list
+        hideDeleteForumModal();
+        hideForumViewModal();
+        loadForums();
+        
+        alert('Forum deleted successfully');
+        
+      } catch (error) {
+        console.error('Error deleting forum:', error);
+        alert('Error deleting forum. Please try again.');
+        
+        // Reset button state
+        const confirmBtn = document.getElementById('confirmDeleteBtn');
+        confirmBtn.innerHTML = '<i class="bx bx-trash mr-2"></i>Delete Forever';
+        confirmBtn.disabled = false;
+      }
     }
 
     function showChatModal(user) {
@@ -2017,6 +2231,7 @@
         hideForumViewModal();
         hideChatModal();
         hideAddFriendsModal();
+        hideDeleteForumModal();
       }
       
       // Hide login prompt when clicking outside
@@ -2034,6 +2249,7 @@
         hideLoginPrompt();
         hideChatModal();
         hideAddFriendsModal();
+        hideDeleteForumModal();
       }
       
       // Send message on Enter
