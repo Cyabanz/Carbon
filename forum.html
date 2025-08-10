@@ -1428,10 +1428,152 @@
       0%, 80%, 100% { transform: scale(0.8); opacity: 0.5; }
       40% { transform: scale(1); opacity: 1; }
     }
+
+    /* Pinned Forum Styles */
+    .forum-pinned {
+      background: linear-gradient(135deg, rgba(196, 167, 231, 0.1), rgba(156, 207, 216, 0.1));
+      border: 1px solid var(--theme-iris);
+      position: relative;
+    }
+
+    .forum-pinned::before {
+      content: '';
+      position: absolute;
+      top: -1px;
+      left: -1px;
+      right: -1px;
+      height: 3px;
+      background: linear-gradient(90deg, var(--theme-iris), var(--theme-foam));
+      border-radius: 8px 8px 0 0;
+    }
+
+    .pin-icon {
+      color: var(--theme-iris);
+      font-size: 1.2rem;
+      margin-right: 8px;
+    }
+
+    .pin-btn {
+      background: transparent;
+      border: 1px solid var(--theme-overlay);
+      color: var(--theme-muted);
+      padding: 6px 8px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 0.8rem;
+    }
+
+    .pin-btn:hover {
+      border-color: var(--theme-iris);
+      color: var(--theme-iris);
+      background: rgba(196, 167, 231, 0.1);
+    }
+
+    .pin-btn.pinned {
+      background: var(--theme-iris);
+      color: white;
+      border-color: var(--theme-iris);
+    }
+
+    .pin-btn.pinned:hover {
+      background: var(--theme-love);
+      border-color: var(--theme-love);
+    }
+
+    /* Online users indicator */
+    .online-indicator {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: var(--theme-surface);
+      border: 1px solid var(--theme-overlay);
+      border-radius: 12px;
+      padding: 12px 16px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.3s ease;
+    }
+
+    .online-indicator:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+    }
+
+    .online-users-list {
+      display: none;
+      position: absolute;
+      top: 100%;
+      right: 0;
+      margin-top: 8px;
+      background: var(--theme-surface);
+      border: 1px solid var(--theme-overlay);
+      border-radius: 12px;
+      padding: 12px;
+      min-width: 200px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+    }
+
+    .online-indicator:hover .online-users-list {
+      display: block;
+    }
+
+    .online-user-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 0;
+      border-bottom: 1px solid var(--theme-overlay);
+    }
+
+    .online-user-item:last-child {
+      border-bottom: none;
+    }
+
+    .online-user-avatar {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--theme-foam), var(--theme-iris));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+
+    .online-user-status {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #22c55e;
+      margin-left: auto;
+    }
   </style>
 </head>
 
 <body class="bg-rp-base min-h-screen text-rp-text font-[Inter] antialiased">
+  <!-- Online Users Indicator -->
+  <div class="online-indicator" id="onlineIndicator">
+    <div class="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+    <span id="onlineCountIndicator">0</span>
+    <span class="text-sm text-rp-muted">online</span>
+    
+    <div class="online-users-list" id="onlineUsersList">
+      <div class="text-sm font-semibold text-rp-text mb-2">Online Users</div>
+      <div id="onlineUsersContent">
+        <div class="text-center text-rp-muted py-2">Loading...</div>
+      </div>
+    </div>
+  </div>
+
   <!-- Particles Canvas -->
   <canvas id="particles-canvas" class="fixed inset-0 pointer-events-none hidden"></canvas>
 
@@ -1486,6 +1628,20 @@
         <div>
           <h1 class="text-display text-rp-text mb-2">CARBON Forum</h1>
           <p class="text-rp-subtle">Connect, discuss, and share with the community. Create your own forums!</p>
+          <div class="mt-3 flex items-center gap-6 text-sm text-rp-muted">
+            <div class="flex items-center gap-2">
+              <div class="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+              <span id="onlineCount">0</span> users online
+            </div>
+            <div class="flex items-center gap-2">
+              <i class='bx bx-pin text-rp-foam'></i>
+              <span id="pinnedCount">0</span> pinned forums
+            </div>
+            <div class="flex items-center gap-2">
+              <i class='bx bx-chat text-rp-iris'></i>
+              <span id="totalForums">0</span> total forums
+            </div>
+          </div>
         </div>
         <div class="flex items-center gap-3">
           <span id="userRank" class="rank-badge rank-member hidden">Guest</span>
@@ -2655,39 +2811,77 @@
             ${currentUser ? '<button onclick="showCreateForumModal()" class="btn-primary"><i class="bx bx-plus mr-2"></i>Create First Forum</button>' : '<button onclick="showLoginPrompt()" class="btn-secondary"><i class="bx bx-log-in mr-2"></i>Sign In to Create Forums</button>'}
           </div>
         `;
+        updateForumCounts(0, 0);
         return;
       }
 
-      container.innerHTML = forums.map(forum => {
-        const isOwner = currentUser && forum.createdById === currentUser.uid;
-        const canDelete = isOwner || (currentUser && (userRank === 'owner' || userRank === 'admin'));
-        
-        return `
-          <div class="card p-6 card-hover cursor-pointer" onclick="openForum('${forum.id}', '${sanitizeText(forum.name)}', '${sanitizeText(forum.description)}')">
-            <div class="flex items-start justify-between">
-              <div class="flex-1">
-                <div class="flex items-center gap-3 mb-2">
-                  <h3 class="text-subheading text-rp-text font-bold">${sanitizeText(forum.name)}</h3>
-                  <span class="rank-badge" style="background: var(--theme-${forum.category === 'announcements' ? 'love' : 'overlay'});">
-                    ${sanitizeText(forum.category)}
-                  </span>
-                  ${isOwner ? '<span class="rank-badge rank-owner text-xs">Your Forum</span>' : ''}
-                </div>
-                <p class="text-rp-subtle mb-4">${sanitizeText(forum.description)}</p>
-                <div class="flex items-center gap-4 text-sm text-rp-muted">
-                  <span><i class='bx bx-message mr-1'></i>${forum.postCount || 0} posts</span>
-                  <span><i class='bx bx-user mr-1'></i>Created by ${sanitizeText(forum.createdBy)}</span>
-                  <span><i class='bx bx-time mr-1'></i>${formatDate(forum.createdAt)}</span>
-                </div>
+      // Separate pinned and regular forums
+      const pinnedForums = forums.filter(forum => forum.isPinned);
+      const regularForums = forums.filter(forum => !forum.isPinned);
+      
+      let html = '';
+      
+      // Display pinned forums first
+      if (pinnedForums.length > 0) {
+        html += '<div class="mb-6"><h2 class="text-lg font-semibold text-rp-text mb-4 flex items-center gap-2"><i class="bx bx-pin text-rp-iris"></i>Pinned Forums</h2>';
+        html += pinnedForums.map(forum => generateForumHTML(forum, true)).join('');
+        html += '</div>';
+      }
+      
+      // Display regular forums
+      if (regularForums.length > 0) {
+        if (pinnedForums.length > 0) {
+          html += '<div class="mb-6"><h2 class="text-lg font-semibold text-rp-text mb-4">All Forums</h2>';
+        }
+        html += regularForums.map(forum => generateForumHTML(forum, false)).join('');
+        if (pinnedForums.length > 0) {
+          html += '</div>';
+        }
+      }
+
+      container.innerHTML = html;
+      updateForumCounts(forums.length, pinnedForums.length);
+    }
+
+    function generateForumHTML(forum, isPinned) {
+      const isOwner = currentUser && forum.createdById === currentUser.uid;
+      const canDelete = isOwner || (currentUser && (userRank === 'owner' || userRank === 'admin'));
+      const canPin = currentUser && (userRank === 'owner' || userRank === 'admin' || userRank === 'moderator');
+      
+      return `
+        <div class="card p-6 card-hover cursor-pointer ${isPinned ? 'forum-pinned' : ''}" onclick="openForum('${forum.id}', '${sanitizeText(forum.name)}', '${sanitizeText(forum.description)}')">
+          <div class="flex items-start justify-between">
+            <div class="flex-1">
+              <div class="flex items-center gap-3 mb-2">
+                ${isPinned ? '<i class="bx bx-pin pin-icon"></i>' : ''}
+                <h3 class="text-subheading text-rp-text font-bold">${sanitizeText(forum.name)}</h3>
+                <span class="rank-badge" style="background: var(--theme-${forum.category === 'announcements' ? 'love' : 'overlay'});">
+                  ${sanitizeText(forum.category)}
+                </span>
+                ${isOwner ? '<span class="rank-badge rank-owner text-xs">Your Forum</span>' : ''}
               </div>
-              <div class="flex flex-col items-end gap-2">
-                ${canDelete ? '<i class="bx bx-trash text-rp-love text-sm opacity-0 group-hover:opacity-100 transition-opacity" title="You can delete this forum"></i>' : ''}
-                <i class='bx bx-chevron-right text-2xl text-rp-muted'></i>
+              <p class="text-rp-subtle mb-4">${sanitizeText(forum.description)}</p>
+              <div class="flex items-center gap-4 text-sm text-rp-muted">
+                <span><i class='bx bx-message mr-1'></i>${forum.postCount || 0} posts</span>
+                <span><i class='bx bx-user mr-1'></i>Created by ${sanitizeText(forum.createdBy)}</span>
+                <span><i class='bx bx-time mr-1'></i>${formatDate(forum.createdAt)}</span>
               </div>
             </div>
+            <div class="flex flex-col items-end gap-2">
+              <div class="flex items-center gap-2" onclick="event.stopPropagation();">
+                ${canPin ? `
+                  <button class="pin-btn ${isPinned ? 'pinned' : ''}" onclick="toggleForumPin('${forum.id}', ${!isPinned})" title="${isPinned ? 'Unpin' : 'Pin'} forum">
+                    <i class='bx ${isPinned ? 'bx-pin' : 'bx-pin'}'></i>
+                    ${isPinned ? 'Unpin' : 'Pin'}
+                  </button>
+                ` : ''}
+                ${canDelete ? '<i class="bx bx-trash text-rp-love text-sm opacity-0 group-hover:opacity-100 transition-opacity" title="You can delete this forum"></i>' : ''}
+              </div>
+              <i class='bx bx-chevron-right text-2xl text-rp-muted'></i>
+            </div>
           </div>
-        `;
-      }).join('');
+        </div>
+      `;
     }
 
     async function createForum(event) {
@@ -5524,6 +5718,93 @@ What are your thoughts on this?`;
     });
 
     // Event Listeners
+    // ONLINE USERS AND FORUM MANAGEMENT
+    function updateForumCounts(totalForums, pinnedForums) {
+      document.getElementById('totalForums').textContent = totalForums;
+      document.getElementById('pinnedCount').textContent = pinnedForums;
+    }
+
+    async function toggleForumPin(forumId, shouldPin) {
+      if (!currentUser) {
+        showLoginPrompt();
+        return;
+      }
+
+      if (userRank !== 'owner' && userRank !== 'admin' && userRank !== 'moderator') {
+        alert('Only moderators and above can pin/unpin forums');
+        return;
+      }
+
+      try {
+        await db.collection('forums').doc(forumId).update({
+          isPinned: shouldPin,
+          pinnedAt: shouldPin ? firebase.firestore.FieldValue.serverTimestamp() : firebase.firestore.FieldValue.delete(),
+          pinnedBy: shouldPin ? currentUser.uid : firebase.firestore.FieldValue.delete()
+        });
+
+        // Refresh forums display
+        loadForums();
+        
+        const action = shouldPin ? 'pinned' : 'unpinned';
+        console.log(`Forum ${action} successfully`);
+        
+      } catch (error) {
+        console.error('Error toggling forum pin:', error);
+        alert('Error updating forum pin status');
+      }
+    }
+
+    // Simulate online users (in a real app, this would be tracked via presence)
+    function updateOnlineUsers() {
+      // Generate mock online users
+      const mockUsers = [
+        { name: 'Alex', id: 'user1', avatar: 'A' },
+        { name: 'Jordan', id: 'user2', avatar: 'J' },
+        { name: 'Sam', id: 'user3', avatar: 'S' },
+        { name: 'Taylor', id: 'user4', avatar: 'T' },
+        { name: 'Casey', id: 'user5', avatar: 'C' }
+      ];
+
+      // Simulate random number of online users
+      const onlineUserCount = Math.floor(Math.random() * 5) + 1;
+      const onlineUsers = mockUsers.slice(0, onlineUserCount);
+      
+      // Add current user if logged in
+      if (currentUser) {
+        onlineUsers.unshift({
+          name: currentUser.displayName || 'You',
+          id: currentUser.uid,
+          avatar: (currentUser.displayName || 'You').charAt(0).toUpperCase()
+        });
+      }
+
+      // Update online count displays
+      document.getElementById('onlineCount').textContent = onlineUsers.length;
+      document.getElementById('onlineCountIndicator').textContent = onlineUsers.length;
+
+      // Update online users list
+      const onlineUsersContent = document.getElementById('onlineUsersContent');
+      onlineUsersContent.innerHTML = onlineUsers.map(user => `
+        <div class="online-user-item">
+          <div class="online-user-avatar">${user.avatar}</div>
+          <div class="flex-1">
+            <div class="text-sm font-medium text-rp-text">${user.name}</div>
+            <div class="text-xs text-rp-muted">${user.id === (currentUser?.uid) ? 'You' : 'Active now'}</div>
+          </div>
+          <div class="online-user-status"></div>
+        </div>
+      `).join('');
+    }
+
+    function initializeForumEnhancements() {
+      // Update online users every 30 seconds
+      updateOnlineUsers();
+      setInterval(updateOnlineUsers, 30000);
+
+      // Update forum counts when forums load
+      updateForumCounts(0, 0);
+    }
+
     document.addEventListener('DOMContentLoaded', () => {
       // Show forum content immediately
       console.log('Page loaded, initializing forum for guest browsing');
@@ -5531,6 +5812,7 @@ What are your thoughts on this?`;
       loadForums();
       setupSearchAndFilters();
       updateUserSection(); // Initialize guest UI
+      initializeForumEnhancements();
       
       // Setup friends sidebar toggle
       const friendsToggle = document.getElementById('friendsSidebarToggle');

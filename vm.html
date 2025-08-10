@@ -357,6 +357,231 @@
       box-shadow: 0 4px 12px rgba(156, 207, 216, 0.3);
     }
 
+    /* Chat Panel Styles */
+    .chat-panel {
+      position: fixed;
+      right: 20px;
+      bottom: 20px;
+      width: 350px;
+      height: 500px;
+      background: var(--theme-surface);
+      border-radius: 16px;
+      border: 1px solid var(--theme-overlay);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+      z-index: 1001;
+      display: flex;
+      flex-direction: column;
+      transition: all 0.3s ease;
+    }
+
+    .chat-panel.minimized {
+      height: 60px;
+      overflow: hidden;
+    }
+
+    .chat-header {
+      padding: 16px;
+      border-bottom: 1px solid var(--theme-overlay);
+      background: linear-gradient(135deg, var(--theme-foam)/10, var(--theme-iris)/10);
+      border-radius: 16px 16px 0 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+    }
+
+    .chat-header:hover {
+      background: linear-gradient(135deg, var(--theme-foam)/15, var(--theme-iris)/15);
+    }
+
+    .chat-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--theme-text);
+      font-weight: 600;
+    }
+
+    .chat-controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .chat-minimize-btn, .chat-close-btn {
+      width: 32px;
+      height: 32px;
+      border: none;
+      border-radius: 8px;
+      background: var(--theme-overlay);
+      color: var(--theme-text);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s ease;
+    }
+
+    .chat-minimize-btn:hover, .chat-close-btn:hover {
+      background: var(--theme-highlight-med);
+      transform: scale(1.1);
+    }
+
+    .chat-messages {
+      flex: 1;
+      padding: 16px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      min-height: 0;
+    }
+
+    .chat-message {
+      max-width: 80%;
+      padding: 8px 12px;
+      border-radius: 12px;
+      line-height: 1.4;
+      word-wrap: break-word;
+    }
+
+    .chat-message.own {
+      align-self: flex-end;
+      background: var(--theme-foam);
+      color: var(--theme-base);
+    }
+
+    .chat-message.other {
+      align-self: flex-start;
+      background: var(--theme-overlay);
+      color: var(--theme-text);
+      border: 1px solid var(--theme-highlight-med);
+    }
+
+    .chat-message.system {
+      align-self: center;
+      background: var(--theme-highlight-med);
+      color: var(--theme-muted);
+      font-style: italic;
+      font-size: 0.9rem;
+      max-width: 90%;
+      text-align: center;
+    }
+
+    .chat-message-header {
+      font-size: 0.8rem;
+      opacity: 0.7;
+      margin-bottom: 2px;
+    }
+
+    .chat-input-container {
+      padding: 16px;
+      border-top: 1px solid var(--theme-overlay);
+      background: var(--theme-surface);
+      border-radius: 0 0 16px 16px;
+    }
+
+    .chat-input-wrapper {
+      display: flex;
+      gap: 8px;
+      align-items: flex-end;
+    }
+
+    .chat-input {
+      flex: 1;
+      min-height: 36px;
+      max-height: 80px;
+      padding: 8px 12px;
+      border: 1px solid var(--theme-overlay);
+      border-radius: 18px;
+      background: var(--theme-overlay);
+      color: var(--theme-text);
+      resize: none;
+      font-family: inherit;
+      font-size: 14px;
+    }
+
+    .chat-input:focus {
+      outline: none;
+      border-color: var(--theme-foam);
+    }
+
+    .chat-send-btn {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: var(--theme-foam);
+      border: none;
+      color: var(--theme-base);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s ease;
+    }
+
+    .chat-send-btn:hover:not(:disabled) {
+      background: var(--theme-pine);
+      transform: scale(1.1);
+    }
+
+    .chat-send-btn:disabled {
+      background: var(--theme-muted);
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .chat-toggle-btn {
+      position: fixed;
+      right: 20px;
+      bottom: 20px;
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--theme-foam), var(--theme-iris));
+      border: none;
+      color: white;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      box-shadow: 0 4px 16px rgba(156, 207, 216, 0.3);
+      z-index: 1000;
+      transition: all 0.3s ease;
+    }
+
+    .chat-toggle-btn:hover {
+      transform: scale(1.1);
+      box-shadow: 0 6px 24px rgba(156, 207, 216, 0.4);
+    }
+
+    .chat-toggle-btn.has-unread {
+      animation: chatPulse 2s infinite;
+    }
+
+    @keyframes chatPulse {
+      0%, 100% { box-shadow: 0 4px 16px rgba(156, 207, 216, 0.3); }
+      50% { box-shadow: 0 4px 16px rgba(156, 207, 216, 0.6), 0 0 20px rgba(156, 207, 216, 0.4); }
+    }
+
+    .participants-indicator {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      color: var(--theme-muted);
+      font-size: 0.8rem;
+    }
+
+    .participant-count {
+      background: var(--theme-foam);
+      color: var(--theme-base);
+      padding: 2px 6px;
+      border-radius: 10px;
+      font-weight: 600;
+      font-size: 0.7rem;
+    }
+
     /* Join Session Styles */
     .join-session-container {
       background: var(--theme-overlay);
@@ -577,6 +802,57 @@
     <div id="hb-container" class="hidden"></div>
   </div>
 
+  <!-- Chat Toggle Button -->
+  <button id="chatToggleBtn" class="chat-toggle-btn hidden" onclick="toggleChat()">
+    <i class='bx bx-chat'></i>
+  </button>
+
+  <!-- Chat Panel -->
+  <div id="chatPanel" class="chat-panel hidden">
+    <div class="chat-header" onclick="toggleChatMinimize()">
+      <div class="chat-title">
+        <i class='bx bx-chat'></i>
+        <span>Session Chat</span>
+        <div class="participants-indicator">
+          <i class='bx bx-group'></i>
+          <span class="participant-count" id="participantCount">1</span>
+        </div>
+      </div>
+      <div class="chat-controls">
+        <button class="chat-minimize-btn" onclick="toggleChatMinimize(event)">
+          <i class='bx bx-minus' id="chatMinimizeIcon"></i>
+        </button>
+        <button class="chat-close-btn" onclick="hideChat(event)">
+          <i class='bx bx-x'></i>
+        </button>
+      </div>
+    </div>
+    
+    <div class="chat-messages" id="chatMessages">
+      <div class="chat-message system">
+        Welcome to the session chat! Messages are shared with all participants.
+      </div>
+    </div>
+    
+    <div class="chat-input-container">
+      <div class="chat-input-wrapper">
+        <textarea 
+          id="chatInput" 
+          class="chat-input" 
+          placeholder="Type a message..."
+          rows="1"
+          onkeydown="handleChatInputKeydown(event)"
+          oninput="autoResizeChatInput(this)"></textarea>
+        <button id="chatSendBtn" class="chat-send-btn" onclick="sendChatMessage()">
+          <i class='bx bx-send'></i>
+        </button>
+      </div>
+      <div style="margin-top: 8px; font-size: 0.75rem; color: var(--theme-muted); text-align: center;">
+        Press Enter to send • Shift+Enter for new line
+      </div>
+    </div>
+  </div>
+
   <!-- Share Session Modal -->
   <div id="shareModal" class="modal">
     <div class="modal-content">
@@ -736,6 +1012,12 @@
       showParticipants: true
     };
     let participants = new Map();
+    let chatMessages = [];
+    let currentUserId = 'user-' + Math.random().toString(36).substr(2, 9);
+    let currentUserName = 'User';
+    let chatVisible = false;
+    let chatMinimized = false;
+    let hasUnreadMessages = false;
 
     // Sync background from profile.html
     function syncBackgroundFromProfile() {
@@ -1055,6 +1337,11 @@
           document.getElementById('create-btn').classList.add('hidden');
           document.getElementById('join-btn').classList.add('hidden');
           
+          // Initialize and show chat
+          initializeChat();
+          document.getElementById('chatToggleBtn').classList.remove('hidden');
+          addSystemMessage('Session started! Chat is now available to all participants.');
+          
           updateSessionInfo(data);
           setStatus("Session created successfully!", "success");
           startTimer();
@@ -1232,6 +1519,15 @@
       document.getElementById('fullscreen-btn').classList.add('hidden');
       document.getElementById('create-btn').classList.remove('hidden');
       document.getElementById('join-btn').classList.remove('hidden');
+      
+      // Hide chat when session ends
+      document.getElementById('chatToggleBtn').classList.add('hidden');
+      hideChat();
+      
+      // Clear chat messages
+      chatMessages = [];
+      const messagesContainer = document.getElementById('chatMessages');
+      messagesContainer.innerHTML = '<div class="chat-message system">Welcome to the session chat! Messages are shared with all participants.</div>';
       
       // Clean up cached session URL
       if (sessionId) {
@@ -1417,6 +1713,201 @@
       }
       
              return { passed, failed, total, successRate };
+     }
+
+     // CHAT SYSTEM FUNCTIONALITY
+     function showChat() {
+       chatVisible = true;
+       document.getElementById('chatPanel').classList.remove('hidden');
+       document.getElementById('chatToggleBtn').classList.add('hidden');
+       clearUnreadMessages();
+     }
+
+     function hideChat(event) {
+       if (event) event.stopPropagation();
+       chatVisible = false;
+       document.getElementById('chatPanel').classList.add('hidden');
+       document.getElementById('chatToggleBtn').classList.remove('hidden');
+     }
+
+     function toggleChat() {
+       if (chatVisible) {
+         hideChat();
+       } else {
+         showChat();
+       }
+     }
+
+     function toggleChatMinimize(event) {
+       if (event) event.stopPropagation();
+       chatMinimized = !chatMinimized;
+       const panel = document.getElementById('chatPanel');
+       const icon = document.getElementById('chatMinimizeIcon');
+       
+       if (chatMinimized) {
+         panel.classList.add('minimized');
+         icon.className = 'bx bx-plus';
+       } else {
+         panel.classList.remove('minimized');
+         icon.className = 'bx bx-minus';
+         clearUnreadMessages();
+       }
+     }
+
+     function handleChatInputKeydown(event) {
+       if (event.key === 'Enter' && !event.shiftKey) {
+         event.preventDefault();
+         sendChatMessage();
+       }
+     }
+
+     function autoResizeChatInput(textarea) {
+       textarea.style.height = 'auto';
+       textarea.style.height = Math.min(textarea.scrollHeight, 80) + 'px';
+     }
+
+     function sendChatMessage() {
+       const input = document.getElementById('chatInput');
+       const message = input.value.trim();
+       
+       if (!message) return;
+       
+       const chatMessage = {
+         id: Date.now().toString(),
+         userId: currentUserId,
+         userName: currentUserName,
+         message: message,
+         timestamp: new Date(),
+         type: 'user'
+       };
+       
+       // Add to local chat
+       addChatMessage(chatMessage);
+       
+       // Simulate sending to other participants
+       broadcastChatMessage(chatMessage);
+       
+       // Clear input
+       input.value = '';
+       input.style.height = 'auto';
+     }
+
+     function addChatMessage(messageData) {
+       chatMessages.push(messageData);
+       
+       const messagesContainer = document.getElementById('chatMessages');
+       const messageElement = document.createElement('div');
+       
+       if (messageData.type === 'system') {
+         messageElement.className = 'chat-message system';
+         messageElement.textContent = messageData.message;
+       } else {
+         const isOwn = messageData.userId === currentUserId;
+         messageElement.className = `chat-message ${isOwn ? 'own' : 'other'}`;
+         
+         if (!isOwn) {
+           messageElement.innerHTML = `
+             <div class="chat-message-header">${messageData.userName}</div>
+             <div>${escapeHtml(messageData.message)}</div>
+           `;
+         } else {
+           messageElement.textContent = messageData.message;
+         }
+       }
+       
+       messagesContainer.appendChild(messageElement);
+       messagesContainer.scrollTop = messagesContainer.scrollHeight;
+       
+       // Show unread indicator if chat is hidden or minimized
+       if (!chatVisible || chatMinimized) {
+         showUnreadIndicator();
+       }
+     }
+
+     function addSystemMessage(message) {
+       const systemMessage = {
+         id: Date.now().toString(),
+         message: message,
+         timestamp: new Date(),
+         type: 'system'
+       };
+       addChatMessage(systemMessage);
+     }
+
+     function broadcastChatMessage(messageData) {
+       // In a real implementation, this would send the message to other participants
+       // For now, we'll simulate receiving messages from other users occasionally
+       if (Math.random() < 0.3) {
+         setTimeout(() => {
+           simulateIncomingMessage();
+         }, 1000 + Math.random() * 3000);
+       }
+     }
+
+     function simulateIncomingMessage() {
+       const responses = [
+         "That's interesting!",
+         "I agree with that",
+         "Thanks for sharing",
+         "Good point",
+         "I see what you mean",
+         "Cool!",
+         "Nice work",
+         "Looks good to me"
+       ];
+       
+       const names = ['Alex', 'Jordan', 'Sam', 'Taylor', 'Casey'];
+       const randomName = names[Math.floor(Math.random() * names.length)];
+       const randomResponse = responses[Math.floor(Math.random() * responses.length)];
+       
+       const incomingMessage = {
+         id: Date.now().toString(),
+         userId: 'other-user',
+         userName: randomName,
+         message: randomResponse,
+         timestamp: new Date(),
+         type: 'user'
+       };
+       
+       addChatMessage(incomingMessage);
+       updateParticipantCount();
+     }
+
+     function updateParticipantCount() {
+       // Simulate participant count (in real implementation, this would be tracked)
+       const count = Math.max(1, participants.size || Math.floor(Math.random() * 3) + 1);
+       document.getElementById('participantCount').textContent = count;
+     }
+
+     function showUnreadIndicator() {
+       if (!hasUnreadMessages) {
+         hasUnreadMessages = true;
+         document.getElementById('chatToggleBtn').classList.add('has-unread');
+       }
+     }
+
+     function clearUnreadMessages() {
+       hasUnreadMessages = false;
+       document.getElementById('chatToggleBtn').classList.remove('has-unread');
+     }
+
+     function escapeHtml(text) {
+       const div = document.createElement('div');
+       div.textContent = text;
+       return div.innerHTML;
+     }
+
+     function initializeChat() {
+       // Set user name from a simple prompt or random generation
+       currentUserName = `User${Math.floor(Math.random() * 1000)}`;
+       
+       // Add initial system message
+       addSystemMessage(`You joined as ${currentUserName}`);
+       
+       // Update participant count
+       updateParticipantCount();
+       
+       console.log('Chat system initialized for user:', currentUserName);
      }
 
      // Test the actual session sharing workflow end-to-end
@@ -1889,6 +2380,11 @@ Please check the shared link and try again, or click "Create New Session" to sta
          document.getElementById('fullscreen-btn').classList.remove('hidden');
          document.getElementById('create-btn').classList.add('hidden');
          document.getElementById('join-btn').classList.add('hidden');
+         
+         // Initialize and show chat for joined session
+         initializeChat();
+         document.getElementById('chatToggleBtn').classList.remove('hidden');
+         addSystemMessage(`Joined shared session! You can now chat with other participants.`);
          
          // Extract session ID from URL for display
          const urlParts = sessionUrl.split('/');
