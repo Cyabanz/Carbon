@@ -1091,6 +1091,157 @@
     .copy-link-btn.copied {
       background: var(--theme-love);
     }
+
+    /* Forum Settings Styles */
+    .settings-tab {
+      padding: 12px 16px;
+      border: none;
+      background: transparent;
+      color: var(--theme-muted);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border-bottom: 2px solid transparent;
+      font-weight: 500;
+    }
+
+    .settings-tab:hover {
+      color: var(--theme-text);
+      background: var(--theme-highlight-med);
+    }
+
+    .settings-tab.active {
+      color: var(--theme-foam);
+      border-bottom-color: var(--theme-foam);
+    }
+
+    .settings-content {
+      animation: fadeIn 0.3s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .message-item {
+      background: var(--theme-overlay);
+      border: 1px solid var(--theme-highlight-med);
+      border-radius: 8px;
+      padding: 12px;
+      transition: all 0.2s ease;
+    }
+
+    .message-item:hover {
+      border-color: var(--theme-foam);
+      transform: translateY(-1px);
+    }
+
+    .forum-item {
+      background: var(--theme-overlay);
+      border: 1px solid var(--theme-highlight-med);
+      border-radius: 12px;
+      padding: 16px;
+      transition: all 0.2s ease;
+    }
+
+    .forum-item:hover {
+      border-color: var(--theme-foam);
+      transform: translateY(-1px);
+    }
+
+    .forum-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .forum-action-btn {
+      padding: 6px 12px;
+      border-radius: 6px;
+      border: 1px solid var(--theme-highlight-med);
+      background: transparent;
+      color: var(--theme-text);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      font-size: 12px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .forum-action-btn:hover {
+      background: var(--theme-highlight-med);
+    }
+
+    .forum-action-btn.danger {
+      border-color: var(--theme-love);
+      color: var(--theme-love);
+    }
+
+    .forum-action-btn.danger:hover {
+      background: var(--theme-love);
+      color: var(--theme-base);
+    }
+
+    .message-meta {
+      font-size: 12px;
+      color: var(--theme-muted);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 8px;
+    }
+
+    .message-content {
+      color: var(--theme-text);
+      line-height: 1.4;
+    }
+
+    .forum-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+      font-size: 12px;
+      color: var(--theme-muted);
+    }
+
+    .forum-stats {
+      display: flex;
+      gap: 16px;
+    }
+
+    .delete-confirmation {
+      background: var(--theme-love);
+      color: white;
+      padding: 8px;
+      border-radius: 6px;
+      margin-top: 8px;
+      font-size: 12px;
+    }
+
+    .delete-confirmation input {
+      background: rgba(255, 255, 255, 0.2);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      border-radius: 4px;
+      padding: 4px 8px;
+      color: white;
+      margin: 0 8px;
+      width: 80px;
+    }
+
+    .delete-confirmation button {
+      background: rgba(255, 255, 255, 0.2);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      border-radius: 4px;
+      padding: 4px 8px;
+      color: white;
+      cursor: pointer;
+      margin: 0 2px;
+    }
   </style>
 </head>
 
@@ -1109,6 +1260,14 @@
         <button id="achievementsBtn" onclick="showAchievementsModal()" class="text-rp-subtle hover:text-rp-text transition-colors hidden flex items-center gap-1">
           <i class='bx bx-trophy'></i>
           Achievements
+        </button>
+        <button id="shopBtn" onclick="openCarbonShop()" class="text-rp-subtle hover:text-rp-text transition-colors hidden flex items-center gap-1">
+          <i class='bx bx-store'></i>
+          Shop
+        </button>
+        <button id="forumSettingsBtn" onclick="showForumSettingsModal()" class="text-rp-subtle hover:text-rp-text transition-colors hidden flex items-center gap-1">
+          <i class='bx bx-cog'></i>
+          Settings
         </button>
       </div>
     </div>
@@ -1586,6 +1745,116 @@
     </div>
   </div>
 
+  <!-- Forum Settings Modal -->
+  <div id="forumSettingsModal" class="modal">
+    <div class="modal-content" style="max-width: 900px; max-height: 90vh; overflow-y: auto;">
+      <div class="flex items-center justify-between mb-6">
+        <h2 class="text-heading text-rp-text flex items-center gap-3">
+          <i class='bx bx-cog text-rp-foam'></i>
+          Forum Settings
+        </h2>
+        <button onclick="hideForumSettingsModal()" class="text-rp-muted hover:text-rp-text">
+          <i class='bx bx-x text-2xl'></i>
+        </button>
+      </div>
+      
+      <!-- Settings Tabs -->
+      <div class="flex border-b border-rp-overlay mb-6">
+        <button class="settings-tab active" data-tab="messages" onclick="switchSettingsTab('messages')">
+          <i class='bx bx-message'></i>
+          Message History
+        </button>
+        <button class="settings-tab" data-tab="forums" onclick="switchSettingsTab('forums')">
+          <i class='bx bx-collection'></i>
+          My Forums
+        </button>
+        <button class="settings-tab" data-tab="stats" onclick="switchSettingsTab('stats')">
+          <i class='bx bx-chart'></i>
+          Statistics
+        </button>
+      </div>
+      
+      <!-- Message History Tab -->
+      <div id="settings-messages" class="settings-content">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-lg font-bold text-rp-text">Your Recent Messages</h3>
+          <div class="text-sm text-rp-subtle" id="messageCount">Loading...</div>
+        </div>
+        
+        <div class="space-y-3" id="messageHistoryList">
+          <!-- Messages will be loaded here -->
+        </div>
+        
+        <div class="text-center py-8 hidden" id="noMessages">
+          <i class='bx bx-message text-4xl text-rp-muted mb-2'></i>
+          <p class="text-rp-muted">No messages found</p>
+        </div>
+      </div>
+      
+      <!-- My Forums Tab -->
+      <div id="settings-forums" class="settings-content hidden">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-lg font-bold text-rp-text">Forums You Own</h3>
+          <div class="text-sm text-rp-subtle" id="forumCount">Loading...</div>
+        </div>
+        
+        <div class="space-y-4" id="ownedForumsList">
+          <!-- Owned forums will be loaded here -->
+        </div>
+        
+        <div class="text-center py-8 hidden" id="noForums">
+          <i class='bx bx-collection text-4xl text-rp-muted mb-2'></i>
+          <p class="text-rp-muted">You haven't created any forums yet</p>
+          <button onclick="hideForumSettingsModal(); showCreateForumModal();" class="mt-3 btn-primary">
+            Create Your First Forum
+          </button>
+        </div>
+      </div>
+      
+      <!-- Statistics Tab -->
+      <div id="settings-stats" class="settings-content hidden">
+        <h3 class="text-lg font-bold text-rp-text mb-4">Your Forum Statistics</h3>
+        
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+          <div class="stat-card">
+            <div class="stat-value" id="statsForumPosts">0</div>
+            <div class="stat-label">Posts Created</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="statsForumsCreated">0</div>
+            <div class="stat-label">Forums Created</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="statsReactionsGiven">0</div>
+            <div class="stat-label">Reactions Given</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="statsMessagesSent">0</div>
+            <div class="stat-label">Messages Sent</div>
+          </div>
+        </div>
+        
+        <div class="bg-rp-surface border border-rp-overlay rounded-lg p-4">
+          <h4 class="font-bold text-rp-text mb-3">Activity Overview</h4>
+          <div class="space-y-2 text-sm">
+            <div class="flex justify-between">
+              <span class="text-rp-subtle">Account Created:</span>
+              <span class="text-rp-text" id="statsJoinDate">Loading...</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-rp-subtle">Achievement Points:</span>
+              <span class="text-rp-text" id="statsAchievementPoints">0</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-rp-subtle">Current Rank:</span>
+              <span class="text-rp-text" id="statsCurrentRank">Newcomer</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script>
     // FIREBASE CONFIGURATION
     const firebaseConfig = {
@@ -1676,6 +1945,36 @@
     let userCache = new Map();
     let userAchievements = [];
     let achievementDefinitions = [];
+    
+    // Shop data
+    let userCurrency = 100; // Starting currency
+    let userFrames = [];
+    let userPets = [];
+    let userProfileFrames = [];
+    let userPetData = {};
+    
+    const gameFrames = [
+      { id: 'fire', name: 'Fire Frame', description: 'Blazing hot border for intense games', color: '#ff4444', price: 150 },
+      { id: 'ice', name: 'Ice Frame', description: 'Cool blue frame for chill gaming', color: '#44aaff', price: 150 },
+      { id: 'galaxy', name: 'Galaxy Frame', description: 'Cosmic purple border from outer space', color: '#8844ff', price: 200 },
+      { id: 'neon', name: 'Neon Frame', description: 'Bright cyan glow for cyber vibes', color: '#00ffff', price: 250 },
+      { id: 'gold', name: 'Golden Frame', description: 'Luxurious gold border for winners', color: '#ffd700', price: 300 }
+    ];
+    
+    const pets = [
+      { id: 'cat', name: 'Digital Cat', description: 'A cute virtual kitten', emoji: '🐱', rarity: 'common', price: 50, basePower: 10 },
+      { id: 'dog', name: 'Cyber Dog', description: 'Loyal digital companion', emoji: '🐶', rarity: 'common', price: 50, basePower: 12 },
+      { id: 'dragon', name: 'Pixel Dragon', description: 'Mythical digital beast', emoji: '🐲', rarity: 'rare', price: 200, basePower: 25 },
+      { id: 'robot', name: 'AI Bot', description: 'Advanced artificial companion', emoji: '🤖', rarity: 'epic', price: 400, basePower: 35 },
+      { id: 'unicorn', name: 'Rainbow Unicorn', description: 'Magical legendary creature', emoji: '🦄', rarity: 'legendary', price: 800, basePower: 50 }
+    ];
+    
+    const profileFrames = [
+      { id: 'silver', name: 'Silver Frame', description: 'Elegant silver border', color: '#c0c0c0', price: 100 },
+      { id: 'gold', name: 'Gold Frame', description: 'Premium golden border', color: '#ffd700', price: 250 },
+      { id: 'rainbow', name: 'Rainbow Frame', description: 'Colorful animated border', color: '#ff69b4', price: 500 },
+      { id: 'diamond', name: 'Diamond Frame', description: 'Sparkling crystal border', color: '#b9f2ff', price: 750 }
+    ];
 
     // Initialize content filter when available
     function initializeContentFilter() {
@@ -1995,7 +2294,11 @@
           lateNightPosts: 0,
           forumMessagesSent: 0,
           totalAchievementPoints: 0,
-          achievements: {}
+          achievements: {},
+          currency: 100,
+          frames: [],
+          pets: [],
+          profileFrames: []
         });
       } else {
         // Update last seen and status for existing users
@@ -2761,9 +3064,15 @@
         const friendsToggle = document.getElementById('friendsSidebarToggle');
         if (friendsToggle) friendsToggle.classList.remove('hidden');
         
-        // Show achievements button
+        // Show achievements button, shop, and settings
         const achievementsBtn = document.getElementById('achievementsBtn');
         if (achievementsBtn) achievementsBtn.classList.remove('hidden');
+        
+        const shopBtn = document.getElementById('shopBtn');
+        if (shopBtn) shopBtn.classList.remove('hidden');
+        
+        const settingsBtn = document.getElementById('forumSettingsBtn');
+        if (settingsBtn) settingsBtn.classList.remove('hidden');
         
         // Load friends data and achievements
         loadFriends();
@@ -2797,9 +3106,15 @@
         const friendsToggle = document.getElementById('friendsSidebarToggle');
         if (friendsToggle) friendsToggle.classList.add('hidden');
         
-        // Hide achievements button
+        // Hide achievements button, shop, and settings
         const achievementsBtn = document.getElementById('achievementsBtn');
         if (achievementsBtn) achievementsBtn.classList.add('hidden');
+        
+        const shopBtn = document.getElementById('shopBtn');
+        if (shopBtn) shopBtn.classList.add('hidden');
+        
+        const settingsBtn = document.getElementById('forumSettingsBtn');
+        if (settingsBtn) settingsBtn.classList.add('hidden');
         
         // Close friends sidebar
         const friendsSidebar = document.getElementById('friendsChatSidebar');
@@ -4039,7 +4354,539 @@
       await checkAchievements(stats);
     }
 
-          // Close modals when clicking outside
+    // FORUM SETTINGS FUNCTIONS
+    function showForumSettingsModal() {
+      if (!currentUser) {
+        showLoginPrompt();
+        return;
+      }
+      
+      document.getElementById('forumSettingsModal').classList.add('show');
+      loadMessageHistory();
+    }
+
+    function hideForumSettingsModal() {
+      document.getElementById('forumSettingsModal').classList.remove('show');
+    }
+
+    function switchSettingsTab(tabName) {
+      // Update tab buttons
+      document.querySelectorAll('.settings-tab').forEach(tab => {
+        tab.classList.remove('active');
+      });
+      document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
+      
+      // Update content
+      document.querySelectorAll('.settings-content').forEach(content => {
+        content.classList.add('hidden');
+      });
+      document.getElementById(`settings-${tabName}`).classList.remove('hidden');
+      
+      // Load content based on tab
+      switch (tabName) {
+        case 'messages':
+          loadMessageHistory();
+          break;
+        case 'forums':
+          loadOwnedForums();
+          break;
+        case 'stats':
+          loadUserStatsForSettings();
+          break;
+      }
+    }
+
+    async function loadMessageHistory() {
+      if (!currentUser) return;
+      
+      try {
+        // Get user's recent posts from all forums
+        const postsSnapshot = await db.collectionGroup('posts')
+          .where('authorId', '==', currentUser.uid)
+          .orderBy('createdAt', 'desc')
+          .limit(20)
+          .get();
+        
+        const messages = [];
+        for (const doc of postsSnapshot.docs) {
+          const post = { id: doc.id, ...doc.data() };
+          
+          // Get forum name
+          const forumId = doc.ref.parent.parent.id;
+          const forumDoc = await db.collection('forums').doc(forumId).get();
+          const forumName = forumDoc.exists ? forumDoc.data().name : 'Unknown Forum';
+          
+          messages.push({
+            ...post,
+            forumId,
+            forumName
+          });
+        }
+        
+        displayMessageHistory(messages);
+      } catch (error) {
+        console.error('Error loading message history:', error);
+        document.getElementById('messageCount').textContent = 'Error loading messages';
+      }
+    }
+
+    function displayMessageHistory(messages) {
+      const container = document.getElementById('messageHistoryList');
+      const countElement = document.getElementById('messageCount');
+      const noMessages = document.getElementById('noMessages');
+      
+      countElement.textContent = `${messages.length} messages found`;
+      
+      if (messages.length === 0) {
+        container.innerHTML = '';
+        noMessages.classList.remove('hidden');
+        return;
+      }
+      
+      noMessages.classList.add('hidden');
+      
+      container.innerHTML = messages.map(message => `
+        <div class="message-item">
+          <div class="message-meta">
+            <span><i class='bx bx-collection'></i> ${sanitizeText(message.forumName)}</span>
+            <span><i class='bx bx-time'></i> ${formatDate(message.createdAt)}</span>
+            <span><i class='bx bx-heart'></i> ${Object.values(message.reactions || {}).reduce((sum, r) => sum + r.count, 0)} reactions</span>
+          </div>
+          <div class="font-medium text-rp-text mb-1">${sanitizeText(message.title)}</div>
+          <div class="message-content">${sanitizeContent(message.content)}</div>
+          <div class="mt-2">
+            <button onclick="viewForumFromSettings('${message.forumId}')" class="forum-action-btn">
+              <i class='bx bx-link-external'></i>
+              View Forum
+            </button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    async function loadOwnedForums() {
+      if (!currentUser) return;
+      
+      try {
+        const forumsSnapshot = await db.collection('forums')
+          .where('createdById', '==', currentUser.uid)
+          .where('isActive', '==', true)
+          .orderBy('createdAt', 'desc')
+          .get();
+        
+        const forums = [];
+        for (const doc of forumsSnapshot.docs) {
+          const forum = { id: doc.id, ...doc.data() };
+          
+          // Get post count
+          const postsSnapshot = await db.collection('forums').doc(doc.id).collection('posts').get();
+          forum.actualPostCount = postsSnapshot.size;
+          
+          forums.push(forum);
+        }
+        
+        displayOwnedForums(forums);
+      } catch (error) {
+        console.error('Error loading owned forums:', error);
+        document.getElementById('forumCount').textContent = 'Error loading forums';
+      }
+    }
+
+    function displayOwnedForums(forums) {
+      const container = document.getElementById('ownedForumsList');
+      const countElement = document.getElementById('forumCount');
+      const noForums = document.getElementById('noForums');
+      
+      countElement.textContent = `${forums.length} forums owned`;
+      
+      if (forums.length === 0) {
+        container.innerHTML = '';
+        noForums.classList.remove('hidden');
+        return;
+      }
+      
+      noForums.classList.add('hidden');
+      
+      container.innerHTML = forums.map(forum => `
+        <div class="forum-item" id="forum-item-${forum.id}">
+          <div class="forum-meta">
+            <div class="forum-stats">
+              <span><i class='bx bx-message'></i> ${forum.actualPostCount} posts</span>
+              <span><i class='bx bx-group'></i> ${forum.memberCount || 0} members</span>
+              <span><i class='bx bx-time'></i> Created ${formatDate(forum.createdAt)}</span>
+            </div>
+            <span class="text-rp-muted">${forum.category}</span>
+          </div>
+          
+          <h4 class="font-bold text-rp-text mb-2">${sanitizeText(forum.name)}</h4>
+          <p class="text-rp-subtle mb-3">${sanitizeText(forum.description)}</p>
+          
+          <div class="forum-actions">
+            <button onclick="viewForumFromSettings('${forum.id}')" class="forum-action-btn">
+              <i class='bx bx-link-external'></i>
+              Open Forum
+            </button>
+            <button onclick="shareForumFromSettings('${forum.id}')" class="forum-action-btn">
+              <i class='bx bx-share'></i>
+              Share
+            </button>
+            <button onclick="showDeleteConfirmation('${forum.id}')" class="forum-action-btn danger">
+              <i class='bx bx-trash'></i>
+              Delete
+            </button>
+          </div>
+          
+          <div id="delete-confirm-${forum.id}" class="delete-confirmation hidden">
+            <strong>⚠️ This action cannot be undone!</strong><br>
+            Type "DELETE" to confirm:
+            <input type="text" id="delete-input-${forum.id}" placeholder="DELETE" />
+            <button onclick="confirmDeleteFromSettings('${forum.id}')">Delete Forum</button>
+            <button onclick="hideDeleteConfirmation('${forum.id}')">Cancel</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    async function loadUserStatsForSettings() {
+      if (!currentUser) return;
+      
+      try {
+        const stats = await getUserStats();
+        
+        document.getElementById('statsForumPosts').textContent = stats.forumPosts || 0;
+        document.getElementById('statsForumsCreated').textContent = stats.forumsCreated || 0;
+        document.getElementById('statsReactionsGiven').textContent = stats.reactionsGiven || 0;
+        document.getElementById('statsMessagesSent').textContent = (stats.messagesSent || 0) + (stats.forumMessagesSent || 0);
+        document.getElementById('statsJoinDate').textContent = stats.joinedAt ? stats.joinedAt.toLocaleDateString() : 'Unknown';
+        document.getElementById('statsAchievementPoints').textContent = stats.totalAchievementPoints || 0;
+        document.getElementById('statsCurrentRank').textContent = getUserRankFromPoints(stats.totalAchievementPoints || 0);
+      } catch (error) {
+        console.error('Error loading user stats:', error);
+      }
+    }
+
+    function viewForumFromSettings(forumId) {
+      hideForumSettingsModal();
+      
+      // Get forum data and open it
+      db.collection('forums').doc(forumId).get().then(doc => {
+        if (doc.exists) {
+          viewForum(forumId, doc.data());
+        }
+      });
+    }
+
+    function shareForumFromSettings(forumId) {
+      hideForumSettingsModal();
+      currentForumId = forumId;
+      showShareForumModal();
+    }
+
+    function showDeleteConfirmation(forumId) {
+      document.getElementById(`delete-confirm-${forumId}`).classList.remove('hidden');
+    }
+
+    function hideDeleteConfirmation(forumId) {
+      document.getElementById(`delete-confirm-${forumId}`).classList.add('hidden');
+      document.getElementById(`delete-input-${forumId}`).value = '';
+    }
+
+    async function confirmDeleteFromSettings(forumId) {
+      const input = document.getElementById(`delete-input-${forumId}`);
+      
+      if (input.value.trim() !== 'DELETE') {
+        alert('Please type "DELETE" to confirm');
+        return;
+      }
+      
+      try {
+        // Get forum data
+        const forumDoc = await db.collection('forums').doc(forumId).get();
+        if (!forumDoc.exists) {
+          alert('Forum not found');
+          return;
+        }
+        
+        const batch = db.batch();
+        
+        // Delete all posts in the forum
+        const postsSnapshot = await db.collection('forums').doc(forumId).collection('posts').get();
+        postsSnapshot.docs.forEach(doc => {
+          batch.delete(doc.ref);
+        });
+        
+        // Delete the forum
+        batch.delete(db.collection('forums').doc(forumId));
+        
+        // Update user's forum count
+        batch.update(db.collection('users').doc(currentUser.uid), {
+          forumsCreated: firebase.firestore.FieldValue.increment(-1)
+        });
+        
+        await batch.commit();
+        
+        // Remove from UI
+        document.getElementById(`forum-item-${forumId}`).remove();
+        
+        // Update count
+        const remainingForums = document.querySelectorAll('#ownedForumsList .forum-item').length;
+        document.getElementById('forumCount').textContent = `${remainingForums} forums owned`;
+        
+        if (remainingForums === 0) {
+          document.getElementById('noForums').classList.remove('hidden');
+        }
+        
+        // Refresh main forum list if visible
+        loadForums();
+        
+        alert('Forum deleted successfully');
+      } catch (error) {
+        console.error('Error deleting forum:', error);
+        alert('Error deleting forum. Please try again.');
+            }
+    }
+
+    // SIMPLIFIED SHOP IMPLEMENTATION
+    function openCarbonShop() {
+      if (!currentUser) {
+        showLoginPrompt();
+        return;
+      }
+      
+      // Load user's shop data
+      loadUserShopData();
+      
+      const shopModal = document.createElement('div');
+      shopModal.className = 'fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[9999]';
+      shopModal.id = 'carbonShopModal';
+      shopModal.innerHTML = `
+        <div class="bg-rp-surface border border-rp-overlay rounded-xl shadow-2xl max-w-4xl w-[90vw] h-[80vh] flex">
+          <!-- Sidebar -->
+          <div class="w-64 bg-rp-overlay/50 p-6 border-r border-rp-highlight-med">
+            <div class="flex items-center justify-between mb-6">
+              <h2 class="text-xl font-semibold text-rp-text">Carbon Shop</h2>
+              <button onclick="closeShop()" class="text-rp-muted hover:text-rp-love transition-colors">
+                <i class="bx bx-x text-2xl"></i>
+              </button>
+            </div>
+            
+            <div class="bg-rp-foam/10 border border-rp-foam/30 rounded-lg p-4 mb-6">
+              <div class="flex items-center gap-2 mb-2">
+                <i class="bx bx-coin text-rp-gold text-xl"></i>
+                <span class="text-rp-text font-medium">Your Balance</span>
+              </div>
+              <div class="text-2xl font-bold text-rp-gold" id="shop-currency">${userCurrency}</div>
+              <div class="text-xs text-rp-muted">Carbon Coins</div>
+            </div>
+            
+            <nav class="space-y-2">
+              <button onclick="showShopSection('frames')" class="shop-nav-btn w-full text-left px-3 py-2 rounded-lg bg-rp-foam/20 text-rp-foam">
+                <i class="bx bx-image mr-2"></i>Game Frames
+              </button>
+              <button onclick="showShopSection('pets')" class="shop-nav-btn w-full text-left px-3 py-2 rounded-lg hover:bg-rp-highlight-med text-rp-text">
+                <i class="bx bx-heart mr-2"></i>Digital Pets
+              </button>
+              <button onclick="showShopSection('profileframes')" class="shop-nav-btn w-full text-left px-3 py-2 rounded-lg hover:bg-rp-highlight-med text-rp-text">
+                <i class="bx bx-user mr-2"></i>Profile Frames
+              </button>
+            </nav>
+          </div>
+          
+          <!-- Main Content -->
+          <div class="flex-1 p-6 overflow-y-auto">
+            <div id="shop-frames" class="shop-section">
+              <h3 class="text-2xl font-bold text-rp-text mb-6">Game Frames</h3>
+              <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                ${gameFrames.map(frame => `
+                  <div class="bg-rp-highlight-med rounded-xl p-6 border border-rp-overlay">
+                    <div class="w-full h-32 rounded-lg mb-4 border-4 flex items-center justify-center relative overflow-hidden" 
+                         style="border-color: ${frame.color}; background: ${frame.color}15;">
+                      <span class="text-rp-text font-medium">Frame Preview</span>
+                    </div>
+                    <h4 class="text-lg font-semibold text-rp-text mb-2">${frame.name}</h4>
+                    <p class="text-sm text-rp-muted mb-4">${frame.description}</p>
+                    <div class="flex items-center justify-between">
+                      <div class="text-rp-gold font-bold">${frame.price} coins</div>
+                      <button onclick="purchaseFrame('${frame.id}')" 
+                              class="px-4 py-2 rounded-lg transition-colors ${userFrames.includes(frame.id) ? 'bg-rp-pine/20 text-rp-pine' : userCurrency >= frame.price ? 'bg-rp-foam hover:bg-rp-foam/80 text-rp-base' : 'bg-rp-muted/20 text-rp-muted cursor-not-allowed'}">
+                        ${userFrames.includes(frame.id) ? 'Owned' : userCurrency >= frame.price ? 'Purchase' : 'Insufficient Funds'}
+                      </button>
+                    </div>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+            
+            <div id="shop-pets" class="shop-section hidden">
+              <h3 class="text-2xl font-bold text-rp-text mb-6">Digital Pets</h3>
+              <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                ${pets.map(pet => `
+                  <div class="bg-rp-highlight-med rounded-xl p-6 border border-rp-overlay">
+                    <div class="w-full h-32 rounded-lg mb-4 flex items-center justify-center relative overflow-hidden bg-gradient-to-br from-rp-foam/10 to-rp-iris/10">
+                      <div class="text-6xl animate-bounce">${pet.emoji}</div>
+                      <div class="absolute top-2 right-2 px-2 py-1 rounded-full text-xs font-bold ${pet.rarity === 'legendary' ? 'bg-rp-gold/20 text-rp-gold' : pet.rarity === 'epic' ? 'bg-rp-iris/20 text-rp-iris' : pet.rarity === 'rare' ? 'bg-rp-foam/20 text-rp-foam' : 'bg-rp-muted/20 text-rp-muted'}">${pet.rarity}</div>
+                    </div>
+                    <h4 class="text-lg font-semibold text-rp-text mb-2">${pet.name}</h4>
+                    <p class="text-sm text-rp-muted mb-4">${pet.description}</p>
+                    <div class="flex items-center justify-between">
+                      <div class="text-rp-gold font-bold">${pet.price} coins</div>
+                      <button onclick="purchasePet('${pet.id}')" 
+                              class="px-4 py-2 rounded-lg transition-colors ${userPets.includes(pet.id) ? 'bg-rp-pine/20 text-rp-pine' : userCurrency >= pet.price ? 'bg-rp-foam hover:bg-rp-foam/80 text-rp-base' : 'bg-rp-muted/20 text-rp-muted cursor-not-allowed'}">
+                        ${userPets.includes(pet.id) ? 'Adopted' : userCurrency >= pet.price ? 'Adopt' : 'Insufficient Funds'}
+                      </button>
+                    </div>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+            
+            <div id="shop-profileframes" class="shop-section hidden">
+              <h3 class="text-2xl font-bold text-rp-text mb-6">Profile Frames</h3>
+              <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                ${profileFrames.map(frame => `
+                  <div class="bg-rp-highlight-med rounded-xl p-6 border border-rp-overlay">
+                    <div class="w-full h-32 rounded-lg mb-4 border-4 flex items-center justify-center relative overflow-hidden" 
+                         style="border-color: ${frame.color}; background: ${frame.color}15;">
+                      <div class="w-16 h-16 rounded-full border-4" style="border-color: ${frame.color}; background: var(--theme-surface);"></div>
+                    </div>
+                    <h4 class="text-lg font-semibold text-rp-text mb-2">${frame.name}</h4>
+                    <p class="text-sm text-rp-muted mb-4">${frame.description}</p>
+                    <div class="flex items-center justify-between">
+                      <div class="text-rp-gold font-bold">${frame.price} coins</div>
+                      <button onclick="purchaseProfileFrame('${frame.id}')" 
+                              class="px-4 py-2 rounded-lg transition-colors ${userProfileFrames.includes(frame.id) ? 'bg-rp-pine/20 text-rp-pine' : userCurrency >= frame.price ? 'bg-rp-foam hover:bg-rp-foam/80 text-rp-base' : 'bg-rp-muted/20 text-rp-muted cursor-not-allowed'}">
+                        ${userProfileFrames.includes(frame.id) ? 'Owned' : userCurrency >= frame.price ? 'Purchase' : 'Insufficient Funds'}
+                      </button>
+                    </div>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+      
+      document.body.appendChild(shopModal);
+      
+      // Close on backdrop click
+      shopModal.addEventListener('click', (e) => {
+        if (e.target === shopModal) {
+          closeShop();
+        }
+      });
+    }
+
+    function closeShop() {
+      const shopModal = document.getElementById('carbonShopModal');
+      if (shopModal) {
+        shopModal.remove();
+      }
+    }
+
+    function showShopSection(sectionName) {
+      // Update nav buttons
+      document.querySelectorAll('.shop-nav-btn').forEach(btn => {
+        btn.className = 'shop-nav-btn w-full text-left px-3 py-2 rounded-lg hover:bg-rp-highlight-med text-rp-text';
+      });
+      document.querySelector(`[onclick="showShopSection('${sectionName}')"]`).className = 'shop-nav-btn w-full text-left px-3 py-2 rounded-lg bg-rp-foam/20 text-rp-foam';
+      
+      // Update content
+      document.querySelectorAll('.shop-section').forEach(section => {
+        section.classList.add('hidden');
+      });
+      document.getElementById(`shop-${sectionName}`).classList.remove('hidden');
+    }
+
+    async function loadUserShopData() {
+      if (!currentUser) return;
+      
+      try {
+        const userDoc = await db.collection('users').doc(currentUser.uid).get();
+        if (userDoc.exists) {
+          const userData = userDoc.data();
+          userCurrency = userData.currency || 100;
+          userFrames = userData.frames || [];
+          userPets = userData.pets || [];
+          userProfileFrames = userData.profileFrames || [];
+        }
+      } catch (error) {
+        console.error('Error loading shop data:', error);
+      }
+    }
+
+    async function purchaseFrame(frameId) {
+      const frame = gameFrames.find(f => f.id === frameId);
+      if (!frame || userFrames.includes(frameId) || userCurrency < frame.price) return;
+      
+      try {
+        await db.collection('users').doc(currentUser.uid).update({
+          currency: firebase.firestore.FieldValue.increment(-frame.price),
+          frames: firebase.firestore.FieldValue.arrayUnion(frameId)
+        });
+        
+        userCurrency -= frame.price;
+        userFrames.push(frameId);
+        
+        // Refresh shop
+        closeShop();
+        openCarbonShop();
+        
+        alert(`Successfully purchased ${frame.name}!`);
+      } catch (error) {
+        console.error('Error purchasing frame:', error);
+        alert('Error purchasing frame');
+      }
+    }
+
+    async function purchasePet(petId) {
+      const pet = pets.find(p => p.id === petId);
+      if (!pet || userPets.includes(petId) || userCurrency < pet.price) return;
+      
+      try {
+        await db.collection('users').doc(currentUser.uid).update({
+          currency: firebase.firestore.FieldValue.increment(-pet.price),
+          pets: firebase.firestore.FieldValue.arrayUnion(petId)
+        });
+        
+        userCurrency -= pet.price;
+        userPets.push(petId);
+        
+        // Refresh shop
+        closeShop();
+        openCarbonShop();
+        
+        alert(`Successfully adopted ${pet.name}!`);
+      } catch (error) {
+        console.error('Error purchasing pet:', error);
+        alert('Error adopting pet');
+      }
+    }
+
+    async function purchaseProfileFrame(frameId) {
+      const frame = profileFrames.find(f => f.id === frameId);
+      if (!frame || userProfileFrames.includes(frameId) || userCurrency < frame.price) return;
+      
+      try {
+        await db.collection('users').doc(currentUser.uid).update({
+          currency: firebase.firestore.FieldValue.increment(-frame.price),
+          profileFrames: firebase.firestore.FieldValue.arrayUnion(frameId)
+        });
+        
+        userCurrency -= frame.price;
+        userProfileFrames.push(frameId);
+        
+        // Refresh shop
+        closeShop();
+        openCarbonShop();
+        
+        alert(`Successfully purchased ${frame.name}!`);
+      } catch (error) {
+        console.error('Error purchasing profile frame:', error);
+        alert('Error purchasing profile frame');
+      }
+    }
+
+           // Close modals when clicking outside
       document.addEventListener('click', (e) => {
         if (e.target.classList.contains('modal')) {
           hideCreateForumModal();
@@ -4049,6 +4896,7 @@
           hideDeleteForumModal();
           hideAchievementsModal();
           hideShareForumModal();
+          hideForumSettingsModal();
         }
       
       // Hide login prompt when clicking outside
@@ -4069,6 +4917,7 @@
         hideDeleteForumModal();
         hideAchievementsModal();
         hideShareForumModal();
+        hideForumSettingsModal();
       }
       
       // Send message on Enter
