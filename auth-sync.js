@@ -1,7 +1,7 @@
 // Shared authentication synchronization utility
 // This helps ensure consistent login state across different pages
 
-(function() {
+(function(window) {
   'use strict';
   
   // Check if user is authenticated and broadcast to other tabs
@@ -83,12 +83,18 @@
   };
   
   // Auto-initialize if Firebase is already loaded
-  if (typeof firebase !== 'undefined') {
-    initAuthSync();
-  } else {
-    // Wait for Firebase to load
-    document.addEventListener('DOMContentLoaded', () => {
-      setTimeout(initAuthSync, 100);
-    });
+  function waitForFirebaseAndInit() {
+    if (typeof firebase !== 'undefined') {
+      initAuthSync();
+    } else {
+      setTimeout(waitForFirebaseAndInit, 100);
+    }
   }
-})();
+
+  // Start initialization
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', waitForFirebaseAndInit);
+  } else {
+    waitForFirebaseAndInit();
+  }
+})(window);

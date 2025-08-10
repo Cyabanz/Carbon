@@ -17,8 +17,38 @@
   <!-- DOMPurify for XSS protection -->
   <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.5/dist/purify.min.js"></script>
   
-  <!-- Bad Words Filter Package -->
-  <script src="https://cdn.jsdelivr.net/npm/bad-words@3.0.4/lib/badwords.js"></script>
+  <!-- Simple Content Filter -->
+  <script>
+    // Simple browser-compatible content filter
+    class SimpleContentFilter {
+      constructor() {
+        this.badWords = [
+          'spam', 'scam', 'hack', 'cheat', 'bot', 'fake',
+          // Add more words as needed, keeping it clean and appropriate
+        ];
+      }
+      
+      clean(text) {
+        if (!text) return '';
+        let cleaned = text;
+        this.badWords.forEach(word => {
+          const regex = new RegExp(word, 'gi');
+          cleaned = cleaned.replace(regex, '*'.repeat(word.length));
+        });
+        return cleaned;
+      }
+      
+      isProfane(text) {
+        if (!text) return false;
+        return this.badWords.some(word => 
+          text.toLowerCase().includes(word.toLowerCase())
+        );
+      }
+    }
+    
+    // Make it globally available
+    window.Filter = SimpleContentFilter;
+  </script>
   
   <!-- Auth Synchronization Utility -->
   <script src="auth-sync.js"></script>
@@ -539,11 +569,16 @@
 
     // Initialize Firebase with proper app management
     let app, auth, db;
+    let firebaseInitialized = false;
     
     function initializeFirebase() {
+      if (firebaseInitialized) {
+        return true;
+      }
+      
       try {
         if (typeof firebase === 'undefined') {
-          console.error('Firebase SDK not loaded');
+          console.log('Firebase SDK not yet loaded, will retry...');
           return false;
         }
 
@@ -575,6 +610,8 @@
         window.db = db;
         window.firebase = firebase;
         
+        firebaseInitialized = true;
+        console.log('Firebase initialized successfully');
         return true;
       } catch (error) {
         console.error('Error initializing Firebase:', error);
@@ -582,17 +619,17 @@
       }
     }
 
-    // Initialize immediately if Firebase is available
-    if (typeof firebase !== 'undefined') {
-      initializeFirebase();
+    // Wait for Firebase SDK to load, then initialize
+    function waitForFirebaseAndInitialize() {
+      if (typeof firebase !== 'undefined') {
+        initializeFirebase();
+      } else {
+        setTimeout(waitForFirebaseAndInitialize, 100);
+      }
     }
 
-    // Also initialize on DOM ready as fallback
-    document.addEventListener('DOMContentLoaded', function() {
-      if (!auth || !db) {
-        initializeFirebase();
-      }
-    });
+    // Start initialization process
+    waitForFirebaseAndInitialize();
 
     // Global variables
     let currentUser = null;
@@ -600,10 +637,18 @@
     let currentForumId = null;
     let badWordsFilter = null;
 
-    // Initialize bad words filter
-    if (typeof Filter !== 'undefined') {
-      badWordsFilter = new Filter();
+    // Initialize content filter when available
+    function initializeContentFilter() {
+      if (typeof Filter !== 'undefined') {
+        badWordsFilter = new Filter();
+        console.log('Content filter initialized');
+      } else {
+        console.log('Content filter not available, using basic sanitization only');
+      }
     }
+
+    // Initialize content filter
+    initializeContentFilter();
 
     // XSS Protection Functions using DOMPurify
     function sanitizeHTML(dirty) {
@@ -1056,9 +1101,9 @@
 
     // Initialize authentication monitoring after Firebase is ready
     function startAuthMonitoring() {
-      if (!auth) {
-        console.log('Auth not ready, retrying in 100ms...');
-        setTimeout(startAuthMonitoring, 100);
+      if (!auth || !firebaseInitialized) {
+        console.log('Auth not ready, retrying in 200ms...');
+        setTimeout(startAuthMonitoring, 200);
         return;
       }
 
@@ -1082,10 +1127,12 @@
       auth.onAuthStateChanged(handleAuthStateChange);
       
       // Force initial check if user is already signed in
-      if (auth.currentUser) {
-        console.log('User already signed in on page load:', auth.currentUser.email);
-        handleAuthStateChange(auth.currentUser);
-      }
+      setTimeout(() => {
+        if (auth.currentUser) {
+          console.log('User already signed in on page load:', auth.currentUser.email);
+          handleAuthStateChange(auth.currentUser);
+        }
+      }, 100);
     }
 
     // Separate auth state handler for better management
@@ -1154,22 +1201,24 @@
       }
     });
 
-    // Start authentication monitoring
-    if (typeof firebase !== 'undefined') {
+    // Start authentication monitoring after Firebase is ready
+    function startForumAuthentication() {
+      // Wait for Firebase initialization
+      if (!firebaseInitialized) {
+        setTimeout(startForumAuthentication, 200);
+        return;
+      }
+      
       startAuthMonitoring();
+      
       // Initialize auth sync
       if (window.CarbonAuth) {
         window.CarbonAuth.initSync();
       }
-    } else {
-      // Wait for Firebase to load
-      document.addEventListener('DOMContentLoaded', () => {
-        startAuthMonitoring();
-        if (window.CarbonAuth) {
-          window.CarbonAuth.initSync();
-        }
-      });
     }
+
+    // Start the authentication process
+    setTimeout(startForumAuthentication, 100);
 
     // Close modals when clicking outside
     document.addEventListener('click', (e) => {
