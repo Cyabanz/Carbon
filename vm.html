@@ -1428,38 +1428,8 @@
       }
     }
 
-              async function validateSession(sessionInput) {
-       try {
-         // For Hyperbeam URLs, we can't validate them against our server
-         // since they're external sessions. Just do basic format validation.
-         
-         if (!sessionInput || sessionInput.length < 3) {
-           return false;
-         }
-         
-         // If it's a Hyperbeam URL, assume it's valid (we'll test it when connecting)
-         if (sessionInput.includes('hyperbeam.com') || sessionInput.includes('hyperbeam.dev')) {
-           console.log('Hyperbeam URL detected, skipping server validation');
-           return true;
-         }
-         
-         // For other URLs, also be permissive
-         if (sessionInput.startsWith('http')) {
-           console.log('HTTP URL detected, allowing through');
-           return true;
-         }
-         
-         // For session IDs, we can't validate them without a server endpoint
-         // so we'll be permissive and let the connection attempt handle validation
-         console.log('Session ID format detected, allowing through for connection test');
-         return true;
-         
-       } catch (error) {
-         console.error('Error validating session:', error);
-         // Be permissive if validation fails
-         return true;
-       }
-     }
+     // Removed validateSession function as it's no longer needed
+     // Session validation happens during the actual connection attempt
 
               async function joinSession(sessionInput) {
        try {
@@ -1728,10 +1698,16 @@ Try again in a few moments or ask the host to share a new session.`;
       const sessionParam = urlParams.get('session');
       
       if (sessionParam) {
+        console.log('Session parameter detected in URL:', sessionParam.substring(0, 8) + '...');
+        
         // Auto-open join modal with session ID pre-filled
         setTimeout(() => {
           showJoinModal();
         }, 1000);
+        
+        // Clear the URL parameter to avoid confusion
+        const newUrl = window.location.pathname;
+        window.history.replaceState({}, document.title, newUrl);
       }
     }
 
