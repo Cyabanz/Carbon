@@ -20,6 +20,9 @@
   <!-- Bad Words Filter Package -->
   <script src="https://cdn.jsdelivr.net/npm/bad-words@3.0.4/lib/badwords.js"></script>
   
+  <!-- Auth Synchronization Utility -->
+  <script src="auth-sync.js"></script>
+  
   <script>
     // Tailwind config with theme colors
     tailwind.config = {
@@ -534,32 +537,62 @@
       measurementId: "G-Y2K1RQYE74"
     };
 
-    // Initialize Firebase
-    document.addEventListener('DOMContentLoaded', function() {
+    // Initialize Firebase with proper app management
+    let app, auth, db;
+    
+    function initializeFirebase() {
       try {
-        if (typeof firebase !== 'undefined') {
-          firebase.initializeApp(firebaseConfig);
-          window.auth = firebase.auth();
-          window.db = firebase.firestore();
-        } else {
+        if (typeof firebase === 'undefined') {
           console.error('Firebase SDK not loaded');
+          return false;
         }
+
+        // Check if Firebase app already exists
+        try {
+          app = firebase.app();
+          console.log('Using existing Firebase app');
+        } catch (error) {
+          // App doesn't exist, create it
+          app = firebase.initializeApp(firebaseConfig);
+          console.log('Created new Firebase app');
+        }
+
+        // Get auth and firestore instances
+        auth = app.auth();
+        db = app.firestore();
+        
+        // Enable auth persistence (this should be set consistently across pages)
+        auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL)
+          .then(() => {
+            console.log('Auth persistence set to LOCAL');
+          })
+          .catch((error) => {
+            console.warn('Failed to set auth persistence:', error);
+          });
+        
+        // Set global references for compatibility
+        window.auth = auth;
+        window.db = db;
+        window.firebase = firebase;
+        
+        return true;
       } catch (error) {
         console.error('Error initializing Firebase:', error);
-      }
-    });
-
-    // Fallback initialization
-    if (typeof firebase !== 'undefined') {
-      try {
-        firebase.initializeApp(firebaseConfig);
-      } catch (error) {
-        // App might already be initialized
+        return false;
       }
     }
 
-    const auth = firebase.auth();
-    const db = firebase.firestore();
+    // Initialize immediately if Firebase is available
+    if (typeof firebase !== 'undefined') {
+      initializeFirebase();
+    }
+
+    // Also initialize on DOM ready as fallback
+    document.addEventListener('DOMContentLoaded', function() {
+      if (!auth || !db) {
+        initializeFirebase();
+      }
+    });
 
     // Global variables
     let currentUser = null;
@@ -606,13 +639,15 @@
 
     // AUTHENTICATION FUNCTIONS
     function googleSignIn() {
-      if (typeof firebase === 'undefined' || !firebase.auth) {
-        console.error('Firebase not loaded yet');
+      // Ensure Firebase is initialized
+      if (!auth && !initializeFirebase()) {
+        console.error('Firebase not initialized');
         return;
       }
-      const authInstance = window.auth || auth;
+      
+      const authInstance = auth || window.auth;
       if (!authInstance) {
-        console.error('Firebase Auth not initialized');
+        console.error('Firebase Auth not available');
         return;
       }
       
@@ -645,9 +680,15 @@
     }
 
     function signOut() {
-      const authInstance = window.auth || auth;
+      const authInstance = auth || window.auth;
       if (authInstance) {
-        authInstance.signOut().then(() => location.reload());
+        authInstance.signOut().then(() => {
+          // Clear local state
+          currentUser = null;
+          userRank = 'member';
+          // Reload to reset all UI
+          location.reload();
+        });
       }
     }
 
@@ -1013,55 +1054,122 @@
       }
     }
 
-    // Handle redirect result for COOP fallback
-    auth.getRedirectResult().then((result) => {
-      if (result.user) {
-        console.log('Successfully signed in via redirect');
+    // Initialize authentication monitoring after Firebase is ready
+    function startAuthMonitoring() {
+      if (!auth) {
+        console.log('Auth not ready, retrying in 100ms...');
+        setTimeout(startAuthMonitoring, 100);
+        return;
       }
-    }).catch((error) => {
-      console.error('Redirect sign-in error:', error);
-      const loginError = document.getElementById('loginError');
-      if (loginError) {
-        loginError.innerText = error.message;
-        loginError.classList.remove('hidden');
-      }
-    });
 
-    // AUTH STATE OBSERVER
-    auth.onAuthStateChanged(async (user) => {
+      console.log('Starting auth monitoring, current user:', auth.currentUser ? auth.currentUser.email : 'none');
+
+      // Handle redirect result for COOP fallback
+      auth.getRedirectResult().then((result) => {
+        if (result.user) {
+          console.log('Successfully signed in via redirect');
+        }
+      }).catch((error) => {
+        console.error('Redirect sign-in error:', error);
+        const loginError = document.getElementById('loginError');
+        if (loginError) {
+          loginError.innerText = error.message;
+          loginError.classList.remove('hidden');
+        }
+      });
+
+      // AUTH STATE OBSERVER
+      auth.onAuthStateChanged(handleAuthStateChange);
+      
+      // Force initial check if user is already signed in
+      if (auth.currentUser) {
+        console.log('User already signed in on page load:', auth.currentUser.email);
+        handleAuthStateChange(auth.currentUser);
+      }
+    }
+
+    // Separate auth state handler for better management
+    async function handleAuthStateChange(user) {
+      console.log('Auth state changed:', user ? `Signed in as ${user.email}` : 'Signed out');
+      
       if (user) {
         currentUser = user;
-        await ensureUserDoc(user);
-        userRank = await getUserRank(user.uid);
         
-        // Update UI based on user rank
-        const rankBadge = document.getElementById('userRank');
-        if (rankBadge) {
-          rankBadge.textContent = userRank;
-          rankBadge.className = `rank-badge rank-${userRank}`;
-        }
+        try {
+          await ensureUserDoc(user);
+          userRank = await getUserRank(user.uid);
+          console.log('User rank:', userRank);
+          
+          // Update UI based on user rank
+          const rankBadge = document.getElementById('userRank');
+          if (rankBadge) {
+            rankBadge.textContent = userRank;
+            rankBadge.className = `rank-badge rank-${userRank}`;
+          }
 
-        // Show create forum button for owners and admins
-        const createBtn = document.getElementById('createForumBtn');
-        if (createBtn && (userRank === 'owner' || userRank === 'admin')) {
-          createBtn.classList.remove('hidden');
-        }
+          // Show create forum button for owners and admins
+          const createBtn = document.getElementById('createForumBtn');
+          if (createBtn && (userRank === 'owner' || userRank === 'admin')) {
+            createBtn.classList.remove('hidden');
+          }
 
-        updateUserSection();
-        document.getElementById('loginScreen').classList.add('hidden');
-        document.getElementById('forumContent').classList.remove('hidden');
-        
-        // Load forum data
-        loadCategories();
-        loadForums();
-        setupSearchAndFilters();
+          updateUserSection();
+          document.getElementById('loginScreen').classList.add('hidden');
+          document.getElementById('forumContent').classList.remove('hidden');
+          
+          // Load forum data
+          loadCategories();
+          loadForums();
+          setupSearchAndFilters();
+          
+          console.log('Forum UI updated for authenticated user');
+        } catch (error) {
+          console.error('Error handling authenticated user:', error);
+        }
       } else {
+        console.log('User signed out, showing login screen');
         currentUser = null;
         userRank = 'member';
         document.getElementById('loginScreen').classList.remove('hidden');
         document.getElementById('forumContent').classList.add('hidden');
       }
+    }
+
+    // Initialize cross-tab auth synchronization
+    window.addEventListener('carbon_auth_sync', (e) => {
+      console.log('Received auth sync from another tab:', e.detail);
+      const authState = e.detail;
+      
+      if (authState.isAuthenticated && authState.user && !currentUser) {
+        console.log('Syncing login state from another tab');
+        // The onAuthStateChanged should handle this automatically
+        // but we can force a check if needed
+        if (auth && auth.currentUser) {
+          handleAuthStateChange(auth.currentUser);
+        }
+      } else if (!authState.isAuthenticated && currentUser) {
+        console.log('Syncing logout state from another tab');
+        // Force logout UI
+        handleAuthStateChange(null);
+      }
     });
+
+    // Start authentication monitoring
+    if (typeof firebase !== 'undefined') {
+      startAuthMonitoring();
+      // Initialize auth sync
+      if (window.CarbonAuth) {
+        window.CarbonAuth.initSync();
+      }
+    } else {
+      // Wait for Firebase to load
+      document.addEventListener('DOMContentLoaded', () => {
+        startAuthMonitoring();
+        if (window.CarbonAuth) {
+          window.CarbonAuth.initSync();
+        }
+      });
+    }
 
     // Close modals when clicking outside
     document.addEventListener('click', (e) => {
