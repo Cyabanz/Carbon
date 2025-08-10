@@ -1585,6 +1585,160 @@
       letter-spacing: 0.5px;
     }
 
+    /* XP Widget Styles */
+    .xp-widget {
+      background: linear-gradient(135deg, var(--theme-overlay), var(--theme-surface));
+      border: 1px solid var(--theme-highlight-med);
+      border-radius: 12px;
+      padding: 12px 16px;
+      margin-right: 12px;
+      min-width: 200px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    .xp-widget-content {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .xp-widget-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .xp-widget-level {
+      font-weight: 700;
+      color: var(--theme-foam);
+      font-size: 0.85rem;
+    }
+
+    .xp-widget-title {
+      font-size: 0.75rem;
+      color: var(--theme-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .xp-widget-progress {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .xp-widget-text {
+      font-size: 0.7rem;
+      color: var(--theme-muted);
+      text-align: center;
+    }
+
+    /* More prominent XP bars */
+    .xp-bar-container {
+      height: 10px;
+      border-radius: 8px;
+      background: var(--theme-overlay);
+      overflow: hidden;
+      border: 1px solid var(--theme-highlight-med);
+    }
+
+    .xp-bar {
+      height: 100%;
+      background: linear-gradient(90deg, var(--theme-foam), var(--theme-iris), var(--theme-gold));
+      border-radius: 8px;
+      transition: width 0.5s ease;
+      position: relative;
+      box-shadow: 0 0 10px rgba(156, 207, 216, 0.3);
+    }
+
+    .xp-bar::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 50%;
+      background: linear-gradient(180deg, rgba(255,255,255,0.3), transparent);
+      border-radius: 8px 8px 0 0;
+    }
+
+    /* Larger, more visible level badges */
+    .level-badge {
+      font-size: 0.85rem;
+      padding: 4px 10px;
+      border-radius: 16px;
+      box-shadow: 0 3px 8px rgba(231, 180, 0, 0.4);
+      text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+    }
+
+    .level-badge.prestige {
+      box-shadow: 0 3px 8px rgba(196, 167, 231, 0.5);
+      animation: prestigeGlow 2s ease-in-out infinite alternate;
+    }
+
+    @keyframes prestigeGlow {
+      0% { box-shadow: 0 3px 8px rgba(196, 167, 231, 0.5); }
+      100% { box-shadow: 0 3px 12px rgba(196, 167, 231, 0.8), 0 0 20px rgba(196, 167, 231, 0.3); }
+    }
+
+    /* XP reward popup - make larger and more visible */
+    .xp-reward-popup {
+      background: linear-gradient(135deg, var(--theme-foam), var(--theme-gold));
+      color: white;
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 0.9rem;
+      font-weight: 700;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+      box-shadow: 0 4px 12px rgba(156, 207, 216, 0.4);
+      animation: xpRewardFloat 2s ease-out forwards;
+    }
+
+    @keyframes xpRewardFloat {
+      0% { 
+        opacity: 1; 
+        transform: translateY(0) scale(1);
+      }
+      20% {
+        transform: translateY(-10px) scale(1.1);
+      }
+      100% { 
+        opacity: 0; 
+        transform: translateY(-40px) scale(0.9);
+      }
+    }
+
+    /* Level up notification - make even more dramatic */
+    .level-up-notification {
+      min-width: 400px;
+      padding: 30px 40px;
+      background: linear-gradient(135deg, var(--theme-foam), var(--theme-iris), var(--theme-gold));
+      box-shadow: 0 12px 40px rgba(0,0,0,0.4);
+      border: 3px solid rgba(255,255,255,0.3);
+    }
+
+    .level-up-notification.show {
+      animation: levelUpPop 1.2s ease-out;
+    }
+
+    @keyframes levelUpPop {
+      0% { 
+        transform: translate(-50%, -50%) scale(0.7) rotate(-5deg); 
+        opacity: 0; 
+      }
+      15% { 
+        transform: translate(-50%, -50%) scale(1.15) rotate(2deg); 
+        opacity: 1; 
+      }
+      30% { 
+        transform: translate(-50%, -50%) scale(0.95) rotate(-1deg); 
+      }
+      100% { 
+        transform: translate(-50%, -50%) scale(1) rotate(0deg); 
+        opacity: 1; 
+      }
+    }
+
     /* Forum sharing styles */
     .forum-share-btn {
       background: var(--theme-overlay);
@@ -2208,6 +2362,22 @@
           </div>
         </div>
         <div class="flex items-center gap-3">
+          <div id="xpWidget" class="xp-widget hidden">
+            <div class="xp-widget-content">
+              <div class="xp-widget-header">
+                <span class="xp-widget-level">Level <span id="headerLevel">1</span></span>
+                <span class="xp-widget-title" id="headerLevelTitle">Newcomer</span>
+              </div>
+              <div class="xp-widget-progress">
+                <div class="xp-bar-container">
+                  <div class="xp-bar" id="headerXPBar" style="width: 0%"></div>
+                </div>
+                <div class="xp-widget-text">
+                  <span id="headerCurrentXP">0</span> / <span id="headerNextLevelXP">100</span> XP
+                </div>
+              </div>
+            </div>
+          </div>
           <span id="userRank" class="rank-badge rank-member hidden">Guest</span>
           <button id="createForumBtn" class="btn-primary hidden" onclick="showCreateForumModal()">
             <i class='bx bx-plus mr-2'></i>
@@ -2440,10 +2610,16 @@
                 <i class='bx bx-brain'></i>
                 Ask AI
               </button>
-              <button type="submit" class="btn-primary">
-                <i class='bx bx-send mr-2'></i>
-                Post
-              </button>
+              <div class="flex items-center gap-3">
+                <div class="xp-reward-preview" style="font-size: 0.8rem; color: var(--theme-foam); display: flex; align-items: center; gap: 4px; background: rgba(156, 207, 216, 0.1); padding: 4px 8px; border-radius: 8px;">
+                  <i class='bx bx-plus-circle'></i>
+                  <span>+15 XP for posting</span>
+                </div>
+                <button type="submit" class="btn-primary">
+                  <i class='bx bx-send mr-2'></i>
+                  Post
+                </button>
+              </div>
             </div>
           </div>
         </form>
@@ -3662,7 +3838,11 @@ ${post.isAiPost ?
                     `<a href="#" class="user-link level-${post.authorLevelTier || 'novice'}" onclick="showUserProfile('${post.authorId}', '${sanitizeText(post.authorName)}', '${post.authorRank || 'member'}', '${post.authorPhotoURL || ''}', event)">${sanitizeText(post.authorName)}</a>`
                   }
                   <span class="rank-badge rank-${post.authorRank || 'member'}">${post.authorRank || 'member'}</span>
-                  ${!post.isAiPost && post.authorLevel ? `<span class="level-badge ${post.authorLevel >= 15 ? 'prestige' : ''}" title="${post.authorLevelTitle || 'Level ' + post.authorLevel}"><i class='bx bx-trophy'></i>Lv.${post.authorLevel}</span>` : ''}
+                  ${!post.isAiPost && post.authorLevel ? `
+                    <span class="level-badge ${post.authorLevel >= 15 ? 'prestige' : ''}" title="${post.authorLevelTitle || 'Level ' + post.authorLevel}" style="margin-left: 8px; font-size: 0.85rem; padding: 4px 10px;">
+                      <i class='bx bx-trophy' style="margin-right: 4px;"></i>Lv.${post.authorLevel}
+                    </span>
+                  ` : ''}
                 ${post.isAiPost ? `<span class="ai-post-indicator"><i class='bx bx-brain'></i>AI</span>` : ''}
               </div>
               <span class="text-sm text-rp-muted">
@@ -4171,12 +4351,37 @@ ${post.isAiPost ?
           console.error('Error initializing presence:', error);
         }
         
-        // Show authenticated user UI
+        // Get user XP data for header display
+        const userDoc = await db.collection('users').doc(currentUser.uid).get();
+        const userData = userDoc.data() || {};
+        const currentXP = userData.xp || 0;
+        const levelData = calculateLevel(currentXP);
+        const progress = formatXPProgress(currentXP, levelData);
+
+        // Show authenticated user UI with XP display
         userSection.innerHTML = `
           <div class="flex items-center gap-3">
             <img src="${currentUser.photoURL || 'https://via.placeholder.com/32'}" alt="Profile" class="w-8 h-8 rounded-full">
-            <span class="text-rp-text font-medium hidden md:block">${sanitizeText(currentUser.displayName || 'User')}</span>
-            <span class="rank-badge rank-${userRank}">${userRank}</span>
+            <div class="hidden md:block">
+              <div class="flex items-center gap-2">
+                <span class="text-rp-text font-medium">${sanitizeText(currentUser.displayName || 'User')}</span>
+                <span class="rank-badge rank-${userRank}">${userRank}</span>
+                <span class="level-badge ${levelData.level >= 15 ? 'prestige' : ''}" title="${levelData.title}">
+                  <i class='bx bx-trophy'></i>Lv.${levelData.level}
+                </span>
+              </div>
+              <div class="xp-display mt-1">
+                <div class="xp-bar-container" style="width: 120px; height: 6px;">
+                  <div class="xp-bar" style="width: ${progress.percentage}%"></div>
+                </div>
+                <div class="xp-text" style="font-size: 0.65rem;">${currentXP} XP</div>
+              </div>
+            </div>
+            <div class="md:hidden flex items-center gap-1">
+              <span class="level-badge ${levelData.level >= 15 ? 'prestige' : ''}" title="${levelData.title}">
+                <i class='bx bx-trophy'></i>${levelData.level}
+              </span>
+            </div>
             <button onclick="signOut()" class="text-rp-muted hover:text-rp-text">
               <i class='bx bx-log-out text-xl'></i>
             </button>
@@ -4195,6 +4400,9 @@ ${post.isAiPost ?
         if (createBtn) {
           createBtn.classList.remove('hidden');
         }
+        
+        // Update XP widget with current user data
+        setTimeout(() => updateXPWidget(), 300);
         
         // Show post form in forums
         const guestMessage = document.getElementById('guestPostMessage');
@@ -4319,8 +4527,11 @@ ${post.isAiPost ?
           userRank = await getUserRank(user.uid);
           console.log('User rank:', userRank);
           
-          // Initialize XP system for user
-          await initializeUserXP(user.uid);
+                  // Initialize XP system for user
+        await initializeUserXP(user.uid);
+        
+        // Check for daily login bonus
+        await checkDailyLoginBonus(user.uid);
           
           updateUserSection();
           
@@ -6934,20 +7145,25 @@ What are your thoughts on this?`;
             lastXPGain: firebase.firestore.FieldValue.serverTimestamp()
           });
 
-          // Show XP reward popup
-          if (element && userId === currentUser?.uid) {
-            showXPReward(element, amount, reason);
-          }
+                   // Show XP reward popup
+         if (element && userId === currentUser?.uid) {
+           showXPReward(element, amount, reason);
+         }
 
-          // Check for level up
-          if (newLevel.level > currentLevel.level && userId === currentUser?.uid) {
-            showLevelUpNotification(newLevel);
-            
-            // Award level up bonus
-            setTimeout(async () => {
-              await awardXP(userId, XP_REWARDS.LEVEL_UP_BONUS, 'Level Up Bonus');
-            }, 2000);
-          }
+         // Update XP widget
+         if (userId === currentUser?.uid) {
+           setTimeout(() => updateXPWidget(), 200);
+         }
+
+         // Check for level up
+         if (newLevel.level > currentLevel.level && userId === currentUser?.uid) {
+           showLevelUpNotification(newLevel);
+           
+           // Award level up bonus
+           setTimeout(async () => {
+             await awardXP(userId, XP_REWARDS.LEVEL_UP_BONUS, 'Level Up Bonus');
+           }, 2000);
+         }
 
           console.log(`Awarded ${amount} XP to ${userId} for ${reason}. New total: ${newXP} XP (Level ${newLevel.level})`);
           
@@ -7048,18 +7264,53 @@ What are your thoughts on this?`;
           if (userDoc.exists) {
             const userData = userDoc.data();
             if (userData.xp === undefined) {
-              // Initialize XP for existing user
+              // Initialize XP for existing user with starting bonus
               const levelData = LEVEL_THRESHOLDS[0];
               await userRef.update({
-                xp: 0,
+                xp: 50, // Give starting XP to make system visible
                 level: levelData.level,
                 levelTitle: levelData.title,
                 levelTier: levelData.tier
               });
+              
+              // Show welcome XP notification
+              setTimeout(() => {
+                showXPReward(document.querySelector('.user-section') || document.body, 50, 'Welcome Bonus');
+              }, 1000);
             }
           }
         } catch (error) {
           console.error('Error initializing user XP:', error);
+        }
+      }
+
+      // Daily login bonus system
+      async function checkDailyLoginBonus(userId) {
+        try {
+          const userRef = db.collection('users').doc(userId);
+          const userDoc = await userRef.get();
+          
+          if (userDoc.exists) {
+            const userData = userDoc.data();
+            const lastLogin = userData.lastLoginDate ? userData.lastLoginDate.toDate() : null;
+            const today = new Date();
+            const todayStr = today.toDateString();
+            
+            // Check if user hasn't logged in today
+            if (!lastLogin || lastLogin.toDateString() !== todayStr) {
+              // Award daily login bonus
+              await userRef.update({
+                lastLoginDate: firebase.firestore.FieldValue.serverTimestamp()
+              });
+              
+              // Show daily bonus after a short delay
+              setTimeout(async () => {
+                await awardXP(userId, XP_REWARDS.DAILY_LOGIN, 'Daily Login Bonus', document.querySelector('#xpWidget'));
+              }, 2000);
+            }
+          }
+        } catch (error) {
+          console.error('Error checking daily login bonus:', error);
         }
       }
 
@@ -7080,6 +7331,80 @@ What are your thoughts on this?`;
         if (currentUser) {
           await awardXP(currentUser.uid, XP_REWARDS.FORUM_CREATED, 'Forum Created', forumElement);
         }
+      }
+
+      // Update XP widget display
+      async function updateXPWidget(userId = null) {
+        if (!userId && !currentUser) return;
+        
+        const targetUserId = userId || currentUser.uid;
+        
+        try {
+          const userDoc = await db.collection('users').doc(targetUserId).get();
+          const userData = userDoc.data() || {};
+          const currentXP = userData.xp || 0;
+          const levelData = calculateLevel(currentXP);
+          const progress = formatXPProgress(currentXP, levelData);
+          const nextLevel = getNextLevel(levelData.level);
+          
+          // Update header elements
+          const headerLevel = document.getElementById('headerLevel');
+          const headerLevelTitle = document.getElementById('headerLevelTitle');
+          const headerXPBar = document.getElementById('headerXPBar');
+          const headerCurrentXP = document.getElementById('headerCurrentXP');
+          const headerNextLevelXP = document.getElementById('headerNextLevelXP');
+          
+          if (headerLevel) headerLevel.textContent = levelData.level;
+          if (headerLevelTitle) headerLevelTitle.textContent = levelData.title;
+          if (headerXPBar) {
+            headerXPBar.style.width = progress.percentage + '%';
+            // Add level-up animation
+            if (progress.percentage === 100 && nextLevel) {
+              headerXPBar.classList.add('leveling-up');
+              setTimeout(() => headerXPBar.classList.remove('leveling-up'), 500);
+            }
+          }
+          if (headerCurrentXP) headerCurrentXP.textContent = progress.current;
+          if (headerNextLevelXP) headerNextLevelXP.textContent = progress.needed;
+          
+          // Show XP widget for authenticated users
+          const xpWidget = document.getElementById('xpWidget');
+          if (xpWidget && targetUserId === currentUser?.uid) {
+            xpWidget.classList.remove('hidden');
+          }
+          
+        } catch (error) {
+          console.error('Error updating XP widget:', error);
+        }
+      }
+
+      // Enhanced XP reward function with bigger popups
+      function showXPReward(element, amount, reason) {
+        const rect = element.getBoundingClientRect();
+        const popup = document.createElement('div');
+        popup.className = 'xp-reward-popup';
+        popup.innerHTML = `
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <i class='bx bx-plus-circle'></i>
+            <span>${amount} XP</span>
+          </div>
+          <div style="font-size: 0.7rem; opacity: 0.9;">${reason}</div>
+        `;
+        
+        popup.style.position = 'fixed';
+        popup.style.left = (rect.left + rect.width / 2) + 'px';
+        popup.style.top = (rect.top - 20) + 'px';
+        popup.style.transform = 'translateX(-50%)';
+        popup.style.zIndex = '9999';
+        
+        document.body.appendChild(popup);
+        
+        // Update XP widget after showing reward
+        setTimeout(() => updateXPWidget(), 100);
+        
+        setTimeout(() => {
+          popup.remove();
+        }, 2000);
       }
 
     // Real-time presence tracking with Firebase
