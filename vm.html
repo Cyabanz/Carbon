@@ -590,6 +590,17 @@
         Share this session with others to collaborate in real-time. Anyone with the link can join your session.
       </p>
       
+      <div style="background: rgba(246, 193, 119, 0.1); border: 1px solid var(--theme-gold); border-radius: 8px; padding: 1rem; margin-bottom: 1.5rem;">
+        <div style="display: flex; align-items: center; gap: 0.5rem; color: var(--theme-gold); font-weight: 500; margin-bottom: 0.5rem;">
+          <i class='bx bx-time'></i>
+          Session Expiration Notice
+        </div>
+        <div style="color: var(--theme-text); font-size: 0.9rem;">
+          This session will expire in <strong>4 minutes</strong> or after <strong>30 seconds</strong> of inactivity. 
+          Participants who try to join an expired session will see an error message. You'll need to create a new session and share a new link if this one expires.
+        </div>
+      </div>
+      
       <div class="share-link-container">
         <label style="display: block; margin-bottom: 0.5rem; color: var(--theme-text); font-weight: 500;">
           Session Link
@@ -654,10 +665,17 @@
         <input type="text" id="joinSessionInput" class="join-input" 
                placeholder="Paste the complete Hyperbeam session URL..." 
                onkeydown="handleJoinInputKeydown(event)">
-        <button id="joinSessionBtn" class="join-btn" onclick="joinSharedSession()">
-          <i class='bx bx-log-in-circle'></i>
-          <span id="joinBtnText">Join Session</span>
-        </button>
+                 <div style="display: flex; gap: 0.5rem;">
+           <button id="joinSessionBtn" class="join-btn" onclick="joinSharedSession()">
+             <i class='bx bx-log-in-circle'></i>
+             <span id="joinBtnText">Join Session</span>
+           </button>
+           <button id="checkSessionBtn" class="join-btn" onclick="checkSessionStatus()" 
+                   style="background: linear-gradient(135deg, var(--theme-pine), #2d5a6b);">
+             <i class='bx bx-search-alt'></i>
+             <span id="checkBtnText">Check Status</span>
+           </button>
+         </div>
       </div>
       
       <div style="background: var(--theme-overlay); border-radius: 8px; padding: 1rem; margin-top: 1rem;">
@@ -1470,6 +1488,19 @@ To start your own session, click "Create New Session" instead.`);
          
          setStatus("Connecting to shared session...", "info");
          
+         // Test if the session URL is still valid before attempting to connect
+         try {
+           // Try to fetch the session URL to check if it's still active
+           const testResponse = await fetch(sessionUrl, { 
+             method: 'HEAD',
+             mode: 'no-cors'
+           }).catch(() => null);
+           
+           console.log('Session URL test completed');
+         } catch (testError) {
+           console.warn('Could not pre-validate session URL:', testError);
+         }
+         
          hyperbeamSession = await window.hyperbeam(container, sessionUrl, {
            timeout: 15000
          });
@@ -1501,10 +1532,50 @@ To start your own session, click "Create New Session" instead.`);
          
        } catch (error) {
          console.error('Error joining session:', error);
+         
          // Clean up on error
          const container = document.getElementById('hb-container');
          container.classList.add('hidden');
-         throw error;
+         
+         // Provide more specific error messages based on the error type
+         let userFriendlyMessage = error.message;
+         
+         if (error.message.includes('Failed to load') || error.message.includes('session has terminated')) {
+           userFriendlyMessage = `The session has expired or terminated.
+
+This can happen when:
+• The session reached its 4-minute time limit
+• The host terminated the session
+• The session was inactive for too long
+• The session URL is no longer valid
+
+Try asking the host to:
+1. Create a new session
+2. Share the new session URL
+3. Or start your own session with "Create New Session"`;
+         } else if (error.message.includes('network') || error.message.includes('fetch')) {
+           userFriendlyMessage = `Network connection failed.
+
+Please check:
+• Your internet connection
+• The session URL is correct
+• The host's session is still active
+
+Try refreshing the page and attempting to join again.`;
+         } else if (error.message.includes('timeout')) {
+           userFriendlyMessage = `Connection timed out.
+
+The session may be:
+• Overloaded with participants
+• Experiencing network issues
+• No longer available
+
+Try again in a few moments or ask the host to share a new session.`;
+         }
+         
+         const enhancedError = new Error(userFriendlyMessage);
+         enhancedError.originalError = error;
+         throw enhancedError;
        }
      }
 
@@ -1555,10 +1626,91 @@ To start your own session, click "Create New Session" instead.`);
       }
     }
 
-    function removeParticipant(id) {
-      participants.delete(id);
-      updateParticipantsList();
-    }
+         function removeParticipant(id) {
+       participants.delete(id);
+       updateParticipantsList();
+     }
+
+     async function checkSessionStatus() {
+       const input = document.getElementById('joinSessionInput');
+       const checkBtn = document.getElementById('checkSessionBtn');
+       const checkBtnText = document.getElementById('checkBtnText');
+       
+       let sessionInput = input.value.trim();
+       
+       if (!sessionInput) {
+         setStatus("Please enter a session URL to check.", "error");
+         return;
+       }
+       
+       // Extract session URL like in joinSharedSession
+       if (sessionInput.includes('session=')) {
+         try {
+           const url = new URL(sessionInput.startsWith('http') ? sessionInput : `https://${sessionInput}`);
+           sessionInput = url.searchParams.get('session') || sessionInput;
+         } catch {
+           const match = sessionInput.match(/session=([^&]+)/);
+           if (match) {
+             sessionInput = match[1];
+           }
+         }
+       }
+       
+       checkBtn.disabled = true;
+       checkBtnText.textContent = 'Checking...';
+       
+       try {
+         let sessionUrl;
+         
+         if (sessionInput.includes('hyperbeam.com') || sessionInput.includes('hyperbeam.dev')) {
+           sessionUrl = sessionInput;
+         } else if (sessionInput.startsWith('http')) {
+           sessionUrl = sessionInput;
+         } else {
+           setStatus("Cannot check status - need complete Hyperbeam URL", "error");
+           return;
+         }
+         
+         // Try to create a temporary connection to test the session
+         const tempContainer = document.createElement('div');
+         tempContainer.style.display = 'none';
+         document.body.appendChild(tempContainer);
+         
+         try {
+           setStatus("Testing session connection...", "info");
+           
+           const testSession = await window.hyperbeam(tempContainer, sessionUrl, {
+             timeout: 5000
+           });
+           
+           // If we get here, the session is active
+           setStatus("✅ Session is active and available to join!", "success");
+           
+           // Clean up test session
+           if (testSession && testSession.destroy) {
+             testSession.destroy();
+           }
+           
+         } catch (testError) {
+           if (testError.message.includes('Failed to load') || testError.message.includes('terminated')) {
+             setStatus("❌ Session has expired or terminated. Ask the host for a new session.", "error");
+           } else if (testError.message.includes('timeout')) {
+             setStatus("⚠️ Session response is slow - it may be overloaded or having issues.", "error");
+           } else {
+             setStatus(`❌ Session check failed: ${testError.message}`, "error");
+           }
+         } finally {
+           // Clean up temp container
+           document.body.removeChild(tempContainer);
+         }
+         
+       } catch (error) {
+         setStatus(`Error checking session: ${error.message}`, "error");
+       } finally {
+         checkBtn.disabled = false;
+         checkBtnText.textContent = 'Check Status';
+       }
+     }
 
     // Check for session parameter in URL on page load
     function checkForSessionParameter() {
