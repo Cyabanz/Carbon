@@ -57,15 +57,28 @@
   <script src="https://unpkg.com/unicode-emoji-json@0.4.0/data-by-group.json" type="application/json" id="emojiData"></script>
   <script>
     // Initialize emoji support after emoji-js loads
+    let emojiConverterRetries = 0;
+    const maxEmojiConverterRetries = 50; // Max 5 seconds
+    
     function initializeEmojiConverter() {
       if (typeof EmojiConvertor !== 'undefined') {
         window.emojiConverter = new EmojiConvertor();
         window.emojiConverter.replace_mode = 'unified';
         window.emojiConverter.allow_native = true;
         console.log('Emoji converter initialized');
-      } else {
-        console.warn('EmojiConvertor not available, retrying in 100ms');
+      } else if (emojiConverterRetries < maxEmojiConverterRetries) {
+        emojiConverterRetries++;
+        console.warn(`EmojiConvertor not available, retrying in 100ms (${emojiConverterRetries}/${maxEmojiConverterRetries})`);
         setTimeout(initializeEmojiConverter, 100);
+      } else {
+        console.error('EmojiConvertor failed to load after maximum retries. Emoji reactions may not work properly.');
+        // Create a fallback emoji converter
+        window.emojiConverter = {
+          replace_mode: 'unified',
+          allow_native: true,
+          replace_colons: function(text) { return text; },
+          replace_unified: function(text) { return text; }
+        };
       }
     }
     
@@ -4337,7 +4350,7 @@ ${post.isAiPost ?
       return date.toLocaleDateString();
     }
 
-    function updateUserSection() {
+    async function updateUserSection() {
       const userSection = document.getElementById('userSection');
       const signInBtn = document.getElementById('signInBtn');
       const userRankBadge = document.getElementById('userRank');
@@ -4533,7 +4546,7 @@ ${post.isAiPost ?
         // Check for daily login bonus
         await checkDailyLoginBonus(user.uid);
           
-          updateUserSection();
+          await updateUserSection();
           
           console.log('Forum UI updated for authenticated user');
         } catch (error) {
@@ -4541,7 +4554,7 @@ ${post.isAiPost ?
           
           // Still try to show basic UI even if some initialization fails
           try {
-            updateUserSection();
+            await updateUserSection();
           } catch (uiError) {
             console.error('Error updating UI:', uiError);
           }
@@ -4550,7 +4563,7 @@ ${post.isAiPost ?
         console.log('Browsing as guest');
         currentUser = null;
         userRank = 'guest';
-        updateUserSection();
+        await updateUserSection();
       }
       
       // Always show forum content (both for guests and authenticated users)
@@ -7604,7 +7617,10 @@ What are your thoughts on this?`;
       loadCategories();
       loadForums();
       setupSearchAndFilters();
-      updateUserSection(); // Initialize guest UI
+      // Initialize guest UI
+      updateUserSection().catch(error => {
+        console.error('Error initializing guest UI:', error);
+      });
       initializeForumEnhancements();
       setupFormattingShortcuts();
       
