@@ -476,6 +476,60 @@
     <div class="space-y-6" id="forumsContainer">
       <!-- Forums will be loaded dynamically -->
     </div>
+
+    <!-- Friends & Chat Sidebar -->
+    <div id="friendsChatSidebar" class="fixed right-6 top-24 w-80 max-h-[calc(100vh-8rem)] bg-rp-surface rounded-xl border border-rp-overlay shadow-xl backdrop-blur-sm z-30 hidden">
+      <!-- Friends List Header -->
+      <div class="flex items-center justify-between p-4 border-b border-rp-overlay">
+        <h3 class="text-lg font-semibold text-rp-text flex items-center gap-2">
+          <i class='bx bx-group text-rp-foam'></i>
+          Friends
+        </h3>
+        <div class="flex items-center gap-2">
+          <button id="addFriendsBtn" class="p-2 text-rp-subtle hover:text-rp-foam hover:bg-rp-overlay/50 rounded-lg transition-all duration-200" title="Add Friends">
+            <i class='bx bx-user-plus text-lg'></i>
+          </button>
+          <button id="closeFriendsSidebarBtn" class="p-2 text-rp-subtle hover:text-rp-love hover:bg-rp-love/10 rounded-lg transition-all duration-200">
+            <i class='bx bx-x text-lg'></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Online Friends List -->
+      <div class="p-4 max-h-60 overflow-y-auto">
+        <h4 class="text-sm font-medium text-rp-text mb-3 flex items-center gap-2">
+          <i class='bx bx-wifi text-rp-pine'></i>
+          Online Now
+        </h4>
+        <div id="onlineFriendsListForum" class="space-y-2">
+          <!-- Online friends will be populated here -->
+        </div>
+        <div id="noOnlineFriendsForum" class="text-rp-subtle text-sm text-center py-4">No friends online</div>
+      </div>
+
+      <!-- All Friends List -->
+      <div class="p-4 border-t border-rp-overlay max-h-60 overflow-y-auto">
+        <h4 class="text-sm font-medium text-rp-text mb-3 flex items-center gap-2">
+          <i class='bx bx-user text-rp-foam'></i>
+          All Friends
+        </h4>
+        <div id="allFriendsListForum" class="space-y-2">
+          <!-- All friends will be populated here -->
+        </div>
+        <div id="noFriendsForum" class="text-rp-subtle text-sm text-center py-4">
+          <i class='bx bx-user-circle text-2xl mb-2 block'></i>
+          No friends yet
+          <button onclick="showAddFriendsModal()" class="block mx-auto mt-2 px-3 py-1 bg-rp-foam/20 text-rp-foam rounded-lg hover:bg-rp-foam/30 transition-colors text-xs">
+            Add Friends
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Friends Sidebar Toggle Button -->
+    <button id="friendsSidebarToggle" class="fixed right-6 bottom-6 w-14 h-14 bg-rp-foam hover:bg-rp-foam/90 text-rp-base rounded-full shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center z-20 hidden">
+      <i class='bx bx-group text-xl'></i>
+    </button>
   </main>
 
   <!-- Create Forum Modal -->
@@ -566,6 +620,94 @@
     </div>
   </div>
 
+  <!-- Chat Modal -->
+  <div id="chatModal" class="modal">
+    <div class="modal-content" style="max-width: 600px; max-height: 80vh;">
+      <!-- Chat Header -->
+      <div class="flex items-center justify-between mb-4 pb-4 border-b border-rp-overlay">
+        <div class="flex items-center gap-3">
+          <img id="chatFriendAvatar" src="" alt="Avatar" class="w-10 h-10 rounded-full object-cover">
+          <div>
+            <h3 class="text-lg font-semibold text-rp-text">Chat with <span id="chatFriendName" class="text-rp-foam">Friend</span></h3>
+            <p class="text-xs text-rp-subtle">Real-time messaging</p>
+          </div>
+        </div>
+        <button onclick="hideChatModal()" class="text-rp-muted hover:text-rp-text">
+          <i class='bx bx-x text-2xl'></i>
+        </button>
+      </div>
+      
+      <!-- Chat Messages Area -->
+      <div id="chatMessages" class="h-64 overflow-y-auto p-4 space-y-3 bg-rp-overlay/20 rounded-lg mb-4">
+        <!-- Chat messages will be populated here -->
+        <div id="chatPlaceholder" class="text-center text-rp-subtle text-sm py-8">
+          <i class='bx bx-message-dots text-2xl mb-2 block'></i>
+          Start a conversation with <span id="chatFriendNamePlaceholder" class="text-rp-foam">your friend</span>
+        </div>
+      </div>
+      
+      <!-- Chat Input Area -->
+      <div class="flex gap-3 items-end">
+        <div class="flex-1 relative">
+          <input id="chatInput" type="text" maxlength="500" placeholder="Type your message..." 
+                 class="w-full px-4 py-3 bg-rp-overlay border border-rp-highlight-med rounded-lg text-rp-text placeholder-rp-subtle focus:outline-none focus:ring-2 focus:ring-rp-foam/50 focus:border-rp-foam transition-all duration-200">
+          <div class="absolute right-3 top-1/2 transform -translate-y-1/2 text-xs text-rp-subtle">
+            <span id="charCount">0</span>/500
+          </div>
+        </div>
+        <button id="sendMessageBtn" class="w-12 h-12 bg-rp-foam hover:bg-rp-foam/90 text-rp-base rounded-lg transition-all duration-200 flex items-center justify-center">
+          <i class='bx bx-send text-lg'></i>
+        </button>
+      </div>
+      <div class="flex items-center justify-between mt-2 text-xs text-rp-subtle">
+        <span>Press Enter to send</span>
+        <span id="typingIndicator" class="hidden">Friend is typing...</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Friends Modal -->
+  <div id="addFriendsModal" class="modal">
+    <div class="modal-content" style="max-width: 500px;">
+      <div class="flex items-center justify-between mb-6">
+        <h2 class="text-heading text-rp-text">Add Friends</h2>
+        <button onclick="hideAddFriendsModal()" class="text-rp-muted hover:text-rp-text">
+          <i class='bx bx-x text-2xl'></i>
+        </button>
+      </div>
+      
+      <!-- Search Users -->
+      <div class="mb-6">
+        <label class="block text-rp-text font-medium mb-2">Find Users</label>
+        <div class="relative">
+          <input type="text" id="userSearchInput" class="w-full px-4 py-3 pl-12 bg-rp-overlay border border-rp-highlight-med rounded-lg text-rp-text placeholder-rp-subtle focus:outline-none focus:ring-2 focus:ring-rp-foam/50" placeholder="Search by username or email...">
+          <i class='bx bx-search absolute left-4 top-1/2 transform -translate-y-1/2 text-rp-muted'></i>
+        </div>
+      </div>
+      
+      <!-- Search Results -->
+      <div id="userSearchResults" class="space-y-3 max-h-60 overflow-y-auto">
+        <div id="searchPlaceholder" class="text-center text-rp-subtle py-8">
+          <i class='bx bx-search text-3xl mb-2 block'></i>
+          <p>Search for users to add as friends</p>
+        </div>
+      </div>
+      
+      <!-- Friend Requests -->
+      <div id="friendRequestsSection" class="mt-6 pt-6 border-t border-rp-overlay">
+        <h3 class="text-lg font-medium text-rp-text mb-4 flex items-center gap-2">
+          <i class='bx bx-user-plus text-rp-iris'></i>
+          Friend Requests
+        </h3>
+        <div id="friendRequestsList" class="space-y-3">
+          <div id="noRequests" class="text-center text-rp-subtle py-4">
+            No pending friend requests
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script>
     // FIREBASE CONFIGURATION
     const firebaseConfig = {
@@ -647,6 +789,10 @@
     let userRank = 'member';
     let currentForumId = null;
     let badWordsFilter = null;
+    let activeChatUser = null;
+    let friendsList = [];
+    let onlineFriends = [];
+    let chatUnsubscribe = null;
 
     // Initialize content filter when available
     function initializeContentFilter() {
@@ -768,7 +914,15 @@
           lastSeen: firebase.firestore.FieldValue.serverTimestamp(),
           status: "online",
           forumPosts: 0,
-          reputation: 0
+          reputation: 0,
+          friends: [],
+          blockedUsers: []
+        });
+      } else {
+        // Update last seen and status for existing users
+        await userRef.update({
+          lastSeen: firebase.firestore.FieldValue.serverTimestamp(),
+          status: "online"
         });
       }
     }
@@ -1103,6 +1257,47 @@
       document.getElementById('loginPrompt').classList.add('hidden');
     }
 
+    function showAddFriendsModal() {
+      if (!currentUser) {
+        showLoginPrompt();
+        return;
+      }
+      document.getElementById('addFriendsModal').classList.add('show');
+      loadFriendRequests();
+    }
+
+    function hideAddFriendsModal() {
+      document.getElementById('addFriendsModal').classList.remove('show');
+      document.getElementById('userSearchInput').value = '';
+      document.getElementById('userSearchResults').innerHTML = '<div id="searchPlaceholder" class="text-center text-rp-subtle py-8"><i class="bx bx-search text-3xl mb-2 block"></i><p>Search for users to add as friends</p></div>';
+    }
+
+    function showChatModal(user) {
+      if (!currentUser) {
+        showLoginPrompt();
+        return;
+      }
+      
+      activeChatUser = user;
+      document.getElementById('chatFriendName').textContent = user.displayName || 'Friend';
+      document.getElementById('chatFriendNamePlaceholder').textContent = user.displayName || 'Friend';
+      document.getElementById('chatFriendAvatar').src = user.photoURL || 'https://via.placeholder.com/40';
+      document.getElementById('chatModal').classList.add('show');
+      
+      loadChatMessages(user.uid);
+    }
+
+    function hideChatModal() {
+      document.getElementById('chatModal').classList.remove('show');
+      if (chatUnsubscribe) {
+        chatUnsubscribe();
+        chatUnsubscribe = null;
+      }
+      activeChatUser = null;
+      document.getElementById('chatInput').value = '';
+      document.getElementById('charCount').textContent = '0';
+    }
+
     // UTILITY FUNCTIONS
     function formatDate(timestamp) {
       if (!timestamp) return 'Just now';
@@ -1158,6 +1353,13 @@
         if (guestMessage) guestMessage.classList.add('hidden');
         if (postForm) postForm.classList.remove('hidden');
         
+        // Show friends toggle button
+        const friendsToggle = document.getElementById('friendsSidebarToggle');
+        if (friendsToggle) friendsToggle.classList.remove('hidden');
+        
+        // Load friends data
+        loadFriends();
+        
         // Hide login prompt
         hideLoginPrompt();
       } else {
@@ -1178,6 +1380,14 @@
         const postForm = document.getElementById('newPostForm');
         if (guestMessage) guestMessage.classList.remove('hidden');
         if (postForm) postForm.classList.add('hidden');
+        
+        // Hide friends toggle button
+        const friendsToggle = document.getElementById('friendsSidebarToggle');
+        if (friendsToggle) friendsToggle.classList.add('hidden');
+        
+        // Close friends sidebar
+        const friendsSidebar = document.getElementById('friendsChatSidebar');
+        if (friendsSidebar) friendsSidebar.classList.add('hidden');
       }
     }
 
@@ -1319,11 +1529,425 @@
     // Start the authentication process
     setTimeout(startForumAuthentication, 100);
 
+    // FRIENDS AND CHAT FUNCTIONS
+    async function loadFriends() {
+      if (!currentUser) return;
+      
+      try {
+        const userDoc = await db.collection('users').doc(currentUser.uid).get();
+        if (userDoc.exists) {
+          const userData = userDoc.data();
+          const friendsIds = userData.friends || [];
+          
+          if (friendsIds.length === 0) {
+            friendsList = [];
+            displayFriends();
+            return;
+          }
+          
+          // Load friend details
+          const friendsData = await Promise.all(
+            friendsIds.map(async (friendId) => {
+              const friendDoc = await db.collection('users').doc(friendId).get();
+              if (friendDoc.exists) {
+                return { uid: friendId, ...friendDoc.data() };
+              }
+              return null;
+            })
+          );
+          
+          friendsList = friendsData.filter(friend => friend !== null);
+          displayFriends();
+          checkOnlineFriends();
+        }
+      } catch (error) {
+        console.error('Error loading friends:', error);
+      }
+    }
+
+    function displayFriends() {
+      const allFriendsContainer = document.getElementById('allFriendsListForum');
+      const noFriendsContainer = document.getElementById('noFriendsForum');
+      
+      if (friendsList.length === 0) {
+        allFriendsContainer.innerHTML = '';
+        noFriendsContainer.classList.remove('hidden');
+        return;
+      }
+      
+      noFriendsContainer.classList.add('hidden');
+      allFriendsContainer.innerHTML = friendsList.map(friend => `
+        <div class="flex items-center gap-3 p-2 hover:bg-rp-overlay/50 rounded-lg transition-colors">
+          <img src="${friend.photoURL || 'https://via.placeholder.com/32'}" alt="Avatar" class="w-8 h-8 rounded-full object-cover">
+          <div class="flex-1 min-w-0">
+            <p class="text-sm font-medium text-rp-text truncate">${sanitizeText(friend.displayName || 'User')}</p>
+            <p class="text-xs text-rp-subtle">${friend.status === 'online' ? '🟢 Online' : '⚫ Offline'}</p>
+          </div>
+          <button onclick="showChatModal({uid: '${friend.uid}', displayName: '${sanitizeText(friend.displayName || 'User')}', photoURL: '${friend.photoURL || ''}'});" class="p-1 text-rp-subtle hover:text-rp-foam hover:bg-rp-foam/10 rounded transition-colors">
+            <i class='bx bx-message text-sm'></i>
+          </button>
+        </div>
+      `).join('');
+    }
+
+    function checkOnlineFriends() {
+      onlineFriends = friendsList.filter(friend => friend.status === 'online');
+      displayOnlineFriends();
+    }
+
+    function displayOnlineFriends() {
+      const onlineFriendsContainer = document.getElementById('onlineFriendsListForum');
+      const noOnlineContainer = document.getElementById('noOnlineFriendsForum');
+      
+      if (onlineFriends.length === 0) {
+        onlineFriendsContainer.innerHTML = '';
+        noOnlineContainer.classList.remove('hidden');
+        return;
+      }
+      
+      noOnlineContainer.classList.add('hidden');
+      onlineFriendsContainer.innerHTML = onlineFriends.map(friend => `
+        <div class="flex items-center gap-3 p-2 hover:bg-rp-overlay/50 rounded-lg transition-colors cursor-pointer" onclick="showChatModal({uid: '${friend.uid}', displayName: '${sanitizeText(friend.displayName || 'User')}', photoURL: '${friend.photoURL || ''}'});">
+          <img src="${friend.photoURL || 'https://via.placeholder.com/32'}" alt="Avatar" class="w-8 h-8 rounded-full object-cover">
+          <div class="flex-1 min-w-0">
+            <p class="text-sm font-medium text-rp-text truncate">${sanitizeText(friend.displayName || 'User')}</p>
+            <p class="text-xs text-rp-pine">🟢 Online</p>
+          </div>
+          <i class='bx bx-message text-rp-subtle'></i>
+        </div>
+      `).join('');
+    }
+
+    async function searchUsers(query) {
+      if (!query.trim() || query.length < 2) {
+        document.getElementById('userSearchResults').innerHTML = '<div id="searchPlaceholder" class="text-center text-rp-subtle py-8"><i class="bx bx-search text-3xl mb-2 block"></i><p>Search for users to add as friends</p></div>';
+        return;
+      }
+      
+      try {
+        // Search by username or display name
+        const usersSnapshot = await db.collection('users')
+          .where('username', '>=', query.toLowerCase())
+          .where('username', '<=', query.toLowerCase() + '\uf8ff')
+          .limit(10)
+          .get();
+        
+        const results = [];
+        usersSnapshot.forEach(doc => {
+          if (doc.id !== currentUser.uid) {
+            results.push({ uid: doc.id, ...doc.data() });
+          }
+        });
+        
+        displaySearchResults(results);
+      } catch (error) {
+        console.error('Error searching users:', error);
+      }
+    }
+
+    function displaySearchResults(results) {
+      const container = document.getElementById('userSearchResults');
+      
+      if (results.length === 0) {
+        container.innerHTML = '<div class="text-center text-rp-subtle py-8"><p>No users found</p></div>';
+        return;
+      }
+      
+      container.innerHTML = results.map(user => `
+        <div class="flex items-center gap-3 p-3 border border-rp-overlay rounded-lg">
+          <img src="${user.photoURL || 'https://via.placeholder.com/40'}" alt="Avatar" class="w-10 h-10 rounded-full object-cover">
+          <div class="flex-1 min-w-0">
+            <p class="font-medium text-rp-text truncate">${sanitizeText(user.displayName || 'User')}</p>
+            <p class="text-sm text-rp-subtle">@${sanitizeText(user.username || 'username')}</p>
+          </div>
+          <button onclick="sendFriendRequest('${user.uid}');" class="px-3 py-1 bg-rp-foam/20 text-rp-foam rounded-lg hover:bg-rp-foam/30 transition-colors text-sm">
+            <i class='bx bx-user-plus mr-1'></i>
+            Add
+          </button>
+        </div>
+      `).join('');
+    }
+
+    async function sendFriendRequest(targetUid) {
+      if (!currentUser || targetUid === currentUser.uid) return;
+      
+      // Input validation
+      if (!targetUid || typeof targetUid !== 'string') {
+        console.error('Invalid target UID');
+        return;
+      }
+      
+      try {
+        // Check if target user exists and get their data
+        const targetUserDoc = await db.collection('users').doc(targetUid).get();
+        if (!targetUserDoc.exists) {
+          alert('User not found');
+          return;
+        }
+        
+        // Check if already friends or request exists
+        const currentUserDoc = await db.collection('users').doc(currentUser.uid).get();
+        const userData = currentUserDoc.data();
+        const friends = userData?.friends || [];
+        const blockedUsers = userData?.blockedUsers || [];
+        
+        // Check if user is blocked
+        if (blockedUsers.includes(targetUid)) {
+          alert('Cannot send friend request to blocked user');
+          return;
+        }
+        
+        // Check if target user has blocked current user
+        const targetUserData = targetUserDoc.data();
+        const targetBlockedUsers = targetUserData?.blockedUsers || [];
+        if (targetBlockedUsers.includes(currentUser.uid)) {
+          alert('Unable to send friend request');
+          return;
+        }
+        
+        if (friends.includes(targetUid)) {
+          alert('Already friends with this user');
+          return;
+        }
+        
+        // Check existing requests
+        const existingRequest = await db.collection('friendRequests')
+          .where('from', '==', currentUser.uid)
+          .where('to', '==', targetUid)
+          .get();
+        
+        if (!existingRequest.empty) {
+          alert('Friend request already sent');
+          return;
+        }
+        
+        // Send friend request with sanitized data
+        await db.collection('friendRequests').add({
+          from: currentUser.uid,
+          to: targetUid,
+          fromName: sanitizeText(currentUser.displayName || 'User'),
+          fromPhoto: currentUser.photoURL || '',
+          timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+          status: 'pending'
+        });
+        
+        alert('Friend request sent!');
+      } catch (error) {
+        console.error('Error sending friend request:', error);
+        alert('Error sending friend request');
+      }
+    }
+
+    async function loadFriendRequests() {
+      if (!currentUser) return;
+      
+      try {
+        const requestsSnapshot = await db.collection('friendRequests')
+          .where('to', '==', currentUser.uid)
+          .where('status', '==', 'pending')
+          .get();
+        
+        const requests = [];
+        requestsSnapshot.forEach(doc => {
+          requests.push({ id: doc.id, ...doc.data() });
+        });
+        
+        displayFriendRequests(requests);
+      } catch (error) {
+        console.error('Error loading friend requests:', error);
+      }
+    }
+
+    function displayFriendRequests(requests) {
+      const container = document.getElementById('friendRequestsList');
+      const noRequestsContainer = document.getElementById('noRequests');
+      
+      if (requests.length === 0) {
+        container.innerHTML = '';
+        noRequestsContainer.classList.remove('hidden');
+        return;
+      }
+      
+      noRequestsContainer.classList.add('hidden');
+      container.innerHTML = requests.map(request => `
+        <div class="flex items-center gap-3 p-3 border border-rp-overlay rounded-lg">
+          <img src="${request.fromPhoto || 'https://via.placeholder.com/40'}" alt="Avatar" class="w-10 h-10 rounded-full object-cover">
+          <div class="flex-1 min-w-0">
+            <p class="font-medium text-rp-text truncate">${sanitizeText(request.fromName)}</p>
+            <p class="text-sm text-rp-subtle">Wants to be friends</p>
+          </div>
+          <div class="flex gap-2">
+            <button onclick="acceptFriendRequest('${request.id}', '${request.from}');" class="px-3 py-1 bg-rp-foam/20 text-rp-foam rounded-lg hover:bg-rp-foam/30 transition-colors text-sm">
+              Accept
+            </button>
+            <button onclick="rejectFriendRequest('${request.id}');" class="px-3 py-1 bg-rp-love/20 text-rp-love rounded-lg hover:bg-rp-love/30 transition-colors text-sm">
+              Decline
+            </button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    async function acceptFriendRequest(requestId, fromUid) {
+      try {
+        const batch = db.batch();
+        
+        // Add to both users' friends lists
+        const currentUserRef = db.collection('users').doc(currentUser.uid);
+        const friendUserRef = db.collection('users').doc(fromUid);
+        
+        batch.update(currentUserRef, {
+          friends: firebase.firestore.FieldValue.arrayUnion(fromUid)
+        });
+        
+        batch.update(friendUserRef, {
+          friends: firebase.firestore.FieldValue.arrayUnion(currentUser.uid)
+        });
+        
+        // Delete the request
+        const requestRef = db.collection('friendRequests').doc(requestId);
+        batch.delete(requestRef);
+        
+        await batch.commit();
+        
+        loadFriendRequests();
+        loadFriends();
+      } catch (error) {
+        console.error('Error accepting friend request:', error);
+        alert('Error accepting friend request');
+      }
+    }
+
+    async function rejectFriendRequest(requestId) {
+      try {
+        await db.collection('friendRequests').doc(requestId).delete();
+        loadFriendRequests();
+      } catch (error) {
+        console.error('Error rejecting friend request:', error);
+        alert('Error rejecting friend request');
+      }
+    }
+
+    // CHAT FUNCTIONS
+    async function loadChatMessages(friendUid) {
+      if (!currentUser || !friendUid) return;
+      
+      const chatRoomId = [currentUser.uid, friendUid].sort().join('_');
+      
+      // Unsubscribe from previous chat
+      if (chatUnsubscribe) {
+        chatUnsubscribe();
+      }
+      
+      // Subscribe to real-time messages
+      chatUnsubscribe = db.collection('chats').doc(chatRoomId).collection('messages')
+        .orderBy('timestamp', 'asc')
+        .onSnapshot((snapshot) => {
+          const messages = [];
+          snapshot.forEach(doc => {
+            messages.push({ id: doc.id, ...doc.data() });
+          });
+          displayChatMessages(messages);
+        });
+    }
+
+    function displayChatMessages(messages) {
+      const container = document.getElementById('chatMessages');
+      const placeholder = document.getElementById('chatPlaceholder');
+      
+      if (messages.length === 0) {
+        placeholder.classList.remove('hidden');
+        container.innerHTML = placeholder.outerHTML;
+        return;
+      }
+      
+      container.innerHTML = messages.map(message => {
+        const isOwn = message.sender === currentUser.uid;
+        return `
+          <div class="flex ${isOwn ? 'justify-end' : 'justify-start'}">
+            <div class="max-w-xs px-4 py-2 rounded-lg ${isOwn ? 'bg-rp-foam text-rp-base' : 'bg-rp-overlay text-rp-text'}">
+              <p class="text-sm">${sanitizeContent(message.text)}</p>
+              <p class="text-xs opacity-70 mt-1">${formatTime(message.timestamp)}</p>
+            </div>
+          </div>
+        `;
+      }).join('');
+      
+      // Scroll to bottom
+      container.scrollTop = container.scrollHeight;
+    }
+
+    async function sendMessage() {
+      const input = document.getElementById('chatInput');
+      const text = input.value.trim();
+      
+      if (!text || !activeChatUser || !currentUser) return;
+      
+      // Input validation
+      if (typeof text !== 'string' || text.length === 0) return;
+      
+      // Check if users are friends before allowing chat
+      const currentUserDoc = await db.collection('users').doc(currentUser.uid).get();
+      const userData = currentUserDoc.data();
+      const friends = userData?.friends || [];
+      const blockedUsers = userData?.blockedUsers || [];
+      
+      if (!friends.includes(activeChatUser.uid)) {
+        alert('You can only chat with friends');
+        hideChatModal();
+        return;
+      }
+      
+      if (blockedUsers.includes(activeChatUser.uid)) {
+        alert('Cannot send message to blocked user');
+        hideChatModal();
+        return;
+      }
+      
+      // Sanitize message text
+      const safeText = sanitizeText(text);
+      
+      if (safeText.length > 500) {
+        alert('Message too long (max 500 characters)');
+        return;
+      }
+      
+      if (safeText.length === 0) {
+        alert('Message cannot be empty after filtering');
+        return;
+      }
+      
+      const chatRoomId = [currentUser.uid, activeChatUser.uid].sort().join('_');
+      
+      try {
+        await db.collection('chats').doc(chatRoomId).collection('messages').add({
+          text: safeText,
+          sender: currentUser.uid,
+          senderName: sanitizeText(currentUser.displayName || 'User'),
+          timestamp: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        
+        input.value = '';
+        document.getElementById('charCount').textContent = '0';
+      } catch (error) {
+        console.error('Error sending message:', error);
+        alert('Error sending message');
+      }
+    }
+
+    function formatTime(timestamp) {
+      if (!timestamp) return '';
+      const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
+
     // Close modals when clicking outside
     document.addEventListener('click', (e) => {
       if (e.target.classList.contains('modal')) {
         hideCreateForumModal();
         hideForumViewModal();
+        hideChatModal();
+        hideAddFriendsModal();
       }
       
       // Hide login prompt when clicking outside
@@ -1339,10 +1963,18 @@
         hideCreateForumModal();
         hideForumViewModal();
         hideLoginPrompt();
+        hideChatModal();
+        hideAddFriendsModal();
+      }
+      
+      // Send message on Enter
+      if (e.key === 'Enter' && e.target.id === 'chatInput') {
+        e.preventDefault();
+        sendMessage();
       }
     });
 
-    // Load forum content immediately for guests
+    // Event Listeners
     document.addEventListener('DOMContentLoaded', () => {
       // Show forum content immediately
       console.log('Page loaded, initializing forum for guest browsing');
@@ -1350,6 +1982,44 @@
       loadForums();
       setupSearchAndFilters();
       updateUserSection(); // Initialize guest UI
+      
+      // Setup friends sidebar toggle
+      const friendsToggle = document.getElementById('friendsSidebarToggle');
+      const friendsSidebar = document.getElementById('friendsChatSidebar');
+      const closeSidebar = document.getElementById('closeFriendsSidebarBtn');
+      const addFriendsBtn = document.getElementById('addFriendsBtn');
+      
+      friendsToggle.addEventListener('click', () => {
+        friendsSidebar.classList.remove('hidden');
+      });
+      
+      closeSidebar.addEventListener('click', () => {
+        friendsSidebar.classList.add('hidden');
+      });
+      
+      addFriendsBtn.addEventListener('click', showAddFriendsModal);
+      
+      // Setup chat input
+      const chatInput = document.getElementById('chatInput');
+      const sendBtn = document.getElementById('sendMessageBtn');
+      const charCount = document.getElementById('charCount');
+      
+      chatInput.addEventListener('input', (e) => {
+        charCount.textContent = e.target.value.length;
+      });
+      
+      sendBtn.addEventListener('click', sendMessage);
+      
+      // Setup user search
+      const userSearchInput = document.getElementById('userSearchInput');
+      let searchTimeout;
+      
+      userSearchInput.addEventListener('input', (e) => {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(() => {
+          searchUsers(e.target.value);
+        }, 300);
+      });
     });
   </script>
 </body>
