@@ -56,10 +56,21 @@
   <!-- Unicode Emoji Data -->
   <script src="https://unpkg.com/unicode-emoji-json@0.4.0/data-by-group.json" type="application/json" id="emojiData"></script>
   <script>
-    // Initialize emoji support
-    window.emojiConverter = new EmojiConvertor();
-    window.emojiConverter.replace_mode = 'unified';
-    window.emojiConverter.allow_native = true;
+    // Initialize emoji support after emoji-js loads
+    function initializeEmojiConverter() {
+      if (typeof EmojiConvertor !== 'undefined') {
+        window.emojiConverter = new EmojiConvertor();
+        window.emojiConverter.replace_mode = 'unified';
+        window.emojiConverter.allow_native = true;
+        console.log('Emoji converter initialized');
+      } else {
+        console.warn('EmojiConvertor not available, retrying in 100ms');
+        setTimeout(initializeEmojiConverter, 100);
+      }
+    }
+    
+    // Try to initialize when DOM is ready
+    document.addEventListener('DOMContentLoaded', initializeEmojiConverter);
     
     // Common reaction emojis (quick access)
     window.reactionEmojis = [
@@ -2662,13 +2673,27 @@
       
       // Try popup first, fallback to redirect if COOP blocks it
       authInstance.signInWithPopup(provider)
+        .then((result) => {
+          console.log('Successfully signed in via popup');
+          hideLoginPrompt();
+        })
         .catch((error) => {
           console.log('Popup blocked, trying redirect method:', error.code);
           
           // If popup is blocked due to COOP or other reasons, use redirect
           if (error.code === 'auth/popup-blocked' || 
               error.code === 'auth/popup-closed-by-user' ||
-              error.message.includes('Cross-Origin-Opener-Policy')) {
+              error.message.includes('Cross-Origin-Opener-Policy') ||
+              error.message.includes('popup')) {
+            
+            console.log('Using redirect method due to popup restrictions');
+            
+            // Show user that redirect is happening
+            const loginError = document.getElementById('loginError');
+            if (loginError) {
+              loginError.innerText = 'Redirecting to Google sign-in...';
+              loginError.classList.remove('hidden');
+            }
             
             // Use redirect method as fallback
             authInstance.signInWithRedirect(provider);
@@ -3516,7 +3541,11 @@
       
       if (currentUser) {
         // Initialize presence tracking
-        initializePresence();
+        try {
+          initializePresence();
+        } catch (error) {
+          console.error('Error initializing presence:', error);
+        }
         
         // Show authenticated user UI
         userSection.innerHTML = `
@@ -3625,12 +3654,19 @@
       auth.getRedirectResult().then((result) => {
         if (result.user) {
           console.log('Successfully signed in via redirect');
+          hideLoginPrompt();
+          
+          // Clear any error messages
+          const loginError = document.getElementById('loginError');
+          if (loginError) {
+            loginError.classList.add('hidden');
+          }
         }
       }).catch((error) => {
         console.error('Redirect sign-in error:', error);
         const loginError = document.getElementById('loginError');
         if (loginError) {
-          loginError.innerText = error.message;
+          loginError.innerText = `Sign-in error: ${error.message}`;
           loginError.classList.remove('hidden');
         }
       });
@@ -3664,6 +3700,13 @@
           console.log('Forum UI updated for authenticated user');
         } catch (error) {
           console.error('Error handling authenticated user:', error);
+          
+          // Still try to show basic UI even if some initialization fails
+          try {
+            updateUserSection();
+          } catch (uiError) {
+            console.error('Error updating UI:', uiError);
+          }
         }
       } else {
         console.log('Browsing as guest');
@@ -5776,13 +5819,17 @@ What are your thoughts on this?`;
     let onlineUsers = new Map();
 
     function initializePresence() {
-      if (!currentUser || !db) return;
+      if (!currentUser || !db) {
+        console.log('Cannot initialize presence: missing user or database');
+        return;
+      }
 
-      const userId = currentUser.uid;
-      const userDisplayName = currentUser.displayName || currentUser.email?.split('@')[0] || 'Anonymous';
-      
-      // Reference to user's presence in Firestore
-      presenceRef = db.collection('presence').doc(userId);
+      try {
+        const userId = currentUser.uid;
+        const userDisplayName = currentUser.displayName || currentUser.email?.split('@')[0] || 'Anonymous';
+        
+        // Reference to user's presence in Firestore
+        presenceRef = db.collection('presence').doc(userId);
       
       // Set user as online
       presenceRef.set({
@@ -5799,11 +5846,8 @@ What are your thoughts on this?`;
         console.error('Error setting presence:', error);
       });
 
-      // Set user as offline when they leave
-      presenceRef.onDisconnect().update({
-        isOnline: false,
-        lastSeen: firebase.firestore.FieldValue.serverTimestamp()
-      });
+      // Note: Firestore doesn't have onDisconnect, we'll use heartbeat system instead
+      // Users will be marked offline if they don't update within 2 minutes
 
       // Update last seen every 30 seconds while online
       setInterval(() => {
@@ -5814,21 +5858,30 @@ What are your thoughts on this?`;
         }
       }, 30000);
 
-      // Listen to all online users
-      setupOnlineUsersListener();
+        // Listen to all online users
+        setupOnlineUsersListener();
+      } catch (error) {
+        console.error('Error in initializePresence:', error);
+      }
     }
 
     function setupOnlineUsersListener() {
-      if (onlineUsersListener) {
-        onlineUsersListener();
-      }
+      try {
+        if (onlineUsersListener) {
+          onlineUsersListener();
+        }
 
-      // Listen to users who were online in the last 5 minutes
-      const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
-      
-      onlineUsersListener = db.collection('presence')
-        .where('lastSeen', '>', firebase.firestore.Timestamp.fromDate(fiveMinutesAgo))
-        .onSnapshot(snapshot => {
+        if (!db) {
+          console.log('Database not available for presence listener');
+          return;
+        }
+
+        // Listen to users who were online in the last 5 minutes
+        const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+        
+        onlineUsersListener = db.collection('presence')
+          .where('lastSeen', '>', firebase.firestore.Timestamp.fromDate(fiveMinutesAgo))
+          .onSnapshot(snapshot => {
           onlineUsers.clear();
           
           snapshot.forEach(doc => {
@@ -5846,9 +5899,14 @@ What are your thoughts on this?`;
               avatar: (userData.displayName || 'U').charAt(0).toUpperCase()
             });
           });
-          
-          updateOnlineUsersDisplay();
-        });
+            
+            updateOnlineUsersDisplay();
+          }, error => {
+            console.error('Error in presence listener:', error);
+          });
+      } catch (error) {
+        console.error('Error setting up presence listener:', error);
+      }
     }
 
     function updateOnlineUsersDisplay() {
@@ -5905,6 +5963,8 @@ What are your thoughts on this?`;
         presenceRef.update({
           isOnline: false,
           lastSeen: firebase.firestore.FieldValue.serverTimestamp()
+        }).catch(error => {
+          console.log('Error updating presence on cleanup:', error);
         });
       }
       
