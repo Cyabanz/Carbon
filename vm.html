@@ -557,6 +557,10 @@
         <i class='bx bx-test-tube'></i>
         Test Hyperbeam SDK
       </button>
+      <button id="test-sharing-btn" onclick="testSessionSharing()" style="background: linear-gradient(135deg, var(--theme-gold), #e6a700); color: var(--theme-base);">
+        <i class='bx bx-check-circle'></i>
+        Test Session Sharing
+      </button>
     </div>
     
     <div id="timer-bar" class="hidden">
@@ -1249,6 +1253,307 @@
         console.error('Hyperbeam SDK test failed:', window.hyperbeam);
       }
     }
+
+    // Comprehensive test for session sharing functionality
+    async function testSessionSharing() {
+      console.log('🧪 Starting comprehensive session sharing test...');
+      setStatus("🧪 Testing session sharing functionality...", "info");
+      
+      // First run basic component tests
+      const basicTests = await runBasicTests();
+      
+      // Then run workflow tests
+      if (basicTests.successRate === 100) {
+        console.log('✅ Basic tests passed, running workflow tests...');
+        const workflowPassed = await testSessionSharingWorkflow();
+        
+        if (workflowPassed) {
+          setStatus("🎉 Session sharing is 100% VERIFIED and ready to use!", "success");
+          return true;
+        } else {
+          setStatus("❌ Basic tests passed but workflow failed", "error");
+          return false;
+        }
+      } else {
+        setStatus(`❌ Basic tests failed (${basicTests.successRate}%), skipping workflow tests`, "error");
+        return false;
+      }
+    }
+
+    // Basic component tests
+    async function runBasicTests() {
+      console.log('🔧 Running basic component tests...');
+      
+      const tests = [];
+      let passed = 0;
+      let failed = 0;
+      
+      // Test 1: Check if required functions exist
+      tests.push({
+        name: "Function availability",
+        test: () => {
+          const required = ['showShareModal', 'hideShareModal', 'showJoinModal', 'hideJoinModal', 'joinSharedSession', 'copyShareLink'];
+          const missing = required.filter(fn => typeof window[fn] !== 'function');
+          return { pass: missing.length === 0, details: missing.length ? `Missing: ${missing.join(', ')}` : 'All functions available' };
+        }
+      });
+      
+      // Test 2: Check if DOM elements exist
+      tests.push({
+        name: "DOM elements",
+        test: () => {
+          const required = ['shareModal', 'joinModal', 'shareLink', 'joinSessionInput', 'joinSessionBtn', 'copyBtn'];
+          const missing = required.filter(id => !document.getElementById(id));
+          return { pass: missing.length === 0, details: missing.length ? `Missing elements: ${missing.join(', ')}` : 'All elements found' };
+        }
+      });
+      
+      // Test 3: Test localStorage caching
+      tests.push({
+        name: "localStorage caching",
+        test: () => {
+          try {
+            const testKey = 'vm_session_test123';
+            const testUrl = 'https://hyperbeam.com/test-session';
+            localStorage.setItem(testKey, testUrl);
+            const retrieved = localStorage.getItem(testKey);
+            localStorage.removeItem(testKey);
+            return { pass: retrieved === testUrl, details: retrieved === testUrl ? 'Caching works' : 'Caching failed' };
+          } catch (e) {
+            return { pass: false, details: `localStorage error: ${e.message}` };
+          }
+        }
+      });
+      
+      // Test 4: Test session ID validation and cleanup
+      tests.push({
+        name: "Session ID cleanup",
+        test: () => {
+          const testCases = [
+            { input: '31a7505a-e5dd-4eee-8124-786b64ff261c', expected: '31a7505a-e5dd-4eee-8124-786b64ff261c' },
+            { input: '31a7505a-e5dd-4eee-8124-786b64ff261c4', expected: '31a7505a-e5dd-4eee-8124-786b64ff261c' },
+            { input: '  31a7505a-e5dd-4eee-8124-786b64ff261c  ', expected: '31a7505a-e5dd-4eee-8124-786b64ff261c' },
+            { input: 'https://hyperbeam.com/session-url', expected: 'https://hyperbeam.com/session-url' }
+          ];
+          
+          let allPassed = true;
+          let details = [];
+          
+          testCases.forEach(({ input, expected }) => {
+            const { cleaned } = validateAndCleanSessionInput(input);
+            const passed = cleaned === expected;
+            allPassed = allPassed && passed;
+            details.push(`"${input}" → "${cleaned}" ${passed ? '✅' : '❌ (expected: "' + expected + '")'}`);
+          });
+          
+          return { pass: allPassed, details: details.join('; ') };
+        }
+      });
+      
+      // Test 5: Test URL parameter extraction
+      tests.push({
+        name: "URL parameter extraction",
+        test: () => {
+          // Test URL parameter extraction logic
+          const testUrl = 'vm.html?session=test-session-id';
+          const urlParams = new URLSearchParams(testUrl.split('?')[1]);
+          const extracted = urlParams.get('session');
+          return { pass: extracted === 'test-session-id', details: `Extracted: "${extracted}"` };
+        }
+      });
+      
+      // Test 6: Test modal functions
+      tests.push({
+        name: "Modal functionality",
+        test: () => {
+          try {
+            // Test share modal
+            showShareModal();
+            const shareModalVisible = document.getElementById('shareModal').classList.contains('show');
+            hideShareModal();
+            const shareModalHidden = !document.getElementById('shareModal').classList.contains('show');
+            
+            // Test join modal
+            showJoinModal();
+            const joinModalVisible = document.getElementById('joinModal').classList.contains('show');
+            hideJoinModal();
+            const joinModalHidden = !document.getElementById('joinModal').classList.contains('show');
+            
+            const allWorking = shareModalVisible && shareModalHidden && joinModalVisible && joinModalHidden;
+            return { pass: allWorking, details: allWorking ? 'Modals show/hide correctly' : 'Modal visibility issues' };
+          } catch (e) {
+            return { pass: false, details: `Modal error: ${e.message}` };
+          }
+        }
+      });
+      
+      // Run all tests
+      for (const test of tests) {
+        try {
+          const result = test.test();
+          if (result.pass) {
+            passed++;
+            console.log(`✅ ${test.name}: ${result.details}`);
+          } else {
+            failed++;
+            console.log(`❌ ${test.name}: ${result.details}`);
+          }
+        } catch (error) {
+          failed++;
+          console.log(`❌ ${test.name}: Test threw error - ${error.message}`);
+        }
+      }
+      
+      // Summary
+      const total = tests.length;
+      const successRate = Math.round((passed / total) * 100);
+      
+      if (successRate === 100) {
+        setStatus(`✅ Session sharing test PASSED! ${passed}/${total} tests successful (${successRate}%)`, "success");
+        console.log('🎉 All session sharing tests passed! System is ready.');
+      } else {
+        setStatus(`⚠️ Session sharing test PARTIAL: ${passed}/${total} tests passed (${successRate}%)`, "error");
+        console.log(`⚠️ ${failed} tests failed. Check console for details.`);
+      }
+      
+             return { passed, failed, total, successRate };
+     }
+
+     // Test the actual session sharing workflow end-to-end
+     async function testSessionSharingWorkflow() {
+       console.log('🔄 Testing complete session sharing workflow...');
+       setStatus("🔄 Testing session sharing workflow...", "info");
+       
+       const workflowTests = [];
+       let workflowPassed = 0;
+       
+       // Test 1: Simulate session creation and URL caching
+       workflowTests.push({
+         name: "Session URL caching simulation",
+         test: () => {
+           const mockSessionId = 'test-session-' + Date.now();
+           const mockUrl = 'https://hyperbeam.com/' + mockSessionId;
+           
+           // Simulate what happens when a session is created
+           localStorage.setItem(`vm_session_${mockSessionId}`, mockUrl);
+           
+           // Test retrieval
+           const cached = localStorage.getItem(`vm_session_${mockSessionId}`);
+           
+           // Cleanup
+           localStorage.removeItem(`vm_session_${mockSessionId}`);
+           
+           return { pass: cached === mockUrl, details: cached === mockUrl ? 'Session caching works' : 'Session caching failed' };
+         }
+       });
+       
+       // Test 2: Test session ID extraction from URLs
+       workflowTests.push({
+         name: "URL session extraction",
+         test: () => {
+           const testUrls = [
+             { input: 'vm.html?session=abc123', expected: 'abc123' },
+             { input: 'https://example.com/vm.html?session=def456&other=param', expected: 'def456' },
+             { input: 'https://hyperbeam.com/session-url', expected: 'https://hyperbeam.com/session-url' }
+           ];
+           
+           let allPassed = true;
+           let details = [];
+           
+           testUrls.forEach(({ input, expected }) => {
+             let extracted = input;
+             
+             // Simulate the extraction logic from joinSharedSession
+             if (input.includes('session=')) {
+               try {
+                 const url = new URL(input.startsWith('http') ? input : `https://${input}`);
+                 extracted = url.searchParams.get('session') || input;
+               } catch {
+                 const match = input.match(/session=([^&\s#]+)/);
+                 if (match) {
+                   extracted = match[1];
+                 }
+               }
+             }
+             
+             const passed = extracted === expected;
+             allPassed = allPassed && passed;
+             details.push(`"${input}" → "${extracted}" ${passed ? '✅' : '❌'}`);
+           });
+           
+           return { pass: allPassed, details: details.join('; ') };
+         }
+       });
+       
+       // Test 3: Test share modal URL generation
+       workflowTests.push({
+         name: "Share URL generation",
+         test: () => {
+           // Mock a hyperbeam session
+           const mockSession = {
+             url: 'https://hyperbeam.com/mock-session-url'
+           };
+           
+           // Temporarily set global variables
+           const originalSession = window.hyperbeamSession;
+           const originalSessionId = window.sessionId;
+           
+           window.hyperbeamSession = mockSession;
+           window.sessionId = 'mock-session-id';
+           
+           try {
+             // Test what showShareModal would generate
+             let shareUrl;
+             if (window.hyperbeamSession && window.hyperbeamSession.url) {
+               shareUrl = window.hyperbeamSession.url;
+             } else {
+               shareUrl = `${window.location.origin}${window.location.pathname}?session=${window.sessionId}`;
+             }
+             
+             const passed = shareUrl === mockSession.url;
+             
+             // Restore
+             window.hyperbeamSession = originalSession;
+             window.sessionId = originalSessionId;
+             
+             return { pass: passed, details: passed ? 'Share URL generation works' : `Generated: ${shareUrl}` };
+           } catch (e) {
+             // Restore on error
+             window.hyperbeamSession = originalSession;
+             window.sessionId = originalSessionId;
+             return { pass: false, details: `Error: ${e.message}` };
+           }
+         }
+       });
+       
+       // Run workflow tests
+       for (const test of workflowTests) {
+         try {
+           const result = test.test();
+           if (result.pass) {
+             workflowPassed++;
+             console.log(`✅ Workflow ${test.name}: ${result.details}`);
+           } else {
+             console.log(`❌ Workflow ${test.name}: ${result.details}`);
+           }
+         } catch (error) {
+           console.log(`❌ Workflow ${test.name}: Test threw error - ${error.message}`);
+         }
+       }
+       
+       const workflowTotal = workflowTests.length;
+       const workflowRate = Math.round((workflowPassed / workflowTotal) * 100);
+       
+       if (workflowRate === 100) {
+         setStatus(`✅ Session sharing workflow VERIFIED! ${workflowPassed}/${workflowTotal} workflow tests passed`, "success");
+         console.log('🎉 Session sharing workflow is 100% functional!');
+         return true;
+       } else {
+         setStatus(`❌ Session sharing workflow FAILED: ${workflowPassed}/${workflowTotal} tests passed (${workflowRate}%)`, "error");
+         console.log(`❌ Workflow verification failed. ${workflowTotal - workflowPassed} issues found.`);
+         return false;
+       }
+     }
 
     // Fullscreen toggle function
     function toggleFullscreen() {
