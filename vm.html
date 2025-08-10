@@ -655,8 +655,19 @@
       </div>
       
       <p style="color: var(--theme-muted); margin-bottom: 1.5rem;">
-        Enter a session link or ID to join an existing shared session.
+        Enter a complete Hyperbeam session URL to join an existing shared session.
       </p>
+      
+      <div style="background: rgba(156, 207, 216, 0.1); border: 1px solid var(--theme-foam); border-radius: 8px; padding: 1rem; margin-bottom: 1.5rem;">
+        <div style="display: flex; align-items: center; gap: 0.5rem; color: var(--theme-foam); font-weight: 500; margin-bottom: 0.5rem;">
+          <i class='bx bx-info-circle'></i>
+          Important: You need the complete session URL
+        </div>
+        <div style="color: var(--theme-text); font-size: 0.9rem;">
+          Ask the session host to click <strong>"Share Session"</strong> and send you the complete URL. 
+          Session IDs alone (like "abc123") won't work - you need the full Hyperbeam link.
+        </div>
+      </div>
       
       <div class="join-session-container">
         <label style="display: block; margin-bottom: 0.5rem; color: var(--theme-text); font-weight: 500;">
@@ -1398,17 +1409,13 @@
       joinBtn.disabled = true;
       joinBtnText.textContent = 'Joining...';
       
-      try {
-        // Check if session exists and is joinable
-        const isValid = await validateSession(sessionToJoin);
-        
-        if (!isValid) {
-          setStatus("Session not found or no longer available.", "error");
-          return;
-        }
-        
-        // Join the session
-        await joinSession(sessionToJoin);
+             try {
+         // Skip pre-validation and go directly to joining
+         // The actual connection attempt will tell us if the session is valid
+         console.log('Attempting to join session:', sessionToJoin);
+         
+         // Join the session
+         await joinSession(sessionToJoin);
         
         hideJoinModal();
         setStatus("Successfully joined shared session!", "success");
@@ -1421,36 +1428,36 @@
       }
     }
 
-         async function validateSession(sessionId) {
+              async function validateSession(sessionInput) {
        try {
-         // Check if we can get session info from our server
-         if (!(await getCsrfToken())) {
+         // For Hyperbeam URLs, we can't validate them against our server
+         // since they're external sessions. Just do basic format validation.
+         
+         if (!sessionInput || sessionInput.length < 3) {
            return false;
          }
          
-         const platform = window.platformDetector.detectPlatform();
-         const vmPath = window.platformDetector.getFunctionPath('vm');
-         
-         const response = await fetch(vmPath, {
-           method: 'GET',
-           headers: {
-             'x-csrf-token': csrfToken,
-             'Content-Type': 'application/json'
-           }
-         });
-         
-         if (response.ok) {
-           const data = await response.json();
-           // Check if this session ID matches any active sessions
-           // For now, we'll be more permissive since we don't have session tracking
-           return sessionId && sessionId.length >= 8; // Basic validation
+         // If it's a Hyperbeam URL, assume it's valid (we'll test it when connecting)
+         if (sessionInput.includes('hyperbeam.com') || sessionInput.includes('hyperbeam.dev')) {
+           console.log('Hyperbeam URL detected, skipping server validation');
+           return true;
          }
          
-         return false;
+         // For other URLs, also be permissive
+         if (sessionInput.startsWith('http')) {
+           console.log('HTTP URL detected, allowing through');
+           return true;
+         }
+         
+         // For session IDs, we can't validate them without a server endpoint
+         // so we'll be permissive and let the connection attempt handle validation
+         console.log('Session ID format detected, allowing through for connection test');
+         return true;
+         
        } catch (error) {
          console.error('Error validating session:', error);
          // Be permissive if validation fails
-         return sessionId && sessionId.length >= 8;
+         return true;
        }
      }
 
@@ -1461,9 +1468,11 @@
          // Check if the input is already a complete Hyperbeam URL
          if (sessionInput.includes('hyperbeam.com') || sessionInput.includes('hyperbeam.dev')) {
            sessionUrl = sessionInput;
+           console.log('Using Hyperbeam URL directly:', sessionUrl);
          } else if (sessionInput.startsWith('http')) {
            // It's some other URL, try to use it directly
            sessionUrl = sessionInput;
+           console.log('Using HTTP URL directly:', sessionUrl);
          } else {
            // It's just a session ID - we can't connect to it without the full URL
            throw new Error(`Cannot join session with ID only. 
@@ -1667,7 +1676,8 @@ Try again in a few moments or ask the host to share a new session.`;
          } else if (sessionInput.startsWith('http')) {
            sessionUrl = sessionInput;
          } else {
-           setStatus("Cannot check status - need complete Hyperbeam URL", "error");
+           // For session IDs, we can't check status without the full URL
+           setStatus("⚠️ Cannot check status of session IDs - only full Hyperbeam URLs can be tested. Try joining directly.", "info");
            return;
          }
          
