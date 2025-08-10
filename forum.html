@@ -615,13 +615,31 @@
         console.error('Firebase Auth not initialized');
         return;
       }
+      
       const provider = new firebase.auth.GoogleAuthProvider();
+      provider.setCustomParameters({
+        prompt: 'select_account'
+      });
+      
+      // Try popup first, fallback to redirect if COOP blocks it
       authInstance.signInWithPopup(provider)
         .catch((error) => {
-          const loginError = document.getElementById('loginError');
-          if (loginError) {
-            loginError.innerText = error.message;
-            loginError.classList.remove('hidden');
+          console.log('Popup blocked, trying redirect method:', error.code);
+          
+          // If popup is blocked due to COOP or other reasons, use redirect
+          if (error.code === 'auth/popup-blocked' || 
+              error.code === 'auth/popup-closed-by-user' ||
+              error.message.includes('Cross-Origin-Opener-Policy')) {
+            
+            // Use redirect method as fallback
+            authInstance.signInWithRedirect(provider);
+          } else {
+            // Show other errors to user
+            const loginError = document.getElementById('loginError');
+            if (loginError) {
+              loginError.innerText = error.message;
+              loginError.classList.remove('hidden');
+            }
           }
         });
     }
@@ -994,6 +1012,20 @@
         userSection.innerHTML = '';
       }
     }
+
+    // Handle redirect result for COOP fallback
+    auth.getRedirectResult().then((result) => {
+      if (result.user) {
+        console.log('Successfully signed in via redirect');
+      }
+    }).catch((error) => {
+      console.error('Redirect sign-in error:', error);
+      const loginError = document.getElementById('loginError');
+      if (loginError) {
+        loginError.innerText = error.message;
+        loginError.classList.remove('hidden');
+      }
+    });
 
     // AUTH STATE OBSERVER
     auth.onAuthStateChanged(async (user) => {
