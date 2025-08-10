@@ -1388,7 +1388,8 @@
       const joinBtn = document.getElementById('joinSessionBtn');
       const joinBtnText = document.getElementById('joinBtnText');
       
-      let sessionToJoin = input.value.trim();
+             let sessionToJoin = input.value.trim();
+       const originalInput = sessionToJoin;
       
       if (!sessionToJoin) {
         setStatus("Please enter a session link or ID.", "error");
@@ -1402,9 +1403,25 @@
            sessionToJoin = url.searchParams.get('session') || sessionToJoin;
          } catch {
            // If URL parsing fails, try simpler extraction
-           const match = sessionToJoin.match(/session=([^&]+)/);
+           const match = sessionToJoin.match(/session=([^&\s#]+)/);
            if (match) {
              sessionToJoin = match[1];
+           }
+         }
+       }
+       
+       // Clean up session ID - remove any trailing characters that don't belong
+       sessionToJoin = sessionToJoin.trim();
+       
+       // Fix common UUID formatting issues
+       if (sessionToJoin.match(/^[a-f0-9-]{36,37}$/i)) {
+         // If it's close to UUID format but has an extra character, try to fix it
+         if (sessionToJoin.length === 37) {
+           // Remove the last character if it's not a valid hex digit
+           const lastChar = sessionToJoin.slice(-1);
+           if (!/[a-f0-9]/i.test(lastChar)) {
+             sessionToJoin = sessionToJoin.slice(0, -1);
+             console.log('Cleaned up session ID by removing trailing character:', lastChar);
            }
          }
        }
@@ -1420,8 +1437,13 @@
          console.warn('Attempting to join with session ID only - this may not work without the full Hyperbeam URL');
        }
       
-      joinBtn.disabled = true;
-      joinBtnText.textContent = 'Joining...';
+             // Show if we cleaned up the input
+       if (sessionToJoin !== originalInput) {
+         setStatus(`Cleaned up input: "${originalInput}" → "${sessionToJoin}"`, "info");
+       }
+       
+       joinBtn.disabled = true;
+       joinBtnText.textContent = 'Joining...';
       
              try {
          // Skip pre-validation and go directly to joining
@@ -1442,8 +1464,44 @@
       }
     }
 
-     // Removed validateSession function as it's no longer needed
-     // Session validation happens during the actual connection attempt
+     // Helper function to validate and clean session input
+     function validateAndCleanSessionInput(input) {
+       let cleaned = input.trim();
+       
+       // Common issues and fixes
+       const issues = [];
+       
+       // Check for trailing characters in UUID-like strings
+       if (cleaned.match(/^[a-f0-9-]{37,}$/i)) {
+         const originalLength = cleaned.length;
+         // Try to extract a valid UUID from the beginning
+         const uuidMatch = cleaned.match(/^([a-f0-9-]{36})/i);
+         if (uuidMatch) {
+           cleaned = uuidMatch[1];
+           issues.push(`Removed ${originalLength - 36} extra characters`);
+         }
+       }
+       
+       // Check for URL fragments
+       if (cleaned.includes('#')) {
+         const beforeHash = cleaned.split('#')[0];
+         if (beforeHash !== cleaned) {
+           cleaned = beforeHash;
+           issues.push('Removed URL fragment');
+         }
+       }
+       
+       // Check for query parameters in non-URL strings
+       if (!cleaned.startsWith('http') && cleaned.includes('?')) {
+         const beforeQuery = cleaned.split('?')[0];
+         if (beforeQuery !== cleaned) {
+           cleaned = beforeQuery;
+           issues.push('Removed query parameters');
+         }
+       }
+       
+       return { cleaned, issues, wasModified: cleaned !== input.trim() };
+     }
 
               async function joinSession(sessionInput) {
        try {
@@ -1465,22 +1523,32 @@
            if (cachedUrl) {
              sessionUrl = cachedUrl;
              console.log('Found cached session URL:', sessionUrl);
-           } else {
-             // No cached URL found, explain the issue
-             throw new Error(`Cannot join session - missing session URL. 
+                        } else {
+               // No cached URL found, explain the issue
+               const isUuidLike = /^[a-f0-9-]{36}$/i.test(sessionInput);
+               const errorMessage = isUuidLike 
+                 ? `Session not found in local cache.
 
-The session ID "${sessionInput}" was shared, but session sharing requires the complete Hyperbeam URL.
+The session ID "${sessionInput}" appears to be valid, but this browser hasn't cached its Hyperbeam URL.
 
-How to fix this:
-1. Ask the host to create a new session
-2. Host should click "Share Session" button  
-3. Host shares the complete Hyperbeam URL (not just our site URL)
-4. Paste the full Hyperbeam URL to join
+Quick solutions:
+1. Ask the host to share the complete Hyperbeam URL instead of the session ID
+2. Or ask the host to create a new session and share the Hyperbeam URL
+3. If you're the host, click "Create New Session" to start fresh
 
-Note: Session IDs from our VM system can only be joined if the original session URL was cached locally.
+Note: Session IDs only work if the original session was created in this browser.`
+                 : `Invalid session format.
 
-To start your own session, click "Create New Session" instead.`);
-           }
+The input "${sessionInput}" doesn't appear to be a valid session ID or Hyperbeam URL.
+
+Expected formats:
+• Complete Hyperbeam URL: https://hyperbeam.com/...
+• Valid session ID: 12345678-1234-1234-1234-123456789abc
+
+Please check the shared link and try again, or click "Create New Session" to start fresh.`;
+
+               throw new Error(errorMessage);
+             }
          }
          
          // Initialize Hyperbeam session
