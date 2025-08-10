@@ -597,7 +597,7 @@
         </div>
         <div style="color: var(--theme-text); font-size: 0.9rem;">
           This session will expire in <strong>4 minutes</strong> or after <strong>30 seconds</strong> of inactivity. 
-          Participants who try to join an expired session will see an error message. You'll need to create a new session and share a new link if this one expires.
+          <strong>Always share the Hyperbeam URL above</strong> (not this page's URL) for participants to join successfully.
         </div>
       </div>
       
@@ -1038,6 +1038,12 @@
             timeout: 10000
           });
           
+          // Cache the session URL for potential sharing
+          if (data.url && data.id) {
+            localStorage.setItem(`vm_session_${data.id}`, data.url);
+            console.log('Cached session URL for future sharing:', data.id);
+          }
+          
           document.getElementById('terminate-btn').classList.remove('hidden');
           document.getElementById('share-btn').classList.remove('hidden');
           document.getElementById('fullscreen-btn').classList.remove('hidden');
@@ -1223,6 +1229,12 @@
       document.getElementById('create-btn').classList.remove('hidden');
       document.getElementById('join-btn').classList.remove('hidden');
       
+      // Clean up cached session URL
+      if (sessionId) {
+        localStorage.removeItem(`vm_session_${sessionId}`);
+        console.log('Cleaned up cached session URL:', sessionId);
+      }
+      
       sessionId = null;
       expiresAt = null;
     }
@@ -1267,14 +1279,16 @@
     function showShareModal() {
       if (!sessionId) return;
       
-      // Generate share link with instructions for proper session sharing
+      // Always share the actual Hyperbeam URL if available, not our session ID format
       let shareUrl;
       if (hyperbeamSession && hyperbeamSession.url) {
-        // If we have the actual Hyperbeam URL, share that
+        // Share the actual Hyperbeam URL for direct joining
         shareUrl = hyperbeamSession.url;
+        console.log('Sharing actual Hyperbeam URL:', shareUrl);
       } else {
-        // Fallback to our session ID format
+        // This shouldn't happen in normal operation, but provide fallback
         shareUrl = `${window.location.origin}${window.location.pathname}?session=${sessionId}`;
+        console.warn('No Hyperbeam URL available, using fallback format:', shareUrl);
       }
       
       document.getElementById('shareLink').value = shareUrl;
@@ -1444,17 +1458,29 @@
            sessionUrl = sessionInput;
            console.log('Using HTTP URL directly:', sessionUrl);
          } else {
-           // It's just a session ID - we can't connect to it without the full URL
-           throw new Error(`Cannot join session with ID only. 
+           // It's a session ID - try to look up from localStorage first
+           console.log('Session ID detected, checking local session cache:', sessionInput);
+           
+           const cachedUrl = localStorage.getItem(`vm_session_${sessionInput}`);
+           if (cachedUrl) {
+             sessionUrl = cachedUrl;
+             console.log('Found cached session URL:', sessionUrl);
+           } else {
+             // No cached URL found, explain the issue
+             throw new Error(`Cannot join session - missing session URL. 
 
-Session sharing works as follows:
-1. Host creates a session and clicks "Share Session"
-2. Host shares the complete Hyperbeam URL (not just the ID)
-3. Participants paste the full URL to join
+The session ID "${sessionInput}" was shared, but session sharing requires the complete Hyperbeam URL.
 
-The session ID "${sessionInput}" needs the complete Hyperbeam URL to join.
+How to fix this:
+1. Ask the host to create a new session
+2. Host should click "Share Session" button  
+3. Host shares the complete Hyperbeam URL (not just our site URL)
+4. Paste the full Hyperbeam URL to join
+
+Note: Session IDs from our VM system can only be joined if the original session URL was cached locally.
 
 To start your own session, click "Create New Session" instead.`);
+           }
          }
          
          // Initialize Hyperbeam session
