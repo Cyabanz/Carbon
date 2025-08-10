@@ -46,12 +46,10 @@
       }
     }
     
-    // Make it globally available
+    // Make it globally available immediately
     window.Filter = SimpleContentFilter;
+    console.log('Content filter class loaded');
   </script>
-  
-  <!-- Auth Synchronization Utility -->
-  <script src="auth-sync.js"></script>
   
   <script>
     // Tailwind config with theme colors
@@ -639,16 +637,21 @@
 
     // Initialize content filter when available
     function initializeContentFilter() {
-      if (typeof Filter !== 'undefined') {
-        badWordsFilter = new Filter();
-        console.log('Content filter initialized');
-      } else {
-        console.log('Content filter not available, using basic sanitization only');
+      try {
+        if (typeof Filter !== 'undefined') {
+          badWordsFilter = new Filter();
+          console.log('Content filter initialized successfully');
+        } else {
+          console.log('Filter class not found, using basic sanitization only');
+        }
+      } catch (error) {
+        console.warn('Error initializing content filter:', error);
+        badWordsFilter = null;
       }
     }
 
-    // Initialize content filter
-    initializeContentFilter();
+    // Initialize content filter after a small delay to ensure Filter class is loaded
+    setTimeout(initializeContentFilter, 50);
 
     // XSS Protection Functions using DOMPurify
     function sanitizeHTML(dirty) {
@@ -1182,24 +1185,7 @@
       }
     }
 
-    // Initialize cross-tab auth synchronization
-    window.addEventListener('carbon_auth_sync', (e) => {
-      console.log('Received auth sync from another tab:', e.detail);
-      const authState = e.detail;
-      
-      if (authState.isAuthenticated && authState.user && !currentUser) {
-        console.log('Syncing login state from another tab');
-        // The onAuthStateChanged should handle this automatically
-        // but we can force a check if needed
-        if (auth && auth.currentUser) {
-          handleAuthStateChange(auth.currentUser);
-        }
-      } else if (!authState.isAuthenticated && currentUser) {
-        console.log('Syncing logout state from another tab');
-        // Force logout UI
-        handleAuthStateChange(null);
-      }
-    });
+    // Cross-tab sync is now handled inline in initAuthSync function
 
     // Start authentication monitoring after Firebase is ready
     function startForumAuthentication() {
@@ -1211,10 +1197,57 @@
       
       startAuthMonitoring();
       
-      // Initialize auth sync
-      if (window.CarbonAuth) {
-        window.CarbonAuth.initSync();
-      }
+      // Initialize inline auth sync
+      initAuthSync();
+    }
+
+    // Authentication Synchronization (inline to avoid timing issues)
+    function initAuthSync() {
+      if (!auth) return;
+      
+      // Listen for auth state changes and store in localStorage
+      auth.onAuthStateChanged((user) => {
+        const authState = {
+          isAuthenticated: !!user,
+          user: user ? {
+            uid: user.uid,
+            email: user.email,
+            displayName: user.displayName,
+            photoURL: user.photoURL
+          } : null,
+          timestamp: Date.now()
+        };
+        
+        // Store auth state in localStorage for cross-tab communication
+        try {
+          localStorage.setItem('carbon_auth_state', JSON.stringify(authState));
+        } catch (e) {
+          console.warn('Failed to store auth state:', e);
+        }
+      });
+      
+      // Listen for auth state changes from other tabs
+      window.addEventListener('storage', (e) => {
+        if (e.key === 'carbon_auth_state' && e.newValue) {
+          try {
+            const authState = JSON.parse(e.newValue);
+            console.log('Received auth sync from another tab:', authState);
+            
+            if (authState.isAuthenticated && authState.user && !currentUser) {
+              console.log('Syncing login state from another tab');
+              // The onAuthStateChanged should handle this automatically
+            } else if (!authState.isAuthenticated && currentUser) {
+              console.log('Syncing logout state from another tab');
+              // Force logout UI if needed
+              if (!auth.currentUser) {
+                handleAuthStateChange(null);
+              }
+            }
+          } catch (error) {
+            console.warn('Failed to parse auth state from storage:', error);
+          }
+        }
+      });
     }
 
     // Start the authentication process
