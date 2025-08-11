@@ -175,6 +175,87 @@
       border-bottom: 8px solid transparent;
     }
 
+    /* Reply functionality styles */
+    .message {
+      position: relative;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .message:hover {
+      transform: translateX(2px);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    }
+
+    .message:hover .reply-button {
+      opacity: 1;
+    }
+
+    .reply-button {
+      position: absolute;
+      top: 0.5rem;
+      right: 0.5rem;
+      opacity: 0;
+      background: var(--theme-foam);
+      color: var(--theme-base);
+      border: none;
+      border-radius: 4px;
+      padding: 0.25rem 0.5rem;
+      font-size: 0.7rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      z-index: 10;
+    }
+
+    .reply-button:hover {
+      background: var(--theme-iris);
+      transform: scale(1.05);
+    }
+
+    .reply-preview {
+      background: var(--theme-highlight-med);
+      border-left: 3px solid var(--theme-foam);
+      padding: 0.5rem;
+      margin-bottom: 0.5rem;
+      border-radius: 4px;
+      font-size: 0.8rem;
+      opacity: 0.8;
+    }
+
+    .reply-original {
+      background: rgba(156, 207, 216, 0.1);
+      border-left: 3px solid var(--theme-foam);
+      padding: 0.5rem;
+      margin-bottom: 0.5rem;
+      border-radius: 4px;
+      font-size: 0.8rem;
+    }
+
+    .reply-chain {
+      border-left: 2px solid var(--theme-muted);
+      margin-left: 1rem;
+      padding-left: 0.5rem;
+    }
+
+    .reply-input-container {
+      background: var(--theme-highlight-med);
+      border-radius: 8px;
+      padding: 0.75rem;
+      margin-bottom: 0.5rem;
+      border-left: 3px solid var(--theme-foam);
+    }
+
+    .reply-cancel {
+      background: var(--theme-love);
+      color: white;
+      border: none;
+      border-radius: 4px;
+      padding: 0.25rem 0.5rem;
+      font-size: 0.7rem;
+      cursor: pointer;
+      margin-left: 0.5rem;
+    }
+
     @keyframes messageSlideIn {
       from {
         opacity: 0;
@@ -376,9 +457,17 @@
       <!-- Room Management -->
       <div id="roomManagement" class="mt-6 pt-4 border-t border-rp-highlight-med hidden">
         <h4 class="text-sm font-semibold text-rp-muted mb-2">Room Management</h4>
-        <button onclick="cleanupExpiredRooms()" class="btn-secondary w-full text-sm">
+        <button onclick="cleanupExpiredRooms()" class="btn-secondary w-full text-sm mb-2">
           <i class='bx bx-trash mr-2'></i>
           Cleanup Expired Rooms
+        </button>
+        <button onclick="cleanupInactiveRooms()" class="btn-secondary w-full text-sm mb-2">
+          <i class='bx bx-clock mr-2'></i>
+          Cleanup Inactive Rooms
+        </button>
+        <button onclick="cleanupOldMessages(currentRoomId)" class="btn-secondary w-full text-sm">
+          <i class='bx bx-message-x mr-2'></i>
+          Cleanup Old Messages
         </button>
       </div>
     </div>
@@ -415,6 +504,19 @@
       <!-- Chat Input -->
       <div class="chat-input-area">
         <form id="messageForm" onsubmit="sendMessage(event)" class="hidden">
+          <!-- Reply Preview -->
+          <div id="replyPreview" class="reply-input-container hidden">
+            <div class="flex items-center justify-between">
+              <div class="flex-1">
+                <div class="text-xs text-rp-muted mb-1">Replying to:</div>
+                <div id="replyPreviewContent" class="text-sm"></div>
+              </div>
+              <button type="button" onclick="cancelReply()" class="reply-cancel">
+                <i class='bx bx-x'></i>
+              </button>
+            </div>
+          </div>
+          
           <div class="flex gap-2">
             <input 
               type="text" 
@@ -729,6 +831,8 @@ Be helpful and conversational. Respond naturally to user messages.`;
     let roomsListener = null;
     let userPresenceListener = null;
     let cleanupInterval = null;
+    let replyingTo = null; // Store the message being replied to
+    let messageCleanupInterval = null; // For message cleanup
 
     // Content Filter Class
     class ChatContentFilter {
@@ -1167,15 +1271,28 @@ Be helpful and conversational. Respond naturally to user messages.`;
       }
 
       try {
-        // Send user message
-        await db.collection('chatRooms').doc(currentRoomId).collection('messages').add({
+        // Prepare message data
+        const messageData = {
           content: filteredContent,
           authorId: currentUser.uid,
           authorName: currentUser.displayName || 'Anonymous',
           authorPhoto: currentUser.photoURL || '',
           timestamp: firebase.firestore.FieldValue.serverTimestamp(),
           type: 'user'
-        });
+        };
+
+        // Add reply information if replying to a message
+        if (replyingTo) {
+          messageData.replyTo = {
+            messageId: replyingTo.id,
+            authorName: replyingTo.authorName,
+            content: replyingTo.content.length > 100 ? replyingTo.content.substring(0, 100) + '...' : replyingTo.content,
+            timestamp: replyingTo.timestamp
+          };
+        }
+
+        // Send user message
+        await db.collection('chatRooms').doc(currentRoomId).collection('messages').add(messageData);
 
         // Update room activity
         await db.collection('chatRooms').doc(currentRoomId).update({
@@ -1183,6 +1300,7 @@ Be helpful and conversational. Respond naturally to user messages.`;
         });
 
         messageInput.value = '';
+        cancelReply(); // Clear any active reply
 
         // Check if AI should respond (when room is empty or user is alone)
         const roomDoc = await db.collection('chatRooms').doc(currentRoomId).get();
@@ -1268,10 +1386,13 @@ Be helpful and conversational. Respond naturally to user messages.`;
 
       messagesListener = db.collection('chatRooms').doc(roomId).collection('messages')
         .orderBy('timestamp', 'asc')
-        .limit(50)
+        .limit(100) // Increased limit for better conversation context
         .onSnapshot(snapshot => {
           const messagesContainer = document.getElementById('chatMessages');
           messagesContainer.innerHTML = '';
+
+          // Clear any active reply when switching rooms
+          cancelReply();
 
           snapshot.forEach(doc => {
             const message = { id: doc.id, ...doc.data() };
@@ -1280,6 +1401,11 @@ Be helpful and conversational. Respond naturally to user messages.`;
 
           // Scroll to bottom
           messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+          // Clean up old messages if there are too many
+          if (snapshot.size > 80) {
+            cleanupOldMessages(roomId);
+          }
         });
     }
 
@@ -1292,6 +1418,7 @@ Be helpful and conversational. Respond naturally to user messages.`;
       const isAI = message.type === 'ai' || message.authorId === 'ai-assistant';
       
       messageDiv.className = `message ${isOwn ? 'own' : ''} ${isSystem ? 'system' : ''} ${isAI ? 'ai' : ''}`;
+      messageDiv.setAttribute('data-message-id', message.id);
 
       if (isSystem) {
         messageDiv.innerHTML = `
@@ -1302,7 +1429,18 @@ Be helpful and conversational. Respond naturally to user messages.`;
         `;
       } else if (isAI) {
         const timestamp = message.timestamp ? message.timestamp.toDate().toLocaleTimeString() : 'Sending...';
+        let replyHtml = '';
+        if (message.replyTo) {
+          replyHtml = `
+            <div class="reply-original">
+              <div class="text-xs text-rp-muted">${sanitizeText(message.replyTo.authorName)}</div>
+              <div class="text-sm">${sanitizeHTML(message.replyTo.content)}</div>
+            </div>
+          `;
+        }
+        
         messageDiv.innerHTML = `
+          ${replyHtml}
           <div class="message-header">
             <div class="flex items-center gap-2">
               <div class="w-6 h-6 rounded-full bg-gradient-to-r from-purple-400 to-pink-400 flex items-center justify-center">
@@ -1314,10 +1452,24 @@ Be helpful and conversational. Respond naturally to user messages.`;
             <span class="timestamp">${timestamp}</span>
           </div>
           <div class="message-content">${sanitizeHTML(message.content)}</div>
+          <button class="reply-button" onclick="startReply('${message.id}', '${sanitizeText(message.authorName)}', '${sanitizeText(message.content)}')">
+            <i class='bx bx-reply'></i> Reply
+          </button>
         `;
       } else {
         const timestamp = message.timestamp ? message.timestamp.toDate().toLocaleTimeString() : 'Sending...';
+        let replyHtml = '';
+        if (message.replyTo) {
+          replyHtml = `
+            <div class="reply-original">
+              <div class="text-xs text-rp-muted">${sanitizeText(message.replyTo.authorName)}</div>
+              <div class="text-sm">${sanitizeHTML(message.replyTo.content)}</div>
+            </div>
+          `;
+        }
+        
         messageDiv.innerHTML = `
+          ${replyHtml}
           <div class="message-header">
             <div class="flex items-center gap-2">
               ${message.authorPhoto ? `<img src="${message.authorPhoto}" alt="Avatar" class="w-6 h-6 rounded-full">` : '<div class="w-6 h-6 rounded-full bg-rp-foam"></div>'}
@@ -1326,6 +1478,9 @@ Be helpful and conversational. Respond naturally to user messages.`;
             <span class="timestamp">${timestamp}</span>
           </div>
           <div class="message-content">${sanitizeHTML(message.content)}</div>
+          ${currentUser ? `<button class="reply-button" onclick="startReply('${message.id}', '${sanitizeText(message.authorName)}', '${sanitizeText(message.content)}')">
+            <i class='bx bx-reply'></i> Reply
+          </button>` : ''}
         `;
       }
 
@@ -1351,6 +1506,45 @@ Be helpful and conversational. Respond naturally to user messages.`;
     function clearRoomNameError() {
       document.getElementById('roomNameError').classList.add('hidden');
       document.getElementById('roomName').classList.remove('input-error');
+    }
+
+    // Reply functionality
+    function startReply(messageId, authorName, content) {
+      if (!currentUser) return;
+      
+      replyingTo = {
+        id: messageId,
+        authorName: authorName,
+        content: content
+      };
+      
+      // Show reply preview
+      const replyPreview = document.getElementById('replyPreview');
+      const replyPreviewContent = document.getElementById('replyPreviewContent');
+      
+      replyPreviewContent.innerHTML = `
+        <div class="font-semibold text-rp-foam">${sanitizeText(authorName)}</div>
+        <div class="text-rp-text">${sanitizeHTML(content.length > 100 ? content.substring(0, 100) + '...' : content)}</div>
+      `;
+      
+      replyPreview.classList.remove('hidden');
+      
+      // Focus on message input
+      const messageInput = document.getElementById('messageInput');
+      messageInput.focus();
+      messageInput.placeholder = `Reply to ${authorName}...`;
+    }
+
+    function cancelReply() {
+      replyingTo = null;
+      
+      // Hide reply preview
+      const replyPreview = document.getElementById('replyPreview');
+      replyPreview.classList.add('hidden');
+      
+      // Reset message input placeholder
+      const messageInput = document.getElementById('messageInput');
+      messageInput.placeholder = 'Type your message...';
     }
 
     async function createRoom(event) {
@@ -1414,20 +1608,7 @@ Be helpful and conversational. Respond naturally to user messages.`;
         const batch = db.batch();
         
         for (const doc of expiredRooms.docs) {
-          // Delete messages subcollection
-          const messages = await doc.ref.collection('messages').get();
-          messages.docs.forEach(messageDoc => {
-            batch.delete(messageDoc.ref);
-          });
-
-          // Delete presence subcollection
-          const presence = await doc.ref.collection('presence').get();
-          presence.docs.forEach(presenceDoc => {
-            batch.delete(presenceDoc.ref);
-          });
-
-          // Delete room
-          batch.delete(doc.ref);
+          await cleanupRoomCompletely(doc.ref, batch);
         }
 
         if (!expiredRooms.empty) {
@@ -1436,6 +1617,91 @@ Be helpful and conversational. Respond naturally to user messages.`;
         }
       } catch (error) {
         console.error('Error cleaning up expired rooms:', error);
+      }
+    }
+
+    async function cleanupRoomCompletely(roomRef, batch = null) {
+      const shouldCommit = !batch;
+      if (!batch) batch = db.batch();
+
+      try {
+        // Delete messages subcollection in smaller batches
+        const messages = await roomRef.collection('messages').orderBy('timestamp', 'desc').limit(100).get();
+        messages.docs.forEach(messageDoc => {
+          batch.delete(messageDoc.ref);
+        });
+
+        // Delete presence subcollection
+        const presence = await roomRef.collection('presence').get();
+        presence.docs.forEach(presenceDoc => {
+          batch.delete(presenceDoc.ref);
+        });
+
+        // Delete room document
+        batch.delete(roomRef);
+
+        if (shouldCommit) {
+          await batch.commit();
+        }
+
+        // If there were 100 messages, there might be more
+        if (messages.size === 100) {
+          setTimeout(() => cleanupRoomCompletely(roomRef), 1000);
+        }
+      } catch (error) {
+        console.error('Error cleaning up room completely:', error);
+      }
+    }
+
+    async function cleanupOldMessages(roomId) {
+      if (!firebaseInitialized) return;
+
+      try {
+        // Get messages older than 24 hours, keeping only the most recent 50
+        const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+        const oldMessages = await db.collection('chatRooms').doc(roomId).collection('messages')
+          .where('timestamp', '<', firebase.firestore.Timestamp.fromDate(oneDayAgo))
+          .orderBy('timestamp', 'asc')
+          .limit(20) // Delete in small batches
+          .get();
+
+        if (!oldMessages.empty) {
+          const batch = db.batch();
+          oldMessages.docs.forEach(doc => {
+            batch.delete(doc.ref);
+          });
+          
+          await batch.commit();
+          console.log(`Cleaned up ${oldMessages.size} old messages from room ${roomId}`);
+        }
+      } catch (error) {
+        console.error('Error cleaning up old messages:', error);
+      }
+    }
+
+    async function cleanupInactiveRooms() {
+      if (!firebaseInitialized) return;
+
+      try {
+        // Clean up temporary rooms with no activity for 2 hours
+        const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000);
+        const inactiveRooms = await db.collection('chatRooms')
+          .where('type', '==', 'temporary')
+          .where('lastActivity', '<', firebase.firestore.Timestamp.fromDate(twoHoursAgo))
+          .where('userCount', '==', 0)
+          .get();
+
+        const batch = db.batch();
+        for (const doc of inactiveRooms.docs) {
+          await cleanupRoomCompletely(doc.ref, batch);
+        }
+
+        if (!inactiveRooms.empty) {
+          await batch.commit();
+          console.log(`Cleaned up ${inactiveRooms.size} inactive rooms`);
+        }
+      } catch (error) {
+        console.error('Error cleaning up inactive rooms:', error);
       }
     }
 
@@ -1514,8 +1780,18 @@ Be helpful and conversational. Respond naturally to user messages.`;
 
     // Initialize Chat System
     function initializeChatSystem() {
-      // Start automatic cleanup every 30 minutes
-      cleanupInterval = setInterval(cleanupExpiredRooms, 30 * 60 * 1000);
+      // Start automatic cleanup every 30 minutes for expired rooms
+      cleanupInterval = setInterval(() => {
+        cleanupExpiredRooms();
+        cleanupInactiveRooms();
+      }, 30 * 60 * 1000);
+      
+      // Start message cleanup every 2 hours
+      messageCleanupInterval = setInterval(() => {
+        if (currentRoomId) {
+          cleanupOldMessages(currentRoomId);
+        }
+      }, 2 * 60 * 60 * 1000);
       
       // Load rooms
       loadRooms();
@@ -1526,15 +1802,24 @@ Be helpful and conversational. Respond naturally to user messages.`;
       // Start auth monitoring
       startAuthMonitoring();
 
+      // Initial cleanup on startup
+      setTimeout(() => {
+        cleanupExpiredRooms();
+        cleanupInactiveRooms();
+      }, 5000);
+
       // Handle page unload
       window.addEventListener('beforeunload', () => {
         leaveCurrentRoom();
         if (cleanupInterval) {
           clearInterval(cleanupInterval);
         }
+        if (messageCleanupInterval) {
+          clearInterval(messageCleanupInterval);
+        }
       });
 
-      console.log('Chat system initialized');
+      console.log('Chat system initialized with enhanced cleanup');
     }
 
     // Wait for Firebase and initialize
