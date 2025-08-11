@@ -296,6 +296,143 @@
       margin-top: var(--space-1);
     }
 
+    /* Art Deletion UI */
+    .art-piece-actions {
+      position: absolute;
+      top: var(--space-2);
+      right: var(--space-2);
+      display: flex;
+      gap: var(--space-1);
+      opacity: 0;
+      transition: var(--transition);
+      z-index: 2;
+    }
+
+    .art-piece:hover .art-piece-actions,
+    .art-piece-small:hover .art-piece-actions {
+      opacity: 1;
+    }
+
+    .art-action-btn {
+      width: 24px;
+      height: 24px;
+      border-radius: var(--radius);
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.75rem;
+      transition: var(--transition);
+      backdrop-filter: blur(var(--backdrop-blur));
+      -webkit-backdrop-filter: blur(var(--backdrop-blur));
+    }
+
+    .art-delete-btn {
+      background: rgba(239, 68, 68, 0.9);
+      color: white;
+      box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
+    }
+
+    .art-delete-btn:hover {
+      background: var(--error);
+      transform: scale(1.1);
+      box-shadow: 0 4px 12px rgba(239, 68, 68, 0.5);
+    }
+
+    /* Confirmation Dialog */
+    .delete-confirmation {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.8);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 4000;
+      backdrop-filter: blur(var(--backdrop-blur));
+      -webkit-backdrop-filter: blur(var(--backdrop-blur));
+    }
+
+    .delete-confirmation.show {
+      display: flex;
+      animation: fadeIn 0.3s ease;
+    }
+
+    .delete-dialog {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-xl);
+      padding: var(--space-8);
+      max-width: 400px;
+      width: 90%;
+      text-align: center;
+      backdrop-filter: blur(var(--backdrop-blur));
+      -webkit-backdrop-filter: blur(var(--backdrop-blur));
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4);
+      animation: slideIn 0.3s ease;
+    }
+
+    .delete-dialog h3 {
+      color: var(--text-primary);
+      font-size: 1.25rem;
+      font-weight: 700;
+      margin-bottom: var(--space-4);
+    }
+
+    .delete-dialog p {
+      color: var(--text-secondary);
+      margin-bottom: var(--space-6);
+      line-height: 1.6;
+    }
+
+    .delete-dialog-actions {
+      display: flex;
+      gap: var(--space-3);
+      justify-content: center;
+    }
+
+    .delete-preview {
+      width: 120px;
+      height: 120px;
+      border-radius: var(--radius-lg);
+      object-fit: cover;
+      margin: 0 auto var(--space-4);
+      border: 2px solid var(--border);
+    }
+
+    /* Art Gallery Improvements */
+    .art-piece {
+      position: relative;
+    }
+
+    .art-piece-small {
+      position: relative;
+    }
+
+    .art-piece-ownership {
+      position: absolute;
+      top: var(--space-2);
+      left: var(--space-2);
+      background: rgba(99, 102, 241, 0.9);
+      color: white;
+      padding: var(--space-1) var(--space-2);
+      border-radius: var(--radius);
+      font-size: 0.65rem;
+      font-weight: 600;
+      opacity: 0;
+      transition: var(--transition);
+      backdrop-filter: blur(var(--backdrop-blur));
+      -webkit-backdrop-filter: blur(var(--backdrop-blur));
+    }
+
+    .art-piece:hover .art-piece-ownership,
+    .art-piece-small:hover .art-piece-ownership {
+      opacity: 1;
+    }
+
     /* Chat Main Area */
     .chat-main {
       background: var(--surface);
@@ -565,6 +702,11 @@
     @keyframes pulse {
       0%, 100% { opacity: 1; }
       50% { opacity: 0.7; }
+    }
+
+    @keyframes fadeOut {
+      from { opacity: 1; transform: translateY(0); }
+      to { opacity: 0; transform: translateY(-10px); }
     }
 
     .animate-fade-in {
@@ -4783,6 +4925,20 @@ Be helpful and conversational. Respond naturally to user messages.`;
           }
         }
       });
+
+      // Art deletion button handlers
+      document.addEventListener('click', (e) => {
+        if (e.target.closest('.art-delete-btn')) {
+          e.stopPropagation();
+          const button = e.target.closest('.art-delete-btn');
+          const artworkId = button.getAttribute('data-artwork-id');
+          const artPiece = button.closest('.art-piece, .art-piece-small');
+          
+          if (artworkId && artPiece && artPiece.artworkData) {
+            deleteArtwork(artworkId, artPiece.artworkData);
+          }
+        }
+      });
     }
 
     async function createRoom(event) {
@@ -5440,10 +5596,20 @@ Be helpful and conversational. Respond naturally to user messages.`;
               return;
             }
             
+            const isOwner = currentUser && artwork.authorId === currentUser.uid;
+            
             const artPiece = document.createElement('div');
             artPiece.className = 'art-piece';
             artPiece.innerHTML = `
               <img src="${artwork.imageData}" alt="${sanitizeText(artwork.title)}" loading="lazy" onerror="this.style.display='none'">
+              ${isOwner ? '<div class="art-piece-ownership">Your Art</div>' : ''}
+              ${isOwner ? `
+                <div class="art-piece-actions">
+                  <button class="art-action-btn art-delete-btn" data-artwork-id="${doc.id}">
+                    <i class='bx bx-trash'></i>
+                  </button>
+                </div>
+              ` : ''}
               <div class="art-piece-info">
                 <div class="art-piece-author">${sanitizeText(artwork.authorName || 'Anonymous')}</div>
                 <div>${sanitizeText(artwork.title)}</div>
@@ -5451,8 +5617,14 @@ Be helpful and conversational. Respond naturally to user messages.`;
               </div>
             `;
             
-            artPiece.addEventListener('click', () => {
-              showArtworkModal(artwork);
+            // Store artwork data on the element
+            artPiece.artworkData = artwork;
+            artPiece.artworkId = doc.id;
+            
+            artPiece.addEventListener('click', (e) => {
+              if (!e.target.closest('.art-piece-actions')) {
+                showArtworkModal(artwork);
+              }
             });
             
             gallery.appendChild(artPiece);
@@ -5498,6 +5670,110 @@ Be helpful and conversational. Respond naturally to user messages.`;
       document.body.appendChild(modal);
     }
 
+    // Art Deletion System
+    let pendingDeletion = null;
+
+    function deleteArtwork(artworkId, artworkData) {
+      if (!currentUser) {
+        alert('Please sign in to delete artwork');
+        return;
+      }
+
+      // Check ownership
+      if (artworkData.authorId !== currentUser.uid) {
+        alert('You can only delete your own artwork');
+        return;
+      }
+
+      // Store pending deletion data
+      pendingDeletion = { id: artworkId, data: artworkData };
+
+      // Show confirmation dialog
+      const dialog = document.getElementById('deleteConfirmation');
+      const preview = document.getElementById('deletePreview');
+      const title = document.getElementById('deleteArtTitle');
+
+      preview.src = artworkData.imageData;
+      title.textContent = artworkData.title;
+      dialog.classList.add('show');
+    }
+
+    function cancelArtDeletion() {
+      const dialog = document.getElementById('deleteConfirmation');
+      dialog.classList.remove('show');
+      pendingDeletion = null;
+    }
+
+    async function confirmArtDeletion() {
+      if (!pendingDeletion || !currentUser) {
+        cancelArtDeletion();
+        return;
+      }
+
+      try {
+        const { id, data } = pendingDeletion;
+
+        // Double-check ownership before deletion
+        if (data.authorId !== currentUser.uid) {
+          alert('You can only delete your own artwork');
+          cancelArtDeletion();
+          return;
+        }
+
+        // Delete from Firestore
+        await db.collection('artworks').doc(id).delete();
+
+        // Show success feedback
+        showArtDeletionSuccess();
+
+        // Refresh galleries
+        if (!document.getElementById('galleryTab').classList.contains('hidden')) {
+          loadCommunityArt();
+        }
+        loadArtGallery();
+
+        cancelArtDeletion();
+
+      } catch (error) {
+        console.error('Error deleting artwork:', error);
+        alert('Failed to delete artwork. Please try again.');
+        cancelArtDeletion();
+      }
+    }
+
+    function showArtDeletionSuccess() {
+      // Create temporary success notification
+      const notification = document.createElement('div');
+      notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: var(--success);
+        color: white;
+        padding: var(--space-4) var(--space-6);
+        border-radius: var(--radius-lg);
+        box-shadow: 0 8px 25px rgba(16, 185, 129, 0.3);
+        z-index: 5000;
+        display: flex;
+        align-items: center;
+        gap: var(--space-2);
+        animation: slideIn 0.3s ease;
+      `;
+      
+      notification.innerHTML = `
+        <i class='bx bx-check-circle'></i>
+        Artwork deleted successfully
+      `;
+      
+      document.body.appendChild(notification);
+      
+      // Remove after 3 seconds
+      setTimeout(() => {
+        notification.style.animation = 'fadeOut 0.3s ease';
+        setTimeout(() => notification.remove(), 300);
+      }, 3000);
+    }
+
     // Sidebar Tab Management
     function switchSidebarTab(tabName) {
       // Update tab buttons
@@ -5541,12 +5817,22 @@ Be helpful and conversational. Respond naturally to user messages.`;
             const artwork = doc.data();
             if (!artwork.imageData || !artwork.title) return;
 
+            const isOwner = currentUser && artwork.authorId === currentUser.uid;
+
             const artPiece = document.createElement('div');
             artPiece.className = 'art-piece-small';
             artPiece.innerHTML = `
               <img src="${artwork.imageData}" alt="${sanitizeText(artwork.title)}" 
                    class="art-piece-thumbnail" loading="lazy" 
                    onerror="this.style.display='none'">
+              ${isOwner ? '<div class="art-piece-ownership">Your Art</div>' : ''}
+              ${isOwner ? `
+                <div class="art-piece-actions">
+                  <button class="art-action-btn art-delete-btn" data-artwork-id="${doc.id}">
+                    <i class='bx bx-trash'></i>
+                  </button>
+                </div>
+              ` : ''}
               <div class="art-piece-details">
                 <div class="art-piece-title">${sanitizeText(artwork.title)}</div>
                 <div class="art-piece-author">by ${sanitizeText(artwork.authorName || 'Anonymous')}</div>
@@ -5554,8 +5840,14 @@ Be helpful and conversational. Respond naturally to user messages.`;
               </div>
             `;
 
-            artPiece.addEventListener('click', () => {
-              showArtworkModal(artwork);
+            // Store artwork data on the element
+            artPiece.artworkData = artwork;
+            artPiece.artworkId = doc.id;
+
+            artPiece.addEventListener('click', (e) => {
+              if (!e.target.closest('.art-piece-actions')) {
+                showArtworkModal(artwork);
+              }
             });
 
             artList.appendChild(artPiece);
@@ -5589,6 +5881,9 @@ Be helpful and conversational. Respond naturally to user messages.`;
     window.undoCanvas = undoCanvas;
     window.shareArtwork = shareArtwork;
     window.showArtworkModal = showArtworkModal;
+    window.deleteArtwork = deleteArtwork;
+    window.cancelArtDeletion = cancelArtDeletion;
+    window.confirmArtDeletion = confirmArtDeletion;
     window.switchSidebarTab = switchSidebarTab;
     window.loadCommunityArt = loadCommunityArt;
     window.leaveCurrentRoom = leaveCurrentRoom;
@@ -5700,6 +5995,25 @@ Be helpful and conversational. Respond naturally to user messages.`;
 
       <div id="artGallery" class="art-gallery">
         <!-- Recent artworks will be displayed here -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Art Deletion Confirmation Dialog -->
+  <div id="deleteConfirmation" class="delete-confirmation">
+    <div class="delete-dialog">
+      <h3>Delete Artwork</h3>
+      <img id="deletePreview" class="delete-preview" src="" alt="Artwork to delete">
+      <p>Are you sure you want to delete "<span id="deleteArtTitle"></span>"? This action cannot be undone.</p>
+      <div class="delete-dialog-actions">
+        <button onclick="cancelArtDeletion()" class="btn btn-secondary">
+          <i class='bx bx-x'></i>
+          Cancel
+        </button>
+        <button onclick="confirmArtDeletion()" class="btn btn-danger">
+          <i class='bx bx-trash'></i>
+          Delete
+        </button>
       </div>
     </div>
   </div>
