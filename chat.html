@@ -2683,10 +2683,10 @@ Be helpful and conversational. Respond naturally to user messages.`;
         currentRoomId = roomId;
         
         // Update room user count
-        await db.collection('chatRooms').doc(roomId).update({
+        await db.collection('chatRooms').doc(roomId).set({
           userCount: firebase.firestore.FieldValue.increment(1),
           lastActivity: firebase.firestore.FieldValue.serverTimestamp()
-        });
+        }, { merge: true });
 
         // Update UI
         updateChatUI(roomId);
@@ -2701,6 +2701,7 @@ Be helpful and conversational. Respond naturally to user messages.`;
           joinedAt: firebase.firestore.FieldValue.serverTimestamp(),
           lastSeen: firebase.firestore.FieldValue.serverTimestamp(),
           lastActivity: firebase.firestore.FieldValue.serverTimestamp(),
+          isActive: true,
           isAFK: false,
           afkSince: null
         });
@@ -2737,9 +2738,9 @@ Be helpful and conversational. Respond naturally to user messages.`;
         await db.collection('chatRooms').doc(currentRoomId).collection('presence').doc(currentUser.uid).delete();
 
         // Decrement user count
-        await db.collection('chatRooms').doc(currentRoomId).update({
+        await db.collection('chatRooms').doc(currentRoomId).set({
           userCount: firebase.firestore.FieldValue.increment(-1)
-        });
+        }, { merge: true });
 
         // Clean up listeners
         if (messagesListener) {
@@ -2911,9 +2912,9 @@ Be helpful and conversational. Respond naturally to user messages.`;
         await db.collection('chatRooms').doc(currentRoomId).collection('messages').add(messageData);
 
         // Update room activity
-        await db.collection('chatRooms').doc(currentRoomId).update({
+        await db.collection('chatRooms').doc(currentRoomId).set({
           lastActivity: firebase.firestore.FieldValue.serverTimestamp()
-        });
+        }, { merge: true });
 
         messageInput.value = '';
         cancelReply(); // Clear any active reply
@@ -3199,7 +3200,7 @@ Be helpful and conversational. Respond naturally to user messages.`;
           }
         }
 
-        await messageRef.update({ reactions });
+        await messageRef.set({ reactions }, { merge: true });
       } catch (error) {
         console.error('Error toggling reaction:', error);
       }
@@ -3355,15 +3356,48 @@ Be helpful and conversational. Respond naturally to user messages.`;
       setupUserPresenceListener();
     }
 
+    async function ensurePresenceDocument() {
+      if (!currentUser || !currentRoomId) return false;
+      
+      try {
+        const presenceRef = db.collection('chatRooms').doc(currentRoomId).collection('presence').doc(currentUser.uid);
+        const presenceDoc = await presenceRef.get();
+        
+        if (!presenceDoc.exists) {
+          // Create the presence document if it doesn't exist
+          await presenceRef.set({
+            userId: currentUser.uid,
+            userName: currentUser.displayName || 'Anonymous',
+            userPhoto: currentUser.photoURL || '',
+            joinedAt: firebase.firestore.FieldValue.serverTimestamp(),
+            lastSeen: firebase.firestore.FieldValue.serverTimestamp(),
+            lastActivity: firebase.firestore.FieldValue.serverTimestamp(),
+            isActive: true,
+            isAFK: false,
+            afkSince: null
+          });
+        }
+        return true;
+      } catch (error) {
+        console.error('Error ensuring presence document:', error);
+        return false;
+      }
+    }
+
     function updateActivity() {
       lastActivity = Date.now();
       
       // Update user's last activity in Firebase
       if (currentUser && currentRoomId) {
-        db.collection('chatRooms').doc(currentRoomId).collection('presence').doc(currentUser.uid).update({
-          lastActivity: firebase.firestore.FieldValue.serverTimestamp()
-        }).catch(error => {
-          console.error('Error updating activity:', error);
+        // Ensure the presence document exists first, then update
+        ensurePresenceDocument().then(success => {
+          if (success) {
+            db.collection('chatRooms').doc(currentRoomId).collection('presence').doc(currentUser.uid).set({
+              lastActivity: firebase.firestore.FieldValue.serverTimestamp()
+            }, { merge: true }).catch(error => {
+              console.error('Error updating activity:', error);
+            });
+          }
         });
       }
     }
@@ -3376,11 +3410,15 @@ Be helpful and conversational. Respond naturally to user messages.`;
       const isAFK = timeSinceActivity > 5 * 60 * 1000; // 5 minutes
 
       // Update AFK status in Firebase
-      db.collection('chatRooms').doc(currentRoomId).collection('presence').doc(currentUser.uid).update({
-        isAFK: isAFK,
-        afkSince: isAFK ? firebase.firestore.FieldValue.serverTimestamp() : null
-      }).catch(error => {
-        console.error('Error updating AFK status:', error);
+      ensurePresenceDocument().then(success => {
+        if (success) {
+          db.collection('chatRooms').doc(currentRoomId).collection('presence').doc(currentUser.uid).set({
+            isAFK: isAFK,
+            afkSince: isAFK ? firebase.firestore.FieldValue.serverTimestamp() : null
+          }, { merge: true }).catch(error => {
+            console.error('Error updating AFK status:', error);
+          });
+        }
       });
     }
 
@@ -3389,15 +3427,23 @@ Be helpful and conversational. Respond naturally to user messages.`;
 
       userPresenceListener = db.collection('chatRooms').doc(currentRoomId).collection('presence')
         .onSnapshot(snapshot => {
-          activeUsers.clear();
-          
-          snapshot.forEach(doc => {
-            const userData = doc.data();
-            activeUsers.set(doc.id, userData);
-          });
+          try {
+            activeUsers.clear();
+            
+            snapshot.forEach(doc => {
+              const userData = doc.data();
+              if (userData && doc.id) {
+                activeUsers.set(doc.id, userData);
+              }
+            });
 
-          updateUsersList();
-          updateUserCount();
+            updateUsersList();
+            updateUserCount();
+          } catch (error) {
+            console.error('Error processing user presence updates:', error);
+          }
+        }, error => {
+          console.error('Error listening to user presence:', error);
         });
     }
 
