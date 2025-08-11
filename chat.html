@@ -1258,6 +1258,15 @@
       transform: translateY(0);
     }
 
+    .typing-indicator.ai-typing {
+      background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(16, 185, 129, 0.05));
+      border-left: 3px solid #10b981;
+    }
+
+    .typing-indicator.ai-typing .typing-dot {
+      background: #10b981;
+    }
+
     .typing-dots {
       display: flex;
       gap: var(--space-1);
@@ -1428,6 +1437,47 @@
       background: rgba(99, 102, 241, 0.1);
     }
 
+    .room-item.ai-room {
+      border-color: #10b981;
+      background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(16, 185, 129, 0.05));
+      position: relative;
+    }
+
+    .room-item.ai-room::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(135deg, transparent 0%, rgba(16, 185, 129, 0.03) 100%);
+      border-radius: inherit;
+    }
+
+    .ai-room-icon {
+      color: #10b981 !important;
+      font-size: 1.1rem;
+      animation: pulse 2s infinite;
+    }
+
+    .ai-room-name {
+      color: #10b981;
+      font-weight: 600;
+    }
+
+    .ai-room-badge {
+      display: inline-block;
+      background: linear-gradient(135deg, #10b981, #059669);
+      color: white;
+      font-size: 0.65rem;
+      font-weight: 600;
+      padding: 2px 6px;
+      border-radius: 10px;
+      margin-top: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
     /* Message Styles */
     .message {
       margin-bottom: var(--space-4);
@@ -1467,12 +1517,44 @@
     }
 
     .message.ai {
-      background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(99, 102, 241, 0.05));
-      border-left: 3px solid var(--theme-iris);
+      background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(16, 185, 129, 0.05));
+      border-left: 4px solid #10b981;
       position: relative;
+      border-radius: var(--radius-lg);
+      box-shadow: 0 2px 8px rgba(16, 185, 129, 0.1);
     }
 
     .message.ai::before {
+      content: '🤖';
+      position: absolute;
+      top: -2px;
+      left: -2px;
+      background: #10b981;
+      color: white;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      z-index: 1;
+    }
+
+    .message.ai .message-author {
+      color: #10b981;
+      font-weight: 600;
+    }
+
+    .message.ai .message-content {
+      background: rgba(16, 185, 129, 0.03);
+      border-radius: var(--radius-md);
+      padding: var(--space-3);
+      margin-top: var(--space-2);
+      border: 1px solid rgba(16, 185, 129, 0.1);
+    }
+
+    .message.ai::after {
       content: '';
       position: absolute;
       top: 0;
@@ -4292,6 +4374,7 @@ Be helpful and conversational. Respond naturally to user messages.`;
       }
 
       try {
+        // Create default general chat room
         const defaultRoomRef = db.collection('chatRooms').doc('default');
         const defaultRoom = await defaultRoomRef.get();
 
@@ -4307,11 +4390,30 @@ Be helpful and conversational. Respond naturally to user messages.`;
           });
           console.log('Default room created');
         }
+
+        // Create AI assistant room
+        const aiRoomRef = db.collection('chatRooms').doc('ai-assistant');
+        const aiRoom = await aiRoomRef.get();
+
+        if (!aiRoom.exists) {
+          await aiRoomRef.set({
+            name: 'AI Assistant',
+            description: 'Chat with our intelligent AI assistant powered by Pollinations AI 🤖',
+            type: 'ai',
+            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+            createdBy: 'system',
+            userCount: 0,
+            lastActivity: firebase.firestore.FieldValue.serverTimestamp(),
+            isAIRoom: true,
+            aiProvider: 'pollinations'
+          });
+          console.log('AI room created');
+        }
       } catch (error) {
         if (error.code === 'unavailable' || error.message.includes('offline')) {
-          console.log('Cannot ensure default room while offline, will retry when online');
+          console.log('Cannot ensure default rooms while offline, will retry when online');
         } else {
-          console.error('Error ensuring default room:', error);
+          console.error('Error ensuring default rooms:', error);
         }
       }
     }
@@ -4323,7 +4425,8 @@ Be helpful and conversational. Respond naturally to user messages.`;
       if (isExpired) return; // Don't display expired rooms
 
       const roomDiv = document.createElement('div');
-      roomDiv.className = `room-item ${room.type} ${currentRoomId === room.id ? 'active' : ''}`;
+      const isAIRoom = room.isAIRoom || room.type === 'ai';
+      roomDiv.className = `room-item ${room.type} ${isAIRoom ? 'ai-room' : ''} ${currentRoomId === room.id ? 'active' : ''}`;
       roomDiv.setAttribute('data-room-id', room.id);
       roomDiv.addEventListener('click', () => joinRoom(room.id));
 
@@ -4340,16 +4443,26 @@ Be helpful and conversational. Respond naturally to user messages.`;
         }
       }
 
+      // AI room special indicators
+      let roomIcon = '';
+      if (room.type === 'default') {
+        roomIcon = '<i class="bx bx-crown text-rp-gold"></i>';
+      } else if (room.type === 'temporary') {
+        roomIcon = '<i class="bx bx-clock text-rp-iris"></i>';
+      } else if (isAIRoom) {
+        roomIcon = '<i class="bx bx-brain ai-room-icon"></i>';
+      }
+
       roomDiv.innerHTML = `
         <div class="flex items-center justify-between">
           <div class="flex-1">
-            <div class="font-semibold">${sanitizeText(room.name)}</div>
+            <div class="font-semibold ${isAIRoom ? 'ai-room-name' : ''}">${sanitizeText(room.name)} ${isAIRoom ? '🤖' : ''}</div>
             ${room.description ? `<div class="text-sm opacity-75">${sanitizeText(room.description)}</div>` : ''}
             ${timeInfo}
+            ${isAIRoom ? '<div class="ai-room-badge">AI Assistant</div>' : ''}
           </div>
           <div class="flex items-center gap-2">
-            ${room.type === 'default' ? '<i class="bx bx-crown text-rp-gold"></i>' : ''}
-            ${room.type === 'temporary' ? '<i class="bx bx-clock text-rp-iris"></i>' : ''}
+            ${roomIcon}
             <span class="user-count">${room.userCount || 0}</span>
           </div>
         </div>
@@ -4385,11 +4498,24 @@ Be helpful and conversational. Respond naturally to user messages.`;
         // Setup typing indicator
         setupTypingIndicator();
 
-        // Show room joined notification
-        showNotification('Room Joined', `Welcome to ${roomData.name}`, 'success', { 
+        // Show room joined notification with special message for AI room
+        const isAIRoom = roomData.isAIRoom || roomData.type === 'ai';
+        const welcomeText = isAIRoom ? 
+          `Welcome to ${roomData.name}! Your AI assistant is ready to help 🤖` : 
+          `Welcome to ${roomData.name}`;
+        
+        showNotification('Room Joined', welcomeText, 'success', { 
           duration: 3000,
           roomId: roomId 
         });
+
+        // Auto-activate AI in AI rooms
+        if (isAIRoom && !aiChatbot.isActive) {
+          aiChatbot.activate();
+          setTimeout(async () => {
+            await sendAIWelcomeMessage('Welcome to the AI Assistant room! I\'m here to help, answer questions, or just have a friendly chat. What would you like to talk about? 🤖✨');
+          }, 2000);
+        }
 
         // Add user to room presence
         await db.collection('chatRooms').doc(roomId).collection('presence').doc(currentUser.uid).set({
@@ -4643,20 +4769,28 @@ Be helpful and conversational. Respond naturally to user messages.`;
         const roomDoc = await db.collection('chatRooms').doc(currentRoomId).get();
         const roomData = roomDoc.data();
         
-        if (roomData && aiChatbot.shouldActivate(roomData.userCount || 0)) {
+        // AI responds in AI rooms or when room is empty/user is alone
+        const isAIRoom = roomData && (roomData.isAIRoom || roomData.type === 'ai');
+        const shouldActivateGeneral = roomData && aiChatbot.shouldActivate(roomData.userCount || 0);
+        
+        if (isAIRoom || shouldActivateGeneral) {
           if (!aiChatbot.isActive) {
             aiChatbot.activate();
             // Send welcome message from AI
             setTimeout(async () => {
-              await sendAIWelcomeMessage();
+              if (isAIRoom) {
+                await sendAIWelcomeMessage('Hello! I\'m your AI assistant powered by Pollinations AI. How can I help you today? 🤖');
+              } else {
+                await sendAIWelcomeMessage();
+              }
             }, 1000);
           } else {
             // Generate AI response
             setTimeout(async () => {
               await generateAIResponse(filteredContent);
-            }, 1500 + Math.random() * 2000); // Random delay 1.5-3.5 seconds
+            }, isAIRoom ? 800 + Math.random() * 1200 : 1500 + Math.random() * 2000); // Faster response in AI rooms
           }
-        } else if (aiChatbot.isActive && (roomData.userCount || 0) > 1) {
+        } else if (aiChatbot.isActive && !isAIRoom && (roomData.userCount || 0) > 1) {
           aiChatbot.deactivate();
         }
 
@@ -4670,17 +4804,20 @@ Be helpful and conversational. Respond naturally to user messages.`;
       }
     }
 
-    async function sendAIWelcomeMessage() {
+    async function sendAIWelcomeMessage(customMessage = null) {
       if (!currentRoomId || !aiChatbot.isActive) return;
 
-      const welcomeMessages = [
-        "Hello! I'm your AI assistant. Since it's quiet in here, I'm here to chat with you! 😊",
-        "Hi there! Looks like you're the only one here right now. I'm an AI and I'd love to chat!",
-        "Welcome! I'm an AI assistant keeping you company while the room is empty. What's on your mind?",
-        "Hey! I'm your friendly AI companion. Feel free to ask me anything or just chat!",
-      ];
-
-      const welcomeMessage = welcomeMessages[Math.floor(Math.random() * welcomeMessages.length)];
+      let welcomeMessage = customMessage;
+      
+      if (!customMessage) {
+        const welcomeMessages = [
+          "Hello! I'm your AI assistant. Since it's quiet in here, I'm here to chat with you! 😊",
+          "Hi there! Looks like you're the only one here right now. I'm an AI and I'd love to chat!",
+          "Welcome! I'm an AI assistant keeping you company while the room is empty. What's on your mind?",
+          "Hey! I'm your friendly AI companion. Feel free to ask me anything or just chat!",
+        ];
+        welcomeMessage = welcomeMessages[Math.floor(Math.random() * welcomeMessages.length)];
+      }
 
       try {
         await db.collection('chatRooms').doc(currentRoomId).collection('messages').add({
@@ -4700,8 +4837,14 @@ Be helpful and conversational. Respond naturally to user messages.`;
       if (!currentRoomId || !aiChatbot.isActive) return;
 
       try {
+        // Show AI typing indicator
+        showAITyping();
+        
         const aiResponse = await aiChatbot.generateResponse(userMessage);
         aiChatbot.updateConversationHistory(userMessage, aiResponse);
+        
+        // Hide typing indicator
+        hideAITyping();
 
         await db.collection('chatRooms').doc(currentRoomId).collection('messages').add({
           content: aiResponse,
@@ -7455,8 +7598,28 @@ Be helpful and conversational. Respond naturally to user messages.`;
             }
           });
 
-          updateTypingIndicator();
-        });
+                updateTypingIndicator();
+    }
+
+    // AI-specific typing indicators
+    function showAITyping() {
+      const indicator = document.getElementById('typingIndicator');
+      const text = document.getElementById('typingText');
+      
+      if (indicator && text) {
+        text.textContent = 'AI Assistant is thinking...';
+        indicator.classList.add('show');
+        indicator.classList.add('ai-typing');
+      }
+    }
+
+    function hideAITyping() {
+      const indicator = document.getElementById('typingIndicator');
+      
+      if (indicator) {
+        indicator.classList.remove('show');
+        indicator.classList.remove('ai-typing');
+      }
     }
 
     function updateTypingIndicator() {
