@@ -1560,6 +1560,118 @@
       overflow: hidden;
       color: var(--text-primary);
     }
+    
+    /* Message Actions */
+    .message-actions {
+      position: absolute;
+      top: var(--space-2);
+      right: var(--space-2);
+      display: flex;
+      gap: var(--space-1);
+      opacity: 0;
+      transition: opacity 0.2s ease;
+      z-index: 2;
+    }
+    
+    .message:hover .message-actions {
+      opacity: 1;
+    }
+    
+    .message-delete-btn {
+      background: rgba(239, 68, 68, 0.9);
+      color: white;
+      border: none;
+      border-radius: var(--radius);
+      padding: var(--space-1) var(--space-2);
+      font-size: 0.75rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      box-shadow: 0 2px 4px rgba(239, 68, 68, 0.3);
+    }
+    
+    .message-delete-btn:hover {
+      background: rgba(239, 68, 68, 1);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 8px rgba(239, 68, 68, 0.4);
+    }
+    
+    .message-delete-btn:active {
+      transform: translateY(0);
+    }
+    
+    /* Delete confirmation dialog */
+    .delete-message-confirmation {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.6);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      backdrop-filter: blur(8px);
+    }
+    
+    .delete-message-confirmation.show {
+      display: flex;
+    }
+    
+    .delete-message-dialog {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-xl);
+      padding: var(--space-6);
+      max-width: 400px;
+      width: 90%;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+      animation: slideIn 0.3s ease;
+    }
+    
+    .delete-message-dialog h3 {
+      color: var(--text-primary);
+      font-size: 1.25rem;
+      font-weight: 700;
+      margin-bottom: var(--space-4);
+      text-align: center;
+    }
+    
+    .delete-message-dialog p {
+      color: var(--text-secondary);
+      margin-bottom: var(--space-6);
+      line-height: 1.6;
+      text-align: center;
+    }
+    
+    .delete-message-actions {
+      display: flex;
+      gap: var(--space-3);
+      justify-content: center;
+    }
+    
+    .delete-message-preview {
+      background: var(--glass);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: var(--space-3);
+      margin: var(--space-4) 0;
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+      max-height: 100px;
+      overflow: hidden;
+      position: relative;
+    }
+    
+    .delete-message-preview::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 20px;
+      background: linear-gradient(transparent, var(--glass));
+    }
 
     .message::before {
       content: '';
@@ -5020,6 +5132,13 @@ Be helpful and conversational. Respond naturally to user messages.`;
           <button class="reply-button" data-message-id="${message.id}" data-author-name="${sanitizeText(message.authorName)}" data-content="${sanitizeText(message.content)}">
             <i class='bx bx-reply'></i> Reply
           </button>
+          ${isOwn ? `
+            <div class="message-actions">
+              <button class="message-delete-btn" data-message-id="${message.id}" data-content="${sanitizeText(message.content)}">
+                <i class='bx bx-trash'></i> Delete
+              </button>
+            </div>
+          ` : ''}
         `;
       } else {
         const timestamp = message.timestamp ? message.timestamp.toDate().toLocaleTimeString() : 'Sending...';
@@ -5059,6 +5178,13 @@ Be helpful and conversational. Respond naturally to user messages.`;
           ${currentUser ? `<button class="reply-button" data-message-id="${message.id}" data-author-name="${sanitizeText(message.authorName)}" data-content="${sanitizeText(message.content)}">
             <i class='bx bx-reply'></i> Reply
           </button>` : ''}
+          ${isOwn ? `
+            <div class="message-actions">
+              <button class="message-delete-btn" data-message-id="${message.id}" data-content="${sanitizeText(message.content)}">
+                <i class='bx bx-trash'></i> Delete
+              </button>
+            </div>
+          ` : ''}
         `;
       }
 
@@ -5069,18 +5195,28 @@ Be helpful and conversational. Respond naturally to user messages.`;
       
       messagesContainer.appendChild(messageDiv);
 
-      // Show notification for new messages if tab is not focused
-      if (!isOwn && !isSystem && !document.hasFocus()) {
-        showNotification(
-          'New Message',
-          `${message.authorName}: ${message.content.substring(0, 100)}${message.content.length > 100 ? '...' : ''}`,
-          'message',
-          {
-            avatar: message.authorPhoto,
-            roomId: currentRoomId,
-            duration: 5000
+      // Show notification for new messages if tab is not focused OR if user is in the room
+      if (!isOwn && !isSystem) {
+        const shouldNotify = !document.hasFocus() || 
+                            (currentRoomId && message.roomId === currentRoomId && document.hasFocus());
+        
+        if (shouldNotify) {
+          playNotificationSound(); // Play sound for all new messages in current room
+          
+          // Only show visual notification if tab is not focused
+          if (!document.hasFocus()) {
+            showNotification(
+              'New Message',
+              `${message.authorName}: ${message.content.substring(0, 100)}${message.content.length > 100 ? '...' : ''}`,
+              'message',
+              {
+                avatar: message.authorPhoto,
+                roomId: currentRoomId,
+                duration: 5000
+              }
+            );
           }
-        );
+        }
       }
     }
 
@@ -6210,6 +6346,19 @@ Be helpful and conversational. Respond naturally to user messages.`;
         }
       });
 
+      // Message delete button event delegation
+      document.addEventListener('click', (e) => {
+        if (e.target.closest('.message-delete-btn')) {
+          const button = e.target.closest('.message-delete-btn');
+          const messageId = button.getAttribute('data-message-id');
+          const content = button.getAttribute('data-content');
+          
+          if (messageId && content) {
+            deleteMessage(messageId, content);
+          }
+        }
+      });
+
       // Profile viewing event delegation
       document.addEventListener('click', (e) => {
         if (e.target.classList.contains('clickable-avatar')) {
@@ -7238,6 +7387,75 @@ Be helpful and conversational. Respond naturally to user messages.`;
       }, 3000);
     }
 
+    // Message Deletion Functions
+    let pendingMessageDeletion = null;
+
+    function deleteMessage(messageId, messageContent) {
+      if (!currentUser || !currentRoomId) {
+        showNotification('Sign In Required', 'Please sign in to delete messages.', 'warning');
+        return;
+      }
+
+      // Store pending deletion data
+      pendingMessageDeletion = { id: messageId, content: messageContent };
+
+      // Show confirmation dialog
+      const dialog = document.getElementById('deleteMessageConfirmation');
+      const preview = document.getElementById('deleteMessagePreview');
+
+      // Show message preview
+      preview.innerHTML = `
+        <div style="font-weight: 600; margin-bottom: 8px; color: var(--text-primary);">Your message:</div>
+        <div style="font-style: italic; color: var(--text-secondary);">"${messageContent.length > 150 ? messageContent.substring(0, 150) + '...' : messageContent}"</div>
+      `;
+
+      dialog.classList.add('show');
+    }
+
+    function cancelMessageDeletion() {
+      const dialog = document.getElementById('deleteMessageConfirmation');
+      dialog.classList.remove('show');
+      pendingMessageDeletion = null;
+    }
+
+    async function confirmMessageDeletion() {
+      if (!pendingMessageDeletion || !currentUser || !currentRoomId) {
+        cancelMessageDeletion();
+        return;
+      }
+
+      try {
+        const messageId = pendingMessageDeletion.id;
+        
+        // Delete the message from Firestore
+        await db.collection('chatRooms')
+          .doc(currentRoomId)
+          .collection('messages')
+          .doc(messageId)
+          .delete();
+
+        // Remove the message from the UI
+        const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
+        if (messageElement) {
+          messageElement.style.animation = 'fadeOut 0.3s ease-in-out';
+          setTimeout(() => {
+            messageElement.remove();
+          }, 300);
+        }
+
+        // Show success notification
+        showNotification('Message Deleted', 'Your message has been successfully deleted.', 'success');
+        
+        // Close dialog
+        cancelMessageDeletion();
+
+      } catch (error) {
+        console.error('Error deleting message:', error);
+        showNotification('Delete Failed', 'Failed to delete message. Please try again.', 'error');
+        cancelMessageDeletion();
+      }
+    }
+
     // Leaderboard System
     let currentLeaderboard = 'xp';
     let searchTimeout = null;
@@ -7937,6 +8155,9 @@ Be helpful and conversational. Respond naturally to user messages.`;
     window.handleKeyDown = handleKeyDown;
     window.cancelReply = cancelReply;
     window.closeProfileModal = closeProfileModal;
+    window.deleteMessage = deleteMessage;
+    window.cancelMessageDeletion = cancelMessageDeletion;
+    window.confirmMessageDeletion = confirmMessageDeletion;
     window.signOut = signOut;
 
     // Start when page loads
@@ -8085,6 +8306,29 @@ Be helpful and conversational. Respond naturally to user messages.`;
         <button onclick="confirmArtDeletion()" class="btn btn-danger">
           <i class='bx bx-trash'></i>
           Delete
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Message Deletion Confirmation Dialog -->
+  <div id="deleteMessageConfirmation" class="delete-message-confirmation">
+    <div class="delete-message-dialog">
+      <h3><i class='bx bx-trash'></i> Delete Message</h3>
+      <p>Are you sure you want to delete this message? This action cannot be undone.</p>
+      
+      <div id="deleteMessagePreview" class="delete-message-preview">
+        <!-- Message preview will be inserted here -->
+      </div>
+      
+      <div class="delete-message-actions">
+        <button onclick="cancelMessageDeletion()" class="btn btn-secondary">
+          <i class='bx bx-x'></i>
+          Cancel
+        </button>
+        <button onclick="confirmMessageDeletion()" class="btn btn-danger">
+          <i class='bx bx-trash'></i>
+          Delete Message
         </button>
       </div>
     </div>
