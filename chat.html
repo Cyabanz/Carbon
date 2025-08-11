@@ -463,6 +463,7 @@
             class="w-full px-4 py-2 bg-rp-overlay border border-rp-highlight-med rounded-lg text-rp-text placeholder-rp-muted focus:outline-none focus:border-rp-foam"
             maxlength="50"
             required
+            oninput="clearRoomNameError()"
           >
           <div id="roomNameError" class="error-message hidden">Room name contains inappropriate content</div>
         </div>
@@ -766,8 +767,25 @@ Be helpful and conversational. Respond naturally to user messages.`;
       isAppropriate(text) {
         if (!text) return false;
         
-        const filtered = this.filter(text);
-        return filtered.length > 0 && filtered !== text.replace(/(.)\1{4,}/g, (match) => match[0].repeat(3));
+        const originalText = text.trim();
+        const filtered = this.filter(originalText);
+        
+        // Text is appropriate if:
+        // 1. It's not empty after filtering
+        // 2. It doesn't contain bad words (filtered text should be similar to original)
+        // 3. No excessive repeated characters or other suspicious patterns
+        
+        // Check if bad words were replaced (contains asterisks)
+        if (filtered.includes('*')) {
+          return false;
+        }
+        
+        // Check if the text was significantly modified by pattern filters
+        const normalizedOriginal = originalText.replace(/(.)\1{4,}/g, (match) => match[0].repeat(3));
+        const normalizedFiltered = filtered.replace(/\[LINK REMOVED\]/g, ''); // Remove link placeholders for comparison
+        
+        // Text is appropriate if it wasn't heavily modified
+        return filtered.length > 0 && Math.abs(normalizedOriginal.length - normalizedFiltered.length) < originalText.length * 0.3;
       }
     }
 
@@ -1327,7 +1345,12 @@ Be helpful and conversational. Respond naturally to user messages.`;
     function hideCreateRoomModal() {
       document.getElementById('createRoomModal').classList.remove('show');
       document.getElementById('createRoomForm').reset();
+      clearRoomNameError();
+    }
+
+    function clearRoomNameError() {
       document.getElementById('roomNameError').classList.add('hidden');
+      document.getElementById('roomName').classList.remove('input-error');
     }
 
     async function createRoom(event) {
@@ -1341,6 +1364,7 @@ Be helpful and conversational. Respond naturally to user messages.`;
 
       // Validate room name
       if (!contentFilter.isAppropriate(roomName)) {
+        console.log('Room name rejected:', roomName, 'Filtered:', contentFilter.filter(roomName));
         document.getElementById('roomNameError').classList.remove('hidden');
         document.getElementById('roomName').classList.add('input-error');
         return;
