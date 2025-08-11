@@ -1800,7 +1800,7 @@
 
     .xp-bar {
       height: 100%;
-      background: var(--room-color-gradient, linear-gradient(90deg, var(--room-color, #6366f1), rgba(var(--room-color-rgb, 99, 102, 241), 0.7)));
+      background: linear-gradient(90deg, var(--room-color, #6366f1), rgba(var(--room-color-rgb, 99, 102, 241), 0.8));
       border-radius: var(--radius-lg);
       transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
       position: relative;
@@ -2151,50 +2151,51 @@
 
     /* Enhanced Full-page Room Theme Application */
     body.custom-theme {
-      background: linear-gradient(135deg, 
-        rgba(var(--room-color-rgb, 156, 207, 216), 0.08) 0%, 
-        var(--theme-base) 30%, 
-        rgba(var(--room-color-rgb, 156, 207, 216), 0.04) 100%);
+      background-color: var(--theme-base);
       min-height: 100vh;
       transition: background 0.5s ease;
     }
 
-    /* Use actual room color gradients when available */
-    body.custom-theme[data-has-gradient="true"] {
-      background: var(--room-color-gradient, linear-gradient(135deg, rgba(var(--room-color-rgb, 156, 207, 216), 0.08) 0%, var(--theme-base) 30%, rgba(var(--room-color-rgb, 156, 207, 216), 0.04) 100%));
-      min-height: 100vh;
-      transition: background 0.5s ease;
+    body.custom-theme::before {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(135deg, 
+        rgba(var(--room-color-rgb, 99, 102, 241), 0.02) 0%, 
+        transparent 50%, 
+        rgba(var(--room-color-rgb, 99, 102, 241), 0.01) 100%);
+      pointer-events: none;
+      z-index: -1;
     }
 
     .container.custom-theme {
-      background: linear-gradient(180deg, 
-        rgba(var(--room-color-rgb, 156, 207, 216), 0.06) 0%, 
-        rgba(var(--room-color-rgb, 156, 207, 216), 0.02) 100%);
+      background: rgba(var(--room-color-rgb, 99, 102, 241), 0.03);
       border-radius: 20px;
       backdrop-filter: blur(15px);
-      border: 1px solid rgba(var(--room-color-rgb, 156, 207, 216), 0.1);
-      box-shadow: 0 8px 32px rgba(var(--room-color-rgb, 156, 207, 216), 0.1);
+      border: 1px solid rgba(var(--room-color-rgb, 99, 102, 241), 0.15);
+      box-shadow: 0 8px 32px rgba(var(--room-color-rgb, 99, 102, 241), 0.08);
     }
 
     .sidebar.custom-theme {
-      background: linear-gradient(180deg, 
-        rgba(var(--room-color-rgb, 156, 207, 216), 0.15) 0%, 
-        rgba(var(--room-color-rgb, 156, 207, 216), 0.05) 100%);
-      border-right: 2px solid rgba(var(--room-color-rgb, 156, 207, 216), 0.25);
+      background: rgba(var(--room-color-rgb, 99, 102, 241), 0.06);
+      border-right: 2px solid rgba(var(--room-color-rgb, 99, 102, 241), 0.2);
       backdrop-filter: blur(10px);
     }
 
     .chat-main.custom-theme {
-      background: linear-gradient(135deg, 
-        rgba(var(--room-color-rgb, 156, 207, 216), 0.06) 0%, 
-        rgba(var(--room-color-rgb, 156, 207, 216), 0.02) 100%);
+      background: rgba(var(--room-color-rgb, 99, 102, 241), 0.02);
     }
 
     .chat-header.custom-theme {
-      background: var(--room-color-gradient, linear-gradient(135deg, var(--room-color) 0%, rgba(var(--room-color-rgb, 156, 207, 216), 0.8) 100%)) !important;
-      border-bottom: 2px solid rgba(var(--room-color-rgb, 156, 207, 216), 0.4);
+      background: linear-gradient(135deg, 
+        rgba(var(--room-color-rgb, 99, 102, 241), 0.15) 0%, 
+        rgba(var(--room-color-rgb, 99, 102, 241), 0.08) 100%) !important;
+      border-bottom: 2px solid rgba(var(--room-color-rgb, 99, 102, 241), 0.3);
       backdrop-filter: blur(15px);
-      box-shadow: 0 4px 20px rgba(var(--room-color-rgb, 156, 207, 216), 0.2);
+      box-shadow: 0 4px 20px rgba(var(--room-color-rgb, 99, 102, 241), 0.15);
       color: white !important;
     }
 
@@ -2252,10 +2253,10 @@
     }
 
     .btn-primary.custom-theme {
-      background: var(--room-color-gradient, linear-gradient(135deg, var(--room-color), rgba(var(--room-color-rgb, 156, 207, 216), 0.8))) !important;
-      border-color: var(--room-color) !important;
+      background: var(--room-color, #6366f1) !important;
+      border-color: var(--room-color, #6366f1) !important;
       color: white !important;
-      box-shadow: 0 4px 12px rgba(var(--room-color-rgb, 156, 207, 216), 0.3);
+      box-shadow: 0 4px 12px rgba(var(--room-color-rgb, 99, 102, 241), 0.3);
     }
 
     .btn-primary.custom-theme:hover {
@@ -6963,20 +6964,23 @@ Be helpful and conversational. Respond naturally to user messages.`;
         setTimeout(() => updateLeaderboardFollowStates(), 100);
 
         // Apply room theme to leaderboard container if active
-        const leaderboardContainer = document.getElementById('leaderboardContainer');
+        const mainLeaderboardContainer = document.getElementById('leaderboardContainer');
         if (document.body.classList.contains('custom-theme')) {
-          leaderboardContainer.classList.add('custom-theme');
+          mainLeaderboardContainer.classList.add('custom-theme');
         } else {
-          leaderboardContainer.classList.remove('custom-theme');
+          mainLeaderboardContainer.classList.remove('custom-theme');
         }
 
       } catch (error) {
         console.error(`Error loading ${type} leaderboard:`, error);
-        leaderboardContainer.innerHTML = `
-          <div class="search-no-results">
-            Failed to load leaderboard. Please try again.
-          </div>
-        `;
+        const errorContainer = document.getElementById(`${type}Leaderboard`);
+        if (errorContainer) {
+          errorContainer.innerHTML = `
+            <div class="search-no-results">
+              Failed to load leaderboard. Please try again.
+            </div>
+          `;
+        }
       }
     }
 
