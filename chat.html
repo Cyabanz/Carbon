@@ -1680,6 +1680,11 @@
       transform: translateY(0) scale(1);
       pointer-events: all;
     }
+
+    .notification-panel:hover {
+      opacity: 1 !important;
+      pointer-events: all !important;
+    }
     
     .notification-panel-header {
       padding: var(--space-4) var(--space-5);
@@ -3877,7 +3882,7 @@
           </div>
           
                     <div class="header-actions-row">
-            <div class="notification-bell" id="notificationBell" onclick="toggleNotificationPanel()">
+            <div class="notification-bell" id="notificationBell" onclick="event.stopPropagation(); toggleNotificationPanel(event)">
               <i class='bx bx-bell'></i>
               <span id="notificationBadge" class="notification-badge hidden">0</span>
               <div id="notificationPanel" class="notification-panel">
@@ -6820,6 +6825,8 @@ Be helpful and conversational. Respond naturally to user messages.`;
         }
       });
 
+
+
       // Profile viewing event delegation
       document.addEventListener('click', (e) => {
         if (e.target.classList.contains('clickable-avatar')) {
@@ -7927,7 +7934,12 @@ Be helpful and conversational. Respond naturally to user messages.`;
     let userNotifications = [];
     let unreadCount = 0;
 
-    function toggleNotificationPanel() {
+    function toggleNotificationPanel(event) {
+      if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+      
       const panel = document.getElementById('notificationPanel');
       const isShowing = panel.classList.contains('show');
       
@@ -7937,28 +7949,35 @@ Be helpful and conversational. Respond naturally to user messages.`;
       } else {
         panel.classList.add('show');
         markNotificationsAsRead();
-        // Use requestAnimationFrame for smooth execution
-        requestAnimationFrame(() => {
+        // Add event listener after a brief delay to prevent immediate closure
+        setTimeout(() => {
           document.addEventListener('click', closeNotificationPanelOnOutsideClick);
-        });
+        }, 150);
       }
     }
 
     function closeNotificationPanelOnOutsideClick(event) {
+      // Only handle click events, ignore all other events
+      if (event.type !== 'click') {
+        return;
+      }
+      
       const bell = document.getElementById('notificationBell');
       const panel = document.getElementById('notificationPanel');
       
-      // Don't close if clicking on notification items
-      const clickedNotificationItem = event.target.closest('.notification-item');
-      if (clickedNotificationItem) {
-        return; // Let the notification click handler manage the panel
+      // Don't close if the panel isn't showing
+      if (!panel.classList.contains('show')) {
+        return;
       }
       
-      // Close if clicking outside bell and panel (but not on notification items)
-      if (!bell.contains(event.target) && !panel.contains(event.target)) {
-        panel.classList.remove('show');
-        document.removeEventListener('click', closeNotificationPanelOnOutsideClick);
+      // Don't close if clicking within the notification system
+      if (bell.contains(event.target) || panel.contains(event.target)) {
+        return;
       }
+      
+      // Close panel and remove listener
+      panel.classList.remove('show');
+      document.removeEventListener('click', closeNotificationPanelOnOutsideClick);
     }
 
     function addNotification(type, title, message, data = {}) {
@@ -8052,12 +8071,10 @@ Be helpful and conversational. Respond naturally to user messages.`;
         updateNotificationUI();
         saveNotificationsToStorage();
         
-        // Close panel after a brief delay to show the read state change
-        setTimeout(() => {
-          const panel = document.getElementById('notificationPanel');
-          panel.classList.remove('show');
-          document.removeEventListener('click', closeNotificationPanelOnOutsideClick);
-        }, 100);
+        // Close panel immediately - no delay needed
+        const panel = document.getElementById('notificationPanel');
+        panel.classList.remove('show');
+        document.removeEventListener('click', closeNotificationPanelOnOutsideClick);
         
         // Join the room where the notification came from
         if (notification.data.roomId !== currentRoomId) {
