@@ -626,6 +626,238 @@
       letter-spacing: 0.5px;
     }
 
+    /* Room Color Customization */
+    .color-picker-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.7);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 2000;
+    }
+
+    .color-picker-modal.show {
+      display: flex;
+    }
+
+    .color-picker-content {
+      background: var(--theme-surface);
+      border-radius: 16px;
+      padding: 2rem;
+      max-width: 500px;
+      width: 90%;
+      max-height: 80vh;
+      overflow-y: auto;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+    }
+
+    .color-picker-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.5rem;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid var(--theme-highlight-med);
+    }
+
+    .color-picker-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--theme-text);
+    }
+
+    .color-section {
+      margin-bottom: 2rem;
+    }
+
+    .color-section-title {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--theme-text);
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .color-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
+      gap: 0.75rem;
+    }
+
+    .color-option {
+      width: 60px;
+      height: 60px;
+      border-radius: 12px;
+      cursor: pointer;
+      position: relative;
+      border: 3px solid transparent;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .color-option:hover {
+      transform: scale(1.1);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+    }
+
+    .color-option.selected {
+      border-color: var(--theme-foam);
+      box-shadow: 0 0 0 2px var(--theme-foam);
+    }
+
+    .color-option.locked {
+      opacity: 0.5;
+      cursor: not-allowed;
+      position: relative;
+    }
+
+    .color-option.locked::after {
+      content: '🔒';
+      position: absolute;
+      font-size: 1.2rem;
+      color: white;
+      text-shadow: 0 0 4px rgba(0, 0, 0, 0.8);
+    }
+
+    .color-option.locked:hover {
+      transform: none;
+      box-shadow: none;
+    }
+
+    .color-option-label {
+      position: absolute;
+      bottom: -24px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 0.7rem;
+      color: var(--theme-muted);
+      text-align: center;
+      white-space: nowrap;
+    }
+
+    .custom-color-section {
+      background: linear-gradient(135deg, rgba(196, 167, 231, 0.1), rgba(156, 207, 216, 0.1));
+      border: 1px solid var(--theme-highlight-med);
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-top: 1rem;
+    }
+
+    .custom-color-picker {
+      width: 100%;
+      height: 60px;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      margin-bottom: 1rem;
+    }
+
+    .unlock-requirement {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.8rem;
+      color: var(--theme-muted);
+      margin-bottom: 1rem;
+    }
+
+    .unlock-requirement.unlocked {
+      color: var(--theme-foam);
+    }
+
+    .color-preview {
+      width: 100%;
+      height: 80px;
+      border-radius: 12px;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: 600;
+      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+    }
+
+    .color-picker-actions {
+      display: flex;
+      gap: 1rem;
+      justify-content: flex-end;
+      margin-top: 2rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--theme-highlight-med);
+    }
+
+    .room-color-btn {
+      background: var(--theme-foam);
+      color: var(--theme-base);
+      border: none;
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .room-color-btn:hover {
+      background: var(--theme-iris);
+      transform: translateY(-1px);
+    }
+
+    .room-color-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .room-color-btn:disabled:hover {
+      transform: none;
+    }
+
+    /* Room theme application */
+    .chat-container.custom-theme {
+      position: relative;
+    }
+
+    .chat-container.custom-theme::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: var(--room-color, var(--theme-surface));
+      opacity: 0.05;
+      pointer-events: none;
+      border-radius: inherit;
+    }
+
+    .chat-header.custom-theme {
+      background: linear-gradient(135deg, var(--room-color, var(--theme-surface)) 0%, var(--theme-surface) 100%);
+      border-bottom: 1px solid var(--room-color, var(--theme-highlight-med));
+    }
+
+    .message.custom-theme .message-content {
+      border-left: 3px solid var(--room-color, var(--theme-foam));
+    }
+
+    .room-item.custom-theme {
+      border-left: 4px solid var(--room-color, var(--theme-foam));
+    }
+
+    .room-item.custom-theme.active {
+      background: linear-gradient(90deg, rgba(var(--room-color-rgb, 156, 207, 216), 0.1), transparent);
+    }
+
     /* Emoji picker styles */
     .emoji-picker {
       position: absolute;
@@ -968,6 +1200,10 @@
             <i class='bx bx-group'></i>
             Users
           </button>
+          <button id="customizeColorBtn" onclick="openColorPicker()" class="btn-secondary hidden">
+            <i class='bx bx-palette'></i>
+            Colors
+          </button>
           <button id="leaveRoomBtn" onclick="leaveCurrentRoom()" class="btn-secondary hidden">
             <i class='bx bx-exit'></i>
             Leave
@@ -1148,6 +1384,67 @@
       <div>You've reached <strong>Level <span id="newLevelNumber">2</span></strong></div>
       <div><span id="levelTitleText">Bronze</span></div>
       <div style="margin-top: 8px;">Bonus: <strong>+<span id="xpRewardAmount">50</span> XP</strong></div>
+    </div>
+  </div>
+
+  <!-- Color Picker Modal -->
+  <div id="colorPickerModal" class="color-picker-modal">
+    <div class="color-picker-content">
+      <div class="color-picker-header">
+        <div class="color-picker-title">🎨 Customize Room Color</div>
+        <button onclick="closeColorPicker()" style="background: none; border: none; color: var(--theme-muted); cursor: pointer; font-size: 1.5rem;">✕</button>
+      </div>
+
+      <!-- Default Colors -->
+      <div class="color-section">
+        <div class="color-section-title">
+          <i class='bx bx-palette'></i>
+          Default Colors
+        </div>
+        <div class="color-grid" id="defaultColors">
+          <!-- Populated by JavaScript -->
+        </div>
+      </div>
+
+      <!-- XP Unlocked Colors -->
+      <div class="color-section">
+        <div class="color-section-title">
+          <i class='bx bx-trophy'></i>
+          XP Unlocked Colors
+        </div>
+        <div class="color-grid" id="xpColors">
+          <!-- Populated by JavaScript -->
+        </div>
+      </div>
+
+      <!-- Custom Color Section -->
+      <div class="color-section">
+        <div class="color-section-title">
+          <i class='bx bx-customize'></i>
+          Custom Color
+        </div>
+        <div class="custom-color-section">
+          <div class="unlock-requirement" id="customColorRequirement">
+            <i class='bx bx-lock'></i>
+            <span>Unlock at Level 10 (Platinum)</span>
+          </div>
+          <input type="color" id="customColorPicker" class="custom-color-picker" value="#9ccfd8" disabled>
+          <div class="color-preview" id="colorPreview">
+            Custom Color Preview
+          </div>
+        </div>
+      </div>
+
+      <div class="color-picker-actions">
+        <button class="room-color-btn" onclick="closeColorPicker()" style="background: var(--theme-muted);">
+          <i class='bx bx-x'></i>
+          Cancel
+        </button>
+        <button class="room-color-btn" onclick="applyRoomColor()" id="applyColorBtn">
+          <i class='bx bx-check'></i>
+          Apply Color
+        </button>
+      </div>
     </div>
   </div>
 
@@ -1617,6 +1914,43 @@ Be helpful and conversational. Respond naturally to user messages.`;
       objects: ['🔥', '💯', '💥', '💫', '⭐', '🌟', '✨', '⚡', '🎉', '🎊', '💢', '💦', '💨']
     };
 
+    // Room Color System
+    const DEFAULT_COLORS = [
+      { name: 'Default Blue', color: '#9ccfd8', unlocked: true },
+      { name: 'Rose Red', color: '#eb6f92', unlocked: true },
+      { name: 'Iris Purple', color: '#c4a7e7', unlocked: true },
+      { name: 'Foam Green', color: '#9ccfd8', unlocked: true },
+      { name: 'Love Pink', color: '#f6c177', unlocked: true },
+      { name: 'Gold Yellow', color: '#f6c177', unlocked: true }
+    ];
+
+    const XP_UNLOCKED_COLORS = [
+      { name: 'Ocean Deep', color: '#1e3a8a', requiredLevel: 2, requiredXP: 100 },
+      { name: 'Forest Grove', color: '#166534', requiredLevel: 3, requiredXP: 250 },
+      { name: 'Sunset Orange', color: '#ea580c', requiredLevel: 4, requiredXP: 500 },
+      { name: 'Royal Purple', color: '#7c3aed', requiredLevel: 5, requiredXP: 850 },
+      { name: 'Crimson Fire', color: '#dc2626', requiredLevel: 6, requiredXP: 1300 },
+      { name: 'Emerald Shine', color: '#059669', requiredLevel: 7, requiredXP: 1850 },
+      { name: 'Cosmic Indigo', color: '#4338ca', requiredLevel: 8, requiredXP: 2500 },
+      { name: 'Magenta Blast', color: '#c2410c', requiredLevel: 9, requiredXP: 3250 },
+      { name: 'Neon Green', color: '#16a34a', requiredLevel: 10, requiredXP: 4100 },
+      { name: 'Electric Blue', color: '#0ea5e9', requiredLevel: 11, requiredXP: 5050 },
+      { name: 'Volcano Red', color: '#b91c1c', requiredLevel: 12, requiredXP: 6100 },
+      { name: 'Mystic Violet', color: '#8b5cf6', requiredLevel: 13, requiredXP: 7250 },
+      { name: 'Galaxy Black', color: '#1f2937', requiredLevel: 14, requiredXP: 8500 },
+      { name: 'Phoenix Gold', color: '#d97706', requiredLevel: 15, requiredXP: 9850 },
+      { name: 'Divine White', color: '#f8fafc', requiredLevel: 16, requiredXP: 11300 },
+      { name: 'Shadow Void', color: '#0f172a', requiredLevel: 17, requiredXP: 12850 },
+      { name: 'Rainbow Prism', color: 'linear-gradient(45deg, #ff0000, #ff7700, #ffdd00, #00ff00, #0077ff, #3300ff, #7700ff)', requiredLevel: 18, requiredXP: 14500 },
+      { name: 'Aurora Borealis', color: 'linear-gradient(135deg, #00ffff, #0077ff, #7700ff, #ff00ff)', requiredLevel: 19, requiredXP: 16250 },
+      { name: 'Transcendent Glow', color: 'linear-gradient(45deg, #ffd700, #ffb347, #ff69b4, #9370db, #00ced1)', requiredLevel: 20, requiredXP: 18100 }
+    ];
+
+    // Color picker state
+    let selectedColor = null;
+    let currentUserXP = 0;
+    let currentUserLevel = 1;
+
     // Emoji data
     const quickEmojis = [
       '😀', '😃', '😄', '😁', '😆', '😅', '🤣', '😂', '🙂', '🙃', '😉', '😊', '😇', '🥰', '😍', '🤩',
@@ -2030,12 +2364,16 @@ Be helpful and conversational. Respond naturally to user messages.`;
         leaveBtn.classList.remove('hidden');
         userCount.classList.remove('hidden');
         toggleUserListBtn.classList.remove('hidden');
+        document.getElementById('customizeColorBtn').classList.remove('hidden');
         document.getElementById('xpWidget').classList.remove('hidden');
         document.getElementById('guestMessage').style.display = 'none';
         document.getElementById('chatMessages').innerHTML = '';
         
         // Initialize/update XP widget
         updateXPWidget();
+        
+        // Load room theme
+        loadRoomTheme(roomId);
       } else {
         chatTitle.textContent = 'Select a room to start chatting';
         chatSubtitle.classList.add('hidden');
@@ -2044,7 +2382,11 @@ Be helpful and conversational. Respond naturally to user messages.`;
         userCount.classList.add('hidden');
         toggleUserListBtn.classList.add('hidden');
         userListContainer.classList.add('hidden');
+        document.getElementById('customizeColorBtn').classList.add('hidden');
         document.getElementById('xpWidget').classList.add('hidden');
+        
+        // Remove room theme when leaving
+        removeRoomTheme();
         
         if (!currentUser) {
           document.getElementById('guestMessage').style.display = 'block';
@@ -2818,6 +3160,243 @@ Be helpful and conversational. Respond naturally to user messages.`;
         <i class='bx bx-trophy'></i>
         Lv.${levelData.level}
       </span>`;
+    }
+
+    // Room Color Customization Functions
+    async function openColorPicker() {
+      if (!currentUser || !currentRoomId) return;
+
+      // Update current user XP and level
+      try {
+        const userDoc = await db.collection('users').doc(currentUser.uid).get();
+        const userData = userDoc.data() || {};
+        currentUserXP = userData.xp || 0;
+        const levelData = calculateLevel(currentUserXP);
+        currentUserLevel = levelData.level;
+      } catch (error) {
+        console.error('Error fetching user data:', error);
+      }
+
+      // Get current room color
+      try {
+        const roomDoc = await db.collection('chatRooms').doc(currentRoomId).get();
+        const roomData = roomDoc.data() || {};
+        selectedColor = roomData.customColor || null;
+      } catch (error) {
+        console.error('Error fetching room color:', error);
+      }
+
+      // Populate color picker
+      populateColorPicker();
+      
+      // Show modal
+      document.getElementById('colorPickerModal').classList.add('show');
+    }
+
+    function closeColorPicker() {
+      document.getElementById('colorPickerModal').classList.remove('show');
+      selectedColor = null;
+    }
+
+    function populateColorPicker() {
+      // Populate default colors
+      const defaultGrid = document.getElementById('defaultColors');
+      defaultGrid.innerHTML = '';
+      
+      DEFAULT_COLORS.forEach((colorData, index) => {
+        const colorDiv = createColorOption(colorData.color, colorData.name, true);
+        if (selectedColor === colorData.color) {
+          colorDiv.classList.add('selected');
+        }
+        defaultGrid.appendChild(colorDiv);
+      });
+
+      // Populate XP unlocked colors
+      const xpGrid = document.getElementById('xpColors');
+      xpGrid.innerHTML = '';
+      
+      XP_UNLOCKED_COLORS.forEach((colorData, index) => {
+        const isUnlocked = currentUserXP >= colorData.requiredXP;
+        const colorDiv = createColorOption(colorData.color, colorData.name, isUnlocked, colorData);
+        if (selectedColor === colorData.color) {
+          colorDiv.classList.add('selected');
+        }
+        if (!isUnlocked) {
+          colorDiv.classList.add('locked');
+        }
+        xpGrid.appendChild(colorDiv);
+      });
+
+      // Setup custom color picker
+      const customRequirement = document.getElementById('customColorRequirement');
+      const customPicker = document.getElementById('customColorPicker');
+      const colorPreview = document.getElementById('colorPreview');
+      
+      const canUseCustom = currentUserLevel >= 10; // Platinum level
+      if (canUseCustom) {
+        customRequirement.classList.add('unlocked');
+        customRequirement.innerHTML = '<i class="bx bx-check"></i><span>Custom colors unlocked!</span>';
+        customPicker.disabled = false;
+        
+        customPicker.addEventListener('input', (e) => {
+          const color = e.target.value;
+          selectedColor = color;
+          colorPreview.style.background = color;
+          colorPreview.textContent = 'Custom Color Selected';
+          
+          // Clear other selections
+          document.querySelectorAll('.color-option.selected').forEach(el => {
+            el.classList.remove('selected');
+          });
+        });
+      } else {
+        customRequirement.classList.remove('unlocked');
+        customRequirement.innerHTML = '<i class="bx bx-lock"></i><span>Unlock at Level 10 (Platinum)</span>';
+        customPicker.disabled = true;
+      }
+    }
+
+    function createColorOption(color, name, unlocked, colorData = null) {
+      const colorDiv = document.createElement('div');
+      colorDiv.className = 'color-option';
+      
+      // Handle gradient colors
+      if (color.includes('gradient')) {
+        colorDiv.style.background = color;
+      } else {
+        colorDiv.style.backgroundColor = color;
+      }
+      
+      // Add label
+      const label = document.createElement('div');
+      label.className = 'color-option-label';
+      if (colorData && !unlocked) {
+        label.textContent = `${name} (Lv.${colorData.requiredLevel})`;
+      } else {
+        label.textContent = name;
+      }
+      colorDiv.appendChild(label);
+      
+      if (unlocked) {
+        colorDiv.addEventListener('click', () => {
+          // Clear previous selections
+          document.querySelectorAll('.color-option.selected').forEach(el => {
+            el.classList.remove('selected');
+          });
+          
+          // Select this color
+          colorDiv.classList.add('selected');
+          selectedColor = color;
+          
+          // Update custom color preview if needed
+          const colorPreview = document.getElementById('colorPreview');
+          colorPreview.style.background = color;
+          colorPreview.textContent = 'Selected: ' + name;
+        });
+      } else {
+        colorDiv.addEventListener('click', () => {
+          if (colorData) {
+            alert(`This color requires Level ${colorData.requiredLevel} (${colorData.requiredXP} XP). You are currently Level ${currentUserLevel} (${currentUserXP} XP).`);
+          }
+        });
+      }
+      
+      return colorDiv;
+    }
+
+    async function applyRoomColor() {
+      if (!selectedColor || !currentRoomId || !currentUser) return;
+
+      try {
+        // Update room with custom color
+        await db.collection('chatRooms').doc(currentRoomId).update({
+          customColor: selectedColor,
+          lastColorUpdate: firebase.firestore.FieldValue.serverTimestamp(),
+          colorUpdatedBy: currentUser.uid
+        });
+
+        // Apply the color to UI
+        applyRoomTheme(selectedColor);
+        
+        // Close modal
+        closeColorPicker();
+        
+        // Show success message
+        const chatMessages = document.getElementById('chatMessages');
+        if (chatMessages) {
+          showXPReward(chatMessages, 0, 'Room color updated!');
+        }
+        
+      } catch (error) {
+        console.error('Error applying room color:', error);
+        alert('Failed to update room color. Please try again.');
+      }
+    }
+
+    function applyRoomTheme(color) {
+      if (!color) return;
+
+      const chatContainer = document.querySelector('.chat-container');
+      const chatHeader = document.querySelector('.chat-header');
+      
+      if (chatContainer && chatHeader) {
+        chatContainer.classList.add('custom-theme');
+        chatHeader.classList.add('custom-theme');
+        
+        // Convert hex to RGB for CSS variables
+        let rgbColor = '';
+        if (color.startsWith('#')) {
+          const r = parseInt(color.slice(1, 3), 16);
+          const g = parseInt(color.slice(3, 5), 16);
+          const b = parseInt(color.slice(5, 7), 16);
+          rgbColor = `${r}, ${g}, ${b}`;
+        }
+        
+        // Set CSS custom properties
+        document.documentElement.style.setProperty('--room-color', color);
+        if (rgbColor) {
+          document.documentElement.style.setProperty('--room-color-rgb', rgbColor);
+        }
+        
+        // Apply to messages
+        const messages = document.querySelectorAll('.message');
+        messages.forEach(message => {
+          message.classList.add('custom-theme');
+        });
+        
+        // Apply to room item in sidebar
+        const roomItems = document.querySelectorAll('.room-item');
+        roomItems.forEach(item => {
+          if (item.getAttribute('data-room-id') === currentRoomId) {
+            item.classList.add('custom-theme');
+          }
+        });
+      }
+    }
+
+    function removeRoomTheme() {
+      const elements = document.querySelectorAll('.custom-theme');
+      elements.forEach(el => el.classList.remove('custom-theme'));
+      
+      document.documentElement.style.removeProperty('--room-color');
+      document.documentElement.style.removeProperty('--room-color-rgb');
+    }
+
+    async function loadRoomTheme(roomId) {
+      if (!roomId) return;
+
+      try {
+        const roomDoc = await db.collection('chatRooms').doc(roomId).get();
+        const roomData = roomDoc.data() || {};
+        
+        if (roomData.customColor) {
+          applyRoomTheme(roomData.customColor);
+        } else {
+          removeRoomTheme();
+        }
+      } catch (error) {
+        console.error('Error loading room theme:', error);
+      }
     }
 
     // Room Creation
