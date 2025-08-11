@@ -3105,7 +3105,10 @@ Be helpful and conversational. Respond naturally to user messages.`;
               <div class="artwork-container" style="margin: 0.5rem 0; background: white; padding: 0.5rem; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
                 <img src="${message.imageData}" alt="Shared artwork" 
                      style="max-width: 200px; max-height: 200px; border-radius: 6px; cursor: pointer;"
-                     onclick="showArtworkModal({title: '${message.content.replace(/.*: \"/, '').replace(/\"$/, '')}', imageData: '${message.imageData}', authorName: '${message.authorName}'})">
+                     class="artwork-image"
+                     data-artwork-title="${message.content.replace(/.*: \"/, '').replace(/\"$/, '')}"
+                     data-artwork-image="${message.imageData}"
+                     data-artwork-author="${message.authorName}">
               </div>
             ` : ''}
           </div>
@@ -4123,6 +4126,23 @@ Be helpful and conversational. Respond naturally to user messages.`;
           }
         }
       });
+
+      // Artwork image click handlers
+      document.addEventListener('click', (e) => {
+        if (e.target.classList.contains('artwork-image')) {
+          const title = e.target.getAttribute('data-artwork-title') || 'Untitled';
+          const imageData = e.target.getAttribute('data-artwork-image');
+          const authorName = e.target.getAttribute('data-artwork-author');
+          
+          if (imageData) {
+            showArtworkModal({
+              title: title,
+              imageData: imageData,
+              authorName: authorName
+            });
+          }
+        }
+      });
     }
 
     async function createRoom(event) {
@@ -4432,6 +4452,13 @@ Be helpful and conversational. Respond naturally to user messages.`;
       }
 
       document.getElementById('carbonArtModal').classList.add('show');
+      
+      // Show loading state
+      const gallery = document.getElementById('artGallery');
+      if (gallery) {
+        gallery.innerHTML = '<p style="grid-column: 1 / -1; text-align: center; color: var(--theme-muted);">Loading artworks...</p>';
+      }
+      
       initializeCanvas();
       populateColorPalette();
       setupBrushSizes();
@@ -4442,37 +4469,72 @@ Be helpful and conversational. Respond naturally to user messages.`;
       document.getElementById('carbonArtModal').classList.remove('show');
       if (drawingCanvas) {
         drawingContext.clearRect(0, 0, drawingCanvas.width, drawingCanvas.height);
+        // Reset to white background
+        drawingContext.fillStyle = '#ffffff';
+        drawingContext.fillRect(0, 0, drawingCanvas.width, drawingCanvas.height);
       }
       document.getElementById('artTitle').value = '';
+      // Reset canvas history
+      canvasHistory = [];
+      historyIndex = -1;
     }
 
     function initializeCanvas() {
-      drawingCanvas = document.getElementById('drawingCanvas');
-      drawingContext = drawingCanvas.getContext('2d');
-      
-      // Set default drawing properties
-      drawingContext.lineCap = 'round';
-      drawingContext.lineJoin = 'round';
-      drawingContext.strokeStyle = currentColor;
-      drawingContext.lineWidth = currentBrushSize;
-      
-      // Clear canvas with white background
-      drawingContext.fillStyle = '#ffffff';
-      drawingContext.fillRect(0, 0, drawingCanvas.width, drawingCanvas.height);
-      
-      // Save initial state
-      saveCanvasState();
-      
-      // Add event listeners
-      drawingCanvas.addEventListener('mousedown', startDrawing);
-      drawingCanvas.addEventListener('mousemove', draw);
-      drawingCanvas.addEventListener('mouseup', stopDrawing);
-      drawingCanvas.addEventListener('mouseout', stopDrawing);
-      
-      // Touch events for mobile
-      drawingCanvas.addEventListener('touchstart', handleTouch);
-      drawingCanvas.addEventListener('touchmove', handleTouch);
-      drawingCanvas.addEventListener('touchend', stopDrawing);
+      try {
+        drawingCanvas = document.getElementById('drawingCanvas');
+        if (!drawingCanvas) {
+          console.error('Drawing canvas not found');
+          return;
+        }
+        
+        drawingContext = drawingCanvas.getContext('2d');
+        if (!drawingContext) {
+          console.error('Could not get 2D context from canvas');
+          return;
+        }
+        
+        // Set default drawing properties
+        drawingContext.lineCap = 'round';
+        drawingContext.lineJoin = 'round';
+        drawingContext.strokeStyle = currentColor;
+        drawingContext.lineWidth = currentBrushSize;
+        
+        // Clear canvas with white background
+        drawingContext.fillStyle = '#ffffff';
+        drawingContext.fillRect(0, 0, drawingCanvas.width, drawingCanvas.height);
+        
+        // Reset canvas history
+        canvasHistory = [];
+        historyIndex = -1;
+        
+        // Save initial state
+        saveCanvasState();
+        
+        // Remove any existing event listeners to prevent duplicates
+        drawingCanvas.removeEventListener('mousedown', startDrawing);
+        drawingCanvas.removeEventListener('mousemove', draw);
+        drawingCanvas.removeEventListener('mouseup', stopDrawing);
+        drawingCanvas.removeEventListener('mouseout', stopDrawing);
+        drawingCanvas.removeEventListener('touchstart', handleTouch);
+        drawingCanvas.removeEventListener('touchmove', handleTouch);
+        drawingCanvas.removeEventListener('touchend', stopDrawing);
+        
+        // Add event listeners
+        drawingCanvas.addEventListener('mousedown', startDrawing);
+        drawingCanvas.addEventListener('mousemove', draw);
+        drawingCanvas.addEventListener('mouseup', stopDrawing);
+        drawingCanvas.addEventListener('mouseout', stopDrawing);
+        
+        // Touch events for mobile
+        drawingCanvas.addEventListener('touchstart', handleTouch);
+        drawingCanvas.addEventListener('touchmove', handleTouch);
+        drawingCanvas.addEventListener('touchend', stopDrawing);
+        
+        console.log('Canvas initialized successfully');
+      } catch (error) {
+        console.error('Error initializing canvas:', error);
+        alert('Failed to initialize drawing canvas. Please try refreshing the page.');
+      }
     }
 
     function populateColorPalette() {
@@ -4556,28 +4618,46 @@ Be helpful and conversational. Respond naturally to user messages.`;
     }
 
     function saveCanvasState() {
-      historyIndex++;
-      if (historyIndex < canvasHistory.length) {
-        canvasHistory.length = historyIndex;
-      }
-      canvasHistory.push(drawingCanvas.toDataURL());
-      
-      // Limit history to 20 states
-      if (canvasHistory.length > 20) {
-        canvasHistory.shift();
-        historyIndex--;
+      try {
+        if (!drawingCanvas) return;
+        
+        historyIndex++;
+        if (historyIndex < canvasHistory.length) {
+          canvasHistory.length = historyIndex;
+        }
+        canvasHistory.push(drawingCanvas.toDataURL());
+        
+        // Limit history to 20 states
+        if (canvasHistory.length > 20) {
+          canvasHistory.shift();
+          historyIndex--;
+        }
+      } catch (error) {
+        console.error('Error saving canvas state:', error);
       }
     }
 
     function undoCanvas() {
-      if (historyIndex > 0) {
+      try {
+        if (!drawingCanvas || !drawingContext || historyIndex <= 0) return;
+        
         historyIndex--;
         const img = new Image();
         img.onload = function() {
-          drawingContext.clearRect(0, 0, drawingCanvas.width, drawingCanvas.height);
-          drawingContext.drawImage(img, 0, 0);
+          try {
+            drawingContext.clearRect(0, 0, drawingCanvas.width, drawingCanvas.height);
+            drawingContext.drawImage(img, 0, 0);
+          } catch (error) {
+            console.error('Error restoring canvas state:', error);
+          }
+        };
+        img.onerror = function() {
+          console.error('Error loading canvas history image');
+          historyIndex++; // Revert the history index change
         };
         img.src = canvasHistory[historyIndex];
+      } catch (error) {
+        console.error('Error in undoCanvas:', error);
       }
     }
 
@@ -4596,15 +4676,34 @@ Be helpful and conversational. Respond naturally to user messages.`;
       }
 
       // Sanitize title
-      const sanitizedTitle = ChatContentFilter.filter(title);
-      if (!ChatContentFilter.isAppropriate(sanitizedTitle)) {
+      const sanitizedTitle = contentFilter.filter(title);
+      if (!contentFilter.isAppropriate(sanitizedTitle)) {
         alert('Please use appropriate language in your artwork title');
         return;
       }
 
       try {
+        if (!drawingCanvas) {
+          alert('Canvas not ready. Please try again.');
+          return;
+        }
+
         // Convert canvas to data URL (base64)
         const artworkData = drawingCanvas.toDataURL('image/png');
+        
+        // Validate the canvas has content (not just blank)
+        const blankCanvas = document.createElement('canvas');
+        blankCanvas.width = drawingCanvas.width;
+        blankCanvas.height = drawingCanvas.height;
+        const blankContext = blankCanvas.getContext('2d');
+        blankContext.fillStyle = '#ffffff';
+        blankContext.fillRect(0, 0, blankCanvas.width, blankCanvas.height);
+        const blankData = blankCanvas.toDataURL('image/png');
+        
+        if (artworkData === blankData) {
+          alert('Please create some artwork before sharing!');
+          return;
+        }
         
         // Create artwork document
         const artworkDoc = {
@@ -4619,11 +4718,18 @@ Be helpful and conversational. Respond naturally to user messages.`;
           likedBy: []
         };
 
-        // Save to Firestore
-        await db.collection('artworks').add(artworkDoc);
+        // Save to Firestore with better error handling
+        const artworkRef = await db.collection('artworks').add(artworkDoc);
+        if (!artworkRef.id) {
+          throw new Error('Failed to save artwork to database');
+        }
 
         // Award XP for creating art
-        await awardXP(currentUser.uid, ART_XP_REWARD, 'Artwork shared', document.querySelector('.art-button.primary'));
+        try {
+          await awardXP(currentUser.uid, ART_XP_REWARD, 'Artwork shared', document.querySelector('.art-button.primary'));
+        } catch (xpError) {
+          console.warn('Failed to award XP, but artwork was saved:', xpError);
+        }
 
         // Share in chat as a message
         const artMessage = {
@@ -4639,13 +4745,23 @@ Be helpful and conversational. Respond naturally to user messages.`;
 
         await db.collection('chatRooms').doc(currentRoomId).collection('messages').add(artMessage);
 
-        alert(`Artwork shared successfully! You earned ${ART_XP_REWARD} XP!`);
+        // Show success notification
+        showXPReward(ART_XP_REWARD, 'Artwork shared!');
+        
         closeCarbonArt();
         loadArtGallery();
 
       } catch (error) {
         console.error('Error sharing artwork:', error);
-        alert('Failed to share artwork. Please try again.');
+        let errorMessage = 'Failed to share artwork. ';
+        if (error.code === 'permission-denied') {
+          errorMessage += 'Permission denied. Please check your authentication.';
+        } else if (error.code === 'unavailable') {
+          errorMessage += 'Database unavailable. Please check your connection.';
+        } else {
+          errorMessage += 'Please try again.';
+        }
+        alert(errorMessage);
       }
     }
 
@@ -4660,6 +4776,11 @@ Be helpful and conversational. Respond naturally to user messages.`;
           .get();
 
         const gallery = document.getElementById('artGallery');
+        if (!gallery) {
+          console.error('Art gallery element not found');
+          return;
+        }
+        
         gallery.innerHTML = '';
 
         if (artworksQuery.empty) {
@@ -4668,27 +4789,40 @@ Be helpful and conversational. Respond naturally to user messages.`;
         }
 
         artworksQuery.forEach(doc => {
-          const artwork = doc.data();
-          const artPiece = document.createElement('div');
-          artPiece.className = 'art-piece';
-          artPiece.innerHTML = `
-            <img src="${artwork.imageData}" alt="${artwork.title}" loading="lazy">
-            <div class="art-piece-info">
-              <div class="art-piece-author">${artwork.authorName}</div>
-              <div>${artwork.title}</div>
-              <div class="art-piece-xp">+${ART_XP_REWARD} XP</div>
-            </div>
-          `;
-          
-          artPiece.addEventListener('click', () => {
-            showArtworkModal(artwork);
-          });
-          
-          gallery.appendChild(artPiece);
+          try {
+            const artwork = doc.data();
+            if (!artwork.imageData || !artwork.title) {
+              console.warn('Artwork missing required data:', doc.id);
+              return;
+            }
+            
+            const artPiece = document.createElement('div');
+            artPiece.className = 'art-piece';
+            artPiece.innerHTML = `
+              <img src="${artwork.imageData}" alt="${sanitizeText(artwork.title)}" loading="lazy" onerror="this.style.display='none'">
+              <div class="art-piece-info">
+                <div class="art-piece-author">${sanitizeText(artwork.authorName || 'Anonymous')}</div>
+                <div>${sanitizeText(artwork.title)}</div>
+                <div class="art-piece-xp">+${ART_XP_REWARD} XP</div>
+              </div>
+            `;
+            
+            artPiece.addEventListener('click', () => {
+              showArtworkModal(artwork);
+            });
+            
+            gallery.appendChild(artPiece);
+          } catch (itemError) {
+            console.error('Error processing artwork item:', itemError);
+          }
         });
 
       } catch (error) {
         console.error('Error loading art gallery:', error);
+        const gallery = document.getElementById('artGallery');
+        if (gallery) {
+          gallery.innerHTML = '<p style="grid-column: 1 / -1; text-align: center; color: var(--theme-muted);">Failed to load artworks. Please try refreshing.</p>';
+        }
       }
     }
 
@@ -4735,6 +4869,7 @@ Be helpful and conversational. Respond naturally to user messages.`;
     window.clearCanvas = clearCanvas;
     window.undoCanvas = undoCanvas;
     window.shareArtwork = shareArtwork;
+    window.showArtworkModal = showArtworkModal;
     window.leaveCurrentRoom = leaveCurrentRoom;
     window.cancelReply = cancelReply;
     window.closeProfileModal = closeProfileModal;
