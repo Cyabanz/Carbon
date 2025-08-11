@@ -1613,7 +1613,7 @@
       cursor: pointer;
       transition: all 0.15s ease;
       color: var(--text-secondary);
-      z-index: 10000;
+      z-index: 100000;
     }
     
     .notification-bell:hover {
@@ -1658,7 +1658,7 @@
     
     .notification-panel {
       position: fixed;
-      top: 60px;
+      top: 70px;
       right: 20px;
       width: 350px;
       max-height: 400px;
@@ -1667,7 +1667,7 @@
       border-radius: var(--radius-xl);
       box-shadow: 0 25px 80px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(99, 102, 241, 0.2);
       backdrop-filter: blur(20px);
-      z-index: 10000;
+      z-index: 99999;
       opacity: 0;
       transform: translateY(-20px) scale(0.95);
       pointer-events: none;
@@ -1755,10 +1755,12 @@
       background: var(--surface-hover);
       transform: translateX(4px);
       border-left: 4px solid var(--primary);
+      cursor: pointer;
     }
 
     .notification-item:active {
       transform: translateX(2px);
+      background: rgba(99, 102, 241, 0.1);
       transition: all 0.1s ease;
     }
     
@@ -1843,11 +1845,12 @@
     @media (max-width: 480px) {
       .notification-panel {
         position: fixed;
-        top: 60px;
+        top: 70px;
         left: 10px;
         right: 10px;
         width: auto;
         max-width: none;
+        z-index: 99999;
       }
     }
 
@@ -1855,6 +1858,8 @@
       .notification-panel {
         width: 320px;
         right: 10px;
+        top: 70px;
+        z-index: 99999;
       }
     }
 
@@ -7943,12 +7948,16 @@ Be helpful and conversational. Respond naturally to user messages.`;
       const bell = document.getElementById('notificationBell');
       const panel = document.getElementById('notificationPanel');
       
-      // Immediate check without delay - close if clicking outside bell and panel
+      // Don't close if clicking on notification items
+      const clickedNotificationItem = event.target.closest('.notification-item');
+      if (clickedNotificationItem) {
+        return; // Let the notification click handler manage the panel
+      }
+      
+      // Close if clicking outside bell and panel (but not on notification items)
       if (!bell.contains(event.target) && !panel.contains(event.target)) {
         panel.classList.remove('show');
         document.removeEventListener('click', closeNotificationPanelOnOutsideClick);
-        event.preventDefault();
-        event.stopPropagation();
       }
     }
 
@@ -8014,7 +8023,7 @@ Be helpful and conversational. Respond naturally to user messages.`;
       } else {
         list.innerHTML = userNotifications.map(notification => `
           <div class="notification-item ${!notification.read ? 'unread' : ''}" 
-               onclick="handleNotificationClick('${notification.id}')">
+               onclick="handleNotificationClick('${notification.id}', event)">
             <div class="notification-content">
               ${notification.data.avatar ? `<img src="${notification.data.avatar}" class="notification-avatar" alt="Avatar">` : 
                 `<div class="notification-avatar" style="background: var(--primary); display: flex; align-items: center; justify-content: center; color: white; font-size: 0.8rem;">${notification.data.userName ? notification.data.userName.charAt(0).toUpperCase() : '?'}</div>`}
@@ -8029,23 +8038,31 @@ Be helpful and conversational. Respond naturally to user messages.`;
       }
     }
 
-    function handleNotificationClick(notificationId) {
-      // Immediately close panel for instant feedback
-      const panel = document.getElementById('notificationPanel');
-      panel.classList.remove('show');
-      document.removeEventListener('click', closeNotificationPanelOnOutsideClick);
+    function handleNotificationClick(notificationId, event) {
+      // Prevent event bubbling to avoid triggering outside click
+      if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
       
       const notification = userNotifications.find(n => n.id == notificationId);
       if (notification && notification.data.roomId) {
-        // Join the room where the notification came from
-        if (notification.data.roomId !== currentRoomId) {
-          joinRoom(notification.data.roomId);
-        }
-        
         // Mark notification as read immediately
         notification.read = true;
         updateNotificationUI();
         saveNotificationsToStorage();
+        
+        // Close panel after a brief delay to show the read state change
+        setTimeout(() => {
+          const panel = document.getElementById('notificationPanel');
+          panel.classList.remove('show');
+          document.removeEventListener('click', closeNotificationPanelOnOutsideClick);
+        }, 100);
+        
+        // Join the room where the notification came from
+        if (notification.data.roomId !== currentRoomId) {
+          joinRoom(notification.data.roomId);
+        }
       }
     }
 
