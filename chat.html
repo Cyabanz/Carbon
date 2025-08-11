@@ -10,6 +10,8 @@
   
   <!-- Emoji Support Package -->
   <script src="https://unpkg.com/emoji-js@8.0.0/lib/emoji.js"></script>
+  <!-- Unicode Emoji Data -->
+  <script src="https://unpkg.com/unicode-emoji-json@0.4.0/data-by-group.json" type="application/json" id="emojiData"></script>
   
   <!-- Firebase SDKs (same version as profile.html) -->
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -323,24 +325,106 @@
       background: var(--theme-surface);
       border: 1px solid var(--theme-highlight-med);
       border-radius: 12px;
+      padding: 1rem;
+      width: 350px;
+      max-height: 400px;
+      overflow-y: auto;
+      z-index: 1000;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    }
+
+    .reaction-picker-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.75rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 1px solid var(--theme-highlight-med);
+    }
+
+    .reaction-picker-title {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--theme-text);
+    }
+
+    .reaction-search {
+      background: var(--theme-overlay);
+      border: 1px solid var(--theme-highlight-med);
+      border-radius: 6px;
       padding: 0.5rem;
+      color: var(--theme-text);
+      font-size: 0.8rem;
+      width: 100%;
+      margin-bottom: 0.75rem;
+    }
+
+    .reaction-search:focus {
+      outline: none;
+      border-color: var(--theme-foam);
+    }
+
+    .reaction-tabs {
       display: flex;
       gap: 0.25rem;
-      z-index: 1000;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+      margin-bottom: 0.75rem;
+      overflow-x: auto;
+    }
+
+    .reaction-tab {
+      padding: 0.5rem;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 1rem;
+      transition: all 0.2s ease;
+      background: var(--theme-overlay);
+      border: 1px solid transparent;
+      min-width: 40px;
+      text-align: center;
+    }
+
+    .reaction-tab:hover {
+      background: var(--theme-highlight-med);
+    }
+
+    .reaction-tab.active {
+      background: var(--theme-foam);
+      color: var(--theme-base);
+      border-color: var(--theme-foam);
+    }
+
+    .reaction-grid {
+      display: grid;
+      grid-template-columns: repeat(8, 1fr);
+      gap: 0.25rem;
+      max-height: 200px;
+      overflow-y: auto;
     }
 
     .reaction-emoji {
-      padding: 0.25rem;
+      padding: 0.5rem;
       border-radius: 6px;
       cursor: pointer;
       font-size: 1.2rem;
       transition: all 0.2s ease;
+      text-align: center;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
 
     .reaction-emoji:hover {
       background: var(--theme-highlight-med);
       transform: scale(1.2);
+    }
+
+    .emoji-category-title {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--theme-muted);
+      margin: 0.75rem 0 0.5rem 0;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
     }
 
     /* AFK styles */
@@ -386,6 +470,160 @@
 
     .user-status.afk {
       background: var(--theme-gold);
+    }
+
+    /* XP and Leveling System */
+    .level-badge {
+      background: linear-gradient(135deg, var(--theme-gold), #e6a700);
+      color: var(--theme-base);
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      margin-left: 8px;
+      box-shadow: 0 2px 6px rgba(231, 180, 0, 0.3);
+    }
+
+    .level-badge.prestige {
+      background: linear-gradient(135deg, var(--theme-iris), var(--theme-love));
+      box-shadow: 0 2px 6px rgba(196, 167, 231, 0.4);
+    }
+
+    .xp-bar-container {
+      background: var(--theme-overlay);
+      border-radius: 10px;
+      height: 8px;
+      overflow: hidden;
+      margin: 4px 0;
+      position: relative;
+    }
+
+    .xp-bar {
+      height: 100%;
+      background: linear-gradient(90deg, var(--theme-foam), var(--theme-iris));
+      border-radius: 10px;
+      transition: width 0.3s ease;
+      position: relative;
+    }
+
+    .xp-bar.leveling-up {
+      animation: xpGlow 0.5s ease-in-out;
+    }
+
+    @keyframes xpGlow {
+      0%, 100% { box-shadow: 0 0 5px var(--theme-foam); }
+      50% { box-shadow: 0 0 15px var(--theme-foam), 0 0 25px var(--theme-iris); }
+    }
+
+    .xp-text {
+      font-size: 0.7rem;
+      color: var(--theme-muted);
+      text-align: center;
+      margin-top: 2px;
+    }
+
+    .level-up-notification {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: linear-gradient(135deg, var(--theme-foam), var(--theme-iris));
+      color: var(--theme-base);
+      padding: 2rem;
+      border-radius: 16px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+      z-index: 2000;
+      display: none;
+      text-align: center;
+      min-width: 300px;
+    }
+
+    .level-up-notification.show {
+      display: block;
+      animation: levelUpPop 1s ease-out;
+    }
+
+    @keyframes levelUpPop {
+      0% { transform: translate(-50%, -50%) scale(0.8); opacity: 0; }
+      20% { transform: translate(-50%, -50%) scale(1.1); opacity: 1; }
+      100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+    }
+
+    .level-up-title {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .level-up-details {
+      font-size: 0.9rem;
+      opacity: 0.9;
+    }
+
+    .xp-reward-popup {
+      position: absolute;
+      background: var(--theme-foam);
+      color: var(--theme-base);
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-size: 0.7rem;
+      font-weight: 600;
+      z-index: 1000;
+      pointer-events: none;
+      animation: xpRewardFloat 1.5s ease-out forwards;
+    }
+
+    @keyframes xpRewardFloat {
+      0% { opacity: 1; transform: translateY(0); }
+      100% { opacity: 0; transform: translateY(-30px); }
+    }
+
+    /* Level-based styling for usernames */
+    .user-link.level-novice { color: #8e8e93; }
+    .user-link.level-bronze { color: #cd7f32; }
+    .user-link.level-silver { color: #c0c0c0; }
+    .user-link.level-gold { color: var(--theme-gold); }
+    .user-link.level-platinum { color: #e5e4e2; }
+    .user-link.level-diamond { color: #b9f2ff; }
+    .user-link.level-master { color: var(--theme-iris); }
+    .user-link.level-grandmaster { color: var(--theme-love); }
+
+    .xp-widget {
+      background: linear-gradient(135deg, var(--theme-overlay), var(--theme-surface));
+      border: 1px solid var(--theme-highlight-med);
+      border-radius: 12px;
+      padding: 12px 16px;
+      margin-right: 12px;
+      min-width: 200px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    .xp-widget-content {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .xp-widget-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .xp-widget-level {
+      font-weight: 700;
+      color: var(--theme-foam);
+      font-size: 0.85rem;
+    }
+
+    .xp-widget-title {
+      font-size: 0.75rem;
+      color: var(--theme-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
     }
 
     /* Emoji picker styles */
@@ -711,6 +949,20 @@
           </div>
         </div>
         <div class="flex items-center gap-3">
+          <!-- XP Widget -->
+          <div id="xpWidget" class="xp-widget hidden">
+            <div class="xp-widget-content">
+              <div class="xp-widget-header">
+                <div class="xp-widget-level" id="userLevel">Lv.1</div>
+                <div class="xp-widget-title" id="userLevelTitle">Novice</div>
+              </div>
+              <div class="xp-bar-container">
+                <div class="xp-bar" id="userXPBar" style="width: 0%"></div>
+              </div>
+              <div class="xp-text" id="userXPText">0 / 100 XP</div>
+            </div>
+          </div>
+          
           <span id="userCount" class="user-count hidden">0 users</span>
           <button id="toggleUserListBtn" class="btn-secondary hidden" onclick="toggleUserList()">
             <i class='bx bx-group'></i>
@@ -886,6 +1138,16 @@
           <button id="viewFullProfileBtn" class="btn-primary flex-1">View Full Profile</button>
         </div>
       </div>
+    </div>
+  </div>
+
+  <!-- Level Up Notification -->
+  <div id="levelUpNotification" class="level-up-notification">
+    <div class="level-up-title">🎉 Level Up! 🎉</div>
+    <div class="level-up-details">
+      <div>You've reached <strong>Level <span id="newLevelNumber">2</span></strong></div>
+      <div><span id="levelTitleText">Bronze</span></div>
+      <div style="margin-top: 8px;">Bonus: <strong>+<span id="xpRewardAmount">50</span> XP</strong></div>
     </div>
   </div>
 
@@ -1180,8 +1442,180 @@ Be helpful and conversational. Respond naturally to user messages.`;
     let userActivityMap = new Map(); // Track activity for all users
     let activeUsers = new Map(); // Store active users data
 
-    // Reaction emojis (quick reactions)
-    const reactionEmojis = ['👍', '❤️', '😂', '😮', '😢', '😡', '🔥', '🎉'];
+    // XP System
+    const XP_REWARDS = {
+      MESSAGE: 5,
+      REACTION_RECEIVED: 2,
+      REACTION_GIVEN: 1,
+      LEVEL_UP_BONUS: 50
+    };
+
+    const LEVEL_THRESHOLDS = [
+      { level: 1, xp: 0, title: 'Novice', tier: 'novice' },
+      { level: 2, xp: 100, title: 'Beginner', tier: 'novice' },
+      { level: 3, xp: 250, title: 'Learner', tier: 'novice' },
+      { level: 4, xp: 500, title: 'Bronze', tier: 'bronze' },
+      { level: 5, xp: 850, title: 'Bronze II', tier: 'bronze' },
+      { level: 6, xp: 1300, title: 'Silver', tier: 'silver' },
+      { level: 7, xp: 1850, title: 'Silver II', tier: 'silver' },
+      { level: 8, xp: 2500, title: 'Gold', tier: 'gold' },
+      { level: 9, xp: 3250, title: 'Gold II', tier: 'gold' },
+      { level: 10, xp: 4100, title: 'Platinum', tier: 'platinum' },
+      { level: 11, xp: 5050, title: 'Platinum II', tier: 'platinum' },
+      { level: 12, xp: 6100, title: 'Diamond', tier: 'diamond' },
+      { level: 13, xp: 7250, title: 'Diamond II', tier: 'diamond' },
+      { level: 14, xp: 8500, title: 'Master', tier: 'master' },
+      { level: 15, xp: 9850, title: 'Grandmaster', tier: 'grandmaster' },
+      { level: 16, xp: 11300, title: 'Legendary', tier: 'grandmaster' },
+      { level: 17, xp: 12850, title: 'Mythical', tier: 'grandmaster' },
+      { level: 18, xp: 14500, title: 'Ascended', tier: 'grandmaster' },
+      { level: 19, xp: 16250, title: 'Divine', tier: 'grandmaster' },
+      { level: 20, xp: 18100, title: 'Transcendent', tier: 'grandmaster' }
+    ];
+
+    // Extended emoji database for Discord-style suggestions
+    window.allEmojis = [
+      // Smileys & Emotion
+      { emoji: '😀', name: 'grinning', keywords: ['happy', 'smile', 'grin'], category: 'smileys' },
+      { emoji: '😃', name: 'smiley', keywords: ['happy', 'smile', 'joy'], category: 'smileys' },
+      { emoji: '😄', name: 'smile', keywords: ['happy', 'smile', 'laugh'], category: 'smileys' },
+      { emoji: '😁', name: 'grin', keywords: ['happy', 'smile', 'grin'], category: 'smileys' },
+      { emoji: '😆', name: 'laughing', keywords: ['happy', 'laugh', 'funny'], category: 'smileys' },
+      { emoji: '😅', name: 'sweat_smile', keywords: ['happy', 'laugh', 'nervous'], category: 'smileys' },
+      { emoji: '🤣', name: 'rofl', keywords: ['laugh', 'funny', 'hilarious'], category: 'smileys' },
+      { emoji: '😂', name: 'joy', keywords: ['laugh', 'funny', 'tears'], category: 'smileys' },
+      { emoji: '🙂', name: 'slightly_smiling', keywords: ['smile', 'happy'], category: 'smileys' },
+      { emoji: '🙃', name: 'upside_down', keywords: ['silly', 'playful'], category: 'smileys' },
+      { emoji: '😉', name: 'wink', keywords: ['flirt', 'playful'], category: 'smileys' },
+      { emoji: '😊', name: 'blush', keywords: ['happy', 'shy', 'sweet'], category: 'smileys' },
+      { emoji: '😇', name: 'innocent', keywords: ['angel', 'good', 'halo'], category: 'smileys' },
+      { emoji: '🥰', name: 'smiling_face_with_hearts', keywords: ['love', 'happy', 'hearts'], category: 'hearts' },
+      { emoji: '😍', name: 'heart_eyes', keywords: ['love', 'crush', 'heart'], category: 'hearts' },
+      { emoji: '🤩', name: 'star_struck', keywords: ['excited', 'wow', 'star'], category: 'smileys' },
+      { emoji: '😘', name: 'kissing_heart', keywords: ['kiss', 'love', 'heart'], category: 'hearts' },
+      { emoji: '😗', name: 'kissing', keywords: ['kiss', 'love'], category: 'hearts' },
+      { emoji: '😚', name: 'kissing_closed_eyes', keywords: ['kiss', 'love'], category: 'hearts' },
+      { emoji: '😙', name: 'kissing_smiling_eyes', keywords: ['kiss', 'love'], category: 'hearts' },
+      { emoji: '🥲', name: 'smiling_face_with_tear', keywords: ['happy', 'cry', 'tear'], category: 'smileys' },
+      { emoji: '😋', name: 'yum', keywords: ['delicious', 'food', 'hungry'], category: 'smileys' },
+      { emoji: '😛', name: 'stuck_out_tongue', keywords: ['playful', 'silly'], category: 'smileys' },
+      { emoji: '😜', name: 'stuck_out_tongue_winking_eye', keywords: ['playful', 'silly', 'wink'], category: 'smileys' },
+      { emoji: '🤪', name: 'zany_face', keywords: ['crazy', 'silly', 'wild'], category: 'smileys' },
+      { emoji: '😝', name: 'stuck_out_tongue_closed_eyes', keywords: ['playful', 'silly'], category: 'smileys' },
+      { emoji: '🤑', name: 'money_mouth', keywords: ['money', 'rich', 'greedy'], category: 'smileys' },
+      
+      // Negative emotions
+      { emoji: '😐', name: 'neutral', keywords: ['neutral', 'meh', 'ok'], category: 'smileys' },
+      { emoji: '😑', name: 'expressionless', keywords: ['blank', 'meh', 'whatever'], category: 'smileys' },
+      { emoji: '😶', name: 'no_mouth', keywords: ['silent', 'quiet', 'speechless'], category: 'smileys' },
+      { emoji: '😏', name: 'smirk', keywords: ['smug', 'confident'], category: 'smileys' },
+      { emoji: '😒', name: 'unamused', keywords: ['annoyed', 'meh', 'bored'], category: 'smileys' },
+      { emoji: '🙄', name: 'eye_roll', keywords: ['annoyed', 'whatever', 'sarcastic'], category: 'smileys' },
+      { emoji: '😬', name: 'grimacing', keywords: ['awkward', 'nervous', 'cringe'], category: 'smileys' },
+      { emoji: '🤥', name: 'lying', keywords: ['lie', 'pinocchio'], category: 'smileys' },
+      { emoji: '😌', name: 'relieved', keywords: ['calm', 'peaceful', 'relieved'], category: 'smileys' },
+      { emoji: '😔', name: 'pensive', keywords: ['sad', 'thoughtful', 'down'], category: 'smileys' },
+      { emoji: '😪', name: 'sleepy', keywords: ['tired', 'sleep', 'sleepy'], category: 'smileys' },
+      { emoji: '🤤', name: 'drooling', keywords: ['hungry', 'desire', 'want'], category: 'smileys' },
+      { emoji: '😴', name: 'sleeping', keywords: ['sleep', 'tired', 'zzz'], category: 'smileys' },
+      { emoji: '😷', name: 'mask', keywords: ['sick', 'ill', 'covid'], category: 'smileys' },
+      { emoji: '🤒', name: 'thermometer_face', keywords: ['sick', 'fever', 'ill'], category: 'smileys' },
+      { emoji: '🤕', name: 'head_bandage', keywords: ['hurt', 'injured', 'sick'], category: 'smileys' },
+      { emoji: '🤢', name: 'nauseated', keywords: ['sick', 'gross', 'disgusted'], category: 'smileys' },
+      { emoji: '🤮', name: 'vomiting', keywords: ['sick', 'gross', 'disgusted'], category: 'smileys' },
+      { emoji: '🤧', name: 'sneezing', keywords: ['sick', 'sneeze', 'cold'], category: 'smileys' },
+      { emoji: '🥵', name: 'hot', keywords: ['hot', 'heat', 'sweating'], category: 'smileys' },
+      { emoji: '🥶', name: 'cold', keywords: ['cold', 'freezing', 'blue'], category: 'smileys' },
+      { emoji: '😵', name: 'dizzy', keywords: ['dizzy', 'confused', 'spiral'], category: 'smileys' },
+      { emoji: '🤯', name: 'exploding_head', keywords: ['mind_blown', 'shocked', 'wow'], category: 'smileys' },
+      { emoji: '😳', name: 'flushed', keywords: ['embarrassed', 'shy', 'red'], category: 'smileys' },
+      { emoji: '🥺', name: 'pleading', keywords: ['cute', 'puppy_eyes', 'please'], category: 'smileys' },
+      { emoji: '😦', name: 'frowning', keywords: ['sad', 'disappointed'], category: 'smileys' },
+      { emoji: '😧', name: 'anguished', keywords: ['worried', 'anxious', 'sad'], category: 'smileys' },
+      { emoji: '😨', name: 'fearful', keywords: ['scared', 'afraid', 'fear'], category: 'smileys' },
+      { emoji: '😰', name: 'cold_sweat', keywords: ['nervous', 'anxious', 'worried'], category: 'smileys' },
+      { emoji: '😥', name: 'disappointed_relieved', keywords: ['sad', 'disappointed', 'relieved'], category: 'smileys' },
+      { emoji: '😢', name: 'cry', keywords: ['sad', 'cry', 'tear'], category: 'smileys' },
+      { emoji: '😭', name: 'sob', keywords: ['cry', 'sad', 'tears'], category: 'smileys' },
+      { emoji: '😱', name: 'scream', keywords: ['scared', 'shocked', 'afraid'], category: 'smileys' },
+      { emoji: '😖', name: 'confounded', keywords: ['frustrated', 'confused', 'annoyed'], category: 'smileys' },
+      { emoji: '😣', name: 'persevere', keywords: ['frustrated', 'struggling', 'effort'], category: 'smileys' },
+      { emoji: '😞', name: 'disappointed', keywords: ['sad', 'disappointed', 'down'], category: 'smileys' },
+      { emoji: '😓', name: 'sweat', keywords: ['tired', 'working', 'effort'], category: 'smileys' },
+      { emoji: '😩', name: 'weary', keywords: ['tired', 'exhausted', 'frustrated'], category: 'smileys' },
+      { emoji: '😫', name: 'tired_face', keywords: ['tired', 'exhausted', 'worn_out'], category: 'smileys' },
+      { emoji: '😤', name: 'triumph', keywords: ['proud', 'steaming', 'huffing'], category: 'smileys' },
+      { emoji: '😡', name: 'rage', keywords: ['angry', 'mad', 'furious'], category: 'smileys' },
+      { emoji: '😠', name: 'angry', keywords: ['angry', 'mad', 'upset'], category: 'smileys' },
+      { emoji: '🤬', name: 'swearing', keywords: ['angry', 'cursing', 'mad'], category: 'smileys' },
+      
+      // Gestures & People
+      { emoji: '👍', name: 'thumbs_up', keywords: ['good', 'like', 'yes', 'approve'], category: 'gestures' },
+      { emoji: '👎', name: 'thumbs_down', keywords: ['bad', 'dislike', 'no', 'disapprove'], category: 'gestures' },
+      { emoji: '👌', name: 'ok_hand', keywords: ['ok', 'good', 'perfect'], category: 'gestures' },
+      { emoji: '✌️', name: 'peace', keywords: ['peace', 'victory', 'two'], category: 'gestures' },
+      { emoji: '🤞', name: 'crossed_fingers', keywords: ['luck', 'hope', 'wish'], category: 'gestures' },
+      { emoji: '🤟', name: 'love_you', keywords: ['love', 'rock', 'metal'], category: 'gestures' },
+      { emoji: '🤘', name: 'rock', keywords: ['rock', 'metal', 'horns'], category: 'gestures' },
+      { emoji: '🤙', name: 'call_me', keywords: ['call', 'phone', 'shaka'], category: 'gestures' },
+      { emoji: '👈', name: 'point_left', keywords: ['point', 'left', 'direction'], category: 'gestures' },
+      { emoji: '👉', name: 'point_right', keywords: ['point', 'right', 'direction'], category: 'gestures' },
+      { emoji: '👆', name: 'point_up', keywords: ['point', 'up', 'direction'], category: 'gestures' },
+      { emoji: '👇', name: 'point_down', keywords: ['point', 'down', 'direction'], category: 'gestures' },
+      { emoji: '☝️', name: 'index_pointing_up', keywords: ['point', 'up', 'one'], category: 'gestures' },
+      { emoji: '✋', name: 'raised_hand', keywords: ['stop', 'hand', 'high_five'], category: 'gestures' },
+      { emoji: '🤚', name: 'raised_back_of_hand', keywords: ['stop', 'hand'], category: 'gestures' },
+      { emoji: '🖐️', name: 'hand_with_fingers_splayed', keywords: ['hand', 'five', 'stop'], category: 'gestures' },
+      { emoji: '🖖', name: 'vulcan_salute', keywords: ['spock', 'star_trek', 'vulcan'], category: 'gestures' },
+      { emoji: '👋', name: 'wave', keywords: ['hello', 'goodbye', 'wave'], category: 'gestures' },
+      { emoji: '🤏', name: 'pinching_hand', keywords: ['small', 'tiny', 'little'], category: 'gestures' },
+      { emoji: '💪', name: 'flexed_biceps', keywords: ['strong', 'muscle', 'power'], category: 'gestures' },
+      { emoji: '🙏', name: 'pray', keywords: ['thank', 'please', 'hope'], category: 'gestures' },
+      
+      // Hearts
+      { emoji: '❤️', name: 'heart', keywords: ['love', 'heart', 'red'], category: 'hearts' },
+      { emoji: '🧡', name: 'orange_heart', keywords: ['love', 'heart', 'orange'], category: 'hearts' },
+      { emoji: '💛', name: 'yellow_heart', keywords: ['love', 'heart', 'yellow'], category: 'hearts' },
+      { emoji: '💚', name: 'green_heart', keywords: ['love', 'heart', 'green'], category: 'hearts' },
+      { emoji: '💙', name: 'blue_heart', keywords: ['love', 'heart', 'blue'], category: 'hearts' },
+      { emoji: '💜', name: 'purple_heart', keywords: ['love', 'heart', 'purple'], category: 'hearts' },
+      { emoji: '🖤', name: 'black_heart', keywords: ['love', 'heart', 'black'], category: 'hearts' },
+      { emoji: '🤍', name: 'white_heart', keywords: ['love', 'heart', 'white'], category: 'hearts' },
+      { emoji: '🤎', name: 'brown_heart', keywords: ['love', 'heart', 'brown'], category: 'hearts' },
+      { emoji: '💔', name: 'broken_heart', keywords: ['heartbreak', 'sad', 'break'], category: 'hearts' },
+      { emoji: '❣️', name: 'exclamation_heart', keywords: ['love', 'exclamation'], category: 'hearts' },
+      { emoji: '💕', name: 'two_hearts', keywords: ['love', 'hearts', 'two'], category: 'hearts' },
+      { emoji: '💞', name: 'revolving_hearts', keywords: ['love', 'hearts', 'spinning'], category: 'hearts' },
+      { emoji: '💓', name: 'beating_heart', keywords: ['love', 'heartbeat', 'pulse'], category: 'hearts' },
+      { emoji: '💗', name: 'growing_heart', keywords: ['love', 'growing', 'pink'], category: 'hearts' },
+      { emoji: '💖', name: 'sparkling_heart', keywords: ['love', 'sparkle', 'shine'], category: 'hearts' },
+      { emoji: '💘', name: 'cupid', keywords: ['love', 'arrow', 'cupid'], category: 'hearts' },
+      { emoji: '💝', name: 'gift_heart', keywords: ['love', 'gift', 'present'], category: 'hearts' },
+      
+      // Objects & Symbols
+      { emoji: '🔥', name: 'fire', keywords: ['hot', 'burn', 'flame'], category: 'objects' },
+      { emoji: '💯', name: 'hundred', keywords: ['perfect', 'score', '100'], category: 'objects' },
+      { emoji: '💢', name: 'anger', keywords: ['angry', 'mad', 'symbol'], category: 'objects' },
+      { emoji: '💥', name: 'boom', keywords: ['explosion', 'bang', 'pow'], category: 'objects' },
+      { emoji: '💫', name: 'dizzy', keywords: ['star', 'sparkle', 'dizzy'], category: 'objects' },
+      { emoji: '💦', name: 'sweat_drops', keywords: ['water', 'sweat', 'splash'], category: 'objects' },
+      { emoji: '💨', name: 'dash', keywords: ['fast', 'wind', 'speed'], category: 'objects' },
+      { emoji: '⭐', name: 'star', keywords: ['star', 'favorite', 'yellow'], category: 'objects' },
+      { emoji: '🌟', name: 'glowing_star', keywords: ['star', 'sparkle', 'glow'], category: 'objects' },
+      { emoji: '✨', name: 'sparkles', keywords: ['sparkle', 'shine', 'magic'], category: 'objects' },
+      { emoji: '⚡', name: 'lightning', keywords: ['electric', 'fast', 'power'], category: 'objects' },
+      { emoji: '🎉', name: 'party', keywords: ['celebration', 'party', 'confetti'], category: 'objects' },
+      { emoji: '🎊', name: 'confetti', keywords: ['celebration', 'party', 'confetti'], category: 'objects' }
+    ];
+
+    // Reaction emojis organized by category
+    const reactionCategories = {
+      frequent: ['👍', '❤️', '😂', '😮', '😢', '😡', '🔥', '🎉'],
+      smileys: ['😀', '😃', '😄', '😁', '😆', '😅', '🤣', '😂', '🙂', '😉', '😊', '😇', '🤩', '😋', '😛', '😜', '🤪', '😝'],
+      hearts: ['❤️', '🧡', '💛', '💚', '💙', '💜', '🖤', '🤍', '💔', '💕', '💞', '💓', '💗', '💖', '💘', '💝'],
+      gestures: ['👍', '👎', '👌', '✌️', '🤞', '🤟', '🤘', '🤙', '👈', '👉', '👆', '👇', '✋', '👋', '💪', '🙏'],
+      objects: ['🔥', '💯', '💥', '💫', '⭐', '🌟', '✨', '⚡', '🎉', '🎊', '💢', '💦', '💨']
+    };
 
     // Emoji data
     const quickEmojis = [
@@ -1596,8 +2030,12 @@ Be helpful and conversational. Respond naturally to user messages.`;
         leaveBtn.classList.remove('hidden');
         userCount.classList.remove('hidden');
         toggleUserListBtn.classList.remove('hidden');
+        document.getElementById('xpWidget').classList.remove('hidden');
         document.getElementById('guestMessage').style.display = 'none';
         document.getElementById('chatMessages').innerHTML = '';
+        
+        // Initialize/update XP widget
+        updateXPWidget();
       } else {
         chatTitle.textContent = 'Select a room to start chatting';
         chatSubtitle.classList.add('hidden');
@@ -1606,6 +2044,7 @@ Be helpful and conversational. Respond naturally to user messages.`;
         userCount.classList.add('hidden');
         toggleUserListBtn.classList.add('hidden');
         userListContainer.classList.add('hidden');
+        document.getElementById('xpWidget').classList.add('hidden');
         
         if (!currentUser) {
           document.getElementById('guestMessage').style.display = 'block';
@@ -1699,6 +2138,10 @@ Be helpful and conversational. Respond naturally to user messages.`;
         messageInput.value = '';
         cancelReply(); // Clear any active reply
         updateActivity(); // Reset AFK status
+
+        // Award XP for sending message
+        const messageElement = document.getElementById('messageInput');
+        awardXP(currentUser.uid, XP_REWARDS.MESSAGE, 'Message sent', messageElement);
 
         // Check if AI should respond (when room is empty or user is alone)
         const roomDoc = await db.collection('chatRooms').doc(currentRoomId).get();
@@ -1949,6 +2392,14 @@ Be helpful and conversational. Respond naturally to user messages.`;
             name: currentUser.displayName || 'Anonymous',
             timestamp: firebase.firestore.FieldValue.serverTimestamp()
           };
+
+          // Award XP for giving reaction
+          awardXP(currentUser.uid, XP_REWARDS.REACTION_GIVEN, 'Reaction given');
+          
+          // Award XP to message author for receiving reaction
+          if (messageData.authorId && messageData.authorId !== currentUser.uid) {
+            awardXP(messageData.authorId, XP_REWARDS.REACTION_RECEIVED, 'Reaction received');
+          }
         }
 
         await messageRef.update({ reactions });
@@ -1968,40 +2419,124 @@ Be helpful and conversational. Respond naturally to user messages.`;
 
       const picker = document.createElement('div');
       picker.className = 'reaction-picker';
-      
-      reactionEmojis.forEach(emoji => {
-        const emojiDiv = document.createElement('div');
-        emojiDiv.className = 'reaction-emoji';
-        emojiDiv.textContent = emoji;
-        emojiDiv.setAttribute('data-emoji', emoji);
-        emojiDiv.setAttribute('data-message-id', messageId);
-        picker.appendChild(emojiDiv);
+      picker.innerHTML = `
+        <div class="reaction-picker-header">
+          <div class="reaction-picker-title">Add Reaction</div>
+          <button onclick="this.closest('.reaction-picker').remove()" style="background: none; border: none; color: var(--theme-muted); cursor: pointer;">✕</button>
+        </div>
+        <input type="text" class="reaction-search" placeholder="Search emojis..." id="emojiSearch-${messageId}">
+        <div class="reaction-tabs">
+          <div class="reaction-tab active" data-category="frequent">😊</div>
+          <div class="reaction-tab" data-category="smileys">😀</div>
+          <div class="reaction-tab" data-category="hearts">❤️</div>
+          <div class="reaction-tab" data-category="gestures">👍</div>
+          <div class="reaction-tab" data-category="objects">🔥</div>
+        </div>
+        <div class="reaction-grid" id="reactionGrid-${messageId}">
+          <!-- Emojis will be populated here -->
+        </div>
+      `;
+
+      // Populate initial emojis (frequent)
+      updateReactionGrid(messageId, 'frequent');
+
+      // Add event listeners
+      const tabs = picker.querySelectorAll('.reaction-tab');
+      tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+          tabs.forEach(t => t.classList.remove('active'));
+          tab.classList.add('active');
+          updateReactionGrid(messageId, tab.getAttribute('data-category'));
+        });
       });
 
-      // Add click handler for picker emojis
+      // Search functionality
+      const searchInput = picker.querySelector(`#emojiSearch-${messageId}`);
+      let searchTimeout;
+      searchInput.addEventListener('input', (e) => {
+        clearTimeout(searchTimeout);
+        const query = e.target.value.toLowerCase();
+        
+        searchTimeout = setTimeout(() => {
+          if (query.length > 0) {
+            searchEmojis(messageId, query);
+          } else {
+            updateReactionGrid(messageId, 'frequent');
+          }
+        }, 200);
+      });
+
+      // Add click handler for emojis
       picker.addEventListener('click', (e) => {
         if (e.target.classList.contains('reaction-emoji')) {
-          const emoji = e.target.getAttribute('data-emoji');
-          const msgId = e.target.getAttribute('data-message-id');
-          if (emoji && msgId) {
-            toggleReaction(msgId, emoji);
+          const emoji = e.target.textContent;
+          if (emoji && messageId) {
+            toggleReaction(messageId, emoji);
             picker.remove();
           }
         }
       });
 
+      // Position and show picker
       event.target.style.position = 'relative';
       event.target.appendChild(picker);
 
       // Close picker when clicking outside
       setTimeout(() => {
         document.addEventListener('click', function closePicker(e) {
-          if (!picker.contains(e.target)) {
+          if (!picker.contains(e.target) && !event.target.contains(e.target)) {
             picker.remove();
             document.removeEventListener('click', closePicker);
           }
         });
       }, 100);
+    }
+
+    function updateReactionGrid(messageId, category) {
+      const grid = document.getElementById(`reactionGrid-${messageId}`);
+      if (!grid) return;
+
+      const emojis = reactionCategories[category] || reactionCategories.frequent;
+      grid.innerHTML = '';
+
+      emojis.forEach(emoji => {
+        const emojiDiv = document.createElement('div');
+        emojiDiv.className = 'reaction-emoji';
+        emojiDiv.textContent = emoji;
+        emojiDiv.title = getEmojiName(emoji);
+        grid.appendChild(emojiDiv);
+      });
+    }
+
+    function searchEmojis(messageId, query) {
+      const grid = document.getElementById(`reactionGrid-${messageId}`);
+      if (!grid) return;
+
+      const results = window.allEmojis.filter(emojiData => {
+        const searchTerm = query.toLowerCase();
+        return emojiData.name.toLowerCase().includes(searchTerm) ||
+               emojiData.keywords.some(keyword => keyword.toLowerCase().includes(searchTerm));
+      }).slice(0, 32); // Limit results
+
+      grid.innerHTML = '';
+
+      if (results.length === 0) {
+        grid.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; color: var(--theme-muted); padding: 1rem;">No emojis found</div>';
+        return;
+      }
+
+      results.forEach(emojiData => {
+        const emojiDiv = document.createElement('div');
+        emojiDiv.className = 'reaction-emoji';
+        emojiDiv.textContent = emojiData.emoji;
+        emojiDiv.title = emojiData.name;
+        grid.appendChild(emojiDiv);
+      });
+    }
+
+    function getEmojiName(emoji) {
+      const emojiData = window.allEmojis.find(e => e.emoji === emoji);
+      return emojiData ? emojiData.name : emoji;
     }
 
     // AFK Detection functionality
@@ -2110,6 +2645,179 @@ Be helpful and conversational. Respond naturally to user messages.`;
       if (!activeUsers.has(userId)) return '';
       const userData = activeUsers.get(userId);
       return userData.isAFK ? '<span class="afk-indicator">AFK</span>' : '';
+    }
+
+    // XP System Functions
+    function calculateLevel(xp) {
+      for (let i = LEVEL_THRESHOLDS.length - 1; i >= 0; i--) {
+        if (xp >= LEVEL_THRESHOLDS[i].xp) {
+          return LEVEL_THRESHOLDS[i];
+        }
+      }
+      return LEVEL_THRESHOLDS[0];
+    }
+
+    function getNextLevel(currentLevel) {
+      const nextLevelIndex = LEVEL_THRESHOLDS.findIndex(l => l.level === currentLevel + 1);
+      return nextLevelIndex !== -1 ? LEVEL_THRESHOLDS[nextLevelIndex] : null;
+    }
+
+    async function awardXP(userId, amount, reason, element = null) {
+      if (!userId || amount <= 0) return;
+
+      try {
+        const userRef = db.collection('users').doc(userId);
+        const userDoc = await userRef.get();
+        
+        if (!userDoc.exists) {
+          // Initialize user with starting XP
+          await userRef.set({
+            xp: amount,
+            level: 1,
+            levelTitle: 'Novice',
+            levelTier: 'novice',
+            lastXPGain: firebase.firestore.FieldValue.serverTimestamp()
+          });
+          
+          if (element) {
+            showXPReward(element, amount, reason);
+          }
+          return;
+        }
+        
+        const userData = userDoc.data();
+        const currentXP = userData.xp || 0;
+        const currentLevel = calculateLevel(currentXP);
+        const newXP = currentXP + amount;
+        const newLevel = calculateLevel(newXP);
+        
+        // Update user XP
+        await userRef.update({
+          xp: newXP,
+          level: newLevel.level,
+          levelTitle: newLevel.title,
+          levelTier: newLevel.tier,
+          lastXPGain: firebase.firestore.FieldValue.serverTimestamp()
+        });
+
+        // Show XP reward popup
+        if (element && userId === currentUser.uid) {
+          showXPReward(element, amount, reason);
+        }
+
+        // Check for level up
+        if (newLevel.level > currentLevel.level && userId === currentUser.uid) {
+          // Award level up bonus
+          await userRef.update({
+            xp: newXP + XP_REWARDS.LEVEL_UP_BONUS
+          });
+          
+          showLevelUpNotification(newLevel);
+          updateXPWidget();
+        } else if (userId === currentUser.uid) {
+          updateXPWidget();
+        }
+      } catch (error) {
+        console.error('Error awarding XP:', error);
+      }
+    }
+
+    function showXPReward(element, amount, reason) {
+      if (!element) return;
+      
+      const rect = element.getBoundingClientRect();
+      const popup = document.createElement('div');
+      popup.className = 'xp-reward-popup';
+      popup.innerHTML = `
+        <div style="display: flex; align-items: center; gap: 4px;">
+          <i class='bx bx-plus-circle'></i>
+          <span>+${amount} XP</span>
+        </div>
+        <div style="font-size: 0.7rem; opacity: 0.9;">${reason}</div>
+      `;
+      
+      popup.style.position = 'fixed';
+      popup.style.left = (rect.left + rect.width / 2) + 'px';
+      popup.style.top = (rect.top - 10) + 'px';
+      popup.style.transform = 'translateX(-50%)';
+      
+      document.body.appendChild(popup);
+      
+      setTimeout(() => {
+        popup.remove();
+      }, 1500);
+    }
+
+    function showLevelUpNotification(levelData) {
+      const notification = document.getElementById('levelUpNotification');
+      const levelNumber = document.getElementById('newLevelNumber');
+      const levelTitle = document.getElementById('levelTitleText');
+      const xpReward = document.getElementById('xpRewardAmount');
+      
+      levelNumber.textContent = levelData.level;
+      levelTitle.textContent = levelData.title;
+      xpReward.textContent = XP_REWARDS.LEVEL_UP_BONUS;
+      
+      notification.classList.add('show');
+      
+      // Auto-hide after 4 seconds
+      setTimeout(() => {
+        notification.classList.remove('show');
+      }, 4000);
+    }
+
+    function formatXPProgress(currentXP, currentLevel) {
+      const nextLevel = getNextLevel(currentLevel.level);
+      if (!nextLevel) {
+        return { percentage: 100, current: currentXP, needed: 0, total: currentXP };
+      }
+      
+      const currentLevelXP = currentLevel.xp;
+      const nextLevelXP = nextLevel.xp;
+      const progressXP = currentXP - currentLevelXP;
+      const neededXP = nextLevelXP - currentLevelXP;
+      const percentage = Math.round((progressXP / neededXP) * 100);
+      
+      return {
+        percentage: Math.min(100, Math.max(0, percentage)),
+        current: progressXP,
+        needed: neededXP,
+        total: nextLevelXP
+      };
+    }
+
+    async function updateXPWidget() {
+      if (!currentUser) return;
+      
+      try {
+        const userDoc = await db.collection('users').doc(currentUser.uid).get();
+        const userData = userDoc.data() || {};
+        const currentXP = userData.xp || 0;
+        const levelData = calculateLevel(currentXP);
+        const progress = formatXPProgress(currentXP, levelData);
+        
+        // Update XP widget elements
+        const userLevel = document.getElementById('userLevel');
+        const userLevelTitle = document.getElementById('userLevelTitle');
+        const userXPBar = document.getElementById('userXPBar');
+        const userXPText = document.getElementById('userXPText');
+        
+        if (userLevel) userLevel.textContent = `Lv.${levelData.level}`;
+        if (userLevelTitle) userLevelTitle.textContent = levelData.title;
+        if (userXPBar) userXPBar.style.width = `${progress.percentage}%`;
+        if (userXPText) userXPText.textContent = `${progress.current} / ${progress.needed} XP`;
+        
+      } catch (error) {
+        console.error('Error updating XP widget:', error);
+      }
+    }
+
+    function getLevelBadgeHTML(levelData) {
+      const isPrestige = levelData.level >= 15;
+      return `<span class="level-badge ${isPrestige ? 'prestige' : ''}" title="${levelData.title}">
+        <i class='bx bx-trophy'></i>
+        Lv.${levelData.level}
+      </span>`;
     }
 
     // Room Creation
