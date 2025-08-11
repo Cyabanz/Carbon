@@ -4928,6 +4928,10 @@ Be helpful and conversational. Respond naturally to user messages.`;
         // Leave current room first
         await leaveCurrentRoom();
 
+        // Get room data first
+        const roomDoc = await db.collection('chatRooms').doc(roomId).get();
+        const roomData = roomDoc.data() || {};
+
         // Join new room
         currentRoomId = roomId;
         
@@ -4948,8 +4952,8 @@ Be helpful and conversational. Respond naturally to user messages.`;
         // Show room joined notification with special message for AI room
         const isAIRoom = roomData.isAIRoom || roomData.type === 'ai';
         const welcomeText = isAIRoom ? 
-          `Welcome to ${roomData.name}! Your AI assistant is ready to help 🤖` : 
-          `Welcome to ${roomData.name}`;
+          `Welcome to ${roomData.name || 'Chat Room'}! Your AI assistant is ready to help 🤖` : 
+          `Welcome to ${roomData.name || 'Chat Room'}`;
         
         showNotification('Room Joined', welcomeText, 'success', { 
           duration: 3000,
@@ -4978,8 +4982,6 @@ Be helpful and conversational. Respond naturally to user messages.`;
         });
 
         // Check if AI should be activated for this room
-        const roomDoc = await db.collection('chatRooms').doc(roomId).get();
-        const roomData = roomDoc.data();
         
         if (roomData && aiChatbot.shouldActivate(roomData.userCount || 0)) {
           setTimeout(() => {
@@ -5480,8 +5482,9 @@ Be helpful and conversational. Respond naturally to user messages.`;
 
           // Check for mentions of current user
           if (currentUser && message.mentions && message.mentions.length > 0) {
-            const currentUsername = currentUser.displayName.replace(/\s/g, '').toLowerCase();
-            const isMentioned = message.mentions.some(mention => mention.toLowerCase() === currentUsername);
+            const currentUsername = getUsernameFromDisplayName(currentUser.displayName);
+            const isMentioned = message.mentions.some(mention => 
+              mention.toLowerCase() === currentUsername.toLowerCase());
             
             if (isMentioned) {
               addNotification(
@@ -7003,6 +7006,9 @@ Be helpful and conversational. Respond naturally to user messages.`;
           } catch (error) {
             console.error('Redirect result error:', error);
           }
+
+          // Setup notification listener for mentions
+          setupNotificationListener();
         } else {
           await leaveCurrentRoom();
           currentUser = null;
@@ -7880,6 +7886,39 @@ Be helpful and conversational. Respond naturally to user messages.`;
       }
     }
 
+    // Set up Firestore listener for mention notifications
+    function setupNotificationListener() {
+      if (!currentUser) return;
+
+      // Listen for new notifications from Firestore
+      const notificationsRef = db.collection('users').doc(currentUser.uid).collection('notifications');
+      
+      notificationsRef.orderBy('timestamp', 'desc').limit(20).onSnapshot(snapshot => {
+        snapshot.docChanges().forEach(change => {
+          if (change.type === 'added') {
+            const notificationData = change.doc.data();
+            
+            // Add to local notifications
+            addNotification(
+              notificationData.type,
+              notificationData.title,
+              notificationData.message,
+              {
+                avatar: notificationData.fromUser?.photo,
+                userName: notificationData.fromUser?.name,
+                roomId: notificationData.roomId
+              }
+            );
+
+            // Mark as read in Firestore after a delay
+            setTimeout(() => {
+              change.doc.ref.update({ read: true }).catch(console.error);
+            }, 5000);
+          }
+        });
+      });
+    }
+
     // User Mention System
     function processMentionsInMessage(content) {
       // Find @username mentions
@@ -7899,21 +7938,29 @@ Be helpful and conversational. Respond naturally to user messages.`;
       return content.replace(mentionRegex, '<span class="mention-highlight">@$1</span>');
     }
 
+    function getUsernameFromDisplayName(displayName) {
+      if (!displayName) return '';
+      // Convert display name to username: remove spaces, special chars, lowercase
+      return displayName.replace(/[^\w]/g, '').toLowerCase();
+    }
+
     async function sendMentionNotifications(mentionedUsernames, messageContent, roomId) {
       if (!currentUser || mentionedUsernames.length === 0) return;
 
-      try {
-        // Get all users to find mentioned ones
-        const usersSnapshot = await db.collection('users').get();
-        const users = {};
-        usersSnapshot.docs.forEach(doc => {
-          const userData = doc.data();
-          if (userData.displayName) {
-            // Create a simple username from display name (remove spaces, lowercase)
-            const username = userData.displayName.replace(/\s/g, '').toLowerCase();
-            users[username] = { id: doc.id, ...userData };
-          }
-        });
+              try {
+          // Get all users to find mentioned ones
+          const usersSnapshot = await db.collection('users').get();
+          const users = {};
+          usersSnapshot.docs.forEach(doc => {
+            const userData = doc.data();
+            if (userData.displayName) {
+              // Create a simple username from display name
+              const username = getUsernameFromDisplayName(userData.displayName);
+              if (username) {
+                users[username] = { id: doc.id, ...userData };
+              }
+            }
+          });
 
         // Send notifications to mentioned users
         for (const username of mentionedUsernames) {
@@ -8645,6 +8692,7 @@ Be helpful and conversational. Respond naturally to user messages.`;
     window.toggleNotificationPanel = toggleNotificationPanel;
     window.clearAllNotifications = clearAllNotifications;
     window.handleNotificationClick = handleNotificationClick;
+    window.setupNotificationListener = setupNotificationListener;
     window.signOut = signOut;
 
     // Start when page loads
