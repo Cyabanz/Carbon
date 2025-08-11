@@ -1416,7 +1416,7 @@
 
     .room-item.temporary {
       border-color: var(--theme-iris);
-      background: rgba(196, 167, 231, 0.1);
+      background: rgba(99, 102, 241, 0.1);
     }
 
     /* Message Styles */
@@ -1458,7 +1458,7 @@
     }
 
     .message.ai {
-      background: linear-gradient(135deg, rgba(196, 167, 231, 0.1), rgba(156, 207, 216, 0.1));
+      background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(99, 102, 241, 0.05));
       border-left: 3px solid var(--theme-iris);
       position: relative;
     }
@@ -1524,7 +1524,7 @@
     }
 
     .reply-original {
-      background: rgba(156, 207, 216, 0.1);
+      background: rgba(99, 102, 241, 0.1);
       border-left: 3px solid var(--theme-foam);
       padding: 0.5rem;
       margin-bottom: 0.5rem;
@@ -1785,7 +1785,7 @@
 
     .level-badge.prestige {
       background: linear-gradient(135deg, var(--theme-iris), var(--theme-love));
-      box-shadow: 0 2px 6px rgba(196, 167, 231, 0.4);
+      box-shadow: 0 2px 6px rgba(99, 102, 241, 0.4);
     }
 
     .xp-bar-container {
@@ -2070,7 +2070,7 @@
     }
 
     .custom-color-section {
-      background: linear-gradient(135deg, rgba(196, 167, 231, 0.1), rgba(156, 207, 216, 0.1));
+      background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(99, 102, 241, 0.05));
       border: 1px solid var(--theme-highlight-med);
       border-radius: 12px;
       padding: 1.5rem;
@@ -2544,12 +2544,12 @@
     .art-button.primary {
       background: linear-gradient(135deg, var(--theme-foam), var(--theme-iris));
       color: white;
-      box-shadow: 0 4px 15px rgba(156, 207, 216, 0.4);
+      box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4);
     }
 
     .art-button.primary:hover {
       transform: translateY(-2px);
-      box-shadow: 0 6px 20px rgba(156, 207, 216, 0.6);
+      box-shadow: 0 6px 20px rgba(99, 102, 241, 0.6);
     }
 
     .art-button.secondary {
@@ -2574,7 +2574,7 @@
     }
 
     .art-info {
-      background: linear-gradient(135deg, rgba(156, 207, 216, 0.1), rgba(196, 167, 231, 0.1));
+      background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(99, 102, 241, 0.05));
       border: 1px solid var(--theme-foam);
       border-radius: 10px;
       padding: 1rem;
@@ -2875,7 +2875,7 @@
 
     .btn-primary:hover {
       transform: translateY(-1px);
-      box-shadow: 0 4px 12px rgba(156, 207, 216, 0.3);
+      box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
     }
 
     .btn-secondary {
@@ -4127,7 +4127,7 @@ Be helpful and conversational. Respond naturally to user messages.`;
     // Authentication - Make sure it's in global scope
     window.googleSignIn = async function() {
       if (!firebaseInitialized) {
-        alert('Chat system is still loading. Please try again in a moment.');
+        showNotification('Please Wait', 'Chat system is still loading. Please try again in a moment.', 'warning');
         return;
       }
 
@@ -4151,7 +4151,7 @@ Be helpful and conversational. Respond naturally to user messages.`;
         }
       } catch (error) {
         console.error('Sign in error:', error);
-        alert('Sign in failed. Please try again.');
+        showNotification('Sign In Failed', 'Please try again or check your connection.', 'error');
       }
     }
 
@@ -4307,7 +4307,7 @@ Be helpful and conversational. Respond naturally to user messages.`;
 
     async function joinRoom(roomId) {
       if (!currentUser) {
-        alert('Please sign in to join rooms');
+        showNotification('Sign In Required', 'Please sign in to join chat rooms.', 'warning');
         return;
       }
 
@@ -4371,7 +4371,7 @@ Be helpful and conversational. Respond naturally to user messages.`;
         console.log('Joined room:', roomId);
       } catch (error) {
         console.error('Error joining room:', error);
-        alert('Failed to join room. Please try again.');
+        showNotification('Join Failed', 'Failed to join room. Please try again.', 'error');
       }
     }
 
@@ -4536,7 +4536,7 @@ Be helpful and conversational. Respond naturally to user messages.`;
       const filteredContent = contentFilter.filter(sanitizedContent);
 
       if (!filteredContent || filteredContent.length === 0) {
-        alert('Message contains inappropriate content');
+        showNotification('Content Filtered', 'Your message contains inappropriate content and cannot be sent.', 'warning');
         return;
       }
 
@@ -4610,9 +4610,9 @@ Be helpful and conversational. Respond naturally to user messages.`;
       } catch (error) {
         console.error('Error sending message:', error);
         if (error.code === 'unavailable' || error.message.includes('offline')) {
-          alert('Cannot send message while offline. Please check your connection.');
+          showNotification('Offline', 'Cannot send message while offline. Please check your connection.', 'error');
         } else {
-          alert('Failed to send message. Please try again.');
+          showNotification('Send Failed', 'Failed to send message. Please try again.', 'error');
         }
       }
     }
@@ -5487,7 +5487,7 @@ Be helpful and conversational. Respond naturally to user messages.`;
       } else {
         colorDiv.addEventListener('click', () => {
           if (colorData) {
-            alert(`This color requires Level ${colorData.requiredLevel} (${colorData.requiredXP} XP). You are currently Level ${currentUserLevel} (${currentUserXP} XP).`);
+            showNotification('Level Required', `This color requires Level ${colorData.requiredLevel} (${colorData.requiredXP} XP). You are currently Level ${currentUserLevel} (${currentUserXP} XP).`, 'warning');
           }
         });
       }
@@ -5496,11 +5496,8 @@ Be helpful and conversational. Respond naturally to user messages.`;
     }
 
     async function applyRoomColor() {
-      console.log("Applying room color:", { selectedColor, currentRoomId, currentUser: !!currentUser });
-      
       if (!selectedColor || !currentRoomId || !currentUser) {
-        console.error("Missing required data for room color:", { selectedColor, currentRoomId, currentUser: !!currentUser });
-        alert('Please select a color and make sure you are in a room.');
+        showNotification('Color Required', 'Please select a color and make sure you are in a room.', 'warning');
         return;
       }
 
@@ -5528,12 +5525,12 @@ Be helpful and conversational. Respond naturally to user messages.`;
           showXPReward(chatMessages, 0, 'Room color updated!');
         }
         
-        console.log("Room color application completed");
+
         
       } catch (error) {
         console.error('Error applying room color:', error);
         console.error('Error details:', error.code, error.message);
-        alert(`Failed to update room color: ${error.message || error.code || 'Unknown error'}`);
+        showNotification('Color Update Failed', `Failed to update room color: ${error.message || error.code || 'Unknown error'}`, 'error');
       }
     }
 
@@ -5543,7 +5540,7 @@ Be helpful and conversational. Respond naturally to user messages.`;
         return;
       }
 
-      console.log("Applying full-page room theme with color:", color);
+
 
       // Convert hex to RGB for CSS variables with improved gradient handling
       let rgbColor = '';
@@ -5670,7 +5667,7 @@ Be helpful and conversational. Respond naturally to user messages.`;
     // Room Creation
     function showCreateRoomModal() {
       if (!currentUser) {
-        alert('Please sign in to create rooms');
+        showNotification('Sign In Required', 'Please sign in to create chat rooms.', 'warning');
         return;
       }
       
@@ -5904,7 +5901,7 @@ Be helpful and conversational. Respond naturally to user messages.`;
 
       } catch (error) {
         console.error('Error toggling follow:', error);
-        alert('Failed to update follow status. Please try again.');
+        showNotification('Follow Failed', 'Failed to update follow status. Please try again.', 'error');
       }
     }
 
@@ -6111,7 +6108,7 @@ Be helpful and conversational. Respond naturally to user messages.`;
         joinRoom(roomRef.id);
       } catch (error) {
         console.error('Error creating room:', error);
-        alert('Failed to create room. Please try again.');
+        showNotification('Room Creation Failed', 'Failed to create room. Please try again.', 'error');
       }
     }
 
@@ -6370,7 +6367,7 @@ Be helpful and conversational. Respond naturally to user messages.`;
 
     function openCarbonArt() {
       if (!currentUser) {
-        alert('Please sign in to use Carbon Art');
+        showNotification('Sign In Required', 'Please sign in to use Carbon Art Studio.', 'warning');
         return;
       }
 
@@ -6453,10 +6450,10 @@ Be helpful and conversational. Respond naturally to user messages.`;
         drawingCanvas.addEventListener('touchmove', handleTouch);
         drawingCanvas.addEventListener('touchend', stopDrawing);
         
-        console.log('Canvas initialized successfully');
+
       } catch (error) {
         console.error('Error initializing canvas:', error);
-        alert('Failed to initialize drawing canvas. Please try refreshing the page.');
+        showNotification('Canvas Error', 'Failed to initialize drawing canvas. Please try refreshing the page.', 'error');
       }
     }
 
@@ -6586,7 +6583,7 @@ Be helpful and conversational. Respond naturally to user messages.`;
 
     async function shareArtwork() {
       if (!currentUser || !drawingCanvas) {
-        alert('Please sign in and create artwork first');
+        showNotification('Sign In Required', 'Please sign in and create artwork first.', 'warning');
         return;
       }
 
@@ -6594,20 +6591,20 @@ Be helpful and conversational. Respond naturally to user messages.`;
       
       // Basic content validation
       if (title.length > 100) {
-        alert('Title must be less than 100 characters');
+        showNotification('Title Too Long', 'Title must be less than 100 characters.', 'warning');
         return;
       }
 
       // Sanitize title
       const sanitizedTitle = contentFilter.filter(title);
       if (!contentFilter.isAppropriate(sanitizedTitle)) {
-        alert('Please use appropriate language in your artwork title');
+        showNotification('Inappropriate Content', 'Please use appropriate language in your artwork title.', 'warning');
         return;
       }
 
       try {
         if (!drawingCanvas) {
-          alert('Canvas not ready. Please try again.');
+          showNotification('Canvas Error', 'Canvas not ready. Please try again.', 'warning');
           return;
         }
 
@@ -6624,7 +6621,7 @@ Be helpful and conversational. Respond naturally to user messages.`;
         const blankData = blankCanvas.toDataURL('image/png');
         
         if (artworkData === blankData) {
-          alert('Please create some artwork before sharing!');
+          showNotification('No Artwork', 'Please create some artwork before sharing!', 'warning');
           return;
         }
         
@@ -6688,7 +6685,7 @@ Be helpful and conversational. Respond naturally to user messages.`;
         } else {
           errorMessage += 'Please try again.';
         }
-        alert(errorMessage);
+        showNotification('Share Failed', errorMessage, 'error');
       }
     }
 
@@ -6802,13 +6799,13 @@ Be helpful and conversational. Respond naturally to user messages.`;
 
     function deleteArtwork(artworkId, artworkData) {
       if (!currentUser) {
-        alert('Please sign in to delete artwork');
+        showNotification('Sign In Required', 'Please sign in to delete artwork.', 'warning');
         return;
       }
 
       // Check ownership
       if (artworkData.authorId !== currentUser.uid) {
-        alert('You can only delete your own artwork');
+        showNotification('Permission Denied', 'You can only delete your own artwork.', 'warning');
         return;
       }
 
@@ -6842,7 +6839,7 @@ Be helpful and conversational. Respond naturally to user messages.`;
 
         // Double-check ownership before deletion
         if (data.authorId !== currentUser.uid) {
-          alert('You can only delete your own artwork');
+          showNotification('Permission Denied', 'You can only delete your own artwork.', 'warning');
           cancelArtDeletion();
           return;
         }
@@ -6863,7 +6860,7 @@ Be helpful and conversational. Respond naturally to user messages.`;
 
       } catch (error) {
         console.error('Error deleting artwork:', error);
-        alert('Failed to delete artwork. Please try again.');
+        showNotification('Delete Failed', 'Failed to delete artwork. Please try again.', 'error');
         cancelArtDeletion();
       }
     }
