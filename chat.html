@@ -21,18 +21,37 @@
     // These are available immediately when HTML loads
     
     window.googleSignIn = function() {
+      console.log('GoogleSignIn called - Firebase status:', {
+        firebaseLoaded: typeof firebase !== 'undefined',
+        firebaseInitialized: window.firebaseInitialized,
+        mainFunctionReady: typeof window.mainGoogleSignIn === 'function'
+      });
+      
       if (typeof firebase === 'undefined' || !window.firebaseInitialized) {
         if (window.showNotification) {
           window.showNotification('Please Wait', 'Chat system is still loading. Please try again in a moment.', 'warning');
         } else {
           alert('Chat system is still loading. Please try again in a moment.');
         }
+        
+        // Auto-retry after a few seconds if Firebase is taking too long
+        setTimeout(() => {
+          if (window.firebaseInitialized && window.mainGoogleSignIn) {
+            console.log('Firebase ready now, auto-retrying sign in...');
+            window.mainGoogleSignIn();
+          }
+        }, 2000);
         return;
       }
       
       // Call the main googleSignIn function once Firebase is ready
       if (window.mainGoogleSignIn) {
         window.mainGoogleSignIn();
+      } else {
+        console.error('Main googleSignIn function not loaded yet');
+        if (window.showNotification) {
+          window.showNotification('Error', 'Authentication system not ready. Please refresh the page.', 'error');
+        }
       }
     };
 
@@ -3319,6 +3338,10 @@
     <div class="chat-main">
       <!-- Chat Header -->
       <div class="chat-header">
+        <div id="loadingIndicator" class="loading-indicator" style="position: absolute; top: 0; left: 0; right: 0; background: rgba(99, 102, 241, 0.95); color: white; padding: 8px; text-align: center; font-size: 0.85rem; z-index: 10; border-radius: 0 0 8px 8px;">
+          <i class="fas fa-spinner fa-spin" style="margin-right: 8px;"></i>
+          <span id="loadingText">Initializing chat system...</span>
+        </div>
         <div class="chat-title-section">
           <div class="chat-title-main">
             <h2 id="chatTitle" class="chat-title-text">Select a room to start chatting</h2>
@@ -3974,7 +3997,7 @@ Be helpful and conversational. Respond naturally to user messages.`;
       }
     }
 
-    waitForFirebaseAndInitialize();
+    // Firebase initialization will be handled by waitForFirebaseAndStartChat in DOMContentLoaded
     initializeEmoji();
 
     // Global variables
@@ -6583,11 +6606,57 @@ Be helpful and conversational. Respond naturally to user messages.`;
     }
 
     // Wait for Firebase and initialize
-    function waitForFirebaseAndStartChat() {
-      if (firebaseInitialized) {
-        initializeChatSystem();
-      } else {
+    async function waitForFirebaseAndStartChat() {
+      console.log('Waiting for Firebase initialization...');
+      updateLoadingStatus('Loading Firebase SDK...');
+      
+      // First ensure Firebase is loaded and initialized
+      if (typeof firebase === 'undefined') {
+        console.log('Firebase SDK not loaded yet, waiting...');
         setTimeout(waitForFirebaseAndStartChat, 100);
+        return;
+      }
+      
+      updateLoadingStatus('Connecting to Firebase...');
+      
+      // Initialize Firebase if not already done
+      if (!firebaseInitialized) {
+        console.log('Initializing Firebase...');
+        try {
+          await initializeFirebase();
+          console.log('Firebase initialization completed');
+        } catch (error) {
+          console.error('Firebase initialization failed:', error);
+          updateLoadingStatus('Connection failed, running in offline mode...');
+          // Continue anyway for offline mode
+          firebaseInitialized = true;
+        }
+      }
+      
+      if (firebaseInitialized) {
+        console.log('Starting chat system...');
+        updateLoadingStatus('Starting chat system...');
+        initializeChatSystem();
+        hideLoadingIndicator();
+      } else {
+        console.log('Firebase still not initialized, retrying...');
+        updateLoadingStatus('Retrying connection...');
+        setTimeout(waitForFirebaseAndStartChat, 100);
+      }
+    }
+
+    // Loading indicator functions
+    function updateLoadingStatus(message) {
+      const loadingText = document.getElementById('loadingText');
+      if (loadingText) {
+        loadingText.textContent = message;
+      }
+    }
+
+    function hideLoadingIndicator() {
+      const loadingIndicator = document.getElementById('loadingIndicator');
+      if (loadingIndicator) {
+        loadingIndicator.style.display = 'none';
       }
     }
 
@@ -7851,10 +7920,27 @@ Be helpful and conversational. Respond naturally to user messages.`;
       updateSoundButton(); // Initialize sound button state
       waitForFirebaseAndStartChat();
       
-      // Show welcome notification after a brief delay
+      // Timeout fallback if Firebase takes too long (15 seconds)
       setTimeout(() => {
-        showNotification('Welcome to CARBON Chat', 'Select a room to start chatting!', 'info', { duration: 4000 });
-      }, 1000);
+        if (!firebaseInitialized) {
+          console.warn('Firebase initialization timeout, forcing offline mode');
+          updateLoadingStatus('Connection timeout - running in offline mode');
+          firebaseInitialized = true;
+          initializeChatSystem();
+          hideLoadingIndicator();
+          
+          if (window.showNotification) {
+            showNotification('Offline Mode', 'Running in offline mode. Some features may be limited.', 'warning', { duration: 5000 });
+          }
+        }
+      }, 15000);
+      
+      // Show welcome notification after Firebase is ready
+      setTimeout(() => {
+        if (firebaseInitialized && window.showNotification) {
+          showNotification('Welcome to CARBON Chat', 'Select a room to start chatting!', 'info', { duration: 4000 });
+        }
+      }, 2000);
     });
 
     // Keyboard shortcuts
