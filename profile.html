@@ -16,6 +16,8 @@
   
   <!-- DOMPurify for XSS protection -->
   <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.5/dist/purify.min.js"></script>
+  
+
   <script>
     // Tailwind config will be dynamically updated by the enhanced theme system
     tailwind.config = {
@@ -1975,6 +1977,15 @@
           firebase.initializeApp(firebaseConfig);
           window.auth = firebase.auth();
           window.db = firebase.firestore();
+          
+          // Enable auth persistence for consistent login state
+          window.auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL)
+            .then(() => {
+              console.log('Auth persistence set to LOCAL');
+            })
+            .catch((error) => {
+              console.warn('Failed to set auth persistence:', error);
+            });
         } else {
           console.error('Firebase SDK not loaded');
         }
@@ -2022,13 +2033,31 @@
         console.error('Firebase Auth not initialized');
         return;
       }
+      
       const provider = new firebase.auth.GoogleAuthProvider();
+      provider.setCustomParameters({
+        prompt: 'select_account'
+      });
+      
+      // Try popup first, fallback to redirect if COOP blocks it
       authInstance.signInWithPopup(provider)
         .catch((error) => {
-          const loginError = document.getElementById('loginError');
-          if (loginError) {
-            loginError.innerText = error.message;
-            loginError.classList.remove('hidden');
+          console.log('Popup blocked, trying redirect method:', error.code);
+          
+          // If popup is blocked due to COOP or other reasons, use redirect
+          if (error.code === 'auth/popup-blocked' || 
+              error.code === 'auth/popup-closed-by-user' ||
+              error.message.includes('Cross-Origin-Opener-Policy')) {
+            
+            // Use redirect method as fallback
+            authInstance.signInWithRedirect(provider);
+          } else {
+            // Show other errors to user
+            const loginError = document.getElementById('loginError');
+            if (loginError) {
+              loginError.innerText = error.message;
+              loginError.classList.remove('hidden');
+            }
           }
         });
     }
@@ -6194,6 +6223,21 @@
       document.getElementById('profileContent').classList.add('hidden');
       document.getElementById('loginScreen').classList.remove('hidden');
       await loadGamesData();
+      
+      // Handle redirect result for COOP fallback
+      auth.getRedirectResult().then((result) => {
+        if (result.user) {
+          console.log('Successfully signed in via redirect');
+        }
+      }).catch((error) => {
+        console.error('Redirect sign-in error:', error);
+        const loginError = document.getElementById('loginError');
+        if (loginError) {
+          loginError.innerText = error.message;
+          loginError.classList.remove('hidden');
+        }
+      });
+      
       auth.onAuthStateChanged(async (user) => {
         renderUserSection(user);
         if (!user) {
