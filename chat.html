@@ -8,6 +8,9 @@
   <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
   <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.0/dist/purify.min.js"></script>
   
+  <!-- Emoji Support Package -->
+  <script src="https://unpkg.com/emoji-js@8.0.0/lib/emoji.js"></script>
+  
   <!-- Firebase SDKs (same version as profile.html) -->
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
@@ -254,6 +257,101 @@
       font-size: 0.7rem;
       cursor: pointer;
       margin-left: 0.5rem;
+    }
+
+    /* Emoji picker styles */
+    .emoji-picker {
+      position: absolute;
+      bottom: 100%;
+      right: 0;
+      background: var(--theme-surface);
+      border: 1px solid var(--theme-highlight-med);
+      border-radius: 12px;
+      padding: 1rem;
+      width: 300px;
+      max-height: 300px;
+      overflow-y: auto;
+      z-index: 1000;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    }
+
+    .emoji-grid {
+      display: grid;
+      grid-template-columns: repeat(8, 1fr);
+      gap: 0.5rem;
+    }
+
+    .emoji-item {
+      padding: 0.5rem;
+      text-align: center;
+      cursor: pointer;
+      border-radius: 6px;
+      font-size: 1.2rem;
+      transition: all 0.2s ease;
+    }
+
+    .emoji-item:hover {
+      background: var(--theme-highlight-med);
+      transform: scale(1.2);
+    }
+
+    .emoji-button {
+      background: var(--theme-highlight-med);
+      border: none;
+      color: var(--theme-text);
+      padding: 0.5rem;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 1.2rem;
+      transition: all 0.2s ease;
+    }
+
+    .emoji-button:hover {
+      background: var(--theme-foam);
+      color: var(--theme-base);
+    }
+
+    /* Profile modal styles */
+    .profile-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.7);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 2000;
+      backdrop-filter: blur(4px);
+    }
+
+    .profile-modal-content {
+      background: var(--theme-surface);
+      border: 1px solid var(--theme-highlight-med);
+      border-radius: 12px;
+      padding: 2rem;
+      max-width: 400px;
+      width: 90%;
+      max-height: 80vh;
+      overflow-y: auto;
+    }
+
+    .profile-avatar-large {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      border: 3px solid var(--theme-foam);
+    }
+
+    .clickable-avatar {
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .clickable-avatar:hover {
+      transform: scale(1.1);
+      border-color: var(--theme-iris);
     }
 
     @keyframes messageSlideIn {
@@ -517,7 +615,7 @@
             </div>
           </div>
           
-          <div class="flex gap-2">
+          <div class="flex gap-2 relative">
             <input 
               type="text" 
               id="messageInput" 
@@ -526,9 +624,19 @@
               maxlength="500"
               required
             >
+            <button type="button" id="emojiButton" class="emoji-button">
+              😀
+            </button>
             <button type="submit" class="btn-primary">
               <i class='bx bx-send'></i>
             </button>
+            
+            <!-- Emoji Picker -->
+            <div id="emojiPicker" class="emoji-picker hidden">
+              <div class="emoji-grid" id="emojiGrid">
+                <!-- Emojis will be populated by JavaScript -->
+              </div>
+            </div>
           </div>
           <div class="text-xs text-rp-muted mt-2">
             Messages are automatically filtered for appropriate content
@@ -602,6 +710,41 @@
           <button type="submit" class="btn-primary flex-1">Create Room</button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- Profile Modal -->
+  <div id="profileModal" class="profile-modal hidden">
+    <div class="profile-modal-content">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-xl font-bold text-rp-foam">User Profile</h3>
+        <button onclick="closeProfileModal()" class="text-rp-muted hover:text-rp-text">
+          <i class='bx bx-x text-2xl'></i>
+        </button>
+      </div>
+      
+      <div class="text-center mb-4">
+        <img id="profileModalAvatar" src="" alt="User Avatar" class="profile-avatar-large mx-auto mb-3">
+        <h4 id="profileModalName" class="text-lg font-semibold text-rp-text"></h4>
+        <div id="profileModalStatus" class="text-sm text-rp-muted"></div>
+      </div>
+      
+      <div class="space-y-3">
+        <div>
+          <div class="text-sm font-semibold text-rp-foam mb-1">Bio:</div>
+          <div id="profileModalBio" class="text-sm text-rp-text bg-rp-overlay p-3 rounded-lg">No bio available</div>
+        </div>
+        
+        <div>
+          <div class="text-sm font-semibold text-rp-foam mb-1">Joined:</div>
+          <div id="profileModalJoined" class="text-sm text-rp-text"></div>
+        </div>
+        
+        <div class="flex gap-2 mt-4">
+          <button onclick="closeProfileModal()" class="btn-secondary flex-1">Close</button>
+          <button id="viewFullProfileBtn" class="btn-primary flex-1">View Full Profile</button>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -814,6 +957,62 @@ Be helpful and conversational. Respond naturally to user messages.`;
 
     const aiChatbot = new AIChatbot();
 
+    // Initialize emoji converter
+    function initializeEmoji() {
+      if (typeof EmojiConvertor !== 'undefined') {
+        emojiConverter = new EmojiConvertor();
+        emojiConverter.replace_mode = 'unified';
+        emojiConverter.allow_native = true;
+        console.log('Emoji converter initialized');
+        setupEmojiPicker();
+      } else {
+        setTimeout(initializeEmoji, 100);
+      }
+    }
+
+    function setupEmojiPicker() {
+      const emojiButton = document.getElementById('emojiButton');
+      const emojiPicker = document.getElementById('emojiPicker');
+      const emojiGrid = document.getElementById('emojiGrid');
+
+      // Populate emoji grid
+      emojiGrid.innerHTML = '';
+      quickEmojis.forEach(emoji => {
+        const emojiItem = document.createElement('div');
+        emojiItem.className = 'emoji-item';
+        emojiItem.textContent = emoji;
+        emojiItem.addEventListener('click', () => {
+          insertEmoji(emoji);
+          emojiPicker.classList.add('hidden');
+        });
+        emojiGrid.appendChild(emojiItem);
+      });
+
+      // Toggle emoji picker
+      emojiButton.addEventListener('click', (e) => {
+        e.stopPropagation();
+        emojiPicker.classList.toggle('hidden');
+      });
+
+      // Close picker when clicking outside
+      document.addEventListener('click', (e) => {
+        if (!emojiPicker.contains(e.target) && !emojiButton.contains(e.target)) {
+          emojiPicker.classList.add('hidden');
+        }
+      });
+    }
+
+    function insertEmoji(emoji) {
+      const messageInput = document.getElementById('messageInput');
+      const cursorPos = messageInput.selectionStart;
+      const textBefore = messageInput.value.substring(0, cursorPos);
+      const textAfter = messageInput.value.substring(messageInput.selectionEnd);
+      
+      messageInput.value = textBefore + emoji + textAfter;
+      messageInput.focus();
+      messageInput.setSelectionRange(cursorPos + emoji.length, cursorPos + emoji.length);
+    }
+
     function waitForFirebaseAndInitialize() {
       if (typeof firebase !== 'undefined') {
         initializeFirebase();
@@ -823,6 +1022,7 @@ Be helpful and conversational. Respond naturally to user messages.`;
     }
 
     waitForFirebaseAndInitialize();
+    initializeEmoji();
 
     // Global variables
     let currentUser = null;
@@ -833,6 +1033,21 @@ Be helpful and conversational. Respond naturally to user messages.`;
     let cleanupInterval = null;
     let replyingTo = null; // Store the message being replied to
     let messageCleanupInterval = null; // For message cleanup
+    let emojiConverter = null; // Emoji converter instance
+
+    // Emoji data
+    const quickEmojis = [
+      '😀', '😃', '😄', '😁', '😆', '😅', '🤣', '😂', '🙂', '🙃', '😉', '😊', '😇', '🥰', '😍', '🤩',
+      '😘', '😗', '😚', '😙', '🥲', '😋', '😛', '😜', '🤪', '😝', '🤑', '🤗', '🤭', '🤫', '🤔', '🤐',
+      '🤨', '😐', '😑', '😶', '😏', '😒', '🙄', '😬', '🤥', '😌', '😔', '😪', '🤤', '😴', '😷', '🤒',
+      '🤕', '🤢', '🤮', '🤧', '🥵', '🥶', '😵', '🤯', '🤠', '🥳', '😎', '🤓', '🧐', '😕', '😟', '🙁',
+      '😮', '😯', '😲', '😳', '🥺', '😦', '😧', '😨', '😰', '😥', '😢', '😭', '😱', '😖', '😣', '😞',
+      '😓', '😩', '😫', '🥱', '😤', '😡', '😠', '🤬', '👍', '👎', '👌', '✌️', '🤞', '🤟', '🤘', '🤙',
+      '👈', '👉', '👆', '👇', '☝️', '✋', '🤚', '🖐️', '🖖', '👋', '🤏', '💪', '🦾', '🖕', '✍️', '🙏',
+      '❤️', '🧡', '💛', '💚', '💙', '💜', '🖤', '🤍', '🤎', '💔', '❣️', '💕', '💞', '💓', '💗', '💖',
+      '💘', '💝', '💟', '♥️', '💯', '💢', '💥', '💫', '💦', '💨', '🕳️', '💬', '👁️‍🗨️', '🗨️', '🗯️', '💭',
+      '🔥', '⭐', '🌟', '✨', '⚡', '☄️', '💥', '🔴', '🟠', '🟡', '🟢', '🔵', '🟣', '⚫', '⚪', '🟤'
+    ];
 
     // Content Filter Class
     class ChatContentFilter {
@@ -854,9 +1069,14 @@ Be helpful and conversational. Respond naturally to user messages.`;
         // Remove potentially harmful content
         let filtered = text.trim();
         
+        // Security: Remove script tags and other dangerous content
+        filtered = filtered.replace(/<script[\s\S]*?<\/script>/gi, '[SCRIPT REMOVED]');
+        filtered = filtered.replace(/javascript:/gi, '[JS REMOVED]');
+        filtered = filtered.replace(/on\w+\s*=/gi, '[EVENT REMOVED]');
+        
         // Check for bad words
         for (const word of this.badWords) {
-          const regex = new RegExp(word, 'gi');
+          const regex = new RegExp(`\\b${word}\\b`, 'gi');
           filtered = filtered.replace(regex, '*'.repeat(word.length));
         }
         
@@ -864,6 +1084,11 @@ Be helpful and conversational. Respond naturally to user messages.`;
         filtered = filtered.replace(/(.)\1{4,}/g, (match) => match[0].repeat(3));
         filtered = filtered.replace(/[A-Z]{10,}/g, (match) => match.toLowerCase());
         filtered = filtered.replace(/(https?:\/\/[^\s]+)/g, '[LINK REMOVED]');
+        
+        // Process emojis if converter is available
+        if (emojiConverter) {
+          filtered = emojiConverter.replace_colons(filtered);
+        }
         
         return filtered.substring(0, 500); // Limit length
       }
@@ -1058,7 +1283,8 @@ Be helpful and conversational. Respond naturally to user messages.`;
 
       const roomDiv = document.createElement('div');
       roomDiv.className = `room-item ${room.type} ${currentRoomId === room.id ? 'active' : ''}`;
-      roomDiv.onclick = () => joinRoom(room.id);
+      roomDiv.setAttribute('data-room-id', room.id);
+      roomDiv.addEventListener('click', () => joinRoom(room.id));
 
       let timeInfo = '';
       if (room.type === 'temporary' && room.expiresAt) {
@@ -1243,7 +1469,7 @@ Be helpful and conversational. Respond naturally to user messages.`;
       });
 
       if (currentRoomId) {
-        const activeRoom = document.querySelector(`[onclick="joinRoom('${currentRoomId}')"]`);
+        const activeRoom = document.querySelector(`[data-room-id="${currentRoomId}"]`);
         if (activeRoom) {
           activeRoom.classList.add('active');
         }
@@ -1452,7 +1678,7 @@ Be helpful and conversational. Respond naturally to user messages.`;
             <span class="timestamp">${timestamp}</span>
           </div>
           <div class="message-content">${sanitizeHTML(message.content)}</div>
-          <button class="reply-button" onclick="startReply('${message.id}', '${sanitizeText(message.authorName)}', '${sanitizeText(message.content)}')">
+          <button class="reply-button" data-message-id="${message.id}" data-author-name="${sanitizeText(message.authorName)}" data-content="${sanitizeText(message.content)}">
             <i class='bx bx-reply'></i> Reply
           </button>
         `;
@@ -1472,13 +1698,13 @@ Be helpful and conversational. Respond naturally to user messages.`;
           ${replyHtml}
           <div class="message-header">
             <div class="flex items-center gap-2">
-              ${message.authorPhoto ? `<img src="${message.authorPhoto}" alt="Avatar" class="w-6 h-6 rounded-full">` : '<div class="w-6 h-6 rounded-full bg-rp-foam"></div>'}
-              <span class="font-semibold">${sanitizeText(message.authorName)}</span>
+              ${message.authorPhoto ? `<img src="${message.authorPhoto}" alt="Avatar" class="w-6 h-6 rounded-full clickable-avatar" data-user-id="${message.authorId}" data-user-name="${sanitizeText(message.authorName)}" data-user-photo="${message.authorPhoto}">` : '<div class="w-6 h-6 rounded-full bg-rp-foam"></div>'}
+              <span class="font-semibold clickable-avatar" data-user-id="${message.authorId}" data-user-name="${sanitizeText(message.authorName)}" data-user-photo="${message.authorPhoto || ''}">${sanitizeText(message.authorName)}</span>
             </div>
             <span class="timestamp">${timestamp}</span>
           </div>
           <div class="message-content">${sanitizeHTML(message.content)}</div>
-          ${currentUser ? `<button class="reply-button" onclick="startReply('${message.id}', '${sanitizeText(message.authorName)}', '${sanitizeText(message.content)}')">
+          ${currentUser ? `<button class="reply-button" data-message-id="${message.id}" data-author-name="${sanitizeText(message.authorName)}" data-content="${sanitizeText(message.content)}">
             <i class='bx bx-reply'></i> Reply
           </button>` : ''}
         `;
@@ -1545,6 +1771,108 @@ Be helpful and conversational. Respond naturally to user messages.`;
       // Reset message input placeholder
       const messageInput = document.getElementById('messageInput');
       messageInput.placeholder = 'Type your message...';
+    }
+
+    // Profile viewing functions
+    async function showUserProfile(userId, userName, userPhoto) {
+      if (!userId || userId === 'ai-assistant') {
+        return; // Don't show profile for AI
+      }
+
+      const modal = document.getElementById('profileModal');
+      const avatar = document.getElementById('profileModalAvatar');
+      const name = document.getElementById('profileModalName');
+      const status = document.getElementById('profileModalStatus');
+      const bio = document.getElementById('profileModalBio');
+      const joined = document.getElementById('profileModalJoined');
+      const viewFullBtn = document.getElementById('viewFullProfileBtn');
+
+      // Set basic info
+      avatar.src = userPhoto || 'https://via.placeholder.com/80';
+      name.textContent = userName || 'Unknown User';
+      status.textContent = 'Loading...';
+      bio.textContent = 'Loading...';
+      joined.textContent = 'Loading...';
+
+      // Show modal
+      modal.classList.remove('hidden');
+
+      try {
+        // Fetch user profile data
+        const userDoc = await db.collection('users').doc(userId).get();
+        if (userDoc.exists) {
+          const userData = userDoc.data();
+          
+          // Update modal with user data
+          status.textContent = `Status: ${userData.status || 'Unknown'}`;
+          bio.textContent = userData.bio || 'No bio available';
+          
+          if (userData.createdAt) {
+            const joinDate = userData.createdAt.toDate ? userData.createdAt.toDate() : new Date(userData.createdAt);
+            joined.textContent = joinDate.toLocaleDateString();
+          } else {
+            joined.textContent = 'Unknown';
+          }
+
+          // Set up view full profile button
+          viewFullBtn.onclick = () => {
+            window.open(`/profile.html?uid=${userId}`, '_blank');
+          };
+        } else {
+          status.textContent = 'User not found';
+          bio.textContent = 'No profile data available';
+          joined.textContent = 'Unknown';
+          viewFullBtn.style.display = 'none';
+        }
+      } catch (error) {
+        console.error('Error fetching user profile:', error);
+        status.textContent = 'Error loading profile';
+        bio.textContent = 'Could not load profile data';
+        joined.textContent = 'Unknown';
+      }
+    }
+
+    function closeProfileModal() {
+      const modal = document.getElementById('profileModal');
+      modal.classList.add('hidden');
+    }
+
+    // Secure event handling
+    function setupSecureEventListeners() {
+      // Reply button event delegation
+      document.addEventListener('click', (e) => {
+        if (e.target.closest('.reply-button')) {
+          const button = e.target.closest('.reply-button');
+          const messageId = button.getAttribute('data-message-id');
+          const authorName = button.getAttribute('data-author-name');
+          const content = button.getAttribute('data-content');
+          
+          if (messageId && authorName && content) {
+            startReply(messageId, authorName, content);
+          }
+        }
+      });
+
+      // Profile viewing event delegation
+      document.addEventListener('click', (e) => {
+        if (e.target.classList.contains('clickable-avatar')) {
+          const userId = e.target.getAttribute('data-user-id');
+          const userName = e.target.getAttribute('data-user-name');
+          const userPhoto = e.target.getAttribute('data-user-photo');
+          
+          if (userId) {
+            showUserProfile(userId, userName, userPhoto);
+          }
+        }
+      });
+
+      // Close profile modal when clicking outside
+      document.addEventListener('click', (e) => {
+        const modal = document.getElementById('profileModal');
+        if (e.target === modal) {
+          closeProfileModal();
+        }
+      });
     }
 
     async function createRoom(event) {
@@ -1831,11 +2159,12 @@ Be helpful and conversational. Respond naturally to user messages.`;
       }
     }
 
-    // Start when page loads
+                      // Start when page loads
     document.addEventListener('DOMContentLoaded', () => {
       console.log('Chat page loaded');
       setupNetworkMonitoring(); // Start network monitoring
       updateConnectionStatus(); // Set initial status
+      setupSecureEventListeners(); // Setup secure event handling
       waitForFirebaseAndStartChat();
     });
 
