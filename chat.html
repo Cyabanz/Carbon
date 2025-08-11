@@ -3916,9 +3916,13 @@
           <i class='bx bx-clock mr-2'></i>
           Cleanup Inactive Rooms
         </button>
-        <button onclick="cleanupOldMessages(currentRoomId)" class="btn-secondary w-full text-sm">
+        <button onclick="cleanupOldMessages(currentRoomId)" class="btn-secondary w-full text-sm mb-2">
           <i class='bx bx-message-x mr-2'></i>
           Cleanup Old Messages
+        </button>
+        <button onclick="fixUserCounts()" class="btn-secondary w-full text-sm">
+          <i class='bx bx-refresh mr-2'></i>
+          Fix User Counts
         </button>
       </div>
     </div>
@@ -5189,35 +5193,40 @@ Be helpful and conversational. Respond naturally to user messages.`;
         currentRoomId = roomId;
         console.log(`🚪 Joining room: ${roomId}`);
         
-        // Check if user is already in this room to prevent duplicate increments
-        const existingPresence = await db.collection('chatRooms').doc(roomId).collection('presence').doc(currentUser.uid).get();
-        
-        if (!existingPresence.exists) {
-          // Only increment if user wasn't already in the room
-          await db.collection('chatRooms').doc(roomId).set({
-            userCount: firebase.firestore.FieldValue.increment(1),
-            lastActivity: firebase.firestore.FieldValue.serverTimestamp()
-          }, { merge: true });
-          console.log(`📈 Incremented user count for room ${roomId}`);
-        } else {
-          // Just update lastActivity if already present
-          await db.collection('chatRooms').doc(roomId).set({
-            lastActivity: firebase.firestore.FieldValue.serverTimestamp()
-          }, { merge: true });
-          console.log(`⚠️ User ${currentUser.uid} already present in room ${roomId}, skipping increment`);
-        }
+        // Use transaction to atomically handle presence and user count
+        await db.runTransaction(async (transaction) => {
+          const presenceRef = db.collection('chatRooms').doc(roomId).collection('presence').doc(currentUser.uid);
+          const roomRef = db.collection('chatRooms').doc(roomId);
+          
+          const existingPresence = await transaction.get(presenceRef);
+          
+          if (!existingPresence.exists) {
+            // New user joining - increment count
+            transaction.update(roomRef, {
+              userCount: firebase.firestore.FieldValue.increment(1),
+              lastActivity: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            console.log(`📈 Incremented user count for room ${roomId}`);
+          } else {
+            // User already present - just update activity
+            transaction.update(roomRef, {
+              lastActivity: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            console.log(`⚠️ User ${currentUser.uid} already present in room ${roomId}, skipping increment`);
+          }
 
-        // Add user to room presence (always update this)
-        await db.collection('chatRooms').doc(roomId).collection('presence').doc(currentUser.uid).set({
-          userId: currentUser.uid,
-          userName: currentUser.displayName || 'Anonymous',
-          userPhoto: currentUser.photoURL || '',
-          joinedAt: existingPresence.exists ? existingPresence.data().joinedAt : firebase.firestore.FieldValue.serverTimestamp(),
-          lastSeen: firebase.firestore.FieldValue.serverTimestamp(),
-          lastActivity: firebase.firestore.FieldValue.serverTimestamp(),
-          isActive: true,
-          isAFK: false,
-          afkSince: null
+          // Add/update user presence
+          transaction.set(presenceRef, {
+            userId: currentUser.uid,
+            userName: currentUser.displayName || 'Anonymous',
+            userPhoto: currentUser.photoURL || '',
+            joinedAt: existingPresence.exists ? existingPresence.data()?.joinedAt : firebase.firestore.FieldValue.serverTimestamp(),
+            lastSeen: firebase.firestore.FieldValue.serverTimestamp(),
+            lastActivity: firebase.firestore.FieldValue.serverTimestamp(),
+            isActive: true,
+            isAFK: false,
+            afkSince: null
+          });
         });
 
         // Update UI
@@ -5295,6 +5304,7 @@ Be helpful and conversational. Respond naturally to user messages.`;
       try {
         console.log('🔧 Fixing user counts...');
         const roomsSnapshot = await db.collection('chatRooms').get();
+        let fixedRooms = 0;
         
         for (const roomDoc of roomsSnapshot.docs) {
           const roomId = roomDoc.id;
@@ -5303,44 +5313,80 @@ Be helpful and conversational. Respond naturally to user messages.`;
           // Count actual presence documents
           const presenceSnapshot = await db.collection('chatRooms').doc(roomId).collection('presence').get();
           const actualUserCount = presenceSnapshot.size;
+          const storedUserCount = roomData.userCount || 0;
           
-          // Update if different from stored count
-          if (roomData.userCount !== actualUserCount) {
+          // Update if different from stored count OR if stored count is negative
+          if (storedUserCount !== actualUserCount || storedUserCount < 0) {
             await db.collection('chatRooms').doc(roomId).set({
-              userCount: actualUserCount
+              userCount: actualUserCount,
+              lastActivity: firebase.firestore.FieldValue.serverTimestamp()
             }, { merge: true });
-            console.log(`🔧 Fixed ${roomId}: ${roomData.userCount} → ${actualUserCount} users`);
+            console.log(`🔧 Fixed ${roomId}: ${storedUserCount} → ${actualUserCount} users`);
+            fixedRooms++;
           }
         }
-        console.log('✅ User count fix completed');
+        
+        if (fixedRooms > 0) {
+          console.log(`✅ User count fix completed - ${fixedRooms} rooms fixed`);
+          showNotification('User Counts Fixed', `Fixed user counts in ${fixedRooms} rooms`, 'info', { duration: 3000 });
+        } else {
+          console.log('✅ All user counts are accurate');
+        }
       } catch (error) {
         console.error('Error fixing user counts:', error);
+        showNotification('Fix Failed', 'Failed to fix user counts. Please try again.', 'error');
       }
     }
 
     async function leaveCurrentRoom() {
-      if (!currentRoomId || !currentUser) return;
+      if (!currentRoomId || !currentUser || !firebaseInitialized) return;
 
       const roomToLeave = currentRoomId; // Store current room ID
       console.log(`🚪 Leaving room: ${roomToLeave}`);
 
       try {
-        // Check if user is actually in the room before decrementing
-        const presenceDoc = await db.collection('chatRooms').doc(roomToLeave).collection('presence').doc(currentUser.uid).get();
-        
-        if (presenceDoc.exists) {
-          // Remove from presence
-          await db.collection('chatRooms').doc(roomToLeave).collection('presence').doc(currentUser.uid).delete();
-          console.log(`✅ Removed presence for user ${currentUser.uid} from room ${roomToLeave}`);
+        // Use a transaction to ensure atomic operations and prevent race conditions
+        await db.runTransaction(async (transaction) => {
+          const presenceRef = db.collection('chatRooms').doc(roomToLeave).collection('presence').doc(currentUser.uid);
+          const roomRef = db.collection('chatRooms').doc(roomToLeave);
+          
+          const presenceDoc = await transaction.get(presenceRef);
+          const roomDoc = await transaction.get(roomRef);
+          
+          if (presenceDoc.exists) {
+            // Remove from presence
+            transaction.delete(presenceRef);
+            console.log(`✅ Removed presence for user ${currentUser.uid} from room ${roomToLeave}`);
 
-          // Only decrement if user was actually present
-          await db.collection('chatRooms').doc(roomToLeave).set({
-            userCount: firebase.firestore.FieldValue.increment(-1)
-          }, { merge: true });
-          console.log(`📉 Decremented user count for room ${roomToLeave}`);
-        } else {
-          console.log(`⚠️ User ${currentUser.uid} was not present in room ${roomToLeave}, skipping decrement`);
-        }
+            // Get current room data and update user count safely
+            const roomData = roomDoc.data();
+            const currentCount = roomData?.userCount || 0;
+            
+            // Only decrement if count is positive to prevent negatives
+            if (currentCount > 0) {
+              transaction.update(roomRef, {
+                userCount: firebase.firestore.FieldValue.increment(-1),
+                lastActivity: firebase.firestore.FieldValue.serverTimestamp()
+              });
+              console.log(`📉 Decremented user count for room ${roomToLeave} (was ${currentCount})`);
+            } else {
+              // Just update last activity if count is already 0 or negative
+              transaction.update(roomRef, {
+                userCount: 0, // Reset to 0 if negative
+                lastActivity: firebase.firestore.FieldValue.serverTimestamp()
+              });
+              console.log(`🔧 Reset negative user count to 0 for room ${roomToLeave} (was ${currentCount})`);
+            }
+          } else {
+            console.log(`⚠️ User ${currentUser.uid} was not present in room ${roomToLeave}, skipping decrement`);
+          }
+        });
+        console.log(`✅ Successfully left room ${roomToLeave}`);
+      } catch (error) {
+        console.error(`❌ Error leaving room ${roomToLeave}:`, error);
+      } finally {
+        // Clear current room regardless of success/failure to prevent stuck states
+        currentRoomId = null;
 
         // Clean up listeners
         if (messagesListener) {
@@ -7367,12 +7413,17 @@ Be helpful and conversational. Respond naturally to user messages.`;
 
     // Initialize Chat System
     function initializeChatSystem() {
-      // Start automatic cleanup every 30 minutes for expired rooms
+      // Start automatic cleanup every 15 minutes for expired rooms
       cleanupInterval = setInterval(() => {
         cleanupExpiredRooms();
         cleanupInactiveRooms();
         fixUserCounts(); // Also fix user counts during cleanup
-      }, 30 * 60 * 1000);
+      }, 15 * 60 * 1000);
+
+      // Run user count fixes more frequently (every 5 minutes)
+      const userCountFixInterval = setInterval(() => {
+        fixUserCounts();
+      }, 5 * 60 * 1000);
       
       // Start message cleanup every 2 hours
       messageCleanupInterval = setInterval(() => {
@@ -7397,14 +7448,38 @@ Be helpful and conversational. Respond naturally to user messages.`;
         fixUserCounts(); // Fix any negative user counts
       }, 5000);
 
-      // Handle page unload
+      // Handle page unload with safeguards
+      let isUnloading = false;
       window.addEventListener('beforeunload', () => {
-        leaveCurrentRoom();
+        if (isUnloading) return; // Prevent multiple unload events
+        isUnloading = true;
+        
+        try {
+          leaveCurrentRoom();
+        } catch (error) {
+          console.warn('Error during page unload cleanup:', error);
+        }
+        
         if (cleanupInterval) {
           clearInterval(cleanupInterval);
         }
         if (messageCleanupInterval) {
           clearInterval(messageCleanupInterval);
+        }
+      });
+
+      // Also handle page visibility changes to prevent phantom presence
+      document.addEventListener('visibilitychange', () => {
+        if (document.hidden) {
+          // Page is hidden, update user activity
+          if (currentRoomId && currentUser) {
+            setTimeout(() => {
+              // Only update if still hidden after delay
+              if (document.hidden) {
+                updateActivity().catch(err => console.warn('Error updating activity on visibility change:', err));
+              }
+            }, 1000);
+          }
         }
       });
 
@@ -8320,15 +8395,7 @@ Be helpful and conversational. Respond naturally to user messages.`;
 
     function highlightMentions(content) {
       const mentionRegex = /@([a-zA-Z0-9_]+)/g;
-      const result = content.replace(mentionRegex, '<span class="mention-highlight">@$1</span>');
-      
-      // Debug logging to check if mentions are being highlighted
-      if (result !== content) {
-        console.log('🏷️ Highlighting mentions in content:', content);
-        console.log('🎯 Result:', result);
-      }
-      
-      return result;
+      return content.replace(mentionRegex, '<span class="mention-highlight">@$1</span>');
     }
 
     function getUsernameFromDisplayName(displayName) {
@@ -9248,6 +9315,7 @@ Be helpful and conversational. Respond naturally to user messages.`;
     window.cleanupExpiredRooms = cleanupExpiredRooms;
     window.cleanupInactiveRooms = cleanupInactiveRooms;
     window.cleanupOldMessages = cleanupOldMessages;
+    window.fixUserCounts = fixUserCounts;
     window.toggleUserList = toggleUserList;
     window.openColorPicker = openColorPicker;
     window.closeColorPicker = closeColorPicker;
