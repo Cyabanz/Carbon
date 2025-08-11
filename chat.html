@@ -8,10 +8,8 @@
   <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
   <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.0/dist/purify.min.js"></script>
   
-  <!-- Emoji Support Package -->
-  <script src="https://unpkg.com/emoji-js@8.0.0/lib/emoji.js"></script>
-  <!-- Unicode Emoji Data -->
-  <script src="https://unpkg.com/unicode-emoji-json@0.4.0/data-by-group.json" type="application/json" id="emojiData"></script>
+  <!-- Emoji Support Package - Use working CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/emoji-js@6.0.1/lib/emoji.min.js"></script>
   
   <!-- Firebase SDKs (same version as profile.html) -->
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -1514,7 +1512,7 @@
     let firebaseInitialized = false;
     let isOnline = navigator.onLine;
 
-    function initializeFirebase() {
+    async function initializeFirebase() {
       if (firebaseInitialized) return true;
       
       try {
@@ -1717,14 +1715,45 @@ Be helpful and conversational. Respond naturally to user messages.`;
 
     // Initialize emoji converter
     function initializeEmoji() {
+      // Check for the emoji library with different possible names
       if (typeof EmojiConvertor !== 'undefined') {
         emojiConverter = new EmojiConvertor();
-        emojiConverter.replace_mode = 'unified';
-        emojiConverter.allow_native = true;
-        console.log('Emoji converter initialized');
+      } else if (typeof window.EmojiConvertor !== 'undefined') {
+        emojiConverter = new window.EmojiConvertor();
+      } else if (typeof emoji !== 'undefined') {
+        emojiConverter = emoji;
+              } else {
+          // Add retry limit and fallback
+          if (typeof window.emojiInitRetries === 'undefined') {
+            window.emojiInitRetries = 0;
+          }
+          window.emojiInitRetries++;
+          
+          if (window.emojiInitRetries < 50) { // Max 5 seconds
+            console.warn('Emoji library not loaded yet, retrying...', window.emojiInitRetries);
+            setTimeout(initializeEmoji, 100);
+            return;
+          } else {
+            console.warn('Emoji library failed to load, using fallback');
+            emojiConverter = {
+              replace_colons: function(text) { return text; },
+              replace_mode: 'unified',
+              allow_native: true
+            };
+            setupEmojiPicker();
+            return;
+          }
+        }
+      
+      if (emojiConverter) {
+        if (typeof emojiConverter.replace_mode !== 'undefined') {
+          emojiConverter.replace_mode = 'unified';
+        }
+        if (typeof emojiConverter.allow_native !== 'undefined') {
+          emojiConverter.allow_native = true;
+        }
+        console.log('Emoji converter initialized successfully');
         setupEmojiPicker();
-      } else {
-        setTimeout(initializeEmoji, 100);
       }
     }
 
@@ -1771,9 +1800,9 @@ Be helpful and conversational. Respond naturally to user messages.`;
       messageInput.setSelectionRange(cursorPos + emoji.length, cursorPos + emoji.length);
     }
 
-    function waitForFirebaseAndInitialize() {
+    async function waitForFirebaseAndInitialize() {
       if (typeof firebase !== 'undefined') {
-        initializeFirebase();
+        await initializeFirebase();
       } else {
         setTimeout(waitForFirebaseAndInitialize, 100);
       }
@@ -2110,8 +2139,8 @@ Be helpful and conversational. Respond naturally to user messages.`;
       });
     }
 
-    // Authentication
-    async function googleSignIn() {
+    // Authentication - Make sure it's in global scope
+    window.googleSignIn = async function() {
       if (!firebaseInitialized) {
         alert('Chat system is still loading. Please try again in a moment.');
         return;
@@ -4115,6 +4144,27 @@ Be helpful and conversational. Respond naturally to user messages.`;
         setTimeout(waitForFirebaseAndStartChat, 100);
       }
     }
+
+    // Ensure all functions are available in global scope for onclick handlers
+    window.showCreateRoomModal = showCreateRoomModal;
+    window.hideCreateRoomModal = hideCreateRoomModal;
+    window.cleanupExpiredRooms = cleanupExpiredRooms;
+    window.cleanupInactiveRooms = cleanupInactiveRooms;
+    window.cleanupOldMessages = cleanupOldMessages;
+    window.toggleUserList = toggleUserList;
+    window.openColorPicker = openColorPicker;
+    window.closeColorPicker = closeColorPicker;
+    window.applyRoomColor = applyRoomColor;
+    window.showTestPanel = showTestPanel;
+    window.closeTestPanel = closeTestPanel;
+    window.testAddXP = testAddXP;
+    window.testResetXP = testResetXP;
+    window.testApplyColor = testApplyColor;
+    window.testRemoveColor = testRemoveColor;
+    window.leaveCurrentRoom = leaveCurrentRoom;
+    window.cancelReply = cancelReply;
+    window.closeProfileModal = closeProfileModal;
+    window.signOut = signOut;
 
                       // Start when page loads
     document.addEventListener('DOMContentLoaded', () => {
