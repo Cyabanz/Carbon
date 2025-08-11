@@ -438,6 +438,8 @@
     /* Leaderboard System */
     .leaderboard-container {
       padding: var(--space-2) 0;
+      overflow: hidden;
+      width: 100%;
     }
 
     .leaderboard-search {
@@ -487,11 +489,12 @@
       padding: var(--space-1);
       margin-bottom: var(--space-6);
       border: 1px solid var(--border);
+      overflow: hidden;
     }
 
     .leaderboard-tab {
       flex: 1;
-      padding: var(--space-2) var(--space-3);
+      padding: var(--space-2);
       border: none;
       background: transparent;
       color: var(--text-secondary);
@@ -501,14 +504,19 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: var(--space-2);
-      font-size: 0.8rem;
+      gap: var(--space-1);
+      font-size: 0.75rem;
       font-weight: 500;
+      min-width: 0;
+      overflow: hidden;
+      white-space: nowrap;
+      max-width: 100%;
     }
 
     .leaderboard-tab:hover {
       background: var(--surface-hover);
       color: var(--text-primary);
+      transform: none; /* Prevent any transform that could cause overflow */
     }
 
     .leaderboard-tab.active {
@@ -554,6 +562,7 @@
       border-color: var(--border-hover);
       transform: translateY(-1px);
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      z-index: 1;
     }
 
     .leaderboard-item:hover::before {
@@ -2972,6 +2981,50 @@
       .message.own {
         margin-left: 10%;
       }
+
+      /* Leaderboard responsive fixes */
+      .leaderboard-tab {
+        padding: var(--space-1);
+        font-size: 0.7rem;
+        gap: 2px;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .leaderboard-tabs {
+        padding: 2px;
+      }
+
+      .leaderboard-tab {
+        padding: var(--space-1);
+        min-width: 0;
+        flex: 1;
+        justify-content: center;
+      }
+
+      .leaderboard-tab i {
+        font-size: 0.9rem;
+      }
+
+      .leaderboard-tab span {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+    }
+
+    @media (max-width: 320px) {
+      .leaderboard-tab span {
+        display: none;
+      }
+
+      .leaderboard-tab {
+        padding: var(--space-1) 2px;
+      }
+
+      .leaderboard-tab i {
+        font-size: 1rem;
+      }
     }
 
     /* Online indicator */
@@ -3084,15 +3137,15 @@
           <div class="leaderboard-tabs">
             <button class="leaderboard-tab active" data-board="xp">
               <i class='bx bx-star'></i>
-              XP
+              <span>XP</span>
             </button>
             <button class="leaderboard-tab" data-board="messages">
               <i class='bx bx-message'></i>
-              Messages
+              <span>Messages</span>
             </button>
             <button class="leaderboard-tab" data-board="level">
               <i class='bx bx-medal'></i>
-              Level
+              <span>Level</span>
             </button>
           </div>
 
