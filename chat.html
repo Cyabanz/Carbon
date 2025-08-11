@@ -5145,12 +5145,38 @@ Be helpful and conversational. Respond naturally to user messages.`;
 
         // Join new room
         currentRoomId = roomId;
+        console.log(`🚪 Joining room: ${roomId}`);
         
-        // Update room user count
-        await db.collection('chatRooms').doc(roomId).set({
-          userCount: firebase.firestore.FieldValue.increment(1),
-          lastActivity: firebase.firestore.FieldValue.serverTimestamp()
-        }, { merge: true });
+        // Check if user is already in this room to prevent duplicate increments
+        const existingPresence = await db.collection('chatRooms').doc(roomId).collection('presence').doc(currentUser.uid).get();
+        
+        if (!existingPresence.exists) {
+          // Only increment if user wasn't already in the room
+          await db.collection('chatRooms').doc(roomId).set({
+            userCount: firebase.firestore.FieldValue.increment(1),
+            lastActivity: firebase.firestore.FieldValue.serverTimestamp()
+          }, { merge: true });
+          console.log(`📈 Incremented user count for room ${roomId}`);
+        } else {
+          // Just update lastActivity if already present
+          await db.collection('chatRooms').doc(roomId).set({
+            lastActivity: firebase.firestore.FieldValue.serverTimestamp()
+          }, { merge: true });
+          console.log(`⚠️ User ${currentUser.uid} already present in room ${roomId}, skipping increment`);
+        }
+
+        // Add user to room presence (always update this)
+        await db.collection('chatRooms').doc(roomId).collection('presence').doc(currentUser.uid).set({
+          userId: currentUser.uid,
+          userName: currentUser.displayName || 'Anonymous',
+          userPhoto: currentUser.photoURL || '',
+          joinedAt: existingPresence.exists ? existingPresence.data().joinedAt : firebase.firestore.FieldValue.serverTimestamp(),
+          lastSeen: firebase.firestore.FieldValue.serverTimestamp(),
+          lastActivity: firebase.firestore.FieldValue.serverTimestamp(),
+          isActive: true,
+          isAFK: false,
+          afkSince: null
+        });
 
         // Update UI
         updateChatUI(roomId);
@@ -5179,19 +5205,6 @@ Be helpful and conversational. Respond naturally to user messages.`;
           }, 2000);
         }
 
-        // Add user to room presence
-        await db.collection('chatRooms').doc(roomId).collection('presence').doc(currentUser.uid).set({
-          userId: currentUser.uid,
-          userName: currentUser.displayName || 'Anonymous',
-          userPhoto: currentUser.photoURL || '',
-          joinedAt: firebase.firestore.FieldValue.serverTimestamp(),
-          lastSeen: firebase.firestore.FieldValue.serverTimestamp(),
-          lastActivity: firebase.firestore.FieldValue.serverTimestamp(),
-          isActive: true,
-          isAFK: false,
-          afkSince: null
-        });
-
         // Check if AI should be activated for this room
         
         if (roomData && aiChatbot.shouldActivate(roomData.userCount || 0)) {
@@ -5214,17 +5227,78 @@ Be helpful and conversational. Respond naturally to user messages.`;
       }
     }
 
+    // Update user count display in the UI
+    async function updateUserCountDisplay(roomId) {
+      if (!roomId) return;
+      
+      try {
+        const presenceSnapshot = await db.collection('chatRooms').doc(roomId).collection('presence').get();
+        const userCount = presenceSnapshot.size;
+        
+        const userCountElement = document.getElementById('userCount');
+        if (userCountElement) {
+          userCountElement.textContent = `${userCount} ${userCount === 1 ? 'user' : 'users'}`;
+        }
+        
+        console.log(`👥 Updated user count display: ${userCount} users in room ${roomId}`);
+      } catch (error) {
+        console.error('Error updating user count display:', error);
+      }
+    }
+
+    // Fix negative user counts by recalculating from actual presence
+    async function fixUserCounts() {
+      if (!firebaseInitialized) return;
+      
+      try {
+        console.log('🔧 Fixing user counts...');
+        const roomsSnapshot = await db.collection('chatRooms').get();
+        
+        for (const roomDoc of roomsSnapshot.docs) {
+          const roomId = roomDoc.id;
+          const roomData = roomDoc.data();
+          
+          // Count actual presence documents
+          const presenceSnapshot = await db.collection('chatRooms').doc(roomId).collection('presence').get();
+          const actualUserCount = presenceSnapshot.size;
+          
+          // Update if different from stored count
+          if (roomData.userCount !== actualUserCount) {
+            await db.collection('chatRooms').doc(roomId).set({
+              userCount: actualUserCount
+            }, { merge: true });
+            console.log(`🔧 Fixed ${roomId}: ${roomData.userCount} → ${actualUserCount} users`);
+          }
+        }
+        console.log('✅ User count fix completed');
+      } catch (error) {
+        console.error('Error fixing user counts:', error);
+      }
+    }
+
     async function leaveCurrentRoom() {
       if (!currentRoomId || !currentUser) return;
 
-      try {
-        // Remove from presence
-        await db.collection('chatRooms').doc(currentRoomId).collection('presence').doc(currentUser.uid).delete();
+      const roomToLeave = currentRoomId; // Store current room ID
+      console.log(`🚪 Leaving room: ${roomToLeave}`);
 
-        // Decrement user count
-        await db.collection('chatRooms').doc(currentRoomId).set({
-          userCount: firebase.firestore.FieldValue.increment(-1)
-        }, { merge: true });
+      try {
+        // Check if user is actually in the room before decrementing
+        const presenceDoc = await db.collection('chatRooms').doc(roomToLeave).collection('presence').doc(currentUser.uid).get();
+        
+        if (presenceDoc.exists) {
+          // Remove from presence
+          await db.collection('chatRooms').doc(roomToLeave).collection('presence').doc(currentUser.uid).delete();
+          console.log(`✅ Removed presence for user ${currentUser.uid} from room ${roomToLeave}`);
+
+          // Only decrement if user was actually present
+          await db.collection('chatRooms').doc(roomToLeave).set({
+            userCount: firebase.firestore.FieldValue.increment(-1)
+          }, { merge: true });
+          console.log(`📉 Decremented user count for room ${roomToLeave}`);
+        } else {
+          console.log(`⚠️ User ${currentUser.uid} was not present in room ${roomToLeave}, skipping decrement`);
+        }
 
         // Clean up listeners
         if (messagesListener) {
@@ -5303,6 +5377,9 @@ Be helpful and conversational. Respond naturally to user messages.`;
         
         // Load room theme
         loadRoomTheme(roomId);
+        
+        // Update user count display
+        updateUserCountDisplay(roomId);
       } else {
         chatTitle.textContent = 'Select a room to start chatting';
         roomTypeBadge.classList.add('hidden');
@@ -7252,6 +7329,7 @@ Be helpful and conversational. Respond naturally to user messages.`;
       cleanupInterval = setInterval(() => {
         cleanupExpiredRooms();
         cleanupInactiveRooms();
+        fixUserCounts(); // Also fix user counts during cleanup
       }, 30 * 60 * 1000);
       
       // Start message cleanup every 2 hours
@@ -7274,6 +7352,7 @@ Be helpful and conversational. Respond naturally to user messages.`;
       setTimeout(() => {
         cleanupExpiredRooms();
         cleanupInactiveRooms();
+        fixUserCounts(); // Fix any negative user counts
       }, 5000);
 
       // Handle page unload
