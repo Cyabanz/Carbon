@@ -1834,6 +1834,115 @@
       cursor: pointer;
     }
 
+    /* Mention Autocomplete Dropdown */
+    .mention-dropdown {
+      position: absolute;
+      bottom: 100%;
+      left: 0;
+      right: 0;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+      backdrop-filter: blur(var(--backdrop-blur));
+      z-index: 1000;
+      max-height: 200px;
+      overflow-y: auto;
+      scrollbar-width: thin;
+      scrollbar-color: var(--border) transparent;
+      display: none;
+      margin-bottom: 8px;
+    }
+
+    .mention-dropdown.show {
+      display: block;
+    }
+
+    .mention-dropdown::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .mention-dropdown::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    .mention-dropdown::-webkit-scrollbar-thumb {
+      background: var(--border);
+      border-radius: 3px;
+    }
+
+    .mention-item {
+      padding: var(--space-3) var(--space-4);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .mention-item:last-child {
+      border-bottom: none;
+    }
+
+    .mention-item:hover,
+    .mention-item.selected {
+      background: var(--surface-hover);
+    }
+
+    .mention-item.selected {
+      background: rgba(99, 102, 241, 0.1);
+      border-left: 3px solid var(--primary);
+    }
+
+    .mention-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      background: var(--primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: 600;
+      font-size: 0.8rem;
+    }
+
+    .mention-user-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .mention-display-name {
+      font-weight: 600;
+      color: var(--text-primary);
+      font-size: 0.9rem;
+      line-height: 1.2;
+    }
+
+    .mention-username {
+      color: var(--text-muted);
+      font-size: 0.8rem;
+      line-height: 1.2;
+    }
+
+    .mention-dropdown-header {
+      padding: var(--space-2) var(--space-4);
+      background: var(--glass);
+      border-bottom: 1px solid var(--border);
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+
+    .mention-no-results {
+      padding: var(--space-6) var(--space-4);
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+    }
+
     /* Delete confirmation dialog */
     .delete-message-confirmation {
       position: fixed;
@@ -3807,17 +3916,27 @@
           </div>
           
           <div class="flex gap-2 relative">
-            <input 
-              type="text" 
-              id="messageInput" 
-              placeholder="Type your message..." 
-              class="form-input"
-              style="flex: 1; background: var(--glass); border: 1px solid var(--border); color: var(--text-primary); padding: var(--space-3) var(--space-4); border-radius: var(--radius-md);"
-              maxlength="500"
-              required
-              oninput="handleTyping()"
-              onkeydown="handleKeyDown(event)"
-            >
+            <div style="flex: 1; position: relative;">
+              <input 
+                type="text" 
+                id="messageInput" 
+                placeholder="Type your message..." 
+                class="form-input"
+                style="width: 100%; background: var(--glass); border: 1px solid var(--border); color: var(--text-primary); padding: var(--space-3) var(--space-4); border-radius: var(--radius-md);"
+                maxlength="500"
+                required
+                oninput="handleTyping()"
+                onkeydown="handleKeyDown(event)"
+              >
+              <div id="mentionDropdown" class="mention-dropdown">
+                <div class="mention-dropdown-header">
+                  <i class='bx bx-at'></i> Select user to mention
+                </div>
+                <div id="mentionList">
+                  <!-- Mention suggestions will be populated here -->
+                </div>
+              </div>
+            </div>
             <button type="button" id="emojiButton" class="emoji-button">
               😀
             </button>
@@ -6645,6 +6764,18 @@ Be helpful and conversational. Respond naturally to user messages.`;
         }
       });
 
+      // Close mention dropdown when clicking outside
+      document.addEventListener('click', (e) => {
+        const dropdown = document.getElementById('mentionDropdown');
+        const messageInput = document.getElementById('messageInput');
+        
+        if (mentionDropdownVisible && 
+            !dropdown.contains(e.target) && 
+            !messageInput.contains(e.target)) {
+          hideMentionDropdown();
+        }
+      });
+
       // Profile viewing event delegation
       document.addEventListener('click', (e) => {
         if (e.target.classList.contains('clickable-avatar')) {
@@ -7009,6 +7140,9 @@ Be helpful and conversational. Respond naturally to user messages.`;
 
           // Setup notification listener for mentions
           setupNotificationListener();
+
+          // Load users for mention autocomplete
+          loadMentionUsers();
         } else {
           await leaveCurrentRoom();
           currentUser = null;
@@ -7944,6 +8078,197 @@ Be helpful and conversational. Respond naturally to user messages.`;
       return displayName.replace(/[^\w]/g, '').toLowerCase();
     }
 
+    // Mention Autocomplete System
+    let mentionUsers = [];
+    let mentionQuery = '';
+    let mentionStartPos = -1;
+    let selectedMentionIndex = -1;
+    let mentionDropdownVisible = false;
+
+    async function loadMentionUsers() {
+      if (!currentUser) return;
+      
+      try {
+        const usersSnapshot = await db.collection('users').get();
+        mentionUsers = [];
+        
+        usersSnapshot.docs.forEach(doc => {
+          const userData = doc.data();
+          if (userData.displayName && doc.id !== currentUser.uid) {
+            const username = getUsernameFromDisplayName(userData.displayName);
+            if (username) {
+              mentionUsers.push({
+                id: doc.id,
+                displayName: userData.displayName,
+                username: username,
+                photo: userData.photoURL || null
+              });
+            }
+          }
+        });
+
+        // Sort users alphabetically by display name
+        mentionUsers.sort((a, b) => a.displayName.localeCompare(b.displayName));
+      } catch (error) {
+        console.error('Error loading mention users:', error);
+      }
+    }
+
+    function showMentionDropdown(query = '') {
+      const dropdown = document.getElementById('mentionDropdown');
+      const list = document.getElementById('mentionList');
+      
+      // Filter users based on query
+      const filteredUsers = mentionUsers.filter(user => 
+        user.displayName.toLowerCase().includes(query.toLowerCase()) ||
+        user.username.toLowerCase().includes(query.toLowerCase())
+      );
+
+      if (filteredUsers.length === 0) {
+        list.innerHTML = '<div class="mention-no-results">No users found</div>';
+      } else {
+        list.innerHTML = filteredUsers.map((user, index) => `
+          <div class="mention-item ${index === selectedMentionIndex ? 'selected' : ''}" 
+               data-user-id="${user.id}" 
+               data-username="${user.username}"
+               data-display-name="${user.displayName}"
+               onclick="selectMention('${user.username}', '${user.displayName}')">
+            ${user.photo ? 
+              `<img src="${user.photo}" class="mention-avatar" alt="${user.displayName}">` :
+              `<div class="mention-avatar">${user.displayName.charAt(0).toUpperCase()}</div>`
+            }
+            <div class="mention-user-info">
+              <div class="mention-display-name">${sanitizeHTML(user.displayName)}</div>
+              <div class="mention-username">@${user.username}</div>
+            </div>
+          </div>
+        `).join('');
+      }
+
+      dropdown.classList.add('show');
+      mentionDropdownVisible = true;
+    }
+
+    function hideMentionDropdown() {
+      const dropdown = document.getElementById('mentionDropdown');
+      dropdown.classList.remove('show');
+      mentionDropdownVisible = false;
+      selectedMentionIndex = -1;
+      mentionStartPos = -1;
+      mentionQuery = '';
+    }
+
+    function selectMention(username, displayName) {
+      const messageInput = document.getElementById('messageInput');
+      const value = messageInput.value;
+      
+      // Replace the @query with @username
+      const beforeMention = value.substring(0, mentionStartPos);
+      const afterMention = value.substring(messageInput.selectionStart);
+      const newValue = beforeMention + '@' + username + ' ' + afterMention;
+      
+      messageInput.value = newValue;
+      const newCursorPos = mentionStartPos + username.length + 2; // +2 for @ and space
+      messageInput.setSelectionRange(newCursorPos, newCursorPos);
+      messageInput.focus();
+      
+      hideMentionDropdown();
+    }
+
+    function handleMentionNavigation(event) {
+      if (!mentionDropdownVisible) return false;
+
+      switch (event.key) {
+        case 'ArrowDown':
+          event.preventDefault();
+          const items = document.querySelectorAll('.mention-item');
+          if (selectedMentionIndex < items.length - 1) {
+            selectedMentionIndex++;
+            updateMentionSelection();
+          }
+          return true;
+
+        case 'ArrowUp':
+          event.preventDefault();
+          if (selectedMentionIndex > 0) {
+            selectedMentionIndex--;
+            updateMentionSelection();
+          }
+          return true;
+
+        case 'Enter':
+        case 'Tab':
+          event.preventDefault();
+          const selectedItem = document.querySelector('.mention-item.selected');
+          if (selectedItem) {
+            const username = selectedItem.getAttribute('data-username');
+            const displayName = selectedItem.getAttribute('data-display-name');
+            selectMention(username, displayName);
+          }
+          return true;
+
+        case 'Escape':
+          event.preventDefault();
+          hideMentionDropdown();
+          return true;
+
+        default:
+          return false;
+      }
+    }
+
+    function updateMentionSelection() {
+      const items = document.querySelectorAll('.mention-item');
+      items.forEach((item, index) => {
+        if (index === selectedMentionIndex) {
+          item.classList.add('selected');
+          item.scrollIntoView({ block: 'nearest' });
+        } else {
+          item.classList.remove('selected');
+        }
+      });
+    }
+
+    function handleMentionInput() {
+      const messageInput = document.getElementById('messageInput');
+      const value = messageInput.value;
+      const cursorPos = messageInput.selectionStart;
+      
+      // Find the last @ before cursor position
+      let atPos = -1;
+      for (let i = cursorPos - 1; i >= 0; i--) {
+        if (value[i] === '@') {
+          // Check if @ is at start or preceded by whitespace
+          if (i === 0 || /\s/.test(value[i - 1])) {
+            atPos = i;
+            break;
+          }
+        } else if (/\s/.test(value[i])) {
+          // If we hit whitespace before finding @, stop
+          break;
+        }
+      }
+
+      if (atPos !== -1) {
+        // Extract query after @
+        const query = value.substring(atPos + 1, cursorPos);
+        
+        // Only show dropdown if query doesn't contain spaces
+        if (!/\s/.test(query)) {
+          mentionStartPos = atPos;
+          mentionQuery = query;
+          selectedMentionIndex = 0;
+          showMentionDropdown(query);
+          return;
+        }
+      }
+
+      // Hide dropdown if not in mention mode
+      if (mentionDropdownVisible) {
+        hideMentionDropdown();
+      }
+    }
+
     async function sendMentionNotifications(mentionedUsernames, messageContent, roomId) {
       if (!currentUser || mentionedUsernames.length === 0) return;
 
@@ -8542,9 +8867,15 @@ Be helpful and conversational. Respond naturally to user messages.`;
     // Input handling for typing detection
     function handleTyping() {
       startTyping();
+      handleMentionInput(); // Check for mention trigger
     }
 
     function handleKeyDown(event) {
+      // First check if mention dropdown is handling the key
+      if (handleMentionNavigation(event)) {
+        return; // Mention system handled the key
+      }
+
       if (event.key === 'Enter' && !event.shiftKey) {
         event.preventDefault();
         document.getElementById('messageForm').dispatchEvent(new Event('submit'));
@@ -8693,6 +9024,8 @@ Be helpful and conversational. Respond naturally to user messages.`;
     window.clearAllNotifications = clearAllNotifications;
     window.handleNotificationClick = handleNotificationClick;
     window.setupNotificationListener = setupNotificationListener;
+    window.selectMention = selectMention;
+    window.hideMentionDropdown = hideMentionDropdown;
     window.signOut = signOut;
 
     // Start when page loads
