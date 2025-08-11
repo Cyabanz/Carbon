@@ -1,0 +1,1202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CARBON - Chat Rooms</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+  <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.0/dist/purify.min.js"></script>
+  
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore-compat.js"></script>
+  
+  <style>
+    :root {
+      --theme-base: #191724;
+      --theme-surface: #1f1d2e;
+      --theme-overlay: #26233a;
+      --theme-muted: #6e6a86;
+      --theme-subtle: #908caa;
+      --theme-text: #e0def4;
+      --theme-love: #eb6f92;
+      --theme-gold: #f6c177;
+      --theme-rose: #ebbcba;
+      --theme-pine: #31748f;
+      --theme-foam: #9ccfd8;
+      --theme-iris: #c4a7e7;
+      --theme-highlight-low: #21202e;
+      --theme-highlight-med: #403d52;
+      --theme-highlight-high: #524f67;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      background: linear-gradient(135deg, var(--theme-base), var(--theme-surface));
+      color: var(--theme-text);
+      font-family: 'Inter', sans-serif;
+      min-height: 100vh;
+    }
+
+    .bg-rp-base { background-color: var(--theme-base); }
+    .bg-rp-surface { background-color: var(--theme-surface); }
+    .bg-rp-overlay { background-color: var(--theme-overlay); }
+    .text-rp-text { color: var(--theme-text); }
+    .text-rp-muted { color: var(--theme-muted); }
+    .text-rp-subtle { color: var(--theme-subtle); }
+    .text-rp-foam { color: var(--theme-foam); }
+    .text-rp-iris { color: var(--theme-iris); }
+    .text-rp-love { color: var(--theme-love); }
+    .text-rp-gold { color: var(--theme-gold); }
+    .border-rp-overlay { border-color: var(--theme-overlay); }
+    .border-rp-highlight-med { border-color: var(--theme-highlight-med); }
+
+    /* Chat Rooms Layout */
+    .chat-container {
+      display: grid;
+      grid-template-columns: 300px 1fr;
+      height: calc(100vh - 80px);
+      gap: 1rem;
+      padding: 1rem;
+    }
+
+    .rooms-sidebar {
+      background: var(--theme-surface);
+      border: 1px solid var(--theme-highlight-med);
+      border-radius: 12px;
+      padding: 1rem;
+      overflow-y: auto;
+    }
+
+    .chat-main {
+      background: var(--theme-surface);
+      border: 1px solid var(--theme-highlight-med);
+      border-radius: 12px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .chat-header {
+      padding: 1rem;
+      border-bottom: 1px solid var(--theme-highlight-med);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .chat-messages {
+      flex: 1;
+      padding: 1rem;
+      overflow-y: auto;
+      max-height: calc(100vh - 200px);
+    }
+
+    .chat-input-area {
+      padding: 1rem;
+      border-top: 1px solid var(--theme-highlight-med);
+    }
+
+    /* Room Item Styles */
+    .room-item {
+      padding: 0.75rem;
+      border-radius: 8px;
+      margin-bottom: 0.5rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      border: 1px solid transparent;
+    }
+
+    .room-item:hover {
+      background: var(--theme-overlay);
+      border-color: var(--theme-highlight-med);
+    }
+
+    .room-item.active {
+      background: var(--theme-foam);
+      color: var(--theme-base);
+      border-color: var(--theme-foam);
+    }
+
+    .room-item.default {
+      border-color: var(--theme-gold);
+      background: rgba(246, 193, 119, 0.1);
+    }
+
+    .room-item.temporary {
+      border-color: var(--theme-iris);
+      background: rgba(196, 167, 231, 0.1);
+    }
+
+    /* Message Styles */
+    .message {
+      margin-bottom: 1rem;
+      padding: 0.75rem;
+      border-radius: 8px;
+      background: var(--theme-overlay);
+      animation: messageSlideIn 0.3s ease;
+    }
+
+    .message.own {
+      background: var(--theme-foam);
+      color: var(--theme-base);
+      margin-left: 20%;
+    }
+
+    .message.system {
+      background: var(--theme-gold);
+      color: var(--theme-base);
+      text-align: center;
+      font-style: italic;
+    }
+
+    @keyframes messageSlideIn {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .message-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.5rem;
+      font-size: 0.8rem;
+      opacity: 0.8;
+    }
+
+    .message-content {
+      word-wrap: break-word;
+      line-height: 1.4;
+    }
+
+    /* Button Styles */
+    .btn-primary {
+      background: linear-gradient(135deg, var(--theme-foam), var(--theme-iris));
+      color: var(--theme-base);
+      border: none;
+      padding: 0.75rem 1.5rem;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(156, 207, 216, 0.3);
+    }
+
+    .btn-secondary {
+      background: var(--theme-overlay);
+      color: var(--theme-text);
+      border: 1px solid var(--theme-highlight-med);
+      padding: 0.5rem 1rem;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .btn-secondary:hover {
+      background: var(--theme-highlight-med);
+    }
+
+    /* Room Timer */
+    .room-timer {
+      font-size: 0.7rem;
+      color: var(--theme-muted);
+      margin-top: 0.25rem;
+    }
+
+    .room-timer.expiring {
+      color: var(--theme-love);
+      animation: pulse 1s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    /* Modal Styles */
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.7);
+      z-index: 1000;
+      backdrop-filter: blur(4px);
+    }
+
+    .modal.show {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-content {
+      background: var(--theme-surface);
+      border: 1px solid var(--theme-highlight-med);
+      border-radius: 12px;
+      padding: 2rem;
+      max-width: 500px;
+      width: 90%;
+      max-height: 80vh;
+      overflow-y: auto;
+    }
+
+    /* User Count Badge */
+    .user-count {
+      background: var(--theme-iris);
+      color: var(--theme-base);
+      padding: 0.2rem 0.5rem;
+      border-radius: 12px;
+      font-size: 0.7rem;
+      font-weight: 600;
+    }
+
+    /* Responsive Design */
+    @media (max-width: 768px) {
+      .chat-container {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto 1fr;
+      }
+      
+      .rooms-sidebar {
+        max-height: 200px;
+      }
+      
+      .message.own {
+        margin-left: 10%;
+      }
+    }
+
+    /* Online indicator */
+    .online-indicator {
+      width: 8px;
+      height: 8px;
+      background: var(--theme-foam);
+      border-radius: 50%;
+      display: inline-block;
+      margin-right: 0.5rem;
+      animation: pulse 2s infinite;
+    }
+
+    /* Input validation */
+    .input-error {
+      border-color: var(--theme-love) !important;
+      box-shadow: 0 0 0 3px rgba(235, 111, 146, 0.1);
+    }
+
+    .error-message {
+      color: var(--theme-love);
+      font-size: 0.8rem;
+      margin-top: 0.5rem;
+    }
+  </style>
+</head>
+<body>
+  <!-- Navbar -->
+  <nav class="flex items-center justify-between px-6 py-4 bg-rp-surface/80 border-b border-rp-overlay backdrop-blur-sm">
+    <div class="flex items-center gap-6">
+      <a href="index.html" class="text-xl font-bold text-rp-foam tracking-tight">CARBON</a>
+      <div class="hidden md:flex items-center gap-4">
+        <a href="index.html" class="text-rp-subtle hover:text-rp-text transition-colors">Home</a>
+        <a href="profile.html" class="text-rp-subtle hover:text-rp-text transition-colors">Profile</a>
+        <a href="forum.html" class="text-rp-subtle hover:text-rp-text transition-colors">Forum</a>
+        <a href="chat-fixed.html" class="text-rp-foam font-medium">Chat</a>
+      </div>
+    </div>
+    
+    <div id="userSection" class="flex items-center gap-3">
+      <button id="signInBtn" onclick="googleSignIn()" class="btn-primary">
+        <i class='bx bxl-google mr-2'></i>
+        Sign In
+      </button>
+    </div>
+  </nav>
+
+  <!-- Main Chat Container -->
+  <div class="chat-container">
+    <!-- Rooms Sidebar -->
+    <div class="rooms-sidebar">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg font-bold text-rp-foam">Chat Rooms</h3>
+        <button id="createRoomBtn" onclick="showCreateRoomModal()" class="btn-secondary hidden">
+          <i class='bx bx-plus'></i>
+        </button>
+      </div>
+      
+      <div id="roomsList">
+        <!-- Rooms will be loaded dynamically -->
+      </div>
+      
+      <!-- Room Management -->
+      <div id="roomManagement" class="mt-6 pt-4 border-t border-rp-highlight-med hidden">
+        <h4 class="text-sm font-semibold text-rp-muted mb-2">Room Management</h4>
+        <button onclick="cleanupExpiredRooms()" class="btn-secondary w-full text-sm">
+          <i class='bx bx-trash mr-2'></i>
+          Cleanup Expired Rooms
+        </button>
+      </div>
+    </div>
+
+    <!-- Chat Main Area -->
+    <div class="chat-main">
+      <!-- Chat Header -->
+      <div class="chat-header">
+        <div>
+          <h2 id="chatTitle" class="text-xl font-bold text-rp-foam">Select a room to start chatting</h2>
+          <div id="chatSubtitle" class="text-sm text-rp-muted hidden">
+            <span id="roomType"></span>
+            <span id="roomTimer" class="room-timer"></span>
+          </div>
+        </div>
+        <div class="flex items-center gap-3">
+          <span id="userCount" class="user-count hidden">0 users</span>
+          <button id="leaveRoomBtn" onclick="leaveCurrentRoom()" class="btn-secondary hidden">
+            <i class='bx bx-exit'></i>
+            Leave
+          </button>
+        </div>
+      </div>
+
+      <!-- Chat Messages -->
+      <div id="chatMessages" class="chat-messages">
+        <div class="text-center text-rp-muted py-8">
+          <i class='bx bx-chat text-4xl mb-4 block'></i>
+          <p>Welcome to CARBON Chat!</p>
+          <p class="text-sm mt-2">Select a room from the sidebar to start chatting.</p>
+        </div>
+      </div>
+
+      <!-- Chat Input -->
+      <div class="chat-input-area">
+        <form id="messageForm" onsubmit="sendMessage(event)" class="hidden">
+          <div class="flex gap-2">
+            <input 
+              type="text" 
+              id="messageInput" 
+              placeholder="Type your message..." 
+              class="flex-1 px-4 py-2 bg-rp-overlay border border-rp-highlight-med rounded-lg text-rp-text placeholder-rp-muted focus:outline-none focus:border-rp-foam"
+              maxlength="500"
+              required
+            >
+            <button type="submit" class="btn-primary">
+              <i class='bx bx-send'></i>
+            </button>
+          </div>
+          <div class="text-xs text-rp-muted mt-2">
+            Messages are automatically filtered for appropriate content
+          </div>
+        </form>
+        <div id="guestMessage" class="text-center py-4">
+          <p class="text-rp-muted">Please sign in to participate in chat rooms</p>
+          <button onclick="googleSignIn()" class="btn-primary mt-2">
+            <i class='bx bxl-google mr-2'></i>
+            Sign In to Chat
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Create Room Modal -->
+  <div id="createRoomModal" class="modal">
+    <div class="modal-content">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-xl font-bold text-rp-foam">Create Chat Room</h3>
+        <button onclick="hideCreateRoomModal()" class="text-rp-muted hover:text-rp-text">
+          <i class='bx bx-x text-2xl'></i>
+        </button>
+      </div>
+      
+      <form id="createRoomForm" onsubmit="createRoom(event)">
+        <div class="mb-4">
+          <label for="roomName" class="block text-sm font-medium text-rp-text mb-2">Room Name</label>
+          <input 
+            type="text" 
+            id="roomName" 
+            placeholder="Enter room name..." 
+            class="w-full px-4 py-2 bg-rp-overlay border border-rp-highlight-med rounded-lg text-rp-text placeholder-rp-muted focus:outline-none focus:border-rp-foam"
+            maxlength="50"
+            required
+          >
+          <div id="roomNameError" class="error-message hidden">Room name contains inappropriate content</div>
+        </div>
+        
+        <div class="mb-4">
+          <label for="roomDescription" class="block text-sm font-medium text-rp-text mb-2">Description (Optional)</label>
+          <textarea 
+            id="roomDescription" 
+            placeholder="Describe your room..." 
+            class="w-full px-4 py-2 bg-rp-overlay border border-rp-highlight-med rounded-lg text-rp-text placeholder-rp-muted focus:outline-none focus:border-rp-foam"
+            rows="3"
+            maxlength="200"
+          ></textarea>
+        </div>
+        
+        <div class="mb-6">
+          <div class="flex items-center justify-between">
+            <span class="text-sm font-medium text-rp-text">Room Duration</span>
+            <span class="text-xs text-rp-muted">Temporary rooms auto-delete after expiry</span>
+          </div>
+          <select 
+            id="roomDuration" 
+            class="w-full mt-2 px-4 py-2 bg-rp-overlay border border-rp-highlight-med rounded-lg text-rp-text focus:outline-none focus:border-rp-foam"
+          >
+            <option value="3600000">1 Hour</option>
+            <option value="7200000">2 Hours</option>
+            <option value="10800000">3 Hours</option>
+            <option value="21600000">6 Hours</option>
+          </select>
+        </div>
+        
+        <div class="flex gap-2">
+          <button type="button" onclick="hideCreateRoomModal()" class="btn-secondary flex-1">Cancel</button>
+          <button type="submit" class="btn-primary flex-1">Create Room</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    // Firebase Configuration (Fixed with working API key)
+    const firebaseConfig = {
+      apiKey: "AIzaSyC4ilHYP1T-kdXbWPoHJHhD2aj0pNWmMec",
+      authDomain: "carbon-c1162.firebaseapp.com",
+      projectId: "carbon-c1162",
+      storageBucket: "carbon-c1162.appspot.com",
+      messagingSenderId: "581326886241",
+      appId: "1:581326886241:web:b1fc0de3d0b2b0e12a6b91"
+    };
+
+    // Initialize Firebase
+    let app, auth, db;
+    let firebaseInitialized = false;
+
+    function initializeFirebase() {
+      if (firebaseInitialized) return true;
+      
+      try {
+        if (typeof firebase === 'undefined') {
+          console.log('Firebase SDK not yet loaded');
+          return false;
+        }
+
+        try {
+          app = firebase.app();
+        } catch (error) {
+          app = firebase.initializeApp(firebaseConfig);
+        }
+
+        auth = app.auth();
+        db = app.firestore();
+        
+        auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
+        firebaseInitialized = true;
+        console.log('Firebase initialized for chat');
+        return true;
+      } catch (error) {
+        console.error('Firebase initialization error:', error);
+        return false;
+      }
+    }
+
+    function waitForFirebaseAndInitialize() {
+      if (typeof firebase !== 'undefined') {
+        initializeFirebase();
+      } else {
+        setTimeout(waitForFirebaseAndInitialize, 100);
+      }
+    }
+
+    waitForFirebaseAndInitialize();
+
+    // Global variables
+    let currentUser = null;
+    let currentRoomId = null;
+    let messagesListener = null;
+    let roomsListener = null;
+    let userPresenceListener = null;
+    let cleanupInterval = null;
+
+    // Content Filter Class
+    class ChatContentFilter {
+      constructor() {
+        this.badWords = [
+          'spam', 'scam', 'hack', 'cheat', 'bot', 'fake', 'phishing',
+          // Add more filtered words as needed
+        ];
+        this.suspiciousPatterns = [
+          /(.)\1{4,}/g, // Repeated characters
+          /[A-Z]{10,}/g, // Excessive caps
+          /(https?:\/\/[^\s]+)/g, // URLs (for security)
+        ];
+      }
+
+      filter(text) {
+        if (!text || typeof text !== 'string') return '';
+        
+        // Remove potentially harmful content
+        let filtered = text.trim();
+        
+        // Check for bad words
+        for (const word of this.badWords) {
+          const regex = new RegExp(word, 'gi');
+          filtered = filtered.replace(regex, '*'.repeat(word.length));
+        }
+        
+        // Apply pattern filters
+        filtered = filtered.replace(/(.)\1{4,}/g, (match) => match[0].repeat(3));
+        filtered = filtered.replace(/[A-Z]{10,}/g, (match) => match.toLowerCase());
+        filtered = filtered.replace(/(https?:\/\/[^\s]+)/g, '[LINK REMOVED]');
+        
+        return filtered.substring(0, 500); // Limit length
+      }
+
+      isAppropriate(text) {
+        if (!text) return false;
+        
+        const filtered = this.filter(text);
+        return filtered.length > 0 && filtered !== text.replace(/(.)\1{4,}/g, (match) => match[0].repeat(3));
+      }
+    }
+
+    const contentFilter = new ChatContentFilter();
+
+    // Sanitization functions
+    function sanitizeText(text) {
+      if (!text) return '';
+      return DOMPurify.sanitize(text, { 
+        ALLOWED_TAGS: [], 
+        ALLOWED_ATTR: [] 
+      }).trim();
+    }
+
+    function sanitizeHTML(html) {
+      return DOMPurify.sanitize(html, {
+        ALLOWED_TAGS: ['b', 'i', 'em', 'strong'],
+        ALLOWED_ATTR: []
+      });
+    }
+
+    // Authentication
+    async function googleSignIn() {
+      if (!firebaseInitialized) {
+        alert('Chat system is still loading. Please try again in a moment.');
+        return;
+      }
+
+      try {
+        const provider = new firebase.auth.GoogleAuthProvider();
+        provider.addScope('email');
+        provider.addScope('profile');
+        
+        try {
+          const result = await auth.signInWithPopup(provider);
+          console.log('Signed in successfully:', result.user.email);
+        } catch (popupError) {
+          if (popupError.code === 'auth/popup-blocked' || 
+              popupError.code === 'auth/popup-closed-by-user' ||
+              popupError.message.includes('Cross-Origin-Opener-Policy')) {
+            console.log('Popup blocked, using redirect method');
+            await auth.signInWithRedirect(provider);
+          } else {
+            throw popupError;
+          }
+        }
+      } catch (error) {
+        console.error('Sign in error:', error);
+        alert('Sign in failed. Please try again.');
+      }
+    }
+
+    async function signOut() {
+      try {
+        await leaveCurrentRoom();
+        await auth.signOut();
+        console.log('Signed out successfully');
+      } catch (error) {
+        console.error('Sign out error:', error);
+      }
+    }
+
+    // Room Management
+    async function loadRooms() {
+      if (!firebaseInitialized) return;
+
+      try {
+        // Create default room if it doesn't exist
+        await ensureDefaultRoom();
+
+        // Listen to rooms collection
+        roomsListener = db.collection('chatRooms')
+          .orderBy('createdAt', 'desc')
+          .onSnapshot(snapshot => {
+            const roomsList = document.getElementById('roomsList');
+            roomsList.innerHTML = '';
+
+            snapshot.forEach(doc => {
+              const room = { id: doc.id, ...doc.data() };
+              displayRoom(room);
+            });
+
+            // Auto-cleanup expired rooms
+            cleanupExpiredRooms();
+          });
+      } catch (error) {
+        console.error('Error loading rooms:', error);
+      }
+    }
+
+    async function ensureDefaultRoom() {
+      try {
+        const defaultRoomRef = db.collection('chatRooms').doc('default');
+        const defaultRoom = await defaultRoomRef.get();
+
+        if (!defaultRoom.exists) {
+          await defaultRoomRef.set({
+            name: 'General Chat',
+            description: 'Welcome to the default chat room! Chat with everyone here.',
+            type: 'default',
+            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+            createdBy: 'system',
+            userCount: 0,
+            lastActivity: firebase.firestore.FieldValue.serverTimestamp()
+          });
+          console.log('Default room created');
+        }
+      } catch (error) {
+        console.error('Error ensuring default room:', error);
+      }
+    }
+
+    function displayRoom(room) {
+      const roomsList = document.getElementById('roomsList');
+      const isExpired = room.type === 'temporary' && room.expiresAt && room.expiresAt.toDate() < new Date();
+      
+      if (isExpired) return; // Don't display expired rooms
+
+      const roomDiv = document.createElement('div');
+      roomDiv.className = `room-item ${room.type} ${currentRoomId === room.id ? 'active' : ''}`;
+      roomDiv.onclick = () => joinRoom(room.id);
+
+      let timeInfo = '';
+      if (room.type === 'temporary' && room.expiresAt) {
+        const timeLeft = room.expiresAt.toDate() - new Date();
+        const hoursLeft = Math.floor(timeLeft / 3600000);
+        const minutesLeft = Math.floor((timeLeft % 3600000) / 60000);
+        
+        if (timeLeft > 0) {
+          timeInfo = `<div class="room-timer ${timeLeft < 600000 ? 'expiring' : ''}">
+            <i class='bx bx-time'></i> ${hoursLeft}h ${minutesLeft}m left
+          </div>`;
+        }
+      }
+
+      roomDiv.innerHTML = `
+        <div class="flex items-center justify-between">
+          <div class="flex-1">
+            <div class="font-semibold">${sanitizeText(room.name)}</div>
+            ${room.description ? `<div class="text-sm opacity-75">${sanitizeText(room.description)}</div>` : ''}
+            ${timeInfo}
+          </div>
+          <div class="flex items-center gap-2">
+            ${room.type === 'default' ? '<i class="bx bx-crown text-rp-gold"></i>' : ''}
+            ${room.type === 'temporary' ? '<i class="bx bx-clock text-rp-iris"></i>' : ''}
+            <span class="user-count">${room.userCount || 0}</span>
+          </div>
+        </div>
+      `;
+
+      roomsList.appendChild(roomDiv);
+    }
+
+    async function joinRoom(roomId) {
+      if (!currentUser) {
+        alert('Please sign in to join rooms');
+        return;
+      }
+
+      try {
+        // Leave current room first
+        await leaveCurrentRoom();
+
+        // Join new room
+        currentRoomId = roomId;
+        
+        // Update room user count
+        await db.collection('chatRooms').doc(roomId).update({
+          userCount: firebase.firestore.FieldValue.increment(1),
+          lastActivity: firebase.firestore.FieldValue.serverTimestamp()
+        });
+
+        // Update UI
+        updateChatUI(roomId);
+        loadMessages(roomId);
+        updateRoomHighlight();
+
+        // Add user to room presence
+        await db.collection('chatRooms').doc(roomId).collection('presence').doc(currentUser.uid).set({
+          userId: currentUser.uid,
+          userName: currentUser.displayName || 'Anonymous',
+          userPhoto: currentUser.photoURL || '',
+          joinedAt: firebase.firestore.FieldValue.serverTimestamp(),
+          lastSeen: firebase.firestore.FieldValue.serverTimestamp()
+        });
+
+        console.log('Joined room:', roomId);
+      } catch (error) {
+        console.error('Error joining room:', error);
+        alert('Failed to join room. Please try again.');
+      }
+    }
+
+    async function leaveCurrentRoom() {
+      if (!currentRoomId || !currentUser) return;
+
+      try {
+        // Remove from presence
+        await db.collection('chatRooms').doc(currentRoomId).collection('presence').doc(currentUser.uid).delete();
+
+        // Decrement user count
+        await db.collection('chatRooms').doc(currentRoomId).update({
+          userCount: firebase.firestore.FieldValue.increment(-1)
+        });
+
+        // Clean up listeners
+        if (messagesListener) {
+          messagesListener();
+          messagesListener = null;
+        }
+
+        if (userPresenceListener) {
+          userPresenceListener();
+          userPresenceListener = null;
+        }
+
+        currentRoomId = null;
+        updateChatUI();
+        updateRoomHighlight();
+      } catch (error) {
+        console.error('Error leaving room:', error);
+      }
+    }
+
+    function updateChatUI(roomId = null) {
+      const chatTitle = document.getElementById('chatTitle');
+      const chatSubtitle = document.getElementById('chatSubtitle');
+      const messageForm = document.getElementById('messageForm');
+      const leaveBtn = document.getElementById('leaveRoomBtn');
+      const userCount = document.getElementById('userCount');
+
+      if (roomId) {
+        db.collection('chatRooms').doc(roomId).get().then(doc => {
+          if (doc.exists) {
+            const room = doc.data();
+            chatTitle.textContent = room.name;
+            chatSubtitle.classList.remove('hidden');
+            document.getElementById('roomType').textContent = 
+              room.type === 'default' ? 'Default Room' : 'Temporary Room';
+            
+            if (room.type === 'temporary' && room.expiresAt) {
+              updateRoomTimer(room.expiresAt.toDate());
+            }
+
+            userCount.textContent = `${room.userCount || 0} users`;
+          }
+        });
+
+        messageForm.classList.remove('hidden');
+        leaveBtn.classList.remove('hidden');
+        userCount.classList.remove('hidden');
+        document.getElementById('guestMessage').style.display = 'none';
+        document.getElementById('chatMessages').innerHTML = '';
+      } else {
+        chatTitle.textContent = 'Select a room to start chatting';
+        chatSubtitle.classList.add('hidden');
+        messageForm.classList.add('hidden');
+        leaveBtn.classList.add('hidden');
+        userCount.classList.add('hidden');
+        
+        if (!currentUser) {
+          document.getElementById('guestMessage').style.display = 'block';
+        }
+      }
+    }
+
+    function updateRoomTimer(expiresAt) {
+      const timer = document.getElementById('roomTimer');
+      
+      function updateTimer() {
+        const timeLeft = expiresAt - new Date();
+        if (timeLeft <= 0) {
+          timer.textContent = 'Expired';
+          timer.className = 'room-timer expiring';
+          return;
+        }
+
+        const hours = Math.floor(timeLeft / 3600000);
+        const minutes = Math.floor((timeLeft % 3600000) / 60000);
+        timer.textContent = ` • Expires in ${hours}h ${minutes}m`;
+        timer.className = timeLeft < 600000 ? 'room-timer expiring' : 'room-timer';
+      }
+
+      updateTimer();
+      setInterval(updateTimer, 60000); // Update every minute
+    }
+
+    function updateRoomHighlight() {
+      document.querySelectorAll('.room-item').forEach(item => {
+        item.classList.remove('active');
+      });
+
+      if (currentRoomId) {
+        const activeRoom = document.querySelector(`[onclick="joinRoom('${currentRoomId}')"]`);
+        if (activeRoom) {
+          activeRoom.classList.add('active');
+        }
+      }
+    }
+
+    // Message Management
+    async function sendMessage(event) {
+      event.preventDefault();
+      
+      if (!currentUser || !currentRoomId) return;
+
+      const messageInput = document.getElementById('messageInput');
+      const content = messageInput.value.trim();
+
+      if (!content) return;
+
+      // Sanitize and filter content
+      const sanitizedContent = sanitizeText(content);
+      const filteredContent = contentFilter.filter(sanitizedContent);
+
+      if (!filteredContent || filteredContent.length === 0) {
+        alert('Message contains inappropriate content');
+        return;
+      }
+
+      try {
+        await db.collection('chatRooms').doc(currentRoomId).collection('messages').add({
+          content: filteredContent,
+          authorId: currentUser.uid,
+          authorName: currentUser.displayName || 'Anonymous',
+          authorPhoto: currentUser.photoURL || '',
+          timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+          type: 'user'
+        });
+
+        // Update room activity
+        await db.collection('chatRooms').doc(currentRoomId).update({
+          lastActivity: firebase.firestore.FieldValue.serverTimestamp()
+        });
+
+        messageInput.value = '';
+      } catch (error) {
+        console.error('Error sending message:', error);
+        alert('Failed to send message. Please try again.');
+      }
+    }
+
+    function loadMessages(roomId) {
+      if (messagesListener) {
+        messagesListener();
+      }
+
+      messagesListener = db.collection('chatRooms').doc(roomId).collection('messages')
+        .orderBy('timestamp', 'asc')
+        .limit(50)
+        .onSnapshot(snapshot => {
+          const messagesContainer = document.getElementById('chatMessages');
+          messagesContainer.innerHTML = '';
+
+          snapshot.forEach(doc => {
+            const message = { id: doc.id, ...doc.data() };
+            displayMessage(message);
+          });
+
+          // Scroll to bottom
+          messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        });
+    }
+
+    function displayMessage(message) {
+      const messagesContainer = document.getElementById('chatMessages');
+      const messageDiv = document.createElement('div');
+      
+      const isOwn = currentUser && message.authorId === currentUser.uid;
+      const isSystem = message.type === 'system';
+      
+      messageDiv.className = `message ${isOwn ? 'own' : ''} ${isSystem ? 'system' : ''}`;
+
+      if (isSystem) {
+        messageDiv.innerHTML = `
+          <div class="message-content">
+            <i class='bx bx-info-circle mr-2'></i>
+            ${sanitizeHTML(message.content)}
+          </div>
+        `;
+      } else {
+        const timestamp = message.timestamp ? message.timestamp.toDate().toLocaleTimeString() : 'Sending...';
+        messageDiv.innerHTML = `
+          <div class="message-header">
+            <div class="flex items-center gap-2">
+              ${message.authorPhoto ? `<img src="${message.authorPhoto}" alt="Avatar" class="w-6 h-6 rounded-full">` : '<div class="w-6 h-6 rounded-full bg-rp-foam"></div>'}
+              <span class="font-semibold">${sanitizeText(message.authorName)}</span>
+            </div>
+            <span class="timestamp">${timestamp}</span>
+          </div>
+          <div class="message-content">${sanitizeHTML(message.content)}</div>
+        `;
+      }
+
+      messagesContainer.appendChild(messageDiv);
+    }
+
+    // Room Creation
+    function showCreateRoomModal() {
+      if (!currentUser) {
+        alert('Please sign in to create rooms');
+        return;
+      }
+      
+      document.getElementById('createRoomModal').classList.add('show');
+    }
+
+    function hideCreateRoomModal() {
+      document.getElementById('createRoomModal').classList.remove('show');
+      document.getElementById('createRoomForm').reset();
+      document.getElementById('roomNameError').classList.add('hidden');
+    }
+
+    async function createRoom(event) {
+      event.preventDefault();
+      
+      if (!currentUser) return;
+
+      const roomName = sanitizeText(document.getElementById('roomName').value);
+      const roomDescription = sanitizeText(document.getElementById('roomDescription').value);
+      const roomDuration = parseInt(document.getElementById('roomDuration').value);
+
+      // Validate room name
+      if (!contentFilter.isAppropriate(roomName)) {
+        document.getElementById('roomNameError').classList.remove('hidden');
+        document.getElementById('roomName').classList.add('input-error');
+        return;
+      }
+
+      try {
+        const expiresAt = new Date(Date.now() + roomDuration);
+        
+        const roomRef = await db.collection('chatRooms').add({
+          name: roomName,
+          description: roomDescription,
+          type: 'temporary',
+          createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+          createdBy: currentUser.uid,
+          creatorName: currentUser.displayName || 'Anonymous',
+          expiresAt: firebase.firestore.Timestamp.fromDate(expiresAt),
+          userCount: 0,
+          lastActivity: firebase.firestore.FieldValue.serverTimestamp()
+        });
+
+        // Add creation message
+        await roomRef.collection('messages').add({
+          content: `Room "${roomName}" created by ${currentUser.displayName || 'Anonymous'}`,
+          type: 'system',
+          timestamp: firebase.firestore.FieldValue.serverTimestamp()
+        });
+
+        hideCreateRoomModal();
+        joinRoom(roomRef.id);
+      } catch (error) {
+        console.error('Error creating room:', error);
+        alert('Failed to create room. Please try again.');
+      }
+    }
+
+    // Cleanup Functions
+    async function cleanupExpiredRooms() {
+      if (!firebaseInitialized) return;
+
+      try {
+        const now = new Date();
+        const expiredRooms = await db.collection('chatRooms')
+          .where('type', '==', 'temporary')
+          .where('expiresAt', '<', firebase.firestore.Timestamp.fromDate(now))
+          .get();
+
+        const batch = db.batch();
+        
+        for (const doc of expiredRooms.docs) {
+          // Delete messages subcollection
+          const messages = await doc.ref.collection('messages').get();
+          messages.docs.forEach(messageDoc => {
+            batch.delete(messageDoc.ref);
+          });
+
+          // Delete presence subcollection
+          const presence = await doc.ref.collection('presence').get();
+          presence.docs.forEach(presenceDoc => {
+            batch.delete(presenceDoc.ref);
+          });
+
+          // Delete room
+          batch.delete(doc.ref);
+        }
+
+        if (!expiredRooms.empty) {
+          await batch.commit();
+          console.log(`Cleaned up ${expiredRooms.size} expired rooms`);
+        }
+      } catch (error) {
+        console.error('Error cleaning up expired rooms:', error);
+      }
+    }
+
+    // User Interface Management
+    function updateUserSection() {
+      const userSection = document.getElementById('userSection');
+      const createRoomBtn = document.getElementById('createRoomBtn');
+      const roomManagement = document.getElementById('roomManagement');
+      const guestMessage = document.getElementById('guestMessage');
+      const messageForm = document.getElementById('messageForm');
+
+      if (currentUser) {
+        userSection.innerHTML = `
+          <div class="flex items-center gap-3">
+            <img src="${currentUser.photoURL || 'https://via.placeholder.com/32'}" alt="Profile" class="w-8 h-8 rounded-full">
+            <span class="text-rp-text font-medium hidden md:block">${sanitizeText(currentUser.displayName || 'User')}</span>
+            <button onclick="signOut()" class="btn-secondary">
+              <i class='bx bx-log-out'></i>
+            </button>
+          </div>
+        `;
+        
+        createRoomBtn.classList.remove('hidden');
+        roomManagement.classList.remove('hidden');
+        guestMessage.style.display = 'none';
+        
+        if (currentRoomId) {
+          messageForm.classList.remove('hidden');
+        }
+      } else {
+        userSection.innerHTML = `
+          <button onclick="googleSignIn()" class="btn-primary">
+            <i class='bx bxl-google mr-2'></i>
+            Sign In
+          </button>
+        `;
+        
+        createRoomBtn.classList.add('hidden');
+        roomManagement.classList.add('hidden');
+        messageForm.classList.add('hidden');
+        guestMessage.style.display = 'block';
+      }
+    }
+
+    // Auth State Management
+    function startAuthMonitoring() {
+      if (!firebaseInitialized) {
+        setTimeout(startAuthMonitoring, 100);
+        return;
+      }
+
+      auth.onAuthStateChanged(async (user) => {
+        console.log('Auth state changed:', user ? `Signed in as ${user.email}` : 'Signed out');
+        
+        if (user) {
+          currentUser = user;
+          
+          // Handle redirect result
+          try {
+            const result = await auth.getRedirectResult();
+            if (result && result.user) {
+              console.log('Redirect sign-in successful');
+            }
+          } catch (error) {
+            console.error('Redirect result error:', error);
+          }
+        } else {
+          await leaveCurrentRoom();
+          currentUser = null;
+        }
+
+        updateUserSection();
+      });
+    }
+
+    // Initialize Chat System
+    function initializeChatSystem() {
+      // Start automatic cleanup every 30 minutes
+      cleanupInterval = setInterval(cleanupExpiredRooms, 30 * 60 * 1000);
+      
+      // Load rooms
+      loadRooms();
+      
+      // Initialize UI
+      updateUserSection();
+      
+      // Start auth monitoring
+      startAuthMonitoring();
+
+      // Handle page unload
+      window.addEventListener('beforeunload', () => {
+        leaveCurrentRoom();
+        if (cleanupInterval) {
+          clearInterval(cleanupInterval);
+        }
+      });
+
+      console.log('Chat system initialized');
+    }
+
+    // Wait for Firebase and initialize
+    function waitForFirebaseAndStartChat() {
+      if (firebaseInitialized) {
+        initializeChatSystem();
+      } else {
+        setTimeout(waitForFirebaseAndStartChat, 100);
+      }
+    }
+
+    // Start when page loads
+    document.addEventListener('DOMContentLoaded', () => {
+      console.log('Chat page loaded');
+      waitForFirebaseAndStartChat();
+    });
+
+    // Keyboard shortcuts
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        hideCreateRoomModal();
+      }
+    });
+
+    // Click outside modal to close
+    document.getElementById('createRoomModal').addEventListener('click', (e) => {
+      if (e.target.id === 'createRoomModal') {
+        hideCreateRoomModal();
+      }
+    });
+  </script>
+</body>
+</html>
