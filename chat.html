@@ -156,6 +156,25 @@
       font-style: italic;
     }
 
+    .message.ai {
+      background: linear-gradient(135deg, rgba(196, 167, 231, 0.1), rgba(156, 207, 216, 0.1));
+      border-left: 3px solid var(--theme-iris);
+      position: relative;
+    }
+
+    .message.ai::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 0;
+      height: 0;
+      border-left: 8px solid transparent;
+      border-right: 8px solid var(--theme-iris);
+      border-top: 8px solid var(--theme-iris);
+      border-bottom: 8px solid transparent;
+    }
+
     @keyframes messageSlideIn {
       from {
         opacity: 0;
@@ -497,6 +516,7 @@
     // Initialize Firebase
     let app, auth, db;
     let firebaseInitialized = false;
+    let isOnline = navigator.onLine;
 
     function initializeFirebase() {
       if (firebaseInitialized) return true;
@@ -516,15 +536,179 @@
         auth = app.auth();
         db = app.firestore();
         
+        // Enable offline persistence
+        db.enablePersistence({ synchronizeTabs: true })
+          .catch(function(err) {
+            if (err.code == 'failed-precondition') {
+              console.warn("Multiple tabs open, persistence can only be enabled in one tab at a time.");
+            } else if (err.code == 'unimplemented') {
+              console.warn("The current browser does not support all of the features required to enable persistence");
+            }
+          });
+        
         auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
         firebaseInitialized = true;
         console.log('Firebase initialized for chat');
         return true;
       } catch (error) {
         console.error('Firebase initialization error:', error);
+        // Continue with offline mode
         return false;
       }
     }
+
+    // Network status monitoring
+    function setupNetworkMonitoring() {
+      window.addEventListener('online', () => {
+        console.log('Network connection restored');
+        isOnline = true;
+        updateConnectionStatus();
+        retryFirebaseOperations();
+      });
+
+      window.addEventListener('offline', () => {
+        console.log('Network connection lost');
+        isOnline = false;
+        updateConnectionStatus();
+      });
+    }
+
+    function updateConnectionStatus() {
+      const statusIndicator = document.getElementById('connectionStatus');
+      if (!statusIndicator) {
+        // Create connection status indicator
+        const indicator = document.createElement('div');
+        indicator.id = 'connectionStatus';
+        indicator.style.cssText = `
+          position: fixed;
+          top: 10px;
+          right: 10px;
+          padding: 8px 12px;
+          border-radius: 6px;
+          font-size: 12px;
+          font-weight: 600;
+          z-index: 1001;
+          transition: all 0.3s ease;
+        `;
+        document.body.appendChild(indicator);
+      }
+      
+      const indicator = document.getElementById('connectionStatus');
+      if (isOnline) {
+        indicator.textContent = '🟢 Online';
+        indicator.style.background = 'var(--theme-foam)';
+        indicator.style.color = 'var(--theme-base)';
+      } else {
+        indicator.textContent = '🔴 Offline';
+        indicator.style.background = 'var(--theme-love)';
+        indicator.style.color = 'white';
+      }
+    }
+
+    function retryFirebaseOperations() {
+      if (firebaseInitialized && isOnline) {
+        // Retry loading rooms
+        setTimeout(() => {
+          loadRooms();
+        }, 1000);
+      }
+    }
+
+    // AI Chat functionality
+    class AIChatbot {
+      constructor() {
+        this.isActive = false;
+        this.apiEndpoint = 'https://text.pollinations.ai/';
+        this.lastAiMessageTime = 0;
+        this.conversationHistory = [];
+      }
+
+      async generateResponse(userMessage) {
+        try {
+          // Add context about the conversation
+          const context = this.getConversationContext();
+          const prompt = `${context}\n\nUser: ${userMessage}\nAI Assistant:`;
+          
+          // Try pollinations.ai text endpoint
+          const response = await fetch(`${this.apiEndpoint}${encodeURIComponent(prompt)}`, {
+            method: 'GET',
+            headers: {
+              'Accept': 'text/plain',
+            }
+          });
+
+          if (!response.ok) {
+            throw new Error(`AI API error: ${response.status}`);
+          }
+
+          const aiResponse = await response.text();
+          return this.cleanResponse(aiResponse);
+        } catch (error) {
+          console.error('AI API error:', error);
+          return this.getFallbackResponse(userMessage);
+        }
+      }
+
+      getConversationContext() {
+        return `You are a friendly AI assistant in a chat room. Keep responses concise and engaging. 
+Be helpful and conversational. Respond naturally to user messages.`;
+      }
+
+      cleanResponse(response) {
+        // Clean up the AI response
+        let cleaned = response.trim();
+        
+        // Remove any prompt echoing
+        if (cleaned.startsWith('AI Assistant:')) {
+          cleaned = cleaned.substring(13).trim();
+        }
+        
+        // Limit length
+        if (cleaned.length > 300) {
+          cleaned = cleaned.substring(0, 297) + '...';
+        }
+        
+        return cleaned || "I'm here to chat! How can I help you today?";
+      }
+
+      getFallbackResponse(userMessage) {
+        const fallbacks = [
+          "I'm here to chat! How can I help you today?",
+          "That's interesting! Tell me more about that.",
+          "I'm an AI assistant here to keep you company while the chat room is quiet.",
+          "Thanks for sharing! What else would you like to talk about?",
+          "I'm still learning, but I'm here to chat with you!",
+          "That sounds cool! I'd love to hear more about your thoughts on that.",
+        ];
+        
+        return fallbacks[Math.floor(Math.random() * fallbacks.length)];
+      }
+
+      updateConversationHistory(userMessage, aiResponse) {
+        this.conversationHistory.push({ user: userMessage, ai: aiResponse });
+        // Keep only last 5 exchanges
+        if (this.conversationHistory.length > 5) {
+          this.conversationHistory.shift();
+        }
+      }
+
+      shouldActivate(userCount) {
+        return userCount <= 1; // Activate when user is alone or room is empty
+      }
+
+      activate() {
+        this.isActive = true;
+        console.log('AI chatbot activated');
+      }
+
+      deactivate() {
+        this.isActive = false;
+        this.conversationHistory = [];
+        console.log('AI chatbot deactivated');
+      }
+    }
+
+    const aiChatbot = new AIChatbot();
 
     function waitForFirebaseAndInitialize() {
       if (typeof firebase !== 'undefined') {
@@ -647,7 +831,11 @@
 
     // Room Management
     async function loadRooms() {
-      if (!firebaseInitialized) return;
+      if (!firebaseInitialized) {
+        console.log('Firebase not initialized, cannot load rooms');
+        showOfflineMessage();
+        return;
+      }
 
       try {
         // Create default room if it doesn't exist
@@ -660,6 +848,11 @@
             const roomsList = document.getElementById('roomsList');
             roomsList.innerHTML = '';
 
+            if (snapshot.empty) {
+              showEmptyRoomsMessage();
+              return;
+            }
+
             snapshot.forEach(doc => {
               const room = { id: doc.id, ...doc.data() };
               displayRoom(room);
@@ -667,13 +860,48 @@
 
             // Auto-cleanup expired rooms
             cleanupExpiredRooms();
+          }, error => {
+            console.error('Error in rooms snapshot listener:', error);
+            if (error.code === 'unavailable' || error.message.includes('offline')) {
+              showOfflineMessage();
+            }
           });
       } catch (error) {
         console.error('Error loading rooms:', error);
+        if (error.code === 'unavailable' || error.message.includes('offline')) {
+          showOfflineMessage();
+        }
       }
     }
 
+    function showOfflineMessage() {
+      const roomsList = document.getElementById('roomsList');
+      roomsList.innerHTML = `
+        <div class="text-center py-8 text-rp-muted">
+          <i class='bx bx-wifi-off text-4xl mb-4 block'></i>
+          <p>You're currently offline</p>
+          <p class="text-sm mt-2">Rooms will load when connection is restored</p>
+        </div>
+      `;
+    }
+
+    function showEmptyRoomsMessage() {
+      const roomsList = document.getElementById('roomsList');
+      roomsList.innerHTML = `
+        <div class="text-center py-8 text-rp-muted">
+          <i class='bx bx-chat text-4xl mb-4 block'></i>
+          <p>No chat rooms available</p>
+          <p class="text-sm mt-2">Create a new room to get started</p>
+        </div>
+      `;
+    }
+
     async function ensureDefaultRoom() {
+      if (!firebaseInitialized) {
+        console.log('Firebase not initialized, skipping default room creation');
+        return;
+      }
+
       try {
         const defaultRoomRef = db.collection('chatRooms').doc('default');
         const defaultRoom = await defaultRoomRef.get();
@@ -691,7 +919,11 @@
           console.log('Default room created');
         }
       } catch (error) {
-        console.error('Error ensuring default room:', error);
+        if (error.code === 'unavailable' || error.message.includes('offline')) {
+          console.log('Cannot ensure default room while offline, will retry when online');
+        } else {
+          console.error('Error ensuring default room:', error);
+        }
       }
     }
 
@@ -768,6 +1000,20 @@
           joinedAt: firebase.firestore.FieldValue.serverTimestamp(),
           lastSeen: firebase.firestore.FieldValue.serverTimestamp()
         });
+
+        // Check if AI should be activated for this room
+        const roomDoc = await db.collection('chatRooms').doc(roomId).get();
+        const roomData = roomDoc.data();
+        
+        if (roomData && aiChatbot.shouldActivate(roomData.userCount || 0)) {
+          setTimeout(() => {
+            if (aiChatbot.shouldActivate(roomData.userCount || 0)) {
+              aiChatbot.activate();
+            }
+          }, 2000); // Wait 2 seconds to see if others join
+        } else {
+          aiChatbot.deactivate();
+        }
 
         console.log('Joined room:', roomId);
       } catch (error) {
@@ -902,6 +1148,7 @@
       }
 
       try {
+        // Send user message
         await db.collection('chatRooms').doc(currentRoomId).collection('messages').add({
           content: filteredContent,
           authorId: currentUser.uid,
@@ -917,9 +1164,81 @@
         });
 
         messageInput.value = '';
+
+        // Check if AI should respond (when room is empty or user is alone)
+        const roomDoc = await db.collection('chatRooms').doc(currentRoomId).get();
+        const roomData = roomDoc.data();
+        
+        if (roomData && aiChatbot.shouldActivate(roomData.userCount || 0)) {
+          if (!aiChatbot.isActive) {
+            aiChatbot.activate();
+            // Send welcome message from AI
+            setTimeout(async () => {
+              await sendAIWelcomeMessage();
+            }, 1000);
+          } else {
+            // Generate AI response
+            setTimeout(async () => {
+              await generateAIResponse(filteredContent);
+            }, 1500 + Math.random() * 2000); // Random delay 1.5-3.5 seconds
+          }
+        } else if (aiChatbot.isActive && (roomData.userCount || 0) > 1) {
+          aiChatbot.deactivate();
+        }
+
       } catch (error) {
         console.error('Error sending message:', error);
-        alert('Failed to send message. Please try again.');
+        if (error.code === 'unavailable' || error.message.includes('offline')) {
+          alert('Cannot send message while offline. Please check your connection.');
+        } else {
+          alert('Failed to send message. Please try again.');
+        }
+      }
+    }
+
+    async function sendAIWelcomeMessage() {
+      if (!currentRoomId || !aiChatbot.isActive) return;
+
+      const welcomeMessages = [
+        "Hello! I'm your AI assistant. Since it's quiet in here, I'm here to chat with you! 😊",
+        "Hi there! Looks like you're the only one here right now. I'm an AI and I'd love to chat!",
+        "Welcome! I'm an AI assistant keeping you company while the room is empty. What's on your mind?",
+        "Hey! I'm your friendly AI companion. Feel free to ask me anything or just chat!",
+      ];
+
+      const welcomeMessage = welcomeMessages[Math.floor(Math.random() * welcomeMessages.length)];
+
+      try {
+        await db.collection('chatRooms').doc(currentRoomId).collection('messages').add({
+          content: welcomeMessage,
+          authorId: 'ai-assistant',
+          authorName: 'AI Assistant',
+          authorPhoto: '',
+          timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+          type: 'ai'
+        });
+      } catch (error) {
+        console.error('Error sending AI welcome message:', error);
+      }
+    }
+
+    async function generateAIResponse(userMessage) {
+      if (!currentRoomId || !aiChatbot.isActive) return;
+
+      try {
+        const aiResponse = await aiChatbot.generateResponse(userMessage);
+        aiChatbot.updateConversationHistory(userMessage, aiResponse);
+
+        await db.collection('chatRooms').doc(currentRoomId).collection('messages').add({
+          content: aiResponse,
+          authorId: 'ai-assistant',
+          authorName: 'AI Assistant',
+          authorPhoto: '',
+          timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+          type: 'ai'
+        });
+      } catch (error) {
+        console.error('Error generating AI response:', error);
       }
     }
 
@@ -951,8 +1270,9 @@
       
       const isOwn = currentUser && message.authorId === currentUser.uid;
       const isSystem = message.type === 'system';
+      const isAI = message.type === 'ai' || message.authorId === 'ai-assistant';
       
-      messageDiv.className = `message ${isOwn ? 'own' : ''} ${isSystem ? 'system' : ''}`;
+      messageDiv.className = `message ${isOwn ? 'own' : ''} ${isSystem ? 'system' : ''} ${isAI ? 'ai' : ''}`;
 
       if (isSystem) {
         messageDiv.innerHTML = `
@@ -960,6 +1280,21 @@
             <i class='bx bx-info-circle mr-2'></i>
             ${sanitizeHTML(message.content)}
           </div>
+        `;
+      } else if (isAI) {
+        const timestamp = message.timestamp ? message.timestamp.toDate().toLocaleTimeString() : 'Sending...';
+        messageDiv.innerHTML = `
+          <div class="message-header">
+            <div class="flex items-center gap-2">
+              <div class="w-6 h-6 rounded-full bg-gradient-to-r from-purple-400 to-pink-400 flex items-center justify-center">
+                <i class='bx bx-bot text-white text-xs'></i>
+              </div>
+              <span class="font-semibold text-rp-iris">${sanitizeText(message.authorName)}</span>
+              <span class="text-xs bg-rp-iris text-rp-base px-2 py-0.5 rounded-full">AI</span>
+            </div>
+            <span class="timestamp">${timestamp}</span>
+          </div>
+          <div class="message-content">${sanitizeHTML(message.content)}</div>
         `;
       } else {
         const timestamp = message.timestamp ? message.timestamp.toDate().toLocaleTimeString() : 'Sending...';
@@ -1189,6 +1524,8 @@
     // Start when page loads
     document.addEventListener('DOMContentLoaded', () => {
       console.log('Chat page loaded');
+      setupNetworkMonitoring(); // Start network monitoring
+      updateConnectionStatus(); // Set initial status
       waitForFirebaseAndStartChat();
     });
 
