@@ -70,6 +70,106 @@
       padding: 1rem;
     }
 
+    /* Sidebar Tabs */
+    .sidebar-tabs {
+      display: flex;
+      background: var(--theme-overlay);
+      border-radius: 8px;
+      padding: 4px;
+      margin-bottom: 1rem;
+      gap: 2px;
+    }
+
+    .sidebar-tab {
+      flex: 1;
+      padding: 0.5rem 1rem;
+      border: none;
+      background: transparent;
+      color: var(--theme-muted);
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      font-size: 0.9rem;
+      font-weight: 500;
+    }
+
+    .sidebar-tab:hover {
+      background: var(--theme-highlight-med);
+      color: var(--theme-text);
+    }
+
+    .sidebar-tab.active {
+      background: var(--theme-foam);
+      color: var(--theme-base);
+      box-shadow: 0 2px 8px rgba(156, 207, 216, 0.3);
+    }
+
+    .sidebar-content {
+      min-height: 0;
+      overflow-y: auto;
+    }
+
+    .art-gallery-container {
+      padding: 1rem 0;
+    }
+
+    .art-piece-small {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      padding: 0.75rem;
+      background: var(--theme-surface);
+      border: 1px solid var(--theme-highlight-med);
+      border-radius: 8px;
+      margin-bottom: 0.75rem;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .art-piece-small:hover {
+      background: var(--theme-highlight-med);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    .art-piece-thumbnail {
+      width: 48px;
+      height: 48px;
+      border-radius: 6px;
+      object-fit: cover;
+      border: 2px solid var(--theme-highlight-med);
+    }
+
+    .art-piece-details {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .art-piece-title {
+      font-weight: 600;
+      color: var(--theme-text);
+      font-size: 0.9rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .art-piece-author {
+      font-size: 0.8rem;
+      color: var(--theme-muted);
+      margin-top: 0.25rem;
+    }
+
+    .art-piece-meta {
+      font-size: 0.75rem;
+      color: var(--theme-foam);
+      margin-top: 0.25rem;
+    }
+
     .rooms-sidebar {
       background: var(--theme-surface);
       border: 1px solid var(--theme-highlight-med);
@@ -831,6 +931,13 @@
       transition: background 0.5s ease;
     }
 
+    /* Use actual room color gradients when available */
+    body.custom-theme[data-has-gradient="true"] {
+      background: var(--room-color-gradient, linear-gradient(135deg, rgba(var(--room-color-rgb, 156, 207, 216), 0.08) 0%, var(--theme-base) 30%, rgba(var(--room-color-rgb, 156, 207, 216), 0.04) 100%));
+      min-height: 100vh;
+      transition: background 0.5s ease;
+    }
+
     .container.custom-theme {
       background: linear-gradient(180deg, 
         rgba(var(--room-color-rgb, 156, 207, 216), 0.06) 0%, 
@@ -856,9 +963,7 @@
     }
 
     .chat-header.custom-theme {
-      background: linear-gradient(135deg, 
-        var(--room-color) 0%, 
-        rgba(var(--room-color-rgb, 156, 207, 216), 0.8) 100%) !important;
+      background: var(--room-color-gradient, linear-gradient(135deg, var(--room-color) 0%, rgba(var(--room-color-rgb, 156, 207, 216), 0.8) 100%)) !important;
       border-bottom: 2px solid rgba(var(--room-color-rgb, 156, 207, 216), 0.4);
       backdrop-filter: blur(15px);
       box-shadow: 0 4px 20px rgba(var(--room-color-rgb, 156, 207, 216), 0.2);
@@ -919,7 +1024,7 @@
     }
 
     .btn-primary.custom-theme {
-      background: linear-gradient(135deg, var(--room-color), rgba(var(--room-color-rgb, 156, 207, 216), 0.8)) !important;
+      background: var(--room-color-gradient, linear-gradient(135deg, var(--room-color), rgba(var(--room-color-rgb, 156, 207, 216), 0.8))) !important;
       border-color: var(--room-color) !important;
       color: white !important;
       box-shadow: 0 4px 12px rgba(var(--room-color-rgb, 156, 207, 216), 0.3);
@@ -952,7 +1057,7 @@
     }
 
     .xp-bar.custom-theme {
-      background: linear-gradient(90deg, var(--room-color), rgba(var(--room-color-rgb, 156, 207, 216), 0.7)) !important;
+      background: var(--room-color-gradient, linear-gradient(90deg, var(--room-color), rgba(var(--room-color-rgb, 156, 207, 216), 0.7))) !important;
       box-shadow: 0 0 10px rgba(var(--room-color-rgb, 156, 207, 216), 0.5);
     }
 
@@ -1530,15 +1635,44 @@
   <div class="chat-container">
     <!-- Rooms Sidebar -->
     <div class="rooms-sidebar">
-      <div class="flex items-center justify-between mb-4">
-        <h3 class="text-lg font-bold text-rp-foam">Chat Rooms</h3>
-        <button id="createRoomBtn" onclick="showCreateRoomModal()" class="btn-secondary hidden">
-          <i class='bx bx-plus'></i>
+      <!-- Sidebar Tabs -->
+      <div class="sidebar-tabs">
+        <button class="sidebar-tab active" data-tab="rooms">
+          <i class='bx bx-chat'></i>
+          Rooms
+        </button>
+        <button class="sidebar-tab" data-tab="gallery">
+          <i class='bx bx-palette'></i>
+          Gallery
         </button>
       </div>
-      
-      <div id="roomsList">
-        <!-- Rooms will be loaded dynamically -->
+
+      <!-- Rooms Tab Content -->
+      <div id="roomsTab" class="sidebar-content">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-lg font-bold text-rp-foam">Chat Rooms</h3>
+          <button id="createRoomBtn" onclick="showCreateRoomModal()" class="btn-secondary hidden">
+            <i class='bx bx-plus'></i>
+          </button>
+        </div>
+        
+        <div id="roomsList">
+          <!-- Rooms will be loaded dynamically -->
+        </div>
+      </div>
+
+      <!-- Art Gallery Tab Content -->
+      <div id="galleryTab" class="sidebar-content hidden">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-lg font-bold text-rp-foam">Community Art</h3>
+          <button onclick="openCarbonArt()" class="btn-secondary">
+            <i class='bx bx-brush'></i>
+          </button>
+        </div>
+        
+        <div id="communityArtList" class="art-gallery-container">
+          <!-- Community artworks will be loaded dynamically -->
+        </div>
       </div>
       
       <!-- Room Management -->
@@ -3904,6 +4038,10 @@ Be helpful and conversational. Respond naturally to user messages.`;
       document.documentElement.style.setProperty('--room-color-gradient', color);
       document.documentElement.style.setProperty('--room-color-rgb', rgbColor);
       
+      // Mark if we have a gradient
+      const hasGradient = color.includes('gradient');
+      document.body.setAttribute('data-has-gradient', hasGradient.toString());
+      
       console.log("Set CSS variables:", { 
         roomColor: document.documentElement.style.getPropertyValue('--room-color'),
         rgbColor: document.documentElement.style.getPropertyValue('--room-color-rgb')
@@ -4186,6 +4324,16 @@ Be helpful and conversational. Respond naturally to user messages.`;
               imageData: imageData,
               authorName: authorName
             });
+          }
+        }
+      });
+
+      // Sidebar tab click handlers
+      document.addEventListener('click', (e) => {
+        if (e.target.classList.contains('sidebar-tab')) {
+          const tabName = e.target.getAttribute('data-tab');
+          if (tabName) {
+            switchSidebarTab(tabName);
           }
         }
       });
@@ -4796,6 +4944,10 @@ Be helpful and conversational. Respond naturally to user messages.`;
         
         closeCarbonArt();
         loadArtGallery();
+        // Also refresh community gallery if it's visible
+        if (!document.getElementById('galleryTab').classList.contains('hidden')) {
+          loadCommunityArt();
+        }
 
       } catch (error) {
         console.error('Error sharing artwork:', error);
@@ -4900,6 +5052,81 @@ Be helpful and conversational. Respond naturally to user messages.`;
       document.body.appendChild(modal);
     }
 
+    // Sidebar Tab Management
+    function switchSidebarTab(tabName) {
+      // Update tab buttons
+      document.querySelectorAll('.sidebar-tab').forEach(tab => {
+        tab.classList.remove('active');
+        if (tab.getAttribute('data-tab') === tabName) {
+          tab.classList.add('active');
+        }
+      });
+
+      // Update tab content
+      document.getElementById('roomsTab').classList.toggle('hidden', tabName !== 'rooms');
+      document.getElementById('galleryTab').classList.toggle('hidden', tabName !== 'gallery');
+
+      // Load content if switching to gallery
+      if (tabName === 'gallery') {
+        loadCommunityArt();
+      }
+    }
+
+    // Load Community Art Gallery
+    async function loadCommunityArt() {
+      try {
+        const artworksQuery = await db.collection('artworks')
+          .orderBy('createdAt', 'desc')
+          .limit(50)
+          .get();
+
+        const artList = document.getElementById('communityArtList');
+        if (!artList) return;
+
+        artList.innerHTML = '';
+
+        if (artworksQuery.empty) {
+          artList.innerHTML = '<p style="text-align: center; color: var(--theme-muted); padding: 2rem;">No community artwork yet. Be the first to create something!</p>';
+          return;
+        }
+
+        artworksQuery.forEach(doc => {
+          try {
+            const artwork = doc.data();
+            if (!artwork.imageData || !artwork.title) return;
+
+            const artPiece = document.createElement('div');
+            artPiece.className = 'art-piece-small';
+            artPiece.innerHTML = `
+              <img src="${artwork.imageData}" alt="${sanitizeText(artwork.title)}" 
+                   class="art-piece-thumbnail" loading="lazy" 
+                   onerror="this.style.display='none'">
+              <div class="art-piece-details">
+                <div class="art-piece-title">${sanitizeText(artwork.title)}</div>
+                <div class="art-piece-author">by ${sanitizeText(artwork.authorName || 'Anonymous')}</div>
+                <div class="art-piece-meta">${artwork.createdAt ? new Date(artwork.createdAt.toDate()).toLocaleDateString() : 'Recently'}</div>
+              </div>
+            `;
+
+            artPiece.addEventListener('click', () => {
+              showArtworkModal(artwork);
+            });
+
+            artList.appendChild(artPiece);
+          } catch (itemError) {
+            console.error('Error processing community artwork item:', itemError);
+          }
+        });
+
+      } catch (error) {
+        console.error('Error loading community art:', error);
+        const artList = document.getElementById('communityArtList');
+        if (artList) {
+          artList.innerHTML = '<p style="text-align: center; color: var(--theme-muted); padding: 2rem;">Failed to load community art. Please try refreshing.</p>';
+        }
+      }
+    }
+
     // Ensure all functions are available in global scope for onclick handlers
     window.showCreateRoomModal = showCreateRoomModal;
     window.hideCreateRoomModal = hideCreateRoomModal;
@@ -4916,6 +5143,8 @@ Be helpful and conversational. Respond naturally to user messages.`;
     window.undoCanvas = undoCanvas;
     window.shareArtwork = shareArtwork;
     window.showArtworkModal = showArtworkModal;
+    window.switchSidebarTab = switchSidebarTab;
+    window.loadCommunityArt = loadCommunityArt;
     window.leaveCurrentRoom = leaveCurrentRoom;
     window.cancelReply = cancelReply;
     window.closeProfileModal = closeProfileModal;
