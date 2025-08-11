@@ -17,24 +17,81 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
   
   <style>
+    /* Modern Design System */
     :root {
-      --theme-base: #191724;
-      --theme-surface: #1f1d2e;
-      --theme-overlay: #26233a;
-      --theme-muted: #6e6a86;
-      --theme-subtle: #908caa;
-      --theme-text: #e0def4;
-      --theme-love: #eb6f92;
-      --theme-gold: #f6c177;
-      --theme-rose: #ebbcba;
-      --theme-pine: #31748f;
-      --theme-foam: #9ccfd8;
-      --theme-iris: #c4a7e7;
-      --theme-highlight-low: #21202e;
-      --theme-highlight-med: #403d52;
-      --theme-highlight-high: #524f67;
+      /* Brand Colors */
+      --primary: #6366f1;
+      --primary-dark: #4f46e5;
+      --primary-light: #818cf8;
+      --secondary: #06b6d4;
+      --accent: #f59e0b;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --error: #ef4444;
+      
+      /* Neutral Palette */
+      --gray-50: #f9fafb;
+      --gray-100: #f3f4f6;
+      --gray-200: #e5e7eb;
+      --gray-300: #d1d5db;
+      --gray-400: #9ca3af;
+      --gray-500: #6b7280;
+      --gray-600: #4b5563;
+      --gray-700: #374151;
+      --gray-800: #1f2937;
+      --gray-900: #111827;
+      
+      /* Theme Variables */
+      --background: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 50%, #16213e 100%);
+      --surface: rgba(255, 255, 255, 0.08);
+      --surface-hover: rgba(255, 255, 255, 0.12);
+      --surface-active: rgba(255, 255, 255, 0.16);
+      --border: rgba(255, 255, 255, 0.1);
+      --border-hover: rgba(255, 255, 255, 0.2);
+      --text-primary: #ffffff;
+      --text-secondary: #a3a3a3;
+      --text-muted: #737373;
+      
+      /* Legacy theme variables for compatibility */
+      --theme-base: #0f0f23;
+      --theme-surface: rgba(255, 255, 255, 0.08);
+      --theme-overlay: rgba(255, 255, 255, 0.1);
+      --theme-muted: #737373;
+      --theme-text: #ffffff;
+      --theme-foam: var(--primary);
+      --theme-iris: var(--secondary);
+      --theme-highlight-med: var(--border);
+      
+      /* Glass Effect */
+      --glass: rgba(255, 255, 255, 0.05);
+      --glass-border: rgba(255, 255, 255, 0.1);
+      --backdrop-blur: 20px;
+      
+      /* Spacing */
+      --space-1: 0.25rem;
+      --space-2: 0.5rem;
+      --space-3: 0.75rem;
+      --space-4: 1rem;
+      --space-5: 1.25rem;
+      --space-6: 1.5rem;
+      --space-8: 2rem;
+      --space-10: 2.5rem;
+      --space-12: 3rem;
+      
+      /* Border Radius */
+      --radius-sm: 4px;
+      --radius: 6px;
+      --radius-md: 8px;
+      --radius-lg: 12px;
+      --radius-xl: 16px;
+      --radius-2xl: 20px;
+      
+      /* Transitions */
+      --transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      --transition-fast: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
+    /* Reset & Base */
     * {
       margin: 0;
       padding: 0;
@@ -42,189 +99,559 @@
     }
 
     body {
-      background: linear-gradient(135deg, var(--theme-base), var(--theme-surface));
-      color: var(--theme-text);
-      font-family: 'Inter', sans-serif;
+      background: var(--background);
+      color: var(--text-primary);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-weight: 400;
+      line-height: 1.6;
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    /* Utility Classes */
+    .glass {
+      background: var(--glass);
+      border: 1px solid var(--glass-border);
+      backdrop-filter: blur(var(--backdrop-blur));
+      -webkit-backdrop-filter: blur(var(--backdrop-blur));
+    }
+
+    .glass-strong {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      backdrop-filter: blur(var(--backdrop-blur));
+      -webkit-backdrop-filter: blur(var(--backdrop-blur));
+    }
+
+    .hidden { display: none !important; }
+
+    /* Layout System */
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: var(--space-4);
       min-height: 100vh;
     }
 
-    .bg-rp-base { background-color: var(--theme-base); }
-    .bg-rp-surface { background-color: var(--theme-surface); }
-    .bg-rp-overlay { background-color: var(--theme-overlay); }
-    .text-rp-text { color: var(--theme-text); }
-    .text-rp-muted { color: var(--theme-muted); }
-    .text-rp-subtle { color: var(--theme-subtle); }
-    .text-rp-foam { color: var(--theme-foam); }
-    .text-rp-iris { color: var(--theme-iris); }
-    .text-rp-love { color: var(--theme-love); }
-    .text-rp-gold { color: var(--theme-gold); }
-    .border-rp-overlay { border-color: var(--theme-overlay); }
-    .border-rp-highlight-med { border-color: var(--theme-highlight-med); }
-
-    /* Chat Rooms Layout */
     .chat-container {
       display: grid;
-      grid-template-columns: 300px 1fr;
-      height: calc(100vh - 80px);
-      gap: 1rem;
-      padding: 1rem;
+      grid-template-columns: 320px 1fr;
+      gap: var(--space-6);
+      height: calc(100vh - var(--space-8));
+      max-height: 900px;
     }
 
-    /* Sidebar Tabs */
+    /* Sidebar Components */
+    .rooms-sidebar {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-xl);
+      padding: var(--space-6);
+      backdrop-filter: blur(var(--backdrop-blur));
+      -webkit-backdrop-filter: blur(var(--backdrop-blur));
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
     .sidebar-tabs {
       display: flex;
-      background: var(--theme-overlay);
-      border-radius: 8px;
-      padding: 4px;
-      margin-bottom: 1rem;
-      gap: 2px;
+      background: var(--glass);
+      border-radius: var(--radius-lg);
+      padding: var(--space-1);
+      margin-bottom: var(--space-6);
+      border: 1px solid var(--border);
     }
 
     .sidebar-tab {
       flex: 1;
-      padding: 0.5rem 1rem;
+      padding: var(--space-3) var(--space-4);
       border: none;
       background: transparent;
-      color: var(--theme-muted);
-      border-radius: 6px;
+      color: var(--text-secondary);
+      border-radius: var(--radius-md);
       cursor: pointer;
-      transition: all 0.3s ease;
+      transition: var(--transition);
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 0.5rem;
-      font-size: 0.9rem;
+      gap: var(--space-2);
+      font-size: 0.875rem;
       font-weight: 500;
+      position: relative;
     }
 
     .sidebar-tab:hover {
-      background: var(--theme-highlight-med);
-      color: var(--theme-text);
+      background: var(--surface-hover);
+      color: var(--text-primary);
     }
 
     .sidebar-tab.active {
-      background: var(--theme-foam);
-      color: var(--theme-base);
-      box-shadow: 0 2px 8px rgba(156, 207, 216, 0.3);
+      background: var(--primary);
+      color: white;
+      box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
     }
 
     .sidebar-content {
-      min-height: 0;
+      flex: 1;
       overflow-y: auto;
+      scrollbar-width: thin;
+      scrollbar-color: var(--border) transparent;
     }
 
+    .sidebar-content::-webkit-scrollbar {
+      width: 4px;
+    }
+
+    .sidebar-content::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    .sidebar-content::-webkit-scrollbar-thumb {
+      background: var(--border);
+      border-radius: var(--radius-full);
+    }
+
+    .sidebar-content::-webkit-scrollbar-thumb:hover {
+      background: var(--border-hover);
+    }
+
+    /* Art Gallery Components */
     .art-gallery-container {
-      padding: 1rem 0;
+      padding: var(--space-2) 0;
     }
 
     .art-piece-small {
       display: flex;
       align-items: center;
-      gap: 1rem;
-      padding: 0.75rem;
-      background: var(--theme-surface);
-      border: 1px solid var(--theme-highlight-med);
-      border-radius: 8px;
-      margin-bottom: 0.75rem;
+      gap: var(--space-3);
+      padding: var(--space-3);
+      background: var(--glass);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      margin-bottom: var(--space-3);
       cursor: pointer;
-      transition: all 0.3s ease;
+      transition: var(--transition);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .art-piece-small::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(135deg, transparent 0%, rgba(99, 102, 241, 0.05) 100%);
+      opacity: 0;
+      transition: var(--transition);
     }
 
     .art-piece-small:hover {
-      background: var(--theme-highlight-med);
-      transform: translateY(-1px);
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      background: var(--surface-hover);
+      border-color: var(--border-hover);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+    }
+
+    .art-piece-small:hover::before {
+      opacity: 1;
     }
 
     .art-piece-thumbnail {
-      width: 48px;
-      height: 48px;
-      border-radius: 6px;
+      width: 40px;
+      height: 40px;
+      border-radius: var(--radius-md);
       object-fit: cover;
-      border: 2px solid var(--theme-highlight-med);
+      border: 1px solid var(--border);
+      flex-shrink: 0;
     }
 
     .art-piece-details {
       flex: 1;
       min-width: 0;
+      z-index: 1;
     }
 
     .art-piece-title {
       font-weight: 600;
-      color: var(--theme-text);
-      font-size: 0.9rem;
+      color: var(--text-primary);
+      font-size: 0.8rem;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
+      margin-bottom: var(--space-1);
     }
 
     .art-piece-author {
-      font-size: 0.8rem;
-      color: var(--theme-muted);
-      margin-top: 0.25rem;
+      font-size: 0.7rem;
+      color: var(--text-muted);
     }
 
     .art-piece-meta {
-      font-size: 0.75rem;
-      color: var(--theme-foam);
-      margin-top: 0.25rem;
+      font-size: 0.65rem;
+      color: var(--primary);
+      margin-top: var(--space-1);
     }
 
-    .rooms-sidebar {
-      background: var(--theme-surface);
-      border: 1px solid var(--theme-highlight-med);
-      border-radius: 12px;
-      padding: 1rem;
-      overflow-y: auto;
-    }
-
+    /* Chat Main Area */
     .chat-main {
-      background: var(--theme-surface);
-      border: 1px solid var(--theme-highlight-med);
-      border-radius: 12px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-xl);
       display: flex;
       flex-direction: column;
+      overflow: hidden;
+      backdrop-filter: blur(var(--backdrop-blur));
+      -webkit-backdrop-filter: blur(var(--backdrop-blur));
     }
 
     .chat-header {
-      padding: 1rem;
-      border-bottom: 1px solid var(--theme-highlight-med);
+      padding: var(--space-6);
+      border-bottom: 1px solid var(--border);
       display: flex;
-      justify-content: between;
+      justify-content: space-between;
       align-items: center;
+      background: var(--glass);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .chat-header::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, transparent 100%);
+      pointer-events: none;
+    }
+
+    .chat-header h2 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      z-index: 1;
+    }
+
+    .chat-header .header-actions {
+      display: flex;
+      gap: var(--space-2);
+      z-index: 1;
     }
 
     .chat-messages {
       flex: 1;
-      padding: 1rem;
+      padding: var(--space-4);
       overflow-y: auto;
-      max-height: calc(100vh - 200px);
+      scrollbar-width: thin;
+      scrollbar-color: var(--border) transparent;
+    }
+
+    .chat-messages::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .chat-messages::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    .chat-messages::-webkit-scrollbar-thumb {
+      background: var(--border);
+      border-radius: var(--radius-full);
+    }
+
+    .chat-messages::-webkit-scrollbar-thumb:hover {
+      background: var(--border-hover);
     }
 
     .chat-input-area {
-      padding: 1rem;
-      border-top: 1px solid var(--theme-highlight-med);
+      padding: var(--space-6);
+      border-top: 1px solid var(--border);
+      background: var(--glass);
     }
 
     /* Room Item Styles */
     .room-item {
-      padding: 0.75rem;
-      border-radius: 8px;
-      margin-bottom: 0.5rem;
+      padding: var(--space-4);
+      border-radius: var(--radius-lg);
+      margin-bottom: var(--space-3);
       cursor: pointer;
-      transition: all 0.2s ease;
-      border: 1px solid transparent;
+      transition: var(--transition);
+      border: 1px solid var(--border);
+      background: var(--glass);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .room-item::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(135deg, transparent 0%, rgba(99, 102, 241, 0.05) 100%);
+      opacity: 0;
+      transition: var(--transition);
     }
 
     .room-item:hover {
-      background: var(--theme-overlay);
-      border-color: var(--theme-highlight-med);
+      background: var(--surface-hover);
+      border-color: var(--border-hover);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    .room-item:hover::before {
+      opacity: 1;
     }
 
     .room-item.active {
-      background: var(--theme-foam);
-      color: var(--theme-base);
-      border-color: var(--theme-foam);
+      background: var(--primary);
+      color: white;
+      border-color: var(--primary);
+      box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+    }
+
+    .room-item.active::before {
+      opacity: 0;
+    }
+
+    /* Button System */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: var(--space-2);
+      padding: var(--space-3) var(--space-4);
+      border: 1px solid transparent;
+      border-radius: var(--radius-md);
+      font-size: 0.875rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: var(--transition);
+      text-decoration: none;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: white;
+      border-color: var(--primary);
+      box-shadow: 0 2px 4px rgba(99, 102, 241, 0.2);
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      background: var(--primary-dark);
+      border-color: var(--primary-dark);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+    }
+
+    .btn-primary:active {
+      transform: translateY(0);
+      box-shadow: 0 2px 4px rgba(99, 102, 241, 0.3);
+    }
+
+    .btn-secondary {
+      background: var(--glass);
+      color: var(--text-primary);
+      border-color: var(--border);
+      backdrop-filter: blur(var(--backdrop-blur));
+      -webkit-backdrop-filter: blur(var(--backdrop-blur));
+    }
+
+    .btn-secondary:hover:not(:disabled) {
+      background: var(--surface-hover);
+      border-color: var(--border-hover);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    .btn-success {
+      background: var(--success);
+      color: white;
+      border-color: var(--success);
+    }
+
+    .btn-success:hover:not(:disabled) {
+      background: #059669;
+      border-color: #059669;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+    }
+
+    .btn-danger {
+      background: var(--error);
+      color: white;
+      border-color: var(--error);
+    }
+
+    .btn-danger:hover:not(:disabled) {
+      background: #dc2626;
+      border-color: #dc2626;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
+    }
+
+    .btn-sm {
+      padding: var(--space-2) var(--space-3);
+      font-size: 0.75rem;
+      border-radius: var(--radius);
+    }
+
+    .btn-lg {
+      padding: var(--space-4) var(--space-6);
+      font-size: 1rem;
+      border-radius: var(--radius-lg);
+    }
+
+    /* Form Controls */
+    .form-input {
+      width: 100%;
+      padding: var(--space-3) var(--space-4);
+      background: var(--glass);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      color: var(--text-primary);
+      font-size: 0.875rem;
+      transition: var(--transition);
+      backdrop-filter: blur(var(--backdrop-blur));
+      -webkit-backdrop-filter: blur(var(--backdrop-blur));
+    }
+
+    .form-input:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+    }
+
+    .form-input::placeholder {
+      color: var(--text-muted);
+    }
+
+    /* Animations */
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateX(-20px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+
+    @keyframes messageSlideIn {
+      from { 
+        opacity: 0; 
+        transform: translateY(20px) scale(0.95); 
+      }
+      to { 
+        opacity: 1; 
+        transform: translateY(0) scale(1); 
+      }
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.7; }
+    }
+
+    .animate-fade-in {
+      animation: fadeIn 0.3s ease-out;
+    }
+
+    .animate-slide-in {
+      animation: slideIn 0.3s ease-out;
+    }
+
+    .animate-pulse {
+      animation: pulse 2s infinite;
+    }
+
+    /* Responsive Design */
+    @media (max-width: 768px) {
+      .container {
+        padding: var(--space-2);
+      }
+
+      .chat-container {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto 1fr;
+        gap: var(--space-4);
+        height: calc(100vh - var(--space-4));
+      }
+
+      .rooms-sidebar {
+        padding: var(--space-4);
+      }
+
+      .chat-header {
+        padding: var(--space-4);
+        flex-direction: column;
+        gap: var(--space-3);
+        align-items: flex-start;
+      }
+
+      .header-actions {
+        flex-wrap: wrap;
+        gap: var(--space-2);
+      }
+
+      .btn {
+        padding: var(--space-2) var(--space-3);
+        font-size: 0.75rem;
+      }
+
+      .art-container {
+        padding: var(--space-4);
+        max-width: 95vw;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .sidebar-tab {
+        padding: var(--space-2) var(--space-3);
+        font-size: 0.75rem;
+      }
+
+      .chat-header h2 {
+        font-size: 1.125rem;
+      }
+
+      .message {
+        padding: var(--space-3);
+      }
+
+      .room-item {
+        padding: var(--space-3);
+      }
+    }
+
+    /* Dark mode enhancements */
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --background: linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 50%, #16213e 100%);
+      }
+    }
+
+    /* High contrast mode */
+    @media (prefers-contrast: high) {
+      :root {
+        --border: rgba(255, 255, 255, 0.3);
+        --border-hover: rgba(255, 255, 255, 0.5);
+        --surface: rgba(255, 255, 255, 0.15);
+      }
     }
 
     .room-item.default {
@@ -239,11 +666,27 @@
 
     /* Message Styles */
     .message {
-      margin-bottom: 1rem;
-      padding: 0.75rem;
-      border-radius: 8px;
-      background: var(--theme-overlay);
-      animation: messageSlideIn 0.3s ease;
+      margin-bottom: var(--space-4);
+      padding: var(--space-4);
+      border-radius: var(--radius-lg);
+      background: var(--glass);
+      border: 1px solid var(--border);
+      backdrop-filter: blur(var(--backdrop-blur));
+      -webkit-backdrop-filter: blur(var(--backdrop-blur));
+      animation: messageSlideIn 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .message::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 3px;
+      height: 100%;
+      background: var(--primary);
+      opacity: 0.6;
     }
 
     .message.own {
@@ -1099,7 +1542,8 @@
       justify-content: center;
       align-items: center;
       z-index: 3000;
-      backdrop-filter: blur(10px);
+      backdrop-filter: blur(var(--backdrop-blur));
+      -webkit-backdrop-filter: blur(var(--backdrop-blur));
     }
 
     .art-modal.show {
@@ -1107,14 +1551,16 @@
     }
 
     .art-container {
-      background: var(--theme-surface);
-      border-radius: 20px;
-      padding: 2rem;
+      background: var(--surface);
+      border-radius: var(--radius-2xl);
+      padding: var(--space-8);
       max-width: 90vw;
       max-height: 90vh;
       overflow: auto;
-      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-      border: 2px solid var(--theme-foam);
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4);
+      border: 1px solid var(--border);
+      backdrop-filter: blur(var(--backdrop-blur));
+      -webkit-backdrop-filter: blur(var(--backdrop-blur));
     }
 
     .art-header {
@@ -1651,7 +2097,7 @@
       <div id="roomsTab" class="sidebar-content">
         <div class="flex items-center justify-between mb-4">
           <h3 class="text-lg font-bold text-rp-foam">Chat Rooms</h3>
-          <button id="createRoomBtn" onclick="showCreateRoomModal()" class="btn-secondary hidden">
+          <button id="createRoomBtn" onclick="showCreateRoomModal()" class="btn btn-secondary hidden">
             <i class='bx bx-plus'></i>
           </button>
         </div>
@@ -1665,7 +2111,7 @@
       <div id="galleryTab" class="sidebar-content hidden">
         <div class="flex items-center justify-between mb-4">
           <h3 class="text-lg font-bold text-rp-foam">Community Art</h3>
-          <button onclick="openCarbonArt()" class="btn-secondary">
+          <button onclick="openCarbonArt()" class="btn btn-secondary">
             <i class='bx bx-brush'></i>
           </button>
         </div>
@@ -1698,13 +2144,13 @@
       <!-- Chat Header -->
       <div class="chat-header">
         <div>
-          <h2 id="chatTitle" class="text-xl font-bold text-rp-foam">Select a room to start chatting</h2>
-          <div id="chatSubtitle" class="text-sm text-rp-muted hidden">
+          <h2 id="chatTitle">Select a room to start chatting</h2>
+          <div id="chatSubtitle" class="hidden" style="font-size: 0.875rem; color: var(--text-secondary); margin-top: var(--space-1);">
             <span id="roomType"></span>
             <span id="roomTimer" class="room-timer"></span>
           </div>
         </div>
-        <div class="flex items-center gap-3">
+        <div class="header-actions">
           <!-- XP Widget -->
           <div id="xpWidget" class="xp-widget hidden">
             <div class="xp-widget-content">
@@ -1720,19 +2166,19 @@
           </div>
           
           <span id="userCount" class="user-count hidden">0 users</span>
-          <button id="toggleUserListBtn" class="btn-secondary hidden" onclick="toggleUserList()">
+          <button id="toggleUserListBtn" class="btn btn-secondary hidden" onclick="toggleUserList()">
             <i class='bx bx-group'></i>
             Users
           </button>
-          <button id="customizeColorBtn" onclick="openColorPicker()" class="btn-secondary hidden">
+          <button id="customizeColorBtn" onclick="openColorPicker()" class="btn btn-secondary hidden">
             <i class='bx bx-palette'></i>
             Colors
           </button>
-          <button id="carbonArtBtn" onclick="openCarbonArt()" class="btn-secondary hidden">
+          <button id="carbonArtBtn" onclick="openCarbonArt()" class="btn btn-secondary hidden">
             <i class='bx bx-brush'></i>
             Art
           </button>
-          <button id="leaveRoomBtn" onclick="leaveCurrentRoom()" class="btn-secondary hidden">
+          <button id="leaveRoomBtn" onclick="leaveCurrentRoom()" class="btn btn-danger hidden">
             <i class='bx bx-exit'></i>
             Leave
           </button>
