@@ -3700,6 +3700,9 @@
     let app, auth, db;
     let firebaseInitialized = false;
     let isOnline = navigator.onLine;
+    
+    // Expose firebaseInitialized to global scope immediately
+    window.firebaseInitialized = firebaseInitialized;
 
     async function initializeFirebase() {
       if (firebaseInitialized) return true;
@@ -3740,6 +3743,7 @@
         
         auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
         firebaseInitialized = true;
+        window.firebaseInitialized = true; // Expose to global scope
         console.log('Firebase initialized for chat');
         return true;
       } catch (error) {
@@ -4358,6 +4362,9 @@ Be helpful and conversational. Respond naturally to user messages.`;
         showNotification('Sign In Failed', 'Please try again or check your connection.', 'error');
       }
     }
+    
+    // Expose main function to global scope immediately
+    window.mainGoogleSignIn = mainGoogleSignIn;
 
     async function signOut() {
       try {
@@ -5944,6 +5951,10 @@ Be helpful and conversational. Respond naturally to user messages.`;
       document.getElementById('createRoomForm').reset();
       clearRoomNameError();
     }
+    
+    // Expose modal functions to global scope immediately  
+    window.mainShowCreateRoomModal = mainShowCreateRoomModal;
+    window.mainHideCreateRoomModal = mainHideCreateRoomModal;
 
     function clearRoomNameError() {
       document.getElementById('roomNameError').classList.add('hidden');
@@ -6607,39 +6618,49 @@ Be helpful and conversational. Respond naturally to user messages.`;
 
     // Wait for Firebase and initialize
     async function waitForFirebaseAndStartChat() {
-      console.log('Waiting for Firebase initialization...');
+      console.log('🚀 Starting Firebase initialization process...');
       updateLoadingStatus('Loading Firebase SDK...');
       
       // First ensure Firebase is loaded and initialized
       if (typeof firebase === 'undefined') {
-        console.log('Firebase SDK not loaded yet, waiting...');
+        console.log('⏳ Firebase SDK not loaded yet, waiting...');
         setTimeout(waitForFirebaseAndStartChat, 100);
         return;
       }
       
+      console.log('✅ Firebase SDK loaded, connecting...');
       updateLoadingStatus('Connecting to Firebase...');
       
       // Initialize Firebase if not already done
       if (!firebaseInitialized) {
-        console.log('Initializing Firebase...');
+        console.log('🔧 Initializing Firebase...');
         try {
-          await initializeFirebase();
-          console.log('Firebase initialization completed');
+          const result = await initializeFirebase();
+          console.log('✅ Firebase initialization completed, result:', result);
+          console.log('🔍 firebaseInitialized status:', { local: firebaseInitialized, global: window.firebaseInitialized });
         } catch (error) {
-          console.error('Firebase initialization failed:', error);
+          console.error('❌ Firebase initialization failed:', error);
           updateLoadingStatus('Connection failed, running in offline mode...');
           // Continue anyway for offline mode
           firebaseInitialized = true;
+          window.firebaseInitialized = true; // Expose to global scope
+          console.log('🔄 Set offline mode, firebaseInitialized:', { local: firebaseInitialized, global: window.firebaseInitialized });
         }
       }
       
       if (firebaseInitialized) {
-        console.log('Starting chat system...');
+        console.log('🎉 Starting chat system...');
+        console.log('🔍 Final status check:', {
+          firebaseInitialized: firebaseInitialized,
+          windowFirebaseInitialized: window.firebaseInitialized,
+          mainGoogleSignIn: typeof window.mainGoogleSignIn,
+          mainShowCreateRoomModal: typeof window.mainShowCreateRoomModal
+        });
         updateLoadingStatus('Starting chat system...');
         initializeChatSystem();
         hideLoadingIndicator();
       } else {
-        console.log('Firebase still not initialized, retrying...');
+        console.log('🔄 Firebase still not initialized, retrying...');
         updateLoadingStatus('Retrying connection...');
         setTimeout(waitForFirebaseAndStartChat, 100);
       }
@@ -7874,10 +7895,8 @@ Be helpful and conversational. Respond naturally to user messages.`;
       }
     }
 
-    // Ensure all functions are available in global scope for onclick handlers
-    window.mainGoogleSignIn = mainGoogleSignIn;
-    window.mainShowCreateRoomModal = mainShowCreateRoomModal;
-    window.mainHideCreateRoomModal = mainHideCreateRoomModal;
+    // Ensure all functions are available in global scope for onclick handlers  
+    // Main functions already exposed immediately after definition
     window.cleanupExpiredRooms = cleanupExpiredRooms;
     window.cleanupInactiveRooms = cleanupInactiveRooms;
     window.cleanupOldMessages = cleanupOldMessages;
@@ -7926,6 +7945,7 @@ Be helpful and conversational. Respond naturally to user messages.`;
           console.warn('Firebase initialization timeout, forcing offline mode');
           updateLoadingStatus('Connection timeout - running in offline mode');
           firebaseInitialized = true;
+          window.firebaseInitialized = true; // Expose to global scope
           initializeChatSystem();
           hideLoadingIndicator();
           
