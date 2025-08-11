@@ -687,6 +687,41 @@
       background: linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(99, 102, 241, 0.05) 100%);
     }
 
+    .leaderboard-follow-btn {
+      background: var(--primary);
+      color: white;
+      border: none;
+      width: 28px;
+      height: 28px;
+      border-radius: var(--radius-full);
+      cursor: pointer;
+      transition: var(--transition);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.75rem;
+      margin-top: var(--space-2);
+      opacity: 0;
+      z-index: 1;
+    }
+
+    .leaderboard-item:hover .leaderboard-follow-btn {
+      opacity: 1;
+    }
+
+    .leaderboard-follow-btn:hover {
+      background: var(--brand-purple);
+      transform: scale(1.1);
+    }
+
+    .leaderboard-follow-btn.following {
+      background: var(--success);
+    }
+
+    .leaderboard-follow-btn.following:hover {
+      background: var(--error);
+    }
+
     .search-results {
       margin-top: var(--space-4);
     }
@@ -2299,12 +2334,118 @@
     .profile-modal-content {
       background: var(--theme-surface);
       border: 1px solid var(--theme-highlight-med);
-      border-radius: 12px;
-      padding: 2rem;
-      max-width: 400px;
+      border-radius: 16px;
+      padding: 0;
+      max-width: 480px;
       width: 90%;
       max-height: 80vh;
-      overflow-y: auto;
+      overflow: hidden;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4);
+    }
+
+    .profile-banner {
+      height: 120px;
+      background: linear-gradient(135deg, var(--primary), var(--brand-purple));
+      position: relative;
+      overflow: hidden;
+    }
+
+    .profile-banner::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(45deg, transparent 25%, rgba(255,255,255,0.1) 25%, rgba(255,255,255,0.1) 50%, transparent 50%, transparent 75%, rgba(255,255,255,0.1) 75%);
+      background-size: 20px 20px;
+      animation: bannerPattern 20s linear infinite;
+    }
+
+    @keyframes bannerPattern {
+      0% { transform: translateX(-20px); }
+      100% { transform: translateX(0); }
+    }
+
+    .profile-avatar-container {
+      position: relative;
+      margin-top: -40px;
+      text-align: center;
+      margin-bottom: var(--space-4);
+    }
+
+    .profile-modal-body {
+      padding: var(--space-6);
+      padding-top: var(--space-3);
+    }
+
+    .profile-modal-header {
+      position: absolute;
+      top: var(--space-3);
+      right: var(--space-3);
+      z-index: 10;
+    }
+
+    .profile-stats {
+      display: flex;
+      gap: var(--space-6);
+      justify-content: center;
+      margin: var(--space-4) 0;
+      padding: var(--space-4);
+      background: var(--glass);
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--border);
+    }
+
+    .profile-stat {
+      text-align: center;
+    }
+
+    .profile-stat-number {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--primary);
+      margin-bottom: var(--space-1);
+    }
+
+    .profile-stat-label {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    .follow-button {
+      background: linear-gradient(135deg, var(--primary), var(--brand-purple));
+      color: white;
+      border: none;
+      padding: var(--space-3) var(--space-6);
+      border-radius: var(--radius-lg);
+      font-weight: 600;
+      cursor: pointer;
+      transition: var(--transition);
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      width: 100%;
+      justify-content: center;
+      margin-bottom: var(--space-4);
+    }
+
+    .follow-button:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 16px rgba(99, 102, 241, 0.4);
+    }
+
+    .follow-button.following {
+      background: var(--surface);
+      color: var(--text-primary);
+      border: 1px solid var(--border);
+    }
+
+    .follow-button.following:hover {
+      background: var(--error);
+      color: white;
+      border-color: var(--error);
     }
 
     .profile-avatar-large {
@@ -2802,33 +2943,67 @@
   <!-- Profile Modal -->
   <div id="profileModal" class="profile-modal hidden">
     <div class="profile-modal-content">
-      <div class="flex items-center justify-between mb-4">
-        <h3 class="text-xl font-bold text-rp-foam">User Profile</h3>
-        <button onclick="closeProfileModal()" class="text-rp-muted hover:text-rp-text">
+      <!-- Profile Banner -->
+      <div class="profile-banner"></div>
+      
+      <!-- Close Button -->
+      <div class="profile-modal-header">
+        <button onclick="closeProfileModal()" class="text-white hover:text-gray-200 transition-colors">
           <i class='bx bx-x text-2xl'></i>
         </button>
       </div>
       
-      <div class="text-center mb-4">
-        <img id="profileModalAvatar" src="" alt="User Avatar" class="profile-avatar-large mx-auto mb-3">
-        <h4 id="profileModalName" class="text-lg font-semibold text-rp-text"></h4>
-        <div id="profileModalStatus" class="text-sm text-rp-muted"></div>
-      </div>
-      
-      <div class="space-y-3">
-        <div>
-          <div class="text-sm font-semibold text-rp-foam mb-1">Bio:</div>
-          <div id="profileModalBio" class="text-sm text-rp-text bg-rp-overlay p-3 rounded-lg">No bio available</div>
+      <!-- Profile Content -->
+      <div class="profile-modal-body">
+        <!-- Avatar and Name -->
+        <div class="profile-avatar-container">
+          <img id="profileModalAvatar" src="" alt="User Avatar" class="profile-avatar-large mx-auto border-4 border-white shadow-xl">
+          <h4 id="profileModalName" class="text-xl font-bold text-primary mt-3 mb-1"></h4>
+          <div id="profileModalStatus" class="text-sm text-muted"></div>
+        </div>
+
+        <!-- Stats -->
+        <div class="profile-stats">
+          <div class="profile-stat">
+            <div class="profile-stat-number" id="profileModalXP">0</div>
+            <div class="profile-stat-label">XP</div>
+          </div>
+          <div class="profile-stat">
+            <div class="profile-stat-number" id="profileModalLevel">1</div>
+            <div class="profile-stat-label">Level</div>
+          </div>
+          <div class="profile-stat">
+            <div class="profile-stat-number" id="profileModalMessages">0</div>
+            <div class="profile-stat-label">Messages</div>
+          </div>
+          <div class="profile-stat">
+            <div class="profile-stat-number" id="profileModalFollowers">0</div>
+            <div class="profile-stat-label">Followers</div>
+          </div>
+        </div>
+
+        <!-- Follow Button -->
+        <button id="followButton" class="follow-button" style="display: none;">
+          <i class='bx bx-user-plus'></i>
+          <span id="followButtonText">Follow</span>
+        </button>
+        
+        <!-- Bio Section -->
+        <div class="mb-4">
+          <div class="text-sm font-semibold text-primary mb-2">Bio</div>
+          <div id="profileModalBio" class="text-sm text-secondary bg-glass p-3 rounded-lg border border-border">No bio available</div>
         </div>
         
-        <div>
-          <div class="text-sm font-semibold text-rp-foam mb-1">Joined:</div>
-          <div id="profileModalJoined" class="text-sm text-rp-text"></div>
+        <!-- Joined Date -->
+        <div class="mb-6">
+          <div class="text-sm font-semibold text-primary mb-2">Member Since</div>
+          <div id="profileModalJoined" class="text-sm text-secondary"></div>
         </div>
         
-        <div class="flex gap-2 mt-4">
-          <button onclick="closeProfileModal()" class="btn-secondary flex-1">Close</button>
-          <button id="viewFullProfileBtn" class="btn-primary flex-1">View Full Profile</button>
+        <!-- Action Buttons -->
+        <div class="flex gap-3">
+          <button onclick="closeProfileModal()" class="btn btn-secondary flex-1">Close</button>
+          <button id="viewFullProfileBtn" class="btn btn-primary flex-1">View Full Profile</button>
         </div>
       </div>
     </div>
@@ -5129,6 +5304,12 @@ Be helpful and conversational. Respond naturally to user messages.`;
       const status = document.getElementById('profileModalStatus');
       const bio = document.getElementById('profileModalBio');
       const joined = document.getElementById('profileModalJoined');
+      const xpElement = document.getElementById('profileModalXP');
+      const levelElement = document.getElementById('profileModalLevel');
+      const messagesElement = document.getElementById('profileModalMessages');
+      const followersElement = document.getElementById('profileModalFollowers');
+      const followButton = document.getElementById('followButton');
+      const followButtonText = document.getElementById('followButtonText');
       const viewFullBtn = document.getElementById('viewFullProfileBtn');
 
       // Set basic info
@@ -5137,6 +5318,13 @@ Be helpful and conversational. Respond naturally to user messages.`;
       status.textContent = 'Loading...';
       bio.textContent = 'Loading...';
       joined.textContent = 'Loading...';
+      xpElement.textContent = '0';
+      levelElement.textContent = '1';
+      messagesElement.textContent = '0';
+      followersElement.textContent = '0';
+
+      // Hide follow button initially
+      followButton.style.display = 'none';
 
       // Show modal
       modal.classList.remove('hidden');
@@ -5148,8 +5336,20 @@ Be helpful and conversational. Respond naturally to user messages.`;
           const userData = userDoc.data();
           
           // Update modal with user data
-          status.textContent = `Status: ${userData.status || 'Unknown'}`;
+          status.textContent = userData.status || 'Online';
           bio.textContent = userData.bio || 'No bio available';
+          xpElement.textContent = userData.totalXP || 0;
+          levelElement.textContent = userData.level || 1;
+          messagesElement.textContent = userData.messageCount || 0;
+          
+          // Get follower count
+          try {
+            const followersSnapshot = await db.collection('users').doc(userId).collection('followers').get();
+            followersElement.textContent = followersSnapshot.size;
+          } catch (error) {
+            console.log('Could not load followers count:', error);
+            followersElement.textContent = '0';
+          }
           
           if (userData.createdAt) {
             const joinDate = userData.createdAt.toDate ? userData.createdAt.toDate() : new Date(userData.createdAt);
@@ -5157,7 +5357,13 @@ Be helpful and conversational. Respond naturally to user messages.`;
           } else {
             joined.textContent = 'Unknown';
           }
-
+          
+          // Show follow button if not viewing own profile
+          if (currentUser && userId !== currentUser.uid) {
+            followButton.style.display = 'block';
+            await updateFollowButtonState(userId);
+          }
+          
           // Set up view full profile button
           viewFullBtn.onclick = () => {
             window.open(`/profile.html?uid=${userId}`, '_blank');
@@ -5173,6 +5379,90 @@ Be helpful and conversational. Respond naturally to user messages.`;
         status.textContent = 'Error loading profile';
         bio.textContent = 'Could not load profile data';
         joined.textContent = 'Unknown';
+      }
+    }
+
+    async function updateFollowButtonState(targetUserId) {
+      if (!currentUser) return;
+
+      const followButton = document.getElementById('followButton');
+      const followButtonText = document.getElementById('followButtonText');
+      const followButtonIcon = followButton.querySelector('i');
+
+      try {
+        // Check if currently following
+        const followDoc = await db.collection('users').doc(currentUser.uid).collection('following').doc(targetUserId).get();
+        const isFollowing = followDoc.exists;
+
+        if (isFollowing) {
+          followButton.classList.add('following');
+          followButtonIcon.className = 'bx bx-user-check';
+          followButtonText.textContent = 'Following';
+        } else {
+          followButton.classList.remove('following');
+          followButtonIcon.className = 'bx bx-user-plus';
+          followButtonText.textContent = 'Follow';
+        }
+
+        // Set up click handler
+        followButton.onclick = () => toggleFollow(targetUserId);
+
+      } catch (error) {
+        console.error('Error checking follow status:', error);
+      }
+    }
+
+    async function toggleFollow(targetUserId) {
+      if (!currentUser) return;
+
+      const followButton = document.getElementById('followButton');
+      const followButtonText = document.getElementById('followButtonText');
+      const followButtonIcon = followButton.querySelector('i');
+      const followersElement = document.getElementById('profileModalFollowers');
+
+      try {
+        const followDoc = await db.collection('users').doc(currentUser.uid).collection('following').doc(targetUserId).get();
+        const isFollowing = followDoc.exists;
+
+        if (isFollowing) {
+          // Unfollow
+          await db.collection('users').doc(currentUser.uid).collection('following').doc(targetUserId).delete();
+          await db.collection('users').doc(targetUserId).collection('followers').doc(currentUser.uid).delete();
+          
+          followButton.classList.remove('following');
+          followButtonIcon.className = 'bx bx-user-plus';
+          followButtonText.textContent = 'Follow';
+          
+          // Update follower count
+          const currentCount = parseInt(followersElement.textContent) || 0;
+          followersElement.textContent = Math.max(0, currentCount - 1);
+          
+        } else {
+          // Follow
+          await db.collection('users').doc(currentUser.uid).collection('following').doc(targetUserId).set({
+            followedAt: firebase.firestore.FieldValue.serverTimestamp(),
+            displayName: document.getElementById('profileModalName').textContent,
+            photoURL: document.getElementById('profileModalAvatar').src
+          });
+          
+          await db.collection('users').doc(targetUserId).collection('followers').doc(currentUser.uid).set({
+            followedAt: firebase.firestore.FieldValue.serverTimestamp(),
+            displayName: currentUser.displayName,
+            photoURL: currentUser.photoURL
+          });
+          
+          followButton.classList.add('following');
+          followButtonIcon.className = 'bx bx-user-check';
+          followButtonText.textContent = 'Following';
+          
+          // Update follower count
+          const currentCount = parseInt(followersElement.textContent) || 0;
+          followersElement.textContent = currentCount + 1;
+        }
+
+      } catch (error) {
+        console.error('Error toggling follow:', error);
+        alert('Failed to update follow status. Please try again.');
       }
     }
 
@@ -5319,6 +5609,21 @@ Be helpful and conversational. Respond naturally to user messages.`;
           }
         });
       }
+
+      // Leaderboard follow button handlers
+      document.addEventListener('click', async (e) => {
+        if (e.target.closest('.leaderboard-follow-btn')) {
+          e.stopPropagation();
+          const button = e.target.closest('.leaderboard-follow-btn');
+          const userId = button.getAttribute('data-user-id');
+          const userName = button.getAttribute('data-user-name');
+          const userPhoto = button.getAttribute('data-user-photo');
+          
+          if (userId && currentUser) {
+            await toggleLeaderboardFollow(button, userId, userName, userPhoto);
+          }
+        }
+      });
     }
 
     async function createRoom(event) {
@@ -6213,6 +6518,9 @@ Be helpful and conversational. Respond naturally to user messages.`;
           leaderboardContainer.appendChild(leaderboardItem);
         });
 
+        // Update follow button states after loading
+        setTimeout(() => updateLeaderboardFollowStates(), 100);
+
       } catch (error) {
         console.error(`Error loading ${type} leaderboard:`, error);
         leaderboardContainer.innerHTML = `
@@ -6258,6 +6566,9 @@ Be helpful and conversational. Respond naturally to user messages.`;
            <div class="leaderboard-avatar placeholder" style="display: none;">${(userData.displayName || 'U').charAt(0).toUpperCase()}</div>`
         : `<div class="leaderboard-avatar placeholder">${(userData.displayName || 'User').charAt(0).toUpperCase()}</div>`;
 
+      // Show follow button for other users (not current user)
+      const showFollowButton = currentUser && userId !== currentUser.uid;
+      
       item.innerHTML = `
         ${rank === 1 ? '<i class="bx bx-crown leaderboard-crown"></i>' : ''}
         <div class="leaderboard-rank ${rankClass}">${rank}</div>
@@ -6274,6 +6585,11 @@ Be helpful and conversational. Respond naturally to user messages.`;
               ${userData.lastActivity ? timeAgo(userData.lastActivity.toDate()) : 'Never'}
             </div>
           </div>
+          ${showFollowButton ? `
+            <button class="leaderboard-follow-btn" data-user-id="${userId}" data-user-name="${sanitizeText(userData.displayName || 'User')}" data-user-photo="${userData.photoURL || ''}">
+              <i class='bx bx-user-plus'></i>
+            </button>
+          ` : ''}
         </div>
         <div class="leaderboard-xp">
           <div class="leaderboard-xp-amount">${primaryValue}</div>
@@ -6414,6 +6730,77 @@ Be helpful and conversational. Respond naturally to user messages.`;
       }
     }
 
+    // Toggle follow from leaderboard
+    async function toggleLeaderboardFollow(button, userId, userName, userPhoto) {
+      if (!currentUser) return;
+
+      const icon = button.querySelector('i');
+      
+      try {
+        const followDoc = await db.collection('users').doc(currentUser.uid).collection('following').doc(userId).get();
+        const isFollowing = followDoc.exists;
+
+        if (isFollowing) {
+          // Unfollow
+          await db.collection('users').doc(currentUser.uid).collection('following').doc(userId).delete();
+          await db.collection('users').doc(userId).collection('followers').doc(currentUser.uid).delete();
+          
+          button.classList.remove('following');
+          icon.className = 'bx bx-user-plus';
+          
+        } else {
+          // Follow
+          await db.collection('users').doc(currentUser.uid).collection('following').doc(userId).set({
+            followedAt: firebase.firestore.FieldValue.serverTimestamp(),
+            displayName: userName,
+            photoURL: userPhoto
+          });
+          
+          await db.collection('users').doc(userId).collection('followers').doc(currentUser.uid).set({
+            followedAt: firebase.firestore.FieldValue.serverTimestamp(),
+            displayName: currentUser.displayName,
+            photoURL: currentUser.photoURL
+          });
+          
+          button.classList.add('following');
+          icon.className = 'bx bx-user-check';
+        }
+
+      } catch (error) {
+        console.error('Error toggling follow from leaderboard:', error);
+        // Revert button state on error
+        setTimeout(() => {
+          button.classList.toggle('following');
+          icon.className = button.classList.contains('following') ? 'bx bx-user-check' : 'bx bx-user-plus';
+        }, 100);
+      }
+    }
+
+    // Update leaderboard follow button states
+    async function updateLeaderboardFollowStates() {
+      if (!currentUser) return;
+
+      try {
+        const followingSnapshot = await db.collection('users').doc(currentUser.uid).collection('following').get();
+        const followingIds = new Set(followingSnapshot.docs.map(doc => doc.id));
+
+        document.querySelectorAll('.leaderboard-follow-btn').forEach(button => {
+          const userId = button.getAttribute('data-user-id');
+          const icon = button.querySelector('i');
+          
+          if (followingIds.has(userId)) {
+            button.classList.add('following');
+            icon.className = 'bx bx-user-check';
+          } else {
+            button.classList.remove('following');
+            icon.className = 'bx bx-user-plus';
+          }
+        });
+      } catch (error) {
+        console.error('Error updating follow states:', error);
+      }
+    }
+
     // Sidebar Tab Management
     function switchSidebarTab(tabName) {
       // Update tab buttons
@@ -6532,6 +6919,8 @@ Be helpful and conversational. Respond naturally to user messages.`;
     window.loadLeaderboard = loadLeaderboard;
     window.switchLeaderboard = switchLeaderboard;
     window.searchUsers = searchUsers;
+    window.toggleLeaderboardFollow = toggleLeaderboardFollow;
+    window.updateLeaderboardFollowStates = updateLeaderboardFollowStates;
     window.leaveCurrentRoom = leaveCurrentRoom;
     window.cancelReply = cancelReply;
     window.closeProfileModal = closeProfileModal;
