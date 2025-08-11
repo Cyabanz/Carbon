@@ -1599,6 +1599,221 @@
       transform: translateY(0);
     }
     
+    /* Notification Bell System */
+    .notification-bell {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 40px;
+      height: 40px;
+      background: var(--glass);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      color: var(--text-secondary);
+    }
+    
+    .notification-bell:hover {
+      background: var(--surface-hover);
+      color: var(--text-primary);
+      transform: translateY(-1px);
+    }
+    
+    .notification-bell.has-notifications {
+      color: var(--primary);
+      box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+    }
+    
+    .notification-badge {
+      position: absolute;
+      top: -4px;
+      right: -4px;
+      background: var(--error);
+      color: white;
+      font-size: 0.7rem;
+      font-weight: 600;
+      padding: 2px 6px;
+      border-radius: 10px;
+      min-width: 18px;
+      text-align: center;
+      animation: pulse 1.5s infinite;
+    }
+    
+    .notification-panel {
+      position: absolute;
+      top: 100%;
+      right: 0;
+      width: 350px;
+      max-height: 400px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-xl);
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+      backdrop-filter: blur(var(--backdrop-blur));
+      z-index: 1000;
+      opacity: 0;
+      transform: translateY(-10px);
+      pointer-events: none;
+      transition: all 0.3s ease;
+      overflow: hidden;
+    }
+    
+    .notification-panel.show {
+      opacity: 1;
+      transform: translateY(0);
+      pointer-events: all;
+    }
+    
+    .notification-panel-header {
+      padding: var(--space-4) var(--space-5);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .notification-panel-title {
+      font-weight: 600;
+      color: var(--text-primary);
+      font-size: 1rem;
+    }
+    
+    .clear-all-btn {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-size: 0.8rem;
+      cursor: pointer;
+      padding: var(--space-1) var(--space-2);
+      border-radius: var(--radius);
+      transition: all 0.2s ease;
+    }
+    
+    .clear-all-btn:hover {
+      background: var(--surface-hover);
+      color: var(--text-primary);
+    }
+    
+    .notification-list {
+      max-height: 320px;
+      overflow-y: auto;
+      scrollbar-width: thin;
+      scrollbar-color: var(--border) transparent;
+    }
+    
+    .notification-list::-webkit-scrollbar {
+      width: 6px;
+    }
+    
+    .notification-list::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    
+    .notification-list::-webkit-scrollbar-thumb {
+      background: var(--border);
+      border-radius: 3px;
+    }
+    
+    .notification-item {
+      padding: var(--space-4) var(--space-5);
+      border-bottom: 1px solid var(--border);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      position: relative;
+    }
+    
+    .notification-item:hover {
+      background: var(--surface-hover);
+    }
+    
+    .notification-item.unread {
+      background: rgba(99, 102, 241, 0.05);
+      border-left: 3px solid var(--primary);
+    }
+    
+    .notification-item.unread::before {
+      content: '';
+      position: absolute;
+      left: var(--space-2);
+      top: 50%;
+      transform: translateY(-50%);
+      width: 6px;
+      height: 6px;
+      background: var(--primary);
+      border-radius: 50%;
+    }
+    
+    .notification-content {
+      display: flex;
+      gap: var(--space-3);
+      align-items: flex-start;
+    }
+    
+    .notification-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    
+    .notification-text {
+      flex: 1;
+      min-width: 0;
+    }
+    
+    .notification-title {
+      font-weight: 600;
+      color: var(--text-primary);
+      font-size: 0.9rem;
+      line-height: 1.3;
+      margin-bottom: var(--space-1);
+    }
+    
+    .notification-message {
+      color: var(--text-secondary);
+      font-size: 0.8rem;
+      line-height: 1.4;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    
+    .notification-time {
+      color: var(--text-muted);
+      font-size: 0.7rem;
+      margin-top: var(--space-1);
+    }
+    
+    .notification-empty {
+      padding: var(--space-8) var(--space-5);
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.9rem;
+    }
+    
+    .notification-empty i {
+      font-size: 2rem;
+      margin-bottom: var(--space-3);
+      opacity: 0.5;
+    }
+
+    /* Mention Highlights */
+    .mention-highlight {
+      background: rgba(99, 102, 241, 0.2);
+      color: var(--primary);
+      padding: 2px 4px;
+      border-radius: 4px;
+      font-weight: 600;
+      border: 1px solid rgba(99, 102, 241, 0.3);
+    }
+
+    .mention-highlight:hover {
+      background: rgba(99, 102, 241, 0.3);
+      cursor: pointer;
+    }
+
     /* Delete confirmation dialog */
     .delete-message-confirmation {
       position: fixed;
@@ -3488,7 +3703,23 @@
             </div>
           </div>
           
-          <div class="header-actions-row">
+                    <div class="header-actions-row">
+            <div class="notification-bell" id="notificationBell" onclick="toggleNotificationPanel()">
+              <i class='bx bx-bell'></i>
+              <span id="notificationBadge" class="notification-badge hidden">0</span>
+              <div id="notificationPanel" class="notification-panel">
+                <div class="notification-panel-header">
+                  <span class="notification-panel-title">Notifications</span>
+                  <button class="clear-all-btn" onclick="clearAllNotifications()">Clear All</button>
+                </div>
+                <div id="notificationList" class="notification-list">
+                  <div class="notification-empty">
+                    <i class='bx bx-bell'></i>
+                    <div>No notifications yet</div>
+                  </div>
+                </div>
+              </div>
+            </div>
             <button id="toggleUserListBtn" class="btn btn-secondary hidden" onclick="toggleUserList()">
               <i class='bx bx-group'></i>
               <span>Users</span>
@@ -3497,18 +3728,18 @@
               <i class='bx bx-palette'></i>
               <span>Colors</span>
             </button>
-                         <button id="carbonArtBtn" onclick="openCarbonArt()" class="btn btn-secondary hidden">
-               <i class='bx bx-brush'></i>
-               <span>Art</span>
-             </button>
-             <button id="soundToggle" onclick="toggleSounds()" class="btn btn-secondary" title="Toggle sound effects">
-               <i class='bx bx-volume-full'></i>
-             </button>
-             <button id="leaveRoomBtn" onclick="leaveCurrentRoom()" class="btn btn-danger hidden">
-               <i class='bx bx-exit'></i>
-               <span>Leave</span>
-             </button>
-           </div>
+            <button id="carbonArtBtn" onclick="openCarbonArt()" class="btn btn-secondary hidden">
+              <i class='bx bx-brush'></i>
+              <span>Art</span>
+            </button>
+            <button id="soundToggle" onclick="toggleSounds()" class="btn btn-secondary" title="Toggle sound effects">
+              <i class='bx bx-volume-full'></i>
+            </button>
+            <button id="leaveRoomBtn" onclick="leaveCurrentRoom()" class="btn btn-danger hidden">
+              <i class='bx bx-exit'></i>
+              <span>Leave</span>
+            </button>
+          </div>
         </div>
       </div>
       
@@ -4916,6 +5147,9 @@ Be helpful and conversational. Respond naturally to user messages.`;
       }
 
       try {
+        // Process mentions in the message
+        const mentions = processMentionsInMessage(filteredContent);
+
         // Prepare message data
         const messageData = {
           content: filteredContent,
@@ -4923,7 +5157,8 @@ Be helpful and conversational. Respond naturally to user messages.`;
           authorName: currentUser.displayName || 'Anonymous',
           authorPhoto: currentUser.photoURL || '',
           timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-          type: 'user'
+          type: 'user',
+          mentions: mentions
         };
 
         // Add reply information if replying to a message
@@ -4931,13 +5166,18 @@ Be helpful and conversational. Respond naturally to user messages.`;
           messageData.replyTo = {
             messageId: replyingTo.id,
             authorName: replyingTo.authorName,
-            content: replyingTo.content.length > 100 ? replyingTo.content.substring(0, 100) + '...' : replyingTo.content,
-            timestamp: replyingTo.timestamp
+            content: replyingTo.content.length > 100 ? replyingTo.content.substring(0, 100) + '...' : replyingTo.content
+            // Note: timestamp will be set when message is retrieved from Firestore
           };
         }
 
         // Send user message
         await db.collection('chatRooms').doc(currentRoomId).collection('messages').add(messageData);
+
+        // Send mention notifications
+        if (mentions.length > 0) {
+          await sendMentionNotifications(mentions, filteredContent, currentRoomId);
+        }
 
         // Update room activity
         await db.collection('chatRooms').doc(currentRoomId).set({
@@ -5127,7 +5367,7 @@ Be helpful and conversational. Respond naturally to user messages.`;
             </div>
             <span class="timestamp">${timestamp}</span>
           </div>
-          <div class="message-content">${sanitizeHTML(message.content)}</div>
+          <div class="message-content">${highlightMentions(sanitizeHTML(message.content))}</div>
           ${generateReactionsHTML(message)}
           <button class="reply-button" data-message-id="${message.id}" data-author-name="${sanitizeText(message.authorName)}" data-content="${sanitizeText(message.content)}">
             <i class='bx bx-reply'></i> Reply
@@ -5162,7 +5402,7 @@ Be helpful and conversational. Respond naturally to user messages.`;
             <span class="timestamp">${timestamp}</span>
           </div>
           <div class="message-content">
-            ${sanitizeHTML(message.content)}
+            ${highlightMentions(sanitizeHTML(message.content))}
             ${message.messageType === 'artwork' && message.imageData ? `
               <div class="artwork-container" style="margin: 0.5rem 0; background: white; padding: 0.5rem; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
                 <img src="${message.imageData}" alt="Shared artwork" 
@@ -5195,29 +5435,52 @@ Be helpful and conversational. Respond naturally to user messages.`;
       
       messagesContainer.appendChild(messageDiv);
 
-      // Show notification for new messages if tab is not focused OR if user is in the room
-      if (!isOwn && !isSystem) {
-        const shouldNotify = !document.hasFocus() || 
-                            (currentRoomId && message.roomId === currentRoomId && document.hasFocus());
-        
-        if (shouldNotify) {
-          playNotificationSound(); // Play sound for all new messages in current room
+              // Show notification for new messages if tab is not focused OR if user is in the room
+        if (!isOwn && !isSystem) {
+          const shouldNotify = !document.hasFocus() || 
+                              (currentRoomId && message.roomId === currentRoomId && document.hasFocus());
           
-          // Only show visual notification if tab is not focused
-          if (!document.hasFocus()) {
-            showNotification(
-              'New Message',
-              `${message.authorName}: ${message.content.substring(0, 100)}${message.content.length > 100 ? '...' : ''}`,
-              'message',
-              {
-                avatar: message.authorPhoto,
-                roomId: currentRoomId,
-                duration: 5000
-              }
-            );
+          if (shouldNotify) {
+            playNotificationSound(); // Play sound for all new messages in current room
+            
+            // Only show visual notification if tab is not focused
+            if (!document.hasFocus()) {
+              showNotification(
+                'New Message',
+                `${message.authorName}: ${message.content.substring(0, 100)}${message.content.length > 100 ? '...' : ''}`,
+                'message',
+                {
+                  avatar: message.authorPhoto,
+                  roomId: currentRoomId,
+                  duration: 5000
+                }
+              );
+            }
+          }
+
+          // Check for mentions of current user
+          if (currentUser && message.mentions && message.mentions.length > 0) {
+            const currentUsername = currentUser.displayName.replace(/\s/g, '').toLowerCase();
+            const isMentioned = message.mentions.some(mention => mention.toLowerCase() === currentUsername);
+            
+            if (isMentioned) {
+              addNotification(
+                'mention',
+                `${message.authorName} mentioned you`,
+                message.content.length > 100 ? message.content.substring(0, 100) + '...' : message.content,
+                {
+                  avatar: message.authorPhoto,
+                  userName: message.authorName,
+                  roomId: currentRoomId
+                }
+              );
+              
+              // Play special sound for mentions (double beep)
+              playNotificationSound();
+              setTimeout(() => playNotificationSound(), 200);
+            }
           }
         }
-      }
     }
 
     // Reactions functionality
@@ -7456,6 +7719,207 @@ Be helpful and conversational. Respond naturally to user messages.`;
       }
     }
 
+    // Notification System
+    let userNotifications = [];
+    let unreadCount = 0;
+
+    function toggleNotificationPanel() {
+      const panel = document.getElementById('notificationPanel');
+      const isShowing = panel.classList.contains('show');
+      
+      if (isShowing) {
+        panel.classList.remove('show');
+        document.removeEventListener('click', closeNotificationPanelOnOutsideClick);
+      } else {
+        panel.classList.add('show');
+        markNotificationsAsRead();
+        setTimeout(() => {
+          document.addEventListener('click', closeNotificationPanelOnOutsideClick);
+        }, 100);
+      }
+    }
+
+    function closeNotificationPanelOnOutsideClick(event) {
+      const bell = document.getElementById('notificationBell');
+      if (!bell.contains(event.target)) {
+        const panel = document.getElementById('notificationPanel');
+        panel.classList.remove('show');
+        document.removeEventListener('click', closeNotificationPanelOnOutsideClick);
+      }
+    }
+
+    function addNotification(type, title, message, data = {}) {
+      const notification = {
+        id: Date.now(),
+        type: type, // 'mention', 'message', 'reply'
+        title: title,
+        message: message,
+        timestamp: new Date(),
+        read: false,
+        data: data // Additional data like user info, room info, etc.
+      };
+
+      userNotifications.unshift(notification);
+      if (userNotifications.length > 50) {
+        userNotifications = userNotifications.slice(0, 50);
+      }
+
+      updateNotificationUI();
+      saveNotificationsToStorage();
+    }
+
+    function markNotificationsAsRead() {
+      userNotifications.forEach(notif => notif.read = true);
+      unreadCount = 0;
+      updateNotificationUI();
+      saveNotificationsToStorage();
+    }
+
+    function clearAllNotifications() {
+      userNotifications = [];
+      unreadCount = 0;
+      updateNotificationUI();
+      saveNotificationsToStorage();
+    }
+
+    function updateNotificationUI() {
+      unreadCount = userNotifications.filter(n => !n.read).length;
+      
+      const badge = document.getElementById('notificationBadge');
+      const bell = document.getElementById('notificationBell');
+      const list = document.getElementById('notificationList');
+
+      // Update badge
+      if (unreadCount > 0) {
+        badge.textContent = unreadCount;
+        badge.classList.remove('hidden');
+        bell.classList.add('has-notifications');
+      } else {
+        badge.classList.add('hidden');
+        bell.classList.remove('has-notifications');
+      }
+
+      // Update notification list
+      if (userNotifications.length === 0) {
+        list.innerHTML = `
+          <div class="notification-empty">
+            <i class='bx bx-bell'></i>
+            <div>No notifications yet</div>
+          </div>
+        `;
+      } else {
+        list.innerHTML = userNotifications.map(notification => `
+          <div class="notification-item ${!notification.read ? 'unread' : ''}" 
+               onclick="handleNotificationClick('${notification.id}')">
+            <div class="notification-content">
+              ${notification.data.avatar ? `<img src="${notification.data.avatar}" class="notification-avatar" alt="Avatar">` : 
+                `<div class="notification-avatar" style="background: var(--primary); display: flex; align-items: center; justify-content: center; color: white; font-size: 0.8rem;">${notification.data.userName ? notification.data.userName.charAt(0).toUpperCase() : '?'}</div>`}
+              <div class="notification-text">
+                <div class="notification-title">${sanitizeHTML(notification.title)}</div>
+                <div class="notification-message">${sanitizeHTML(notification.message)}</div>
+                <div class="notification-time">${timeAgo(notification.timestamp)}</div>
+              </div>
+            </div>
+          </div>
+        `).join('');
+      }
+    }
+
+    function handleNotificationClick(notificationId) {
+      const notification = userNotifications.find(n => n.id == notificationId);
+      if (notification && notification.data.roomId) {
+        // Join the room where the notification came from
+        if (notification.data.roomId !== currentRoomId) {
+          joinRoom(notification.data.roomId);
+        }
+        toggleNotificationPanel(); // Close the panel
+      }
+    }
+
+    function saveNotificationsToStorage() {
+      try {
+        localStorage.setItem('carbon-chat-notifications', JSON.stringify(userNotifications));
+      } catch (e) {
+        console.warn('Failed to save notifications to localStorage:', e);
+      }
+    }
+
+    function loadNotificationsFromStorage() {
+      try {
+        const stored = localStorage.getItem('carbon-chat-notifications');
+        if (stored) {
+          userNotifications = JSON.parse(stored).map(n => ({
+            ...n,
+            timestamp: new Date(n.timestamp)
+          }));
+          updateNotificationUI();
+        }
+      } catch (e) {
+        console.warn('Failed to load notifications from localStorage:', e);
+        userNotifications = [];
+      }
+    }
+
+    // User Mention System
+    function processMentionsInMessage(content) {
+      // Find @username mentions
+      const mentionRegex = /@([a-zA-Z0-9_]+)/g;
+      const mentions = [];
+      let match;
+
+      while ((match = mentionRegex.exec(content)) !== null) {
+        mentions.push(match[1]);
+      }
+
+      return mentions;
+    }
+
+    function highlightMentions(content) {
+      const mentionRegex = /@([a-zA-Z0-9_]+)/g;
+      return content.replace(mentionRegex, '<span class="mention-highlight">@$1</span>');
+    }
+
+    async function sendMentionNotifications(mentionedUsernames, messageContent, roomId) {
+      if (!currentUser || mentionedUsernames.length === 0) return;
+
+      try {
+        // Get all users to find mentioned ones
+        const usersSnapshot = await db.collection('users').get();
+        const users = {};
+        usersSnapshot.docs.forEach(doc => {
+          const userData = doc.data();
+          if (userData.displayName) {
+            // Create a simple username from display name (remove spaces, lowercase)
+            const username = userData.displayName.replace(/\s/g, '').toLowerCase();
+            users[username] = { id: doc.id, ...userData };
+          }
+        });
+
+        // Send notifications to mentioned users
+        for (const username of mentionedUsernames) {
+          const mentionedUser = users[username.toLowerCase()];
+          if (mentionedUser && mentionedUser.id !== currentUser.uid) {
+            // Add notification to Firestore for the mentioned user
+            await db.collection('users').doc(mentionedUser.id).collection('notifications').add({
+              type: 'mention',
+              title: `${currentUser.displayName} mentioned you`,
+              message: messageContent.length > 100 ? messageContent.substring(0, 100) + '...' : messageContent,
+              fromUser: {
+                id: currentUser.uid,
+                name: currentUser.displayName,
+                photo: currentUser.photoURL
+              },
+              roomId: roomId,
+              timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+              read: false
+            });
+          }
+        }
+      } catch (error) {
+        console.error('Error sending mention notifications:', error);
+      }
+    }
+
     // Leaderboard System
     let currentLeaderboard = 'xp';
     let searchTimeout = null;
@@ -8158,6 +8622,9 @@ Be helpful and conversational. Respond naturally to user messages.`;
     window.deleteMessage = deleteMessage;
     window.cancelMessageDeletion = cancelMessageDeletion;
     window.confirmMessageDeletion = confirmMessageDeletion;
+    window.toggleNotificationPanel = toggleNotificationPanel;
+    window.clearAllNotifications = clearAllNotifications;
+    window.handleNotificationClick = handleNotificationClick;
     window.signOut = signOut;
 
     // Start when page loads
@@ -8167,6 +8634,7 @@ Be helpful and conversational. Respond naturally to user messages.`;
       updateConnectionStatus(); // Set initial status
       setupSecureEventListeners(); // Setup secure event handling
       updateSoundButton(); // Initialize sound button state
+      loadNotificationsFromStorage(); // Load stored notifications
       waitForFirebaseAndStartChat();
       
       // Timeout fallback if Firebase takes too long (15 seconds)
