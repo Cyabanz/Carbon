@@ -259,6 +259,135 @@
       margin-left: 0.5rem;
     }
 
+    /* Reaction styles */
+    .message-reactions {
+      margin-top: 0.5rem;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.25rem;
+    }
+
+    .reaction {
+      background: var(--theme-highlight-med);
+      border: 1px solid var(--theme-overlay);
+      border-radius: 12px;
+      padding: 0.25rem 0.5rem;
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
+    }
+
+    .reaction:hover {
+      background: var(--theme-highlight-high);
+      transform: scale(1.05);
+    }
+
+    .reaction.reacted {
+      background: var(--theme-foam);
+      color: var(--theme-base);
+      border-color: var(--theme-foam);
+    }
+
+    .reaction-count {
+      font-size: 0.7rem;
+      font-weight: 600;
+    }
+
+    .add-reaction {
+      background: var(--theme-highlight-med);
+      border: 1px dashed var(--theme-overlay);
+      border-radius: 12px;
+      padding: 0.25rem 0.5rem;
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      opacity: 0;
+    }
+
+    .message:hover .add-reaction {
+      opacity: 1;
+    }
+
+    .add-reaction:hover {
+      background: var(--theme-highlight-high);
+      border-color: var(--theme-foam);
+    }
+
+    .reaction-picker {
+      position: absolute;
+      bottom: 100%;
+      left: 0;
+      background: var(--theme-surface);
+      border: 1px solid var(--theme-highlight-med);
+      border-radius: 12px;
+      padding: 0.5rem;
+      display: flex;
+      gap: 0.25rem;
+      z-index: 1000;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    }
+
+    .reaction-emoji {
+      padding: 0.25rem;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 1.2rem;
+      transition: all 0.2s ease;
+    }
+
+    .reaction-emoji:hover {
+      background: var(--theme-highlight-med);
+      transform: scale(1.2);
+    }
+
+    /* AFK styles */
+    .afk-indicator {
+      display: inline-block;
+      background: var(--theme-gold);
+      color: var(--theme-base);
+      padding: 0.1rem 0.3rem;
+      border-radius: 8px;
+      font-size: 0.6rem;
+      font-weight: 600;
+      margin-left: 0.25rem;
+    }
+
+    .user-list {
+      background: var(--theme-overlay);
+      border-radius: 8px;
+      padding: 0.5rem;
+      margin-top: 0.5rem;
+      max-height: 120px;
+      overflow-y: auto;
+    }
+
+    .user-item {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.25rem;
+      border-radius: 4px;
+      font-size: 0.8rem;
+    }
+
+    .user-item.afk {
+      opacity: 0.6;
+    }
+
+    .user-status {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--theme-foam);
+    }
+
+    .user-status.afk {
+      background: var(--theme-gold);
+    }
+
     /* Emoji picker styles */
     .emoji-picker {
       position: absolute;
@@ -583,10 +712,22 @@
         </div>
         <div class="flex items-center gap-3">
           <span id="userCount" class="user-count hidden">0 users</span>
+          <button id="toggleUserListBtn" class="btn-secondary hidden" onclick="toggleUserList()">
+            <i class='bx bx-group'></i>
+            Users
+          </button>
           <button id="leaveRoomBtn" onclick="leaveCurrentRoom()" class="btn-secondary hidden">
             <i class='bx bx-exit'></i>
             Leave
           </button>
+        </div>
+      </div>
+      
+      <!-- User List -->
+      <div id="userListContainer" class="user-list hidden">
+        <div class="text-xs font-semibold text-rp-muted mb-2">Active Users:</div>
+        <div id="activeUsersList">
+          <!-- Users will be populated here -->
         </div>
       </div>
 
@@ -1034,6 +1175,13 @@ Be helpful and conversational. Respond naturally to user messages.`;
     let replyingTo = null; // Store the message being replied to
     let messageCleanupInterval = null; // For message cleanup
     let emojiConverter = null; // Emoji converter instance
+    let lastActivity = Date.now(); // Track user activity for AFK detection
+    let afkCheckInterval = null; // AFK check interval
+    let userActivityMap = new Map(); // Track activity for all users
+    let activeUsers = new Map(); // Store active users data
+
+    // Reaction emojis (quick reactions)
+    const reactionEmojis = ['👍', '❤️', '😂', '😮', '😢', '😡', '🔥', '🎉'];
 
     // Emoji data
     const quickEmojis = [
@@ -1347,7 +1495,10 @@ Be helpful and conversational. Respond naturally to user messages.`;
           userName: currentUser.displayName || 'Anonymous',
           userPhoto: currentUser.photoURL || '',
           joinedAt: firebase.firestore.FieldValue.serverTimestamp(),
-          lastSeen: firebase.firestore.FieldValue.serverTimestamp()
+          lastSeen: firebase.firestore.FieldValue.serverTimestamp(),
+          lastActivity: firebase.firestore.FieldValue.serverTimestamp(),
+          isAFK: false,
+          afkSince: null
         });
 
         // Check if AI should be activated for this room
@@ -1363,6 +1514,9 @@ Be helpful and conversational. Respond naturally to user messages.`;
         } else {
           aiChatbot.deactivate();
         }
+
+        // Setup AFK detection for this room
+        setupAFKDetection();
 
         console.log('Joined room:', roomId);
       } catch (error) {
@@ -1394,6 +1548,18 @@ Be helpful and conversational. Respond naturally to user messages.`;
           userPresenceListener = null;
         }
 
+        // Cleanup AFK detection
+        if (afkCheckInterval) {
+          clearInterval(afkCheckInterval);
+          afkCheckInterval = null;
+        }
+
+        // Remove activity listeners
+        ['keypress', 'click', 'mousemove', 'scroll'].forEach(event => {
+          document.removeEventListener(event, updateActivity);
+        });
+
+        activeUsers.clear();
         currentRoomId = null;
         updateChatUI();
         updateRoomHighlight();
@@ -1408,6 +1574,8 @@ Be helpful and conversational. Respond naturally to user messages.`;
       const messageForm = document.getElementById('messageForm');
       const leaveBtn = document.getElementById('leaveRoomBtn');
       const userCount = document.getElementById('userCount');
+      const toggleUserListBtn = document.getElementById('toggleUserListBtn');
+      const userListContainer = document.getElementById('userListContainer');
 
       if (roomId) {
         db.collection('chatRooms').doc(roomId).get().then(doc => {
@@ -1427,6 +1595,7 @@ Be helpful and conversational. Respond naturally to user messages.`;
         messageForm.classList.remove('hidden');
         leaveBtn.classList.remove('hidden');
         userCount.classList.remove('hidden');
+        toggleUserListBtn.classList.remove('hidden');
         document.getElementById('guestMessage').style.display = 'none';
         document.getElementById('chatMessages').innerHTML = '';
       } else {
@@ -1435,6 +1604,8 @@ Be helpful and conversational. Respond naturally to user messages.`;
         messageForm.classList.add('hidden');
         leaveBtn.classList.add('hidden');
         userCount.classList.add('hidden');
+        toggleUserListBtn.classList.add('hidden');
+        userListContainer.classList.add('hidden');
         
         if (!currentUser) {
           document.getElementById('guestMessage').style.display = 'block';
@@ -1527,6 +1698,7 @@ Be helpful and conversational. Respond naturally to user messages.`;
 
         messageInput.value = '';
         cancelReply(); // Clear any active reply
+        updateActivity(); // Reset AFK status
 
         // Check if AI should respond (when room is empty or user is alone)
         const roomDoc = await db.collection('chatRooms').doc(currentRoomId).get();
@@ -1678,6 +1850,7 @@ Be helpful and conversational. Respond naturally to user messages.`;
             <span class="timestamp">${timestamp}</span>
           </div>
           <div class="message-content">${sanitizeHTML(message.content)}</div>
+          ${generateReactionsHTML(message)}
           <button class="reply-button" data-message-id="${message.id}" data-author-name="${sanitizeText(message.authorName)}" data-content="${sanitizeText(message.content)}">
             <i class='bx bx-reply'></i> Reply
           </button>
@@ -1699,11 +1872,12 @@ Be helpful and conversational. Respond naturally to user messages.`;
           <div class="message-header">
             <div class="flex items-center gap-2">
               ${message.authorPhoto ? `<img src="${message.authorPhoto}" alt="Avatar" class="w-6 h-6 rounded-full clickable-avatar" data-user-id="${message.authorId}" data-user-name="${sanitizeText(message.authorName)}" data-user-photo="${message.authorPhoto}">` : '<div class="w-6 h-6 rounded-full bg-rp-foam"></div>'}
-              <span class="font-semibold clickable-avatar" data-user-id="${message.authorId}" data-user-name="${sanitizeText(message.authorName)}" data-user-photo="${message.authorPhoto || ''}">${sanitizeText(message.authorName)}</span>
+              <span class="font-semibold clickable-avatar" data-user-id="${message.authorId}" data-user-name="${sanitizeText(message.authorName)}" data-user-photo="${message.authorPhoto || ''}">${sanitizeText(message.authorName)}${getUserAFKIndicator(message.authorId)}</span>
             </div>
             <span class="timestamp">${timestamp}</span>
           </div>
           <div class="message-content">${sanitizeHTML(message.content)}</div>
+          ${generateReactionsHTML(message)}
           ${currentUser ? `<button class="reply-button" data-message-id="${message.id}" data-author-name="${sanitizeText(message.authorName)}" data-content="${sanitizeText(message.content)}">
             <i class='bx bx-reply'></i> Reply
           </button>` : ''}
@@ -1711,6 +1885,231 @@ Be helpful and conversational. Respond naturally to user messages.`;
       }
 
       messagesContainer.appendChild(messageDiv);
+    }
+
+    // Reactions functionality
+    function generateReactionsHTML(message) {
+      if (!message.reactions || !currentUser) return '';
+
+      let reactionsHTML = '<div class="message-reactions">';
+      
+      // Display existing reactions
+      Object.entries(message.reactions).forEach(([emoji, data]) => {
+        const count = data.users ? Object.keys(data.users).length : 0;
+        const hasReacted = data.users && data.users[currentUser.uid];
+        
+        reactionsHTML += `
+          <div class="reaction ${hasReacted ? 'reacted' : ''}" 
+               data-message-id="${message.id}" 
+               data-emoji="${emoji}">
+            <span>${emoji}</span>
+            <span class="reaction-count">${count}</span>
+          </div>
+        `;
+      });
+
+      // Add reaction button
+      reactionsHTML += `
+        <div class="add-reaction" data-message-id="${message.id}">
+          <i class='bx bx-plus'></i>
+        </div>
+      `;
+
+      reactionsHTML += '</div>';
+      return reactionsHTML;
+    }
+
+    async function toggleReaction(messageId, emoji) {
+      if (!currentUser || !currentRoomId) return;
+
+      try {
+        const messageRef = db.collection('chatRooms').doc(currentRoomId).collection('messages').doc(messageId);
+        const messageDoc = await messageRef.get();
+        
+        if (!messageDoc.exists) return;
+
+        const messageData = messageDoc.data();
+        const reactions = messageData.reactions || {};
+        
+        if (!reactions[emoji]) {
+          reactions[emoji] = { users: {} };
+        }
+
+        const userReacted = reactions[emoji].users && reactions[emoji].users[currentUser.uid];
+        
+        if (userReacted) {
+          // Remove reaction
+          delete reactions[emoji].users[currentUser.uid];
+          if (Object.keys(reactions[emoji].users).length === 0) {
+            delete reactions[emoji];
+          }
+        } else {
+          // Add reaction
+          reactions[emoji].users[currentUser.uid] = {
+            name: currentUser.displayName || 'Anonymous',
+            timestamp: firebase.firestore.FieldValue.serverTimestamp()
+          };
+        }
+
+        await messageRef.update({ reactions });
+      } catch (error) {
+        console.error('Error toggling reaction:', error);
+      }
+    }
+
+    function showReactionPicker(messageId, event) {
+      event.stopPropagation();
+      
+      // Remove any existing picker
+      const existingPicker = document.querySelector('.reaction-picker');
+      if (existingPicker) {
+        existingPicker.remove();
+      }
+
+      const picker = document.createElement('div');
+      picker.className = 'reaction-picker';
+      
+      reactionEmojis.forEach(emoji => {
+        const emojiDiv = document.createElement('div');
+        emojiDiv.className = 'reaction-emoji';
+        emojiDiv.textContent = emoji;
+        emojiDiv.setAttribute('data-emoji', emoji);
+        emojiDiv.setAttribute('data-message-id', messageId);
+        picker.appendChild(emojiDiv);
+      });
+
+      // Add click handler for picker emojis
+      picker.addEventListener('click', (e) => {
+        if (e.target.classList.contains('reaction-emoji')) {
+          const emoji = e.target.getAttribute('data-emoji');
+          const msgId = e.target.getAttribute('data-message-id');
+          if (emoji && msgId) {
+            toggleReaction(msgId, emoji);
+            picker.remove();
+          }
+        }
+      });
+
+      event.target.style.position = 'relative';
+      event.target.appendChild(picker);
+
+      // Close picker when clicking outside
+      setTimeout(() => {
+        document.addEventListener('click', function closePicker(e) {
+          if (!picker.contains(e.target)) {
+            picker.remove();
+            document.removeEventListener('click', closePicker);
+          }
+        });
+      }, 100);
+    }
+
+    // AFK Detection functionality
+    function setupAFKDetection() {
+      if (!currentUser || !currentRoomId) return;
+
+      // Track user activity
+      lastActivity = Date.now();
+      
+      // Update activity on any user interaction
+      ['keypress', 'click', 'mousemove', 'scroll'].forEach(event => {
+        document.addEventListener(event, updateActivity);
+      });
+
+      // Start AFK checking interval
+      afkCheckInterval = setInterval(checkAFKStatus, 30000); // Check every 30 seconds
+      
+      // Listen for user presence updates
+      setupUserPresenceListener();
+    }
+
+    function updateActivity() {
+      lastActivity = Date.now();
+      
+      // Update user's last activity in Firebase
+      if (currentUser && currentRoomId) {
+        db.collection('chatRooms').doc(currentRoomId).collection('presence').doc(currentUser.uid).update({
+          lastActivity: firebase.firestore.FieldValue.serverTimestamp()
+        }).catch(error => {
+          console.error('Error updating activity:', error);
+        });
+      }
+    }
+
+    function checkAFKStatus() {
+      if (!currentUser || !currentRoomId) return;
+
+      const now = Date.now();
+      const timeSinceActivity = now - lastActivity;
+      const isAFK = timeSinceActivity > 5 * 60 * 1000; // 5 minutes
+
+      // Update AFK status in Firebase
+      db.collection('chatRooms').doc(currentRoomId).collection('presence').doc(currentUser.uid).update({
+        isAFK: isAFK,
+        afkSince: isAFK ? firebase.firestore.FieldValue.serverTimestamp() : null
+      }).catch(error => {
+        console.error('Error updating AFK status:', error);
+      });
+    }
+
+    function setupUserPresenceListener() {
+      if (!currentRoomId || userPresenceListener) return;
+
+      userPresenceListener = db.collection('chatRooms').doc(currentRoomId).collection('presence')
+        .onSnapshot(snapshot => {
+          activeUsers.clear();
+          
+          snapshot.forEach(doc => {
+            const userData = doc.data();
+            activeUsers.set(doc.id, userData);
+          });
+
+          updateUsersList();
+          updateUserCount();
+        });
+    }
+
+    function updateUsersList() {
+      const usersList = document.getElementById('activeUsersList');
+      if (!usersList) return;
+
+      usersList.innerHTML = '';
+
+      activeUsers.forEach((userData, userId) => {
+        const userItem = document.createElement('div');
+        userItem.className = `user-item ${userData.isAFK ? 'afk' : ''}`;
+        
+        const afkIndicator = userData.isAFK ? '<span class="afk-indicator">AFK</span>' : '';
+        
+        userItem.innerHTML = `
+          <div class="user-status ${userData.isAFK ? 'afk' : ''}"></div>
+          <img src="${userData.userPhoto || 'https://via.placeholder.com/20'}" alt="Avatar" class="w-4 h-4 rounded-full">
+          <span class="flex-1">${sanitizeText(userData.userName || 'Unknown')}</span>
+          ${afkIndicator}
+        `;
+        
+        usersList.appendChild(userItem);
+      });
+    }
+
+    function updateUserCount() {
+      const userCountEl = document.getElementById('userCount');
+      if (userCountEl) {
+        const activeCount = Array.from(activeUsers.values()).filter(user => !user.isAFK).length;
+        const totalCount = activeUsers.size;
+        userCountEl.textContent = `${activeCount}/${totalCount} users`;
+      }
+    }
+
+    function toggleUserList() {
+      const userListContainer = document.getElementById('userListContainer');
+      userListContainer.classList.toggle('hidden');
+    }
+
+    function getUserAFKIndicator(userId) {
+      if (!activeUsers.has(userId)) return '';
+      const userData = activeUsers.get(userId);
+      return userData.isAFK ? '<span class="afk-indicator">AFK</span>' : '';
     }
 
     // Room Creation
@@ -1871,6 +2270,31 @@ Be helpful and conversational. Respond naturally to user messages.`;
         const modal = document.getElementById('profileModal');
         if (e.target === modal) {
           closeProfileModal();
+        }
+      });
+
+      // Reaction click handlers
+      document.addEventListener('click', (e) => {
+        if (e.target.closest('.reaction')) {
+          const reaction = e.target.closest('.reaction');
+          const messageId = reaction.getAttribute('data-message-id');
+          const emoji = reaction.getAttribute('data-emoji');
+          
+          if (messageId && emoji) {
+            toggleReaction(messageId, emoji);
+          }
+        }
+      });
+
+      // Add reaction button handlers
+      document.addEventListener('click', (e) => {
+        if (e.target.closest('.add-reaction')) {
+          const button = e.target.closest('.add-reaction');
+          const messageId = button.getAttribute('data-message-id');
+          
+          if (messageId) {
+            showReactionPicker(messageId, e);
+          }
         }
       });
     }
