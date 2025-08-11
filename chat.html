@@ -1611,7 +1611,7 @@
       border: 1px solid var(--border);
       border-radius: var(--radius-lg);
       cursor: pointer;
-      transition: all 0.2s ease;
+      transition: all 0.15s ease;
       color: var(--text-secondary);
       z-index: 10000;
     }
@@ -1619,26 +1619,40 @@
     .notification-bell:hover {
       background: var(--surface-hover);
       color: var(--text-primary);
-      transform: translateY(-1px);
+      transform: translateY(-2px) scale(1.05);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    .notification-bell:active {
+      transform: translateY(0) scale(1);
+      transition: all 0.1s ease;
     }
     
     .notification-bell.has-notifications {
       color: var(--primary);
-      box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+      box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.3);
+      animation: bellShake 0.5s ease-in-out;
+    }
+
+    @keyframes bellShake {
+      0%, 100% { transform: rotate(0deg); }
+      25% { transform: rotate(-5deg); }
+      75% { transform: rotate(5deg); }
     }
     
     .notification-badge {
       position: absolute;
-      top: -4px;
-      right: -4px;
+      top: -6px;
+      right: -6px;
       background: var(--error);
       color: white;
-      font-size: 0.7rem;
-      font-weight: 600;
-      padding: 2px 6px;
-      border-radius: 10px;
-      min-width: 18px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 3px 7px;
+      border-radius: 12px;
+      min-width: 20px;
       text-align: center;
+      box-shadow: 0 2px 8px rgba(239, 68, 68, 0.4), 0 0 0 2px var(--surface);
       animation: pulse 1.5s infinite;
     }
     
@@ -1649,21 +1663,21 @@
       width: 350px;
       max-height: 400px;
       background: var(--surface);
-      border: 1px solid var(--border);
+      border: 2px solid var(--primary);
       border-radius: var(--radius-xl);
-      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
-      backdrop-filter: blur(var(--backdrop-blur));
-      z-index: 9999;
+      box-shadow: 0 25px 80px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(99, 102, 241, 0.2);
+      backdrop-filter: blur(20px);
+      z-index: 10000;
       opacity: 0;
-      transform: translateY(-10px);
+      transform: translateY(-20px) scale(0.95);
       pointer-events: none;
-      transition: all 0.3s ease;
+      transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
       overflow: hidden;
     }
     
     .notification-panel.show {
       opacity: 1;
-      transform: translateY(0);
+      transform: translateY(0) scale(1);
       pointer-events: all;
     }
     
@@ -1676,25 +1690,34 @@
     }
     
     .notification-panel-title {
-      font-weight: 600;
+      font-weight: 700;
       color: var(--text-primary);
-      font-size: 1rem;
+      font-size: 1.1rem;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
     }
     
     .clear-all-btn {
       background: none;
-      border: none;
+      border: 1px solid var(--border);
       color: var(--text-muted);
       font-size: 0.8rem;
+      font-weight: 600;
       cursor: pointer;
-      padding: var(--space-1) var(--space-2);
+      padding: var(--space-2) var(--space-3);
       border-radius: var(--radius);
-      transition: all 0.2s ease;
+      transition: all 0.15s ease;
     }
     
     .clear-all-btn:hover {
-      background: var(--surface-hover);
-      color: var(--text-primary);
+      background: var(--error);
+      border-color: var(--error);
+      color: white;
+      transform: translateY(-1px);
+    }
+
+    .clear-all-btn:active {
+      transform: translateY(0);
+      transition: all 0.1s ease;
     }
     
     .notification-list {
@@ -1721,29 +1744,42 @@
       padding: var(--space-4) var(--space-5);
       border-bottom: 1px solid var(--border);
       cursor: pointer;
-      transition: all 0.2s ease;
+      transition: all 0.15s ease;
       position: relative;
+      display: flex;
+      align-items: flex-start;
+      gap: var(--space-3);
     }
     
     .notification-item:hover {
       background: var(--surface-hover);
+      transform: translateX(4px);
+      border-left: 4px solid var(--primary);
+    }
+
+    .notification-item:active {
+      transform: translateX(2px);
+      transition: all 0.1s ease;
     }
     
     .notification-item.unread {
-      background: rgba(99, 102, 241, 0.05);
-      border-left: 3px solid var(--primary);
+      background: rgba(99, 102, 241, 0.15);
+      border-left: 4px solid var(--primary);
+      box-shadow: inset 0 0 0 1px rgba(99, 102, 241, 0.2);
     }
     
     .notification-item.unread::before {
       content: '';
       position: absolute;
-      left: var(--space-2);
+      right: var(--space-3);
       top: 50%;
       transform: translateY(-50%);
-      width: 6px;
-      height: 6px;
+      width: 10px;
+      height: 10px;
       background: var(--primary);
       border-radius: 50%;
+      box-shadow: 0 0 0 2px var(--surface);
+      animation: pulse 2s infinite;
     }
     
     .notification-content {
@@ -1765,26 +1801,29 @@
     }
     
     .notification-title {
-      font-weight: 600;
+      font-weight: 700;
       color: var(--text-primary);
-      font-size: 0.9rem;
+      font-size: 0.95rem;
       line-height: 1.3;
       margin-bottom: var(--space-1);
+      text-shadow: 0 1px 1px rgba(0, 0, 0, 0.1);
     }
     
     .notification-message {
-      color: var(--text-secondary);
-      font-size: 0.8rem;
+      color: var(--text-primary);
+      font-size: 0.85rem;
       line-height: 1.4;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
+      opacity: 0.9;
     }
     
     .notification-time {
-      color: var(--text-muted);
-      font-size: 0.7rem;
+      color: var(--text-secondary);
+      font-size: 0.75rem;
       margin-top: var(--space-1);
+      font-weight: 500;
     }
     
     .notification-empty {
@@ -7893,18 +7932,23 @@ Be helpful and conversational. Respond naturally to user messages.`;
       } else {
         panel.classList.add('show');
         markNotificationsAsRead();
-        setTimeout(() => {
+        // Use requestAnimationFrame for smooth execution
+        requestAnimationFrame(() => {
           document.addEventListener('click', closeNotificationPanelOnOutsideClick);
-        }, 100);
+        });
       }
     }
 
     function closeNotificationPanelOnOutsideClick(event) {
       const bell = document.getElementById('notificationBell');
-      if (!bell.contains(event.target)) {
-        const panel = document.getElementById('notificationPanel');
+      const panel = document.getElementById('notificationPanel');
+      
+      // Immediate check without delay - close if clicking outside bell and panel
+      if (!bell.contains(event.target) && !panel.contains(event.target)) {
         panel.classList.remove('show');
         document.removeEventListener('click', closeNotificationPanelOnOutsideClick);
+        event.preventDefault();
+        event.stopPropagation();
       }
     }
 
@@ -7986,13 +8030,22 @@ Be helpful and conversational. Respond naturally to user messages.`;
     }
 
     function handleNotificationClick(notificationId) {
+      // Immediately close panel for instant feedback
+      const panel = document.getElementById('notificationPanel');
+      panel.classList.remove('show');
+      document.removeEventListener('click', closeNotificationPanelOnOutsideClick);
+      
       const notification = userNotifications.find(n => n.id == notificationId);
       if (notification && notification.data.roomId) {
         // Join the room where the notification came from
         if (notification.data.roomId !== currentRoomId) {
           joinRoom(notification.data.roomId);
         }
-        toggleNotificationPanel(); // Close the panel
+        
+        // Mark notification as read immediately
+        notification.read = true;
+        updateNotificationUI();
+        saveNotificationsToStorage();
       }
     }
 
@@ -8044,10 +8097,10 @@ Be helpful and conversational. Respond naturally to user messages.`;
               }
             );
 
-            // Mark as read in Firestore after a delay
-            setTimeout(() => {
+            // Mark as read in Firestore immediately to prevent duplicate notifications
+            requestAnimationFrame(() => {
               change.doc.ref.update({ read: true }).catch(console.error);
-            }, 5000);
+            });
           }
         });
       });
