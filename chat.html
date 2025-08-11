@@ -1204,6 +1204,10 @@
             <i class='bx bx-palette'></i>
             Colors
           </button>
+          <button id="testFeaturesBtn" onclick="showTestPanel()" class="btn-secondary hidden" style="background: #ff6b6b;">
+            <i class='bx bx-test-tube'></i>
+            Test
+          </button>
           <button id="leaveRoomBtn" onclick="leaveCurrentRoom()" class="btn-secondary hidden">
             <i class='bx bx-exit'></i>
             Leave
@@ -1448,6 +1452,51 @@
     </div>
   </div>
 
+  <!-- Test Panel Modal -->
+  <div id="testPanelModal" class="color-picker-modal">
+    <div class="color-picker-content">
+      <div class="color-picker-header">
+        <div class="color-picker-title">🧪 Feature Testing Panel</div>
+        <button onclick="closeTestPanel()" style="background: none; border: none; color: var(--theme-muted); cursor: pointer; font-size: 1.5rem;">✕</button>
+      </div>
+
+      <div class="color-section">
+        <div class="color-section-title">XP System Tests</div>
+        <div style="display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 1rem;">
+          <button class="room-color-btn" onclick="testAddXP(50)" style="background: #4ade80;">+50 XP</button>
+          <button class="room-color-btn" onclick="testAddXP(100)" style="background: #3b82f6;">+100 XP</button>
+          <button class="room-color-btn" onclick="testAddXP(500)" style="background: #8b5cf6;">+500 XP</button>
+          <button class="room-color-btn" onclick="testResetXP()" style="background: #ef4444;">Reset XP</button>
+        </div>
+      </div>
+
+      <div class="color-section">
+        <div class="color-section-title">Color System Tests</div>
+        <div style="display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 1rem;">
+          <button class="room-color-btn" onclick="testApplyColor('#ff6b6b')" style="background: #ff6b6b;">Red</button>
+          <button class="room-color-btn" onclick="testApplyColor('#4ecdc4')" style="background: #4ecdc4;">Teal</button>
+          <button class="room-color-btn" onclick="testApplyColor('#45b7d1')" style="background: #45b7d1;">Blue</button>
+          <button class="room-color-btn" onclick="testApplyColor('#f39c12')" style="background: #f39c12;">Orange</button>
+          <button class="room-color-btn" onclick="testRemoveColor()" style="background: #95a5a6;">Remove</button>
+        </div>
+      </div>
+
+      <div class="color-section">
+        <div class="color-section-title">System Status</div>
+        <div id="testStatus" style="font-family: monospace; background: var(--theme-overlay); padding: 1rem; border-radius: 8px; font-size: 0.8rem;">
+          Loading status...
+        </div>
+      </div>
+
+      <div class="color-picker-actions">
+        <button class="room-color-btn" onclick="closeTestPanel()" style="background: var(--theme-muted);">
+          <i class='bx bx-x'></i>
+          Close
+        </button>
+      </div>
+    </div>
+  </div>
+
   <script>
     // Firebase Configuration (same as profile.html)
     const firebaseConfig = {
@@ -1483,15 +1532,24 @@
         auth = app.auth();
         db = app.firestore();
         
-        // Enable offline persistence
-        db.enablePersistence({ synchronizeTabs: true })
-          .catch(function(err) {
-            if (err.code == 'failed-precondition') {
-              console.warn("Multiple tabs open, persistence can only be enabled in one tab at a time.");
-            } else if (err.code == 'unimplemented') {
-              console.warn("The current browser does not support all of the features required to enable persistence");
-            }
-          });
+        // Enable offline persistence with improved error handling
+        try {
+          await db.enablePersistence({ synchronizeTabs: true });
+          console.log("Firestore persistence enabled successfully");
+        } catch (err) {
+          if (err.code == 'failed-precondition') {
+            console.warn("Multiple tabs open, persistence can only be enabled in one tab at a time.");
+          } else if (err.code == 'unimplemented') {
+            console.warn("The current browser does not support all of the features required to enable persistence");
+          } else {
+            console.error("Firestore persistence error:", err);
+          }
+        }
+
+        // Add connection monitoring
+        db.enableNetwork().catch(err => {
+          console.error("Failed to enable Firestore network:", err);
+        });
         
         auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
         firebaseInitialized = true;
@@ -2365,6 +2423,7 @@ Be helpful and conversational. Respond naturally to user messages.`;
         userCount.classList.remove('hidden');
         toggleUserListBtn.classList.remove('hidden');
         document.getElementById('customizeColorBtn').classList.remove('hidden');
+        document.getElementById('testFeaturesBtn').classList.remove('hidden');
         document.getElementById('xpWidget').classList.remove('hidden');
         document.getElementById('guestMessage').style.display = 'none';
         document.getElementById('chatMessages').innerHTML = '';
@@ -2383,6 +2442,7 @@ Be helpful and conversational. Respond naturally to user messages.`;
         toggleUserListBtn.classList.add('hidden');
         userListContainer.classList.add('hidden');
         document.getElementById('customizeColorBtn').classList.add('hidden');
+        document.getElementById('testFeaturesBtn').classList.add('hidden');
         document.getElementById('xpWidget').classList.add('hidden');
         
         // Remove room theme when leaving
@@ -3033,14 +3093,19 @@ Be helpful and conversational. Respond naturally to user messages.`;
         const newXP = currentXP + amount;
         const newLevel = calculateLevel(newXP);
         
-        // Update user XP
-        await userRef.update({
+        // Update user XP using set with merge to handle non-existent documents
+        await userRef.set({
           xp: newXP,
           level: newLevel.level,
           levelTitle: newLevel.title,
           levelTier: newLevel.tier,
-          lastXPGain: firebase.firestore.FieldValue.serverTimestamp()
-        });
+          lastXPGain: firebase.firestore.FieldValue.serverTimestamp(),
+          // Preserve other user data
+          displayName: userData.displayName || currentUser.displayName || 'Anonymous',
+          email: userData.email || currentUser.email || '',
+          photoURL: userData.photoURL || currentUser.photoURL || '',
+          joinDate: userData.joinDate || firebase.firestore.FieldValue.serverTimestamp()
+        }, { merge: true });
 
         // Show XP reward popup
         if (element && userId === currentUser.uid) {
@@ -3050,9 +3115,18 @@ Be helpful and conversational. Respond naturally to user messages.`;
         // Check for level up
         if (newLevel.level > currentLevel.level && userId === currentUser.uid) {
           // Award level up bonus
-          await userRef.update({
-            xp: newXP + XP_REWARDS.LEVEL_UP_BONUS
-          });
+          const bonusXP = newXP + XP_REWARDS.LEVEL_UP_BONUS;
+          await userRef.set({
+            xp: bonusXP,
+            level: newLevel.level,
+            levelTitle: newLevel.title,
+            levelTier: newLevel.tier,
+            lastXPGain: firebase.firestore.FieldValue.serverTimestamp(),
+            displayName: userData.displayName || currentUser.displayName || 'Anonymous',
+            email: userData.email || currentUser.email || '',
+            photoURL: userData.photoURL || currentUser.photoURL || '',
+            joinDate: userData.joinDate || firebase.firestore.FieldValue.serverTimestamp()
+          }, { merge: true });
           
           showLevelUpNotification(newLevel);
           updateXPWidget();
@@ -3305,17 +3379,27 @@ Be helpful and conversational. Respond naturally to user messages.`;
     }
 
     async function applyRoomColor() {
-      if (!selectedColor || !currentRoomId || !currentUser) return;
+      console.log("Applying room color:", { selectedColor, currentRoomId, currentUser: !!currentUser });
+      
+      if (!selectedColor || !currentRoomId || !currentUser) {
+        console.error("Missing required data for room color:", { selectedColor, currentRoomId, currentUser: !!currentUser });
+        alert('Please select a color and make sure you are in a room.');
+        return;
+      }
 
       try {
-        // Update room with custom color
-        await db.collection('chatRooms').doc(currentRoomId).update({
+        console.log("Updating Firestore with color:", selectedColor);
+        
+        // Update room with custom color using set with merge
+        await db.collection('chatRooms').doc(currentRoomId).set({
           customColor: selectedColor,
           lastColorUpdate: firebase.firestore.FieldValue.serverTimestamp(),
           colorUpdatedBy: currentUser.uid
-        });
+        }, { merge: true });
 
-        // Apply the color to UI
+        console.log("Successfully updated room color in Firestore");
+
+        // Apply the color to UI immediately
         applyRoomTheme(selectedColor);
         
         // Close modal
@@ -3327,59 +3411,110 @@ Be helpful and conversational. Respond naturally to user messages.`;
           showXPReward(chatMessages, 0, 'Room color updated!');
         }
         
+        console.log("Room color application completed");
+        
       } catch (error) {
         console.error('Error applying room color:', error);
-        alert('Failed to update room color. Please try again.');
+        console.error('Error details:', error.code, error.message);
+        alert(`Failed to update room color: ${error.message || error.code || 'Unknown error'}`);
       }
     }
 
     function applyRoomTheme(color) {
-      if (!color) return;
-
-      const chatContainer = document.querySelector('.chat-container');
-      const chatHeader = document.querySelector('.chat-header');
-      
-      if (chatContainer && chatHeader) {
-        chatContainer.classList.add('custom-theme');
-        chatHeader.classList.add('custom-theme');
-        
-        // Convert hex to RGB for CSS variables
-        let rgbColor = '';
-        if (color.startsWith('#')) {
-          const r = parseInt(color.slice(1, 3), 16);
-          const g = parseInt(color.slice(3, 5), 16);
-          const b = parseInt(color.slice(5, 7), 16);
-          rgbColor = `${r}, ${g}, ${b}`;
-        }
-        
-        // Set CSS custom properties
-        document.documentElement.style.setProperty('--room-color', color);
-        if (rgbColor) {
-          document.documentElement.style.setProperty('--room-color-rgb', rgbColor);
-        }
-        
-        // Apply to messages
-        const messages = document.querySelectorAll('.message');
-        messages.forEach(message => {
-          message.classList.add('custom-theme');
-        });
-        
-        // Apply to room item in sidebar
-        const roomItems = document.querySelectorAll('.room-item');
-        roomItems.forEach(item => {
-          if (item.getAttribute('data-room-id') === currentRoomId) {
-            item.classList.add('custom-theme');
-          }
-        });
+      if (!color) {
+        console.log("No color provided to applyRoomTheme");
+        return;
       }
+
+      console.log("Applying room theme with color:", color);
+
+      // Find the correct selectors
+      const chatContainer = document.querySelector('.chat-main') || document.querySelector('#chatContainer');
+      const chatHeader = document.querySelector('.chat-header') || document.querySelector('#chatHeader');
+      
+      console.log("Found containers:", { chatContainer: !!chatContainer, chatHeader: !!chatHeader });
+      
+      if (chatContainer) {
+        chatContainer.classList.add('custom-theme');
+      }
+      if (chatHeader) {
+        chatHeader.classList.add('custom-theme');
+      }
+      
+      // Convert hex to RGB for CSS variables
+      let rgbColor = '';
+      if (color.startsWith('#')) {
+        const r = parseInt(color.slice(1, 3), 16);
+        const g = parseInt(color.slice(3, 5), 16);
+        const b = parseInt(color.slice(5, 7), 16);
+        rgbColor = `${r}, ${g}, ${b}`;
+      }
+      
+      // Set CSS custom properties
+      document.documentElement.style.setProperty('--room-color', color);
+      if (rgbColor) {
+        document.documentElement.style.setProperty('--room-color-rgb', rgbColor);
+      }
+      
+      console.log("Set CSS variables:", { 
+        roomColor: document.documentElement.style.getPropertyValue('--room-color'),
+        rgbColor: document.documentElement.style.getPropertyValue('--room-color-rgb')
+      });
+      
+      // Apply to messages
+      const messages = document.querySelectorAll('.message');
+      messages.forEach(message => {
+        message.classList.add('custom-theme');
+      });
+      
+      // Apply to room item in sidebar
+      const roomItems = document.querySelectorAll('.room-item');
+      roomItems.forEach(item => {
+        if (item.getAttribute('data-room-id') === currentRoomId) {
+          item.classList.add('custom-theme');
+        }
+      });
+
+      // Force immediate visual update
+      const style = document.createElement('style');
+      style.id = 'room-theme-override';
+      style.textContent = `
+        .chat-header.custom-theme {
+          background: linear-gradient(135deg, ${color} 0%, var(--theme-surface) 100%) !important;
+          border-bottom: 1px solid ${color} !important;
+        }
+        .message.custom-theme .message-content {
+          border-left: 3px solid ${color} !important;
+        }
+        .room-item.custom-theme {
+          border-left: 4px solid ${color} !important;
+        }
+      `;
+      
+      // Remove existing override
+      const existingStyle = document.getElementById('room-theme-override');
+      if (existingStyle) {
+        existingStyle.remove();
+      }
+      
+      document.head.appendChild(style);
+      console.log("Applied theme override styles");
     }
 
     function removeRoomTheme() {
+      console.log("Removing room theme");
+      
       const elements = document.querySelectorAll('.custom-theme');
       elements.forEach(el => el.classList.remove('custom-theme'));
       
       document.documentElement.style.removeProperty('--room-color');
       document.documentElement.style.removeProperty('--room-color-rgb');
+      
+      // Remove style override
+      const existingStyle = document.getElementById('room-theme-override');
+      if (existingStyle) {
+        existingStyle.remove();
+      }
     }
 
     async function loadRoomTheme(roomId) {
@@ -3396,6 +3531,117 @@ Be helpful and conversational. Respond naturally to user messages.`;
         }
       } catch (error) {
         console.error('Error loading room theme:', error);
+      }
+    }
+
+    // Test Functions
+    function showTestPanel() {
+      updateTestStatus();
+      document.getElementById('testPanelModal').classList.add('show');
+    }
+
+    function closeTestPanel() {
+      document.getElementById('testPanelModal').classList.remove('show');
+    }
+
+    async function testAddXP(amount) {
+      if (!currentUser) {
+        alert('Please sign in first');
+        return;
+      }
+      
+      try {
+        await awardXP(currentUser.uid, amount, `Test XP +${amount}`, document.getElementById('testFeaturesBtn'));
+        console.log(`Added ${amount} XP to user`);
+        updateTestStatus();
+      } catch (error) {
+        console.error('Error adding test XP:', error);
+        alert('Failed to add XP: ' + error.message);
+      }
+    }
+
+    async function testResetXP() {
+      if (!currentUser) {
+        alert('Please sign in first');
+        return;
+      }
+      
+      try {
+        const userRef = db.collection('users').doc(currentUser.uid);
+        await userRef.set({
+          xp: 0,
+          level: 1,
+          levelTitle: 'Novice',
+          levelTier: 'novice',
+          lastXPGain: firebase.firestore.FieldValue.serverTimestamp()
+        }, { merge: true });
+        console.log('Reset user XP to 0');
+        updateXPWidget();
+        updateTestStatus();
+      } catch (error) {
+        console.error('Error resetting XP:', error);
+        alert('Failed to reset XP: ' + error.message);
+      }
+    }
+
+    function testApplyColor(color) {
+      console.log('Testing color application:', color);
+      applyRoomTheme(color);
+      updateTestStatus();
+    }
+
+    function testRemoveColor() {
+      console.log('Testing color removal');
+      removeRoomTheme();
+      updateTestStatus();
+    }
+
+    async function updateTestStatus() {
+      const statusDiv = document.getElementById('testStatus');
+      if (!statusDiv) return;
+
+      try {
+        let status = `🔧 SYSTEM STATUS\n`;
+        status += `User: ${currentUser ? currentUser.displayName || 'Anonymous' : 'Not signed in'}\n`;
+        status += `Room: ${currentRoomId || 'None'}\n`;
+        status += `Firebase: ${firebaseInitialized ? '✅ Connected' : '❌ Not connected'}\n`;
+        status += `Online: ${isOnline ? '✅ Online' : '❌ Offline'}\n\n`;
+
+        if (currentUser) {
+          try {
+            const userDoc = await db.collection('users').doc(currentUser.uid).get();
+            const userData = userDoc.data() || {};
+            const userXP = userData.xp || 0;
+            const levelData = calculateLevel(userXP);
+            
+            status += `📊 USER STATS\n`;
+            status += `XP: ${userXP}\n`;
+            status += `Level: ${levelData.level} (${levelData.title})\n`;
+            status += `Tier: ${levelData.tier}\n\n`;
+          } catch (error) {
+            status += `📊 USER STATS\n`;
+            status += `Error loading user data: ${error.message}\n\n`;
+          }
+        }
+
+        if (currentRoomId) {
+          try {
+            const roomDoc = await db.collection('chatRooms').doc(currentRoomId).get();
+            const roomData = roomDoc.data() || {};
+            
+            status += `🎨 ROOM INFO\n`;
+            status += `Color: ${roomData.customColor || 'Default'}\n`;
+            status += `Users: ${roomData.userCount || 0}\n`;
+            status += `Created: ${roomData.createdAt ? new Date(roomData.createdAt.toDate()).toLocaleString() : 'Unknown'}\n`;
+          } catch (error) {
+            status += `🎨 ROOM INFO\n`;
+            status += `Error loading room data: ${error.message}\n`;
+          }
+        }
+
+        statusDiv.textContent = status;
+      } catch (error) {
+        statusDiv.textContent = `Error updating status: ${error.message}`;
       }
     }
 
