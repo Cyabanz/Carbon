@@ -1113,6 +1113,174 @@
       to { opacity: 0; transform: translateY(-10px); }
     }
 
+    /* Notification System */
+    .notification-container {
+      position: fixed;
+      top: var(--space-4);
+      right: var(--space-4);
+      z-index: 5000;
+      pointer-events: none;
+    }
+
+    .notification {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: var(--space-4);
+      margin-bottom: var(--space-2);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+      backdrop-filter: blur(var(--backdrop-blur));
+      -webkit-backdrop-filter: blur(var(--backdrop-blur));
+      pointer-events: auto;
+      cursor: pointer;
+      transition: var(--transition);
+      animation: slideInRight 0.3s ease;
+      max-width: 300px;
+      border-left: 4px solid var(--room-color, #6366f1);
+    }
+
+    .notification:hover {
+      transform: translateX(-4px);
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+    }
+
+    .notification.success {
+      border-left-color: var(--success);
+    }
+
+    .notification.error {
+      border-left-color: var(--error);
+    }
+
+    .notification.warning {
+      border-left-color: var(--warning);
+    }
+
+    .notification-header {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      margin-bottom: var(--space-2);
+    }
+
+    .notification-icon {
+      width: 20px;
+      height: 20px;
+      border-radius: var(--radius-full);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.75rem;
+      color: white;
+      background: var(--room-color, #6366f1);
+    }
+
+    .notification-title {
+      font-weight: 600;
+      color: var(--text-primary);
+      font-size: 0.875rem;
+    }
+
+    .notification-close {
+      margin-left: auto;
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      padding: var(--space-1);
+      border-radius: var(--radius);
+      transition: var(--transition);
+    }
+
+    .notification-close:hover {
+      background: var(--surface-hover);
+      color: var(--text-primary);
+    }
+
+    .notification-body {
+      color: var(--text-secondary);
+      font-size: 0.875rem;
+      line-height: 1.4;
+    }
+
+    .notification-avatar {
+      width: 24px;
+      height: 24px;
+      border-radius: var(--radius-full);
+      margin-right: var(--space-2);
+    }
+
+    @keyframes slideInRight {
+      from {
+        transform: translateX(100%);
+        opacity: 0;
+      }
+      to {
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
+
+    @keyframes slideOutRight {
+      to {
+        transform: translateX(100%);
+        opacity: 0;
+      }
+    }
+
+    /* Typing Indicator */
+    .typing-indicator {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      padding: var(--space-3) var(--space-4);
+      background: var(--glass);
+      border-radius: var(--radius-lg);
+      margin: var(--space-2) 0;
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+      opacity: 0;
+      transform: translateY(10px);
+      transition: all 0.3s ease;
+    }
+
+    .typing-indicator.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .typing-dots {
+      display: flex;
+      gap: var(--space-1);
+    }
+
+    .typing-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: var(--radius-full);
+      background: var(--room-color, #6366f1);
+      animation: typingBounce 1.4s ease-in-out infinite;
+    }
+
+    .typing-dot:nth-child(2) {
+      animation-delay: 0.2s;
+    }
+
+    .typing-dot:nth-child(3) {
+      animation-delay: 0.4s;
+    }
+
+    @keyframes typingBounce {
+      0%, 60%, 100% {
+        transform: translateY(0);
+        opacity: 0.4;
+      }
+      30% {
+        transform: translateY(-8px);
+        opacity: 1;
+      }
+    }
+
     .animate-fade-in {
       animation: fadeIn 0.3s ease-out;
     }
@@ -3008,15 +3176,18 @@
               <i class='bx bx-palette'></i>
               <span>Colors</span>
             </button>
-            <button id="carbonArtBtn" onclick="openCarbonArt()" class="btn btn-secondary hidden">
-              <i class='bx bx-brush'></i>
-              <span>Art</span>
-            </button>
-            <button id="leaveRoomBtn" onclick="leaveCurrentRoom()" class="btn btn-danger hidden">
-              <i class='bx bx-exit'></i>
-              <span>Leave</span>
-            </button>
-          </div>
+                         <button id="carbonArtBtn" onclick="openCarbonArt()" class="btn btn-secondary hidden">
+               <i class='bx bx-brush'></i>
+               <span>Art</span>
+             </button>
+             <button id="soundToggle" onclick="toggleSounds()" class="btn btn-secondary" title="Toggle sound effects">
+               <i class='bx bx-volume-full'></i>
+             </button>
+             <button id="leaveRoomBtn" onclick="leaveCurrentRoom()" class="btn btn-danger hidden">
+               <i class='bx bx-exit'></i>
+               <span>Leave</span>
+             </button>
+           </div>
         </div>
       </div>
       
@@ -3035,6 +3206,16 @@
           <p>Welcome to CARBON Chat!</p>
           <p class="text-sm mt-2">Select a room from the sidebar to start chatting.</p>
         </div>
+      </div>
+      
+      <!-- Typing Indicator -->
+      <div id="typingIndicator" class="typing-indicator">
+        <div class="typing-dots">
+          <div class="typing-dot"></div>
+          <div class="typing-dot"></div>
+          <div class="typing-dot"></div>
+        </div>
+        <span id="typingText">Someone is typing...</span>
       </div>
 
       <!-- Chat Input -->
@@ -3061,6 +3242,8 @@
               class="flex-1 px-4 py-2 bg-rp-overlay border border-rp-highlight-med rounded-lg text-rp-text placeholder-rp-muted focus:outline-none focus:border-rp-foam"
               maxlength="500"
               required
+              oninput="handleTyping()"
+              onkeydown="handleKeyDown(event)"
             >
             <button type="button" id="emojiButton" class="emoji-button">
               😀
@@ -3150,6 +3333,9 @@
       </form>
     </div>
   </div>
+
+  <!-- Notification Container -->
+  <div id="notificationContainer" class="notification-container"></div>
 
   <!-- Profile Modal -->
   <div id="profileModal" class="profile-modal hidden">
@@ -4142,6 +4328,15 @@ Be helpful and conversational. Respond naturally to user messages.`;
         loadMessages(roomId);
         updateRoomHighlight();
 
+        // Setup typing indicator
+        setupTypingIndicator();
+
+        // Show room joined notification
+        showNotification('Room Joined', `Welcome to ${roomData.name}`, 'success', { 
+          duration: 3000,
+          roomId: roomId 
+        });
+
         // Add user to room presence
         await db.collection('chatRooms').doc(roomId).collection('presence').doc(currentUser.uid).set({
           userId: currentUser.uid,
@@ -4377,12 +4572,18 @@ Be helpful and conversational. Respond naturally to user messages.`;
         cancelReply(); // Clear any active reply
         updateActivity(); // Reset AFK status
 
+        // Stop typing indicator
+        stopTyping();
+
         // Award XP for sending message
         const messageElement = document.getElementById('messageInput');
         awardXP(currentUser.uid, XP_REWARDS.MESSAGE, 'Message sent', messageElement);
 
         // Update message count
         await updateMessageCount(currentUser.uid);
+
+        // Show success feedback
+        showNotification('Message Sent', 'Your message was sent successfully', 'success', { duration: 2000 });
 
         // Check if AI should respond (when room is empty or user is alone)
         const roomDoc = await db.collection('chatRooms').doc(currentRoomId).get();
@@ -4586,6 +4787,20 @@ Be helpful and conversational. Respond naturally to user messages.`;
       }
       
       messagesContainer.appendChild(messageDiv);
+
+      // Show notification for new messages if tab is not focused
+      if (!isOwn && !isSystem && !document.hasFocus()) {
+        showNotification(
+          'New Message',
+          `${message.authorName}: ${message.content.substring(0, 100)}${message.content.length > 100 ? '...' : ''}`,
+          'message',
+          {
+            avatar: message.authorPhoto,
+            roomId: currentRoomId,
+            duration: 5000
+          }
+        );
+      }
     }
 
     // Reactions functionality
@@ -7035,6 +7250,196 @@ Be helpful and conversational. Respond naturally to user messages.`;
       }
     }
 
+    // Notification System
+    let notificationId = 0;
+    let soundEnabled = localStorage.getItem('chatSounds') !== 'false';
+
+    function showNotification(title, message, type = 'info', options = {}) {
+      const container = document.getElementById('notificationContainer');
+      if (!container) return;
+
+      const id = ++notificationId;
+      const notification = document.createElement('div');
+      notification.className = `notification ${type}`;
+      notification.dataset.id = id;
+
+      const iconMap = {
+        info: 'bx-info-circle',
+        success: 'bx-check-circle',
+        error: 'bx-error-circle',
+        warning: 'bx-error',
+        message: 'bx-message'
+      };
+
+      const avatar = options.avatar ? `<img src="${options.avatar}" class="notification-avatar" alt="Avatar">` : '';
+
+      notification.innerHTML = `
+        <div class="notification-header">
+          ${avatar}
+          <div class="notification-icon">
+            <i class='bx ${iconMap[type] || iconMap.info}'></i>
+          </div>
+          <div class="notification-title">${sanitizeText(title)}</div>
+          <button class="notification-close" onclick="closeNotification(${id})">
+            <i class='bx bx-x'></i>
+          </button>
+        </div>
+        <div class="notification-body">${sanitizeText(message)}</div>
+      `;
+
+      // Click to focus room
+      if (options.roomId) {
+        notification.addEventListener('click', (e) => {
+          if (!e.target.closest('.notification-close')) {
+            joinRoom(options.roomId);
+            closeNotification(id);
+          }
+        });
+      }
+
+      container.appendChild(notification);
+
+      // Play sound for new messages
+      if (soundEnabled && type === 'message') {
+        playNotificationSound();
+      }
+
+      // Auto-close after 5 seconds
+      setTimeout(() => closeNotification(id), options.duration || 5000);
+
+      return id;
+    }
+
+    function closeNotification(id) {
+      const notification = document.querySelector(`[data-id="${id}"]`);
+      if (notification) {
+        notification.style.animation = 'slideOutRight 0.3s ease forwards';
+        setTimeout(() => notification.remove(), 300);
+      }
+    }
+
+    function playNotificationSound() {
+      try {
+        // Create audio context and generate notification sound
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        
+        oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+        oscillator.frequency.setValueAtTime(600, audioContext.currentTime + 0.1);
+        
+        gainNode.gain.setValueAtTime(0, audioContext.currentTime);
+        gainNode.gain.linearRampToValueAtTime(0.3, audioContext.currentTime + 0.01);
+        gainNode.gain.linearRampToValueAtTime(0, audioContext.currentTime + 0.2);
+        
+        oscillator.start(audioContext.currentTime);
+        oscillator.stop(audioContext.currentTime + 0.2);
+      } catch (error) {
+        console.log('Audio notification not available:', error);
+      }
+    }
+
+    function toggleSounds() {
+      soundEnabled = !soundEnabled;
+      localStorage.setItem('chatSounds', soundEnabled);
+      showNotification('Sound Effects', `Sounds ${soundEnabled ? 'enabled' : 'disabled'}`, 'success');
+      updateSoundButton();
+    }
+
+    function updateSoundButton() {
+      const button = document.getElementById('soundToggle');
+      if (button) {
+        const icon = button.querySelector('i');
+        icon.className = soundEnabled ? 'bx bx-volume-full' : 'bx bx-volume-mute';
+        button.classList.toggle('active', soundEnabled);
+      }
+    }
+
+    // Typing Indicator System
+    let typingTimeout;
+    let isTyping = false;
+    let typingUsers = new Set();
+
+    function startTyping() {
+      if (!currentUser || !currentRoomId) return;
+
+      if (!isTyping) {
+        isTyping = true;
+        db.collection('chatRooms').doc(currentRoomId).collection('typing').doc(currentUser.uid).set({
+          userName: currentUser.displayName || 'Anonymous',
+          timestamp: firebase.firestore.FieldValue.serverTimestamp()
+        });
+      }
+
+      clearTimeout(typingTimeout);
+      typingTimeout = setTimeout(stopTyping, 3000);
+    }
+
+    function stopTyping() {
+      if (!currentUser || !currentRoomId || !isTyping) return;
+
+      isTyping = false;
+      db.collection('chatRooms').doc(currentRoomId).collection('typing').doc(currentUser.uid).delete();
+      clearTimeout(typingTimeout);
+    }
+
+    function setupTypingIndicator() {
+      if (!currentRoomId) return;
+
+      // Listen for typing indicators
+      db.collection('chatRooms').doc(currentRoomId).collection('typing')
+        .onSnapshot(snapshot => {
+          typingUsers.clear();
+          
+          snapshot.docs.forEach(doc => {
+            const data = doc.data();
+            if (doc.id !== currentUser?.uid) {
+              typingUsers.add(data.userName);
+            }
+          });
+
+          updateTypingIndicator();
+        });
+    }
+
+    function updateTypingIndicator() {
+      const indicator = document.getElementById('typingIndicator');
+      const text = document.getElementById('typingText');
+      
+      if (typingUsers.size === 0) {
+        indicator.classList.remove('show');
+      } else {
+        const names = Array.from(typingUsers);
+        let message = '';
+        
+        if (names.length === 1) {
+          message = `${names[0]} is typing...`;
+        } else if (names.length === 2) {
+          message = `${names[0]} and ${names[1]} are typing...`;
+        } else {
+          message = `${names[0]} and ${names.length - 1} others are typing...`;
+        }
+        
+        text.textContent = message;
+        indicator.classList.add('show');
+      }
+    }
+
+    // Input handling for typing detection
+    function handleTyping() {
+      startTyping();
+    }
+
+    function handleKeyDown(event) {
+      if (event.key === 'Enter' && !event.shiftKey) {
+        event.preventDefault();
+        document.getElementById('messageForm').dispatchEvent(new Event('submit'));
+      }
+    }
+
     // Sidebar Tab Management
     function switchSidebarTab(tabName) {
       // Update tab buttons
@@ -7161,9 +7566,14 @@ Be helpful and conversational. Respond naturally to user messages.`;
     window.loadLeaderboard = loadLeaderboard;
     window.switchLeaderboard = switchLeaderboard;
     window.searchUsers = searchUsers;
-    window.toggleLeaderboardFollow = toggleLeaderboardFollow;
-    window.updateLeaderboardFollowStates = updateLeaderboardFollowStates;
-    window.leaveCurrentRoom = leaveCurrentRoom;
+          window.toggleLeaderboardFollow = toggleLeaderboardFollow;
+      window.updateLeaderboardFollowStates = updateLeaderboardFollowStates;
+      window.leaveCurrentRoom = leaveCurrentRoom;
+      window.showNotification = showNotification;
+      window.closeNotification = closeNotification;
+      window.toggleSounds = toggleSounds;
+      window.handleTyping = handleTyping;
+      window.handleKeyDown = handleKeyDown;
     window.cancelReply = cancelReply;
     window.closeProfileModal = closeProfileModal;
     window.signOut = signOut;
@@ -7174,7 +7584,13 @@ Be helpful and conversational. Respond naturally to user messages.`;
       setupNetworkMonitoring(); // Start network monitoring
       updateConnectionStatus(); // Set initial status
       setupSecureEventListeners(); // Setup secure event handling
+      updateSoundButton(); // Initialize sound button state
       waitForFirebaseAndStartChat();
+      
+      // Show welcome notification after a brief delay
+      setTimeout(() => {
+        showNotification('Welcome to CARBON Chat', 'Select a room to start chatting!', 'info', { duration: 4000 });
+      }, 1000);
     });
 
     // Keyboard shortcuts
