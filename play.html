@@ -1306,8 +1306,18 @@
       setTransport,
       setWisp,
     } from "/lethal.mjs";
-    let proxyOption = localStorage.getItem("proxy-backend") || "uv";
+    let proxyOption = localStorage.getItem("proxy-backend") || "disabled";
+    let proxyEnabled = localStorage.getItem("proxy-enabled") !== "false"; // true by default, but we'll set it to false
+    
+    // Set proxy disabled by default if not previously set
+    if (!localStorage.getItem("proxy-enabled")) {
+      localStorage.setItem("proxy-enabled", "false");
+      proxyEnabled = false;
+    }
+    
     async function ensureProxyReady() {
+      if (!proxyEnabled) return; // Skip proxy setup if disabled
+      
       if (!getProxy() || getProxy() !== proxyOption) await setProxy(proxyOption);
       let wisp = localStorage.getItem("wisp-server") || "wss://anura.pro/";
       let transport = localStorage.getItem("proxy-transport");
@@ -1321,30 +1331,60 @@
       const proxyToggleIcon = document.getElementById("proxyToggleIcon");
       if (!proxyToggleBtn || !proxyToggleIcon) return;
       
-      if (proxy === "scram") {
-        proxyToggleBtn.classList.remove("border-cyan-400/60", "hover:border-cyan-400");
+      if (!proxyEnabled) {
+        // Proxy disabled state
+        proxyToggleBtn.classList.remove("border-cyan-400/60", "hover:border-cyan-400", "border-yellow-400/60", "hover:border-yellow-400");
+        proxyToggleBtn.classList.add("border-red-400/60", "hover:border-red-400");
+        proxyToggleIcon.className = "bx bx-shield-x text-xl text-red-400";
+        proxyToggleBtn.title = "Proxy Disabled (Direct Connection)";
+      } else if (proxy === "scram") {
+        proxyToggleBtn.classList.remove("border-cyan-400/60", "hover:border-cyan-400", "border-red-400/60", "hover:border-red-400");
         proxyToggleBtn.classList.add("border-yellow-400/60", "hover:border-yellow-400");
         proxyToggleIcon.className = "bx bx-network-chart text-xl text-yellow-400";
-        proxyToggleBtn.title = "Scramjet Proxy";
+        proxyToggleBtn.title = "Scramjet Proxy Enabled";
       } else {
-        proxyToggleBtn.classList.remove("border-yellow-400/60", "hover:border-yellow-400");
+        proxyToggleBtn.classList.remove("border-yellow-400/60", "hover:border-yellow-400", "border-red-400/60", "hover:border-red-400");
         proxyToggleBtn.classList.add("border-cyan-400/60", "hover:border-cyan-400");
         proxyToggleIcon.className = "bx bx-cloud text-xl text-cyan-400";
-        proxyToggleBtn.title = "UV Proxy";
+        proxyToggleBtn.title = "UV Proxy Enabled";
       }
     }
     document.getElementById("proxyToggleBtn").addEventListener("click", async () => {
-      proxyOption = (getProxy() === "scram") ? "uv" : "scram";
-      localStorage.setItem("proxy-backend", proxyOption);
+      if (!proxyEnabled) {
+        // Enable proxy with UV as default
+        proxyEnabled = true;
+        proxyOption = "uv";
+        localStorage.setItem("proxy-enabled", "true");
+        localStorage.setItem("proxy-backend", proxyOption);
+      } else if (proxyOption === "uv") {
+        // Switch to Scramjet
+        proxyOption = "scram";
+        localStorage.setItem("proxy-backend", proxyOption);
+      } else {
+        // Disable proxy entirely
+        proxyEnabled = false;
+        localStorage.setItem("proxy-enabled", "false");
+      }
+      
       await ensureProxyReady();
       updateProxyToggleUI(proxyOption);
+      
       if (!document.getElementById("gameFrameContainer").classList.contains("hidden")) {
-        loadProxiedGameIframe();
+        if (proxyEnabled) {
+          loadProxiedGameIframe();
+        } else {
+          loadDirectGameIframe();
+        }
       }
     });
     updateProxyToggleUI(proxyOption);
 
     async function loadProxiedGameIframe() {
+      if (!proxyEnabled) {
+        loadDirectGameIframe();
+        return;
+      }
+      
       await ensureProxyReady();
       let gamesData = window.gamesData || [];
       let currentGameId = window.currentGameId;
@@ -1353,7 +1393,18 @@
       const proxied = await getProxied(currentGame.url);
       document.getElementById("gameFrameEmbed").src = proxied;
     }
+    
+    function loadDirectGameIframe() {
+      let gamesData = window.gamesData || [];
+      let currentGameId = window.currentGameId;
+      let currentGame = gamesData.find(g => String(g.id) === String(currentGameId));
+      if (!currentGame) return;
+      
+      // Load game directly without proxy
+      document.getElementById("gameFrameEmbed").src = currentGame.url;
+    }
     window.loadProxiedGameIframe = loadProxiedGameIframe;
+    window.loadDirectGameIframe = loadDirectGameIframe;
     window.ensureProxyReady = ensureProxyReady;
     window.updateProxyToggleUI = updateProxyToggleUI;
   </script>
