@@ -271,6 +271,18 @@
         </div>
       </div>
 
+      <!-- Upload to Firebase Button (Admin) -->
+      <div class="text-center mb-6">
+        <button
+          onclick="uploadGamesToFirebase()"
+          class="px-6 py-3 bg-rp-love/20 hover:bg-rp-love/30 border border-rp-love/50 hover:border-rp-love text-rp-love rounded-xl transition-all duration-300 font-medium"
+          id="uploadButton"
+          style="display: none;"
+        >
+          🔥 Upload Games to Firebase
+        </button>
+      </div>
+
       <!-- Category Buttons -->
       <div class="mb-12 animate-[fadeInUp_1s_ease-out_0.4s_both]">
         <div class="flex flex-wrap justify-center gap-3" id="categoryButtons">
@@ -435,18 +447,50 @@
 
     async function fetchGames() {
       try {
-        const res = await fetch('games.json');
-        const games = await res.json();
+        console.log('🔥 Loading games from Firebase...');
+        const snapshot = await db.collection('games').get();
+        
+        if (snapshot.empty) {
+          console.log('⚠️ No games found in Firebase, falling back to games.json');
+          // Show upload button when Firebase is empty
+          document.getElementById('uploadButton').style.display = 'inline-block';
+          
+          // Fallback to JSON file if Firebase is empty
+          const res = await fetch('games.json');
+          const jsonData = await res.json();
+          return jsonData.games || jsonData; // Handle both formats
+        }
+        
+        const games = [];
+        snapshot.forEach(doc => {
+          const gameData = doc.data();
+          games.push({
+            id: doc.id,
+            ...gameData
+          });
+        });
+        
+        console.log(`✅ Loaded ${games.length} games from Firebase`);
         return games;
+        
       } catch (error) {
-        console.error('Error loading games data:', error);
-        throw error;
+        console.error('Error loading games from Firebase, trying JSON fallback:', error);
+        
+        // Fallback to JSON file
+        try {
+          const res = await fetch('games.json');
+          const jsonData = await res.json();
+          return jsonData.games || jsonData;
+        } catch (jsonError) {
+          console.error('Error loading games from JSON too:', jsonError);
+          throw jsonError;
+        }
       }
     }
 
     async function initializeGames() {
       try {
-        document.getElementById('gamesGrid').innerHTML = `<div class="col-span-full text-center text-white/60 py-10">Loading games from Firestore...</div>`;
+        document.getElementById('gamesGrid').innerHTML = `<div class="col-span-full text-center text-white/60 py-10">Loading games from Firebase...</div>`;
         gamesData = await fetchGames();
         filteredGames = [...gamesData];
         let catSet = new Set();
@@ -466,7 +510,7 @@
         renderCategoriesCarousel();
         setupAutocomplete();
       } catch (error) {
-        document.getElementById('gamesGrid').innerHTML = `<div class="col-span-full text-center text-red-400 py-10">Failed to load games from Firestore.</div>`;
+        document.getElementById('gamesGrid').innerHTML = `<div class="col-span-full text-center text-red-400 py-10">Failed to load games from Firebase. Please try refreshing the page.</div>`;
       }
     }
 
@@ -480,6 +524,97 @@
 
     function signOut() {
       auth.signOut().then(() => location.reload());
+    }
+
+    // Upload games to Firebase function
+    async function uploadGamesToFirebase() {
+      const button = document.getElementById('uploadButton');
+      const originalText = button.innerHTML;
+      
+      try {
+        button.innerHTML = '⏳ Uploading...';
+        button.disabled = true;
+        
+        console.log('🎮 Starting Firebase upload...');
+        
+        // Fetch games from JSON
+        const response = await fetch('./games.json');
+        const gamesJsonData = await response.json();
+        const games = gamesJsonData.games || gamesJsonData;
+        
+        console.log(`📤 Uploading ${games.length} games...`);
+        
+        let uploaded = 0;
+        let failed = 0;
+        
+        // Upload each game
+        for (let i = 0; i < games.length; i++) {
+          const game = games[i];
+          
+          try {
+            const gameId = game.directory.replace('games/', '');
+            
+            const gameDoc = {
+              id: gameId,
+              title: game.name,
+              name: game.name,
+              directory: game.directory,
+              path: game.path,
+              category: 'action',
+              image: `https://via.placeholder.com/400x300/00d4ff/ffffff?text=${encodeURIComponent(game.name)}`,
+              description: `Play ${game.name} - HTML5 game from YouTube Playables`,
+              featured: i < 3,
+              url: `./games/${gameId}/index.html`,
+              developer: 'YouTube Playables',
+              release: '2024',
+              technology: 'HTML5',
+              platforms: ['Browser'],
+              tags: ['html5', 'youtube-playables'],
+              controls: 'Mouse and keyboard',
+              addedAt: firebase.firestore.FieldValue.serverTimestamp(),
+              playCount: 0,
+              avgRating: 0,
+              active: true
+            };
+            
+            await db.collection('games').doc(gameId).set(gameDoc);
+            uploaded++;
+            
+            button.innerHTML = `⏳ Uploading... (${uploaded}/${games.length})`;
+            
+          } catch (error) {
+            console.error(`Failed to upload ${game.name}:`, error);
+            failed++;
+          }
+        }
+        
+        // Create metadata
+        await db.collection('metadata').doc('games').set({
+          totalGames: games.length,
+          uploadedGames: uploaded,
+          failedGames: failed,
+          source: 'YouTube Playables',
+          lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        
+        button.innerHTML = '✅ Upload Complete!';
+        console.log(`🎉 Upload complete! ${uploaded} games uploaded, ${failed} failed`);
+        
+        // Refresh games display
+        setTimeout(() => {
+          initializeGames();
+          button.style.display = 'none';
+        }, 2000);
+        
+      } catch (error) {
+        console.error('Upload error:', error);
+        button.innerHTML = '❌ Upload Failed';
+        button.disabled = false;
+        
+        setTimeout(() => {
+          button.innerHTML = originalText;
+        }, 3000);
+      }
     }
 
     async function setupAuth() {

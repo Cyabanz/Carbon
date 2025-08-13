@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload Games to Firebase</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #191724, #1f1d2e);
+            color: white;
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        .container {
+            text-align: center;
+            max-width: 600px;
+            padding: 30px;
+            background: rgba(31, 29, 46, 0.8);
+            border-radius: 20px;
+            border: 1px solid rgba(156, 207, 216, 0.3);
+        }
+        h1 {
+            color: #9ccfd8;
+            margin-bottom: 20px;
+        }
+        .status {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 10px;
+            font-weight: bold;
+        }
+        .loading { background: rgba(156, 207, 216, 0.2); }
+        .success { background: rgba(49, 116, 143, 0.3); }
+        .error { background: rgba(235, 111, 146, 0.3); }
+        .progress {
+            width: 100%;
+            height: 20px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 10px;
+            margin: 20px 0;
+            overflow: hidden;
+        }
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #9ccfd8, #31748f);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎮 Upload Games to Firebase</h1>
+        <div id="status" class="status loading">Initializing...</div>
+        <div class="progress">
+            <div id="progressBar" class="progress-bar"></div>
+        </div>
+        <div id="details"></div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+
+    <script>
+        // Firebase configuration (same as in games.html)
+        const firebaseConfig = {
+            apiKey: "AIzaSyCr4GKv8XllQhKXxwmnN3VH2QPbVi4g5y4",
+            authDomain: "carbon-network-7b43c.firebaseapp.com",
+            projectId: "carbon-network-7b43c",
+            storageBucket: "carbon-network-7b43c.appspot.com",
+            messagingSenderId: "288385472070",
+            appId: "1:288385472070:web:c4be3ff186e248fc645c47",
+            measurementId: "G-Y2K1RQYE74"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        // Status elements
+        const statusEl = document.getElementById('status');
+        const progressEl = document.getElementById('progressBar');
+        const detailsEl = document.getElementById('details');
+
+        function updateStatus(message, type = 'loading') {
+            statusEl.textContent = message;
+            statusEl.className = `status ${type}`;
+        }
+
+        function updateProgress(current, total) {
+            const percent = (current / total) * 100;
+            progressEl.style.width = percent + '%';
+        }
+
+        // Auto-start upload
+        async function uploadGames() {
+            try {
+                updateStatus('🔥 Loading games data...', 'loading');
+                
+                // Fetch games from JSON
+                const response = await fetch('./games.json');
+                const gamesData = await response.json();
+                const games = gamesData.games || gamesData;
+
+                updateStatus(`📤 Uploading ${games.length} games to Firebase...`, 'loading');
+                
+                let uploaded = 0;
+                let failed = 0;
+
+                // Upload each game
+                for (let i = 0; i < games.length; i++) {
+                    const game = games[i];
+                    
+                    try {
+                        const gameId = game.directory.replace('games/', '');
+                        
+                        const gameDoc = {
+                            id: gameId,
+                            title: game.name,
+                            name: game.name,
+                            directory: game.directory,
+                            path: game.path,
+                            category: 'action',
+                            image: `https://via.placeholder.com/400x300/00d4ff/ffffff?text=${encodeURIComponent(game.name)}`,
+                            description: `Play ${game.name} - HTML5 game from YouTube Playables`,
+                            featured: i < 3,
+                            url: `./games/${gameId}/index.html`,
+                            developer: 'YouTube Playables',
+                            release: '2024',
+                            technology: 'HTML5',
+                            platforms: ['Browser'],
+                            tags: ['html5', 'youtube-playables'],
+                            controls: 'Mouse and keyboard',
+                            addedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                            playCount: 0,
+                            avgRating: 0,
+                            active: true
+                        };
+                        
+                        await db.collection('games').doc(gameId).set(gameDoc);
+                        uploaded++;
+                        
+                        updateProgress(uploaded, games.length);
+                        updateStatus(`📤 Uploading... (${uploaded}/${games.length})`, 'loading');
+                        
+                    } catch (error) {
+                        console.error(`Failed to upload ${game.name}:`, error);
+                        failed++;
+                    }
+                }
+
+                // Create metadata
+                await db.collection('metadata').doc('games').set({
+                    totalGames: games.length,
+                    uploadedGames: uploaded,
+                    failedGames: failed,
+                    source: 'YouTube Playables',
+                    description: 'Collection of YouTube Playable games',
+                    lastUpdated: firebase.firestore.FieldValue.serverTimestamp(),
+                    version: '1.0'
+                });
+
+                updateStatus(`🎉 Upload Complete! ${uploaded} games uploaded successfully`, 'success');
+                detailsEl.innerHTML = `
+                    <p>✅ Successfully uploaded: ${uploaded} games</p>
+                    <p>❌ Failed uploads: ${failed} games</p>
+                    <p>📊 Total processed: ${games.length} games</p>
+                    <br>
+                    <p>🔄 <a href="games.html" style="color: #9ccfd8;">Go to Games Page</a> to see your uploaded games!</p>
+                `;
+
+            } catch (error) {
+                console.error('Upload error:', error);
+                updateStatus('❌ Upload failed: ' + error.message, 'error');
+                detailsEl.innerHTML = `<p>Error details: ${error.message}</p>`;
+            }
+        }
+
+        // Start upload when page loads
+        window.addEventListener('load', () => {
+            setTimeout(uploadGames, 1000); // Small delay for better UX
+        });
+    </script>
+</body>
+</html>
