@@ -1631,6 +1631,14 @@
       starRatingData.yourRating = 0;
       starRatingData.percent = 0;
       try {
+        // Check if Firebase is available
+        if (!db || !firebase.apps.length) {
+          console.warn('Firebase not initialized, skipping star rating');
+          starRatingData.loading = false;
+          renderStarRatingUI();
+          return;
+        }
+        
         const ratingsRef = db.collection("games").doc(gameId).collection("ratings");
         const snap = await ratingsRef.get();
         let total = 0, count = 0, your = 0, user = auth.currentUser;
@@ -3502,14 +3510,6 @@
           }
         }
         
-        console.log('⭐ Loading star rating...');
-        try {
-          await loadStarRating(currentGameId);
-          console.log('✅ Star rating loaded');
-        } catch (error) {
-          console.warn('⚠️ Failed to load star rating:', error.message);
-        }
-        
         console.log('📊 Rendering game info box...');
         try {
           renderGameInfoBox(currentGame, "gameInfoTable");
@@ -3518,13 +3518,26 @@
           console.warn('⚠️ Failed to render game info box:', error.message);
         }
 
-        console.log('💬 Initializing comment system...');
-        try {
-          initializeCommentSystem();
-          console.log('✅ Comment system initialized');
-        } catch (error) {
-          console.warn('⚠️ Failed to initialize comment system:', error.message);
-        }
+        console.log('⭐ Loading star rating (non-blocking)...');
+        // Load star rating without blocking the page load
+        setTimeout(() => {
+          loadStarRating(currentGameId).then(() => {
+            console.log('✅ Star rating loaded');
+          }).catch(error => {
+            console.warn('⚠️ Failed to load star rating:', error.message);
+          });
+        }, 500);
+
+        console.log('💬 Initializing comment system (non-blocking)...');
+        // Initialize comment system without blocking the page load
+        setTimeout(() => {
+          try {
+            initializeCommentSystem();
+            console.log('✅ Comment system initialized');
+          } catch (error) {
+            console.warn('⚠️ Failed to initialize comment system:', error.message);
+          }
+        }, 1000);
 
       // Set up play button (works without auth)
       document.getElementById('bigPlayBtn').onclick = async () => {
@@ -3686,6 +3699,22 @@
 
     // Re-initialize the main document loading logic
     document.addEventListener('DOMContentLoaded', async () => {
+      // Safety timeout to ensure preloader is hidden even if something goes wrong
+      const safetyTimeout = setTimeout(() => {
+        console.warn('⚠️ Safety timeout reached - hiding preloader');
+        hidePreloader();
+        document.getElementById('gameInfoHolder').innerHTML = `
+          <div class="text-center p-12 text-yellow-400">
+            <h2 class="text-2xl font-bold mb-4">Loading Timeout</h2>
+            <p class="mb-4">Game took too long to load. This might be a network issue.</p>
+            <button onclick="location.reload()" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
+              Try Again
+            </button>
+          </div>
+        `;
+        document.getElementById('gameInfoHolder').classList.remove('hidden');
+      }, 10000); // 10 second timeout
+      
       try {
         console.log('🚀 Starting game initialization...');
         showPreloader();
@@ -3702,12 +3731,16 @@
         await loadGameOnPage();
         console.log('✅ Game loaded on page successfully');
         
+        // Clear the safety timeout since we succeeded
+        clearTimeout(safetyTimeout);
+        
         hidePreloader();
         document.getElementById('gameInfoHolder').classList.remove('hidden');
         console.log('🎉 Game initialization completed successfully');
         
       } catch (error) {
         console.error('💥 Game initialization failed:', error);
+        clearTimeout(safetyTimeout);
         hidePreloader();
         // Show error message to user
         document.getElementById('gameInfoHolder').innerHTML = `
