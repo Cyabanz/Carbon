@@ -3394,42 +3394,137 @@
 
     // Function to load game on page without requiring authentication
     async function loadGameOnPage() {
-      currentGameId = getGameIdFromURL();
-      window.currentGameId = currentGameId;
-      currentGame = gamesData.find(g => g.id == currentGameId || String(g.id) == currentGameId);
-      
-      if (!currentGame) {
+      try {
+        console.log('🎯 Getting game ID from URL...');
+        currentGameId = getGameIdFromURL();
+        window.currentGameId = currentGameId;
+        console.log(`🆔 Game ID: ${currentGameId}`);
+        
+        if (!currentGameId) {
+          throw new Error('No game ID provided in URL. Please add ?id=1 to the URL.');
+        }
+        
+        console.log('🔍 Finding game in loaded data...');
+        console.log(`📊 Available games: ${gamesData.length}`);
+        currentGame = gamesData.find(g => g.id == currentGameId || String(g.id) == currentGameId);
+        
+        if (!currentGame) {
+          console.error(`❌ Game ${currentGameId} not found in games data`);
+          console.log('Available game IDs:', gamesData.slice(0, 5).map(g => g.id));
+          hidePreloader();
+          document.getElementById('gameInfoHolder').innerHTML = `
+            <div class="text-center p-12 text-red-400">
+              <h2 class="text-2xl font-bold mb-4">Game Not Found</h2>
+              <p class="mb-4">Game ID "${currentGameId}" not found.</p>
+              <p class="mb-4">Available games: 1-${gamesData.length}</p>
+              <button onclick="window.location.href='play.html?id=1'" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
+                Load Game 1
+              </button>
+            </div>
+          `;
+          document.getElementById('gameInfoHolder').classList.remove('hidden');
+          return;
+        }
+        
+        console.log(`✅ Found game: ${currentGame.title}`);
+        
+        // Load basic game info without user-specific data
+        console.log('🎨 Displaying game info...');
+        await displayGameInfo();
+        console.log('✅ Game info displayed successfully');
+        
+      } catch (error) {
+        console.error('💥 Error in loadGameOnPage:', error);
         hidePreloader();
-        document.getElementById('gameInfoHolder').innerHTML = `<div class="text-center p-12 text-red-400">Game not found.</div>`;
+        document.getElementById('gameInfoHolder').innerHTML = `
+          <div class="text-center p-12 text-red-400">
+            <h2 class="text-2xl font-bold mb-4">Error Loading Game</h2>
+            <p class="mb-4">Error: ${error.message}</p>
+            <button onclick="location.reload()" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
+              Try Again
+            </button>
+          </div>
+        `;
         document.getElementById('gameInfoHolder').classList.remove('hidden');
-        return;
+        throw error;
       }
-      
-      // Load basic game info without user-specific data
-      await displayGameInfo();
     }
     
     // Function to display game info (works without authentication)
     async function displayGameInfo() {
-      // Validate and sanitize game data
-      const gameImage = validateUrl(currentGame.image) || '/default-game-image.png';
-      const gameTitle = sanitizeText(currentGame.title || 'Untitled Game', 200);
-      const gameDescription = sanitizeText(currentGame.description || 'No description available', 1000);
-      
-      document.getElementById('gameCoverImg').src = gameImage;
-      document.getElementById('gameTitleDisplay').textContent = gameTitle;
-      document.getElementById('gameFrameDesc').textContent = gameDescription;
-      document.getElementById('gameCategoryTag').textContent = currentGame.category || '';
-      
-      if (currentGame.featured) document.getElementById('gameFeaturedTag').classList.remove('hidden');
-      else document.getElementById('gameFeaturedTag').classList.add('hidden');
-      
-      // Load star rating (will show average even without auth)
-      await loadStarRating(currentGameId);
-      renderGameInfoBox(currentGame, "gameInfoTable");
+      try {
+        console.log('🎨 Starting displayGameInfo...');
+        
+        // Validate current game data
+        if (!currentGame) {
+          throw new Error('No current game data available');
+        }
+        
+        console.log(`📝 Processing game: ${currentGame.title}`);
+        
+        // Validate and sanitize game data
+        const gameImage = validateUrl(currentGame.image) || '/default-game-image.png';
+        const gameTitle = sanitizeText(currentGame.title || 'Untitled Game', 200);
+        const gameDescription = sanitizeText(currentGame.description || 'No description available', 1000);
+        
+        console.log(`🖼️ Game image: ${gameImage}`);
+        console.log(`📄 Game title: ${gameTitle}`);
+        
+        // Update DOM elements with error checking
+        const elements = {
+          'gameCoverImg': gameImage,
+          'gameTitleDisplay': gameTitle,
+          'gameFrameDesc': gameDescription,
+          'gameCategoryTag': currentGame.category || 'Unknown'
+        };
+        
+        for (const [elementId, value] of Object.entries(elements)) {
+          const element = document.getElementById(elementId);
+          if (!element) {
+            console.warn(`⚠️ Element ${elementId} not found in DOM`);
+            continue;
+          }
+          
+          if (elementId === 'gameCoverImg') {
+            element.src = value;
+          } else {
+            element.textContent = value;
+          }
+        }
+        
+        // Handle featured tag
+        const featuredTag = document.getElementById('gameFeaturedTag');
+        if (featuredTag) {
+          if (currentGame.featured) {
+            featuredTag.classList.remove('hidden');
+          } else {
+            featuredTag.classList.add('hidden');
+          }
+        }
+        
+        console.log('⭐ Loading star rating...');
+        try {
+          await loadStarRating(currentGameId);
+          console.log('✅ Star rating loaded');
+        } catch (error) {
+          console.warn('⚠️ Failed to load star rating:', error.message);
+        }
+        
+        console.log('📊 Rendering game info box...');
+        try {
+          renderGameInfoBox(currentGame, "gameInfoTable");
+          console.log('✅ Game info box rendered');
+        } catch (error) {
+          console.warn('⚠️ Failed to render game info box:', error.message);
+        }
 
-      // Initialize comment system 
-      initializeCommentSystem();
+        console.log('💬 Initializing comment system...');
+        try {
+          initializeCommentSystem();
+          console.log('✅ Comment system initialized');
+        } catch (error) {
+          console.warn('⚠️ Failed to initialize comment system:', error.message);
+        }
 
       // Set up play button (works without auth)
       document.getElementById('bigPlayBtn').onclick = async () => {
@@ -3487,6 +3582,13 @@
           }
         }, 1000);
       };
+      
+      console.log('✅ displayGameInfo completed successfully');
+        
+      } catch (error) {
+        console.error('💥 Error in displayGameInfo:', error);
+        throw error;
+      }
     }
     
     // Function to refresh user-specific data when user signs in
@@ -3494,8 +3596,8 @@
       if (!currentGame || !currentGameId) return;
       
       // Refresh ratings and comments with user context
-      await loadStarRating();
-      await loadComments();
+      await loadStarRating(currentGameId);
+      await loadComments(currentGameId);
     }
 
     // Function to track when user stops playing
@@ -3584,17 +3686,41 @@
 
     // Re-initialize the main document loading logic
     document.addEventListener('DOMContentLoaded', async () => {
-      showPreloader();
-      document.getElementById('gameFrameContainer').classList.add('hidden');
-      document.getElementById('gameInfoHolder').classList.add('hidden');
-      // Hide login screen by default - no auth required for playing games
-      document.getElementById('loginScreen').classList.add('hidden');
-      
-      // Load game data immediately without waiting for auth
-      await loadGamesData();
-      await loadGameOnPage();
-      hidePreloader();
-      document.getElementById('gameInfoHolder').classList.remove('hidden');
+      try {
+        console.log('🚀 Starting game initialization...');
+        showPreloader();
+        document.getElementById('gameFrameContainer').classList.add('hidden');
+        document.getElementById('gameInfoHolder').classList.add('hidden');
+        // Hide login screen by default - no auth required for playing games
+        document.getElementById('loginScreen').classList.add('hidden');
+        
+        console.log('📁 Loading games data...');
+        await loadGamesData();
+        console.log('✅ Games data loaded successfully');
+        
+        console.log('🎮 Loading game on page...');
+        await loadGameOnPage();
+        console.log('✅ Game loaded on page successfully');
+        
+        hidePreloader();
+        document.getElementById('gameInfoHolder').classList.remove('hidden');
+        console.log('🎉 Game initialization completed successfully');
+        
+      } catch (error) {
+        console.error('💥 Game initialization failed:', error);
+        hidePreloader();
+        // Show error message to user
+        document.getElementById('gameInfoHolder').innerHTML = `
+          <div class="text-center p-12 text-red-400">
+            <h2 class="text-2xl font-bold mb-4">Failed to Load Game</h2>
+            <p class="mb-4">Error: ${error.message}</p>
+            <button onclick="location.reload()" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
+              Try Again
+            </button>
+          </div>
+        `;
+        document.getElementById('gameInfoHolder').classList.remove('hidden');
+      }
       
       auth.onAuthStateChanged(async (user) => {
         renderUserSection(user);
