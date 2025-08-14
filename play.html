@@ -7,7 +7,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
   <!-- XSS Protection Headers -->
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self' https: data: blob:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tailwindcss.com https://www.gstatic.com https://cdn.jsdelivr.net https://apis.google.com https://unpkg.com https://vercel.live; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://unpkg.com https://cdn.jsdelivr.net; font-src 'self' https://fonts.gstatic.com https://unpkg.com https://cdn.jsdelivr.net; img-src 'self' data: https: blob:; media-src 'self' blob: https: data:; connect-src 'self' https: wss: ws: data: blob:; frame-src 'self' https: data: blob:; worker-src 'self' blob: data:; child-src 'self' blob: data:;">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' https:; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://www.gstatic.com https://cdn.jsdelivr.net https://apis.google.com https://unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://unpkg.com https://cdn.jsdelivr.net; font-src 'self' https://fonts.gstatic.com https://unpkg.com; img-src 'self' data: https:; media-src 'self' blob: https:; connect-src 'self' https:; frame-src 'self' https:;">
   <meta http-equiv="X-Content-Type-Options" content="nosniff">
   <meta http-equiv="X-XSS-Protection" content="1; mode=block">
   <meta name="referrer" content="strict-origin-when-cross-origin">
@@ -1062,7 +1062,9 @@
           <button id="dislikeBtn" class="w-12 h-12 bg-black/60 backdrop-blur-md hover:bg-red-500/90 text-white rounded-full flex items-center justify-center transition-all duration-300 border-2 border-white/20 hover:border-red-400/60 shadow-lg hover:shadow-red-400/30 hover:scale-110 game-action-btn" title="Dislike">
             <i class='bx bx-dislike text-xl'></i>
           </button>
-
+          <button id="proxyToggleBtn" class="w-12 h-12 bg-black/60 backdrop-blur-md rounded-full flex items-center justify-center transition-all duration-300 border-2 border-cyan-400/60 hover:border-cyan-400 shadow-lg hover:shadow-cyan-400/30 hover:scale-110 game-action-btn" title="Toggle Proxy">
+            <i id="proxyToggleIcon" class="bx bx-cloud text-xl text-cyan-400"></i>
+          </button>
           <button id="shareBtn" class="w-12 h-12 bg-black/60 backdrop-blur-md hover:bg-indigo-500/90 text-white rounded-full flex items-center justify-center transition-all duration-300 border-2 border-white/20 hover:border-indigo-400/60 shadow-lg hover:shadow-indigo-400/30 hover:scale-110 game-action-btn" title="Share">
             <i class='bx bx-share-alt text-xl'></i>
           </button>
@@ -1295,21 +1297,65 @@
     </div>
   </main>
 
-   <script>
-    // Simple direct game loading - no proxies
-    function loadGameIframe() {
+   <script type="module">
+    import {
+      makeURL,
+      getProxied,
+      setProxy,
+      getProxy,
+      setTransport,
+      setWisp,
+    } from "/lethal.mjs";
+    let proxyOption = localStorage.getItem("proxy-backend") || "uv";
+    async function ensureProxyReady() {
+      if (!getProxy() || getProxy() !== proxyOption) await setProxy(proxyOption);
+      let wisp = localStorage.getItem("wisp-server") || "wss://anura.pro/";
+      let transport = localStorage.getItem("proxy-transport");
+      if (wisp) await setWisp(wisp);
+      if (transport) await setTransport(transport);
+      else if (navigator.userAgent.indexOf("Firefox") > 0) await setTransport("libcurl");
+      else await setTransport("epoxy");
+    }
+    function updateProxyToggleUI(proxy) {
+      const proxyToggleBtn = document.getElementById("proxyToggleBtn");
+      const proxyToggleIcon = document.getElementById("proxyToggleIcon");
+      if (!proxyToggleBtn || !proxyToggleIcon) return;
+      
+      if (proxy === "scram") {
+        proxyToggleBtn.classList.remove("border-cyan-400/60", "hover:border-cyan-400");
+        proxyToggleBtn.classList.add("border-yellow-400/60", "hover:border-yellow-400");
+        proxyToggleIcon.className = "bx bx-network-chart text-xl text-yellow-400";
+        proxyToggleBtn.title = "Scramjet Proxy";
+      } else {
+        proxyToggleBtn.classList.remove("border-yellow-400/60", "hover:border-yellow-400");
+        proxyToggleBtn.classList.add("border-cyan-400/60", "hover:border-cyan-400");
+        proxyToggleIcon.className = "bx bx-cloud text-xl text-cyan-400";
+        proxyToggleBtn.title = "UV Proxy";
+      }
+    }
+    document.getElementById("proxyToggleBtn").addEventListener("click", async () => {
+      proxyOption = (getProxy() === "scram") ? "uv" : "scram";
+      localStorage.setItem("proxy-backend", proxyOption);
+      await ensureProxyReady();
+      updateProxyToggleUI(proxyOption);
+      if (!document.getElementById("gameFrameContainer").classList.contains("hidden")) {
+        loadProxiedGameIframe();
+      }
+    });
+    updateProxyToggleUI(proxyOption);
+
+    async function loadProxiedGameIframe() {
+      await ensureProxyReady();
       let gamesData = window.gamesData || [];
       let currentGameId = window.currentGameId;
       let currentGame = gamesData.find(g => String(g.id) === String(currentGameId));
       if (!currentGame) return;
-      
-      console.log('🎮 Loading game directly:', currentGame.title);
-      // Load game directly
-      document.getElementById("gameFrameEmbed").src = currentGame.url;
+      const proxied = await getProxied(currentGame.url);
+      document.getElementById("gameFrameEmbed").src = proxied;
     }
-    
-    // Export function to global scope
-    window.loadGameIframe = loadGameIframe;
+    window.loadProxiedGameIframe = loadProxiedGameIframe;
+    window.ensureProxyReady = ensureProxyReady;
+    window.updateProxyToggleUI = updateProxyToggleUI;
   </script>
 
            <script>
@@ -1500,22 +1546,25 @@
       for (let i = 1; i <= 5; i++) {
         const star = document.createElement('span');
         star.textContent = '★';
-        star.className = 'transition-colors duration-150 select-none cursor-pointer star-hover ' +
-          (i <= fill ? 'star-filled' : 'star-empty');
+        star.className = 'transition-colors duration-150 select-none ' +
+          (i <= fill ? 'star-filled' : 'star-empty') +
+          (auth.currentUser ? ' cursor-pointer star-hover' : ' cursor-not-allowed');
         star.style.color = i <= fill ? 'var(--theme-gold)' : 'var(--theme-muted)';
-        star.addEventListener('mouseenter', () => {
-          for (let j = 0; j < 5; j++) {
-            container.children[j].style.color = j < i ? 'var(--theme-gold)' : 'var(--theme-muted)';
-          }
-        });
-        star.addEventListener('mouseleave', () => {
-          for (let j = 0; j < 5; j++) {
-            container.children[j].style.color = j < fill ? 'var(--theme-gold)' : 'var(--theme-muted)';
-          }
-        });
-        star.addEventListener('click', async () => {
-          await submitStarRating(i);
-        });
+        if (auth.currentUser) {
+                      star.addEventListener('mouseenter', () => {
+              for (let j = 0; j < 5; j++) {
+                container.children[j].style.color = j < i ? 'var(--theme-gold)' : 'var(--theme-muted)';
+              }
+            });
+            star.addEventListener('mouseleave', () => {
+              for (let j = 0; j < 5; j++) {
+                container.children[j].style.color = j < fill ? 'var(--theme-gold)' : 'var(--theme-muted)';
+              }
+            });
+          star.addEventListener('click', async () => {
+            await submitStarRating(i);
+          });
+        }
         container.appendChild(star);
       }
       document.getElementById('starRatingSummary' + pre).textContent =
@@ -1534,14 +1583,6 @@
       starRatingData.yourRating = 0;
       starRatingData.percent = 0;
       try {
-        // Check if Firebase is available
-        if (!db || !firebase.apps.length) {
-          console.warn('Firebase not initialized, skipping star rating');
-          starRatingData.loading = false;
-          renderStarRatingUI();
-          return;
-        }
-        
         const ratingsRef = db.collection("games").doc(gameId).collection("ratings");
         const snap = await ratingsRef.get();
         let total = 0, count = 0, your = 0, user = auth.currentUser;
@@ -1569,7 +1610,9 @@
 
     async function submitStarRating(stars) {
       if (!auth.currentUser) {
-        showSignInPrompt('rate this game');
+        starRatingData.error = "Sign in first!";
+        renderStarRatingUI();
+        renderStarRatingUI("Frame");
         return;
       }
       if (!currentGameId) {
@@ -1856,7 +1899,7 @@
       const text = document.getElementById('commentText').value.trim();
       
       if (!user) {
-        showSignInPrompt('leave a comment');
+        alert('Please sign in to comment');
         return;
       }
       
@@ -1917,12 +1960,7 @@
       const user = auth.currentUser;
       const text = document.getElementById('replyText').value.trim();
       
-      if (!user) {
-        showSignInPrompt('reply to comments');
-        return;
-      }
-      
-      if (!text || !commentsData.currentReplyingTo) {
+      if (!user || !text || !commentsData.currentReplyingTo) {
         return;
       }
       
@@ -1965,12 +2003,8 @@
     // Add or remove reaction
     async function toggleReaction(commentId, emoji, isReply = false, replyId = null) {
       const user = auth.currentUser;
-      if (!user) {
-        showSignInPrompt('react to comments');
-        return;
-      }
-      if (!currentGameId) {
-        console.log('Game not loaded');
+      if (!user || !currentGameId) {
+        console.log('User not authenticated or game not loaded');
         return;
       }
       
@@ -2430,7 +2464,7 @@
     async function submitCommentWithRateLimit() {
       const user = auth.currentUser;
       if (!user) {
-        showSignInPrompt('leave a comment');
+        alert('Please sign in to comment');
         return;
       }
       
@@ -3273,244 +3307,6 @@
     window.closeTagGamesModal = closeTagGamesModal;
     window.googleSignIn = googleSignIn;
     window.signOut = signOutUser;
-    
-    // Function to show a friendly sign-in prompt for features that require authentication
-    function showSignInPrompt(action) {
-      const modal = document.createElement('div');
-      modal.className = 'fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[9999]';
-      modal.innerHTML = `
-        <div class="bg-rp-surface border border-rp-overlay rounded-2xl p-8 max-w-md mx-4 shadow-2xl">
-          <div class="text-center">
-            <i class='bx bx-user-circle text-4xl text-rp-foam mb-4'></i>
-            <h3 class="text-xl font-bold text-white mb-3">Sign In Required</h3>
-            <p class="text-rp-muted mb-6">Please sign in to ${action} and access additional features.</p>
-            <div class="flex gap-3 justify-center">
-              <button onclick="this.closest('.fixed').remove()" class="px-4 py-2 bg-rp-overlay hover:bg-rp-overlay/80 text-white rounded-lg transition">
-                Continue Playing
-              </button>
-              <button onclick="googleSignIn(); this.closest('.fixed').remove();" class="px-4 py-2 bg-rp-foam hover:bg-rp-foam/90 text-rp-base rounded-lg transition font-medium">
-                <i class='bx bxl-google mr-2'></i>Sign In
-              </button>
-            </div>
-          </div>
-        </div>
-      `;
-      document.body.appendChild(modal);
-      
-      // Auto-close after 10 seconds
-      setTimeout(() => {
-        if (modal.parentNode) modal.remove();
-      }, 10000);
-    }
-
-    // Function to load game on page without requiring authentication
-    async function loadGameOnPage() {
-      try {
-        console.log('🎯 Getting game ID from URL...');
-        currentGameId = getGameIdFromURL();
-        window.currentGameId = currentGameId;
-        console.log(`🆔 Game ID: ${currentGameId}`);
-        
-        if (!currentGameId) {
-          throw new Error('No game ID provided in URL. Please add ?id=1 to the URL.');
-        }
-        
-        console.log('🔍 Finding game in loaded data...');
-        console.log(`📊 Available games: ${gamesData.length}`);
-        currentGame = gamesData.find(g => g.id == currentGameId || String(g.id) == currentGameId);
-        
-        if (!currentGame) {
-          console.error(`❌ Game ${currentGameId} not found in games data`);
-          console.log('Available game IDs:', gamesData.slice(0, 5).map(g => g.id));
-          hidePreloader();
-          document.getElementById('gameInfoHolder').innerHTML = `
-            <div class="text-center p-12 text-red-400">
-              <h2 class="text-2xl font-bold mb-4">Game Not Found</h2>
-              <p class="mb-4">Game ID "${currentGameId}" not found.</p>
-              <p class="mb-4">Available games: 1-${gamesData.length}</p>
-              <button onclick="window.location.href='play.html?id=1'" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
-                Load Game 1
-              </button>
-            </div>
-          `;
-          document.getElementById('gameInfoHolder').classList.remove('hidden');
-          return;
-        }
-        
-        console.log(`✅ Found game: ${currentGame.title}`);
-        
-        // Load basic game info without user-specific data
-        console.log('🎨 Displaying game info...');
-        await displayGameInfo();
-        console.log('✅ Game info displayed successfully');
-        
-      } catch (error) {
-        console.error('💥 Error in loadGameOnPage:', error);
-        hidePreloader();
-        document.getElementById('gameInfoHolder').innerHTML = `
-          <div class="text-center p-12 text-red-400">
-            <h2 class="text-2xl font-bold mb-4">Error Loading Game</h2>
-            <p class="mb-4">Error: ${error.message}</p>
-            <button onclick="location.reload()" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
-              Try Again
-            </button>
-          </div>
-        `;
-        document.getElementById('gameInfoHolder').classList.remove('hidden');
-        throw error;
-      }
-    }
-    
-    // Function to display game info (works without authentication)
-    async function displayGameInfo() {
-      try {
-        console.log('🎨 Starting displayGameInfo...');
-        
-        // Validate current game data
-        if (!currentGame) {
-          throw new Error('No current game data available');
-        }
-        
-        console.log(`📝 Processing game: ${currentGame.title}`);
-        
-        // Validate and sanitize game data
-        const gameImage = validateUrl(currentGame.image) || '/default-game-image.png';
-        const gameTitle = sanitizeText(currentGame.title || 'Untitled Game', 200);
-        const gameDescription = sanitizeText(currentGame.description || 'No description available', 1000);
-        
-        console.log(`🖼️ Game image: ${gameImage}`);
-        console.log(`📄 Game title: ${gameTitle}`);
-        
-        // Update DOM elements with error checking
-        const elements = {
-          'gameCoverImg': gameImage,
-          'gameTitleDisplay': gameTitle,
-          'gameFrameDesc': gameDescription,
-          'gameCategoryTag': currentGame.category || 'Unknown'
-        };
-        
-        for (const [elementId, value] of Object.entries(elements)) {
-          const element = document.getElementById(elementId);
-          if (!element) {
-            console.warn(`⚠️ Element ${elementId} not found in DOM`);
-            continue;
-          }
-          
-          if (elementId === 'gameCoverImg') {
-            element.src = value;
-          } else {
-            element.textContent = value;
-          }
-        }
-        
-        // Handle featured tag
-        const featuredTag = document.getElementById('gameFeaturedTag');
-        if (featuredTag) {
-          if (currentGame.featured) {
-            featuredTag.classList.remove('hidden');
-          } else {
-            featuredTag.classList.add('hidden');
-          }
-        }
-        
-        console.log('📊 Rendering game info box...');
-        try {
-          renderGameInfoBox(currentGame, "gameInfoTable");
-          console.log('✅ Game info box rendered');
-        } catch (error) {
-          console.warn('⚠️ Failed to render game info box:', error.message);
-        }
-
-        console.log('⭐ Loading star rating (non-blocking)...');
-        // Load star rating without blocking the page load
-        setTimeout(() => {
-          loadStarRating(currentGameId).then(() => {
-            console.log('✅ Star rating loaded');
-          }).catch(error => {
-            console.warn('⚠️ Failed to load star rating:', error.message);
-          });
-        }, 500);
-
-        console.log('💬 Initializing comment system (non-blocking)...');
-        // Initialize comment system without blocking the page load
-        setTimeout(() => {
-          try {
-            initializeCommentSystem();
-            console.log('✅ Comment system initialized');
-          } catch (error) {
-            console.warn('⚠️ Failed to initialize comment system:', error.message);
-          }
-        }, 1000);
-
-      // Set up play button (works without auth)
-      document.getElementById('bigPlayBtn').onclick = async () => {
-        showPreloader();
-        document.getElementById('gameInfoHolder').classList.add('hidden');
-        document.getElementById('gameFrameContainer').classList.remove('hidden');
-        
-        // Track play activity only if user is authenticated
-        const user = auth.currentUser;
-        if (user) {
-          await trackPlayActivity(user.uid, currentGameId, currentGame.title);
-          
-          // Update user status to "in game" for friends to see and track activity
-          if (window.trackGameStart) {
-            await window.trackGameStart(currentGameId);
-          } else {
-            // Use the new status manager
-            await userStatusManager.setInGame(currentGameId);
-            
-            // Track activity for activity feed
-            const game = gamesData.find(g => String(g.id) === String(currentGameId));
-            if (game) {
-              try {
-                await db.collection('activity').add({
-                  userId: user.uid,
-                  userName: user.displayName || 'Anonymous',
-                  userPhoto: user.photoURL || '/default-avatar.png',
-                  gameId: currentGameId,
-                  gameTitle: game.title,
-                  type: 'started_playing',
-                  timestamp: firebase.firestore.FieldValue.serverTimestamp()
-                });
-              } catch (error) {
-                console.error('Error tracking activity:', error);
-              }
-            }
-          }
-        }
-        
-        // Load the game directly
-        loadGameIframe();
-        
-        hidePreloader();
-        
-        // Show game action buttons
-        setTimeout(() => {
-          const actionButtons = document.getElementById('gameActionButtons');
-          if (actionButtons) {
-            actionButtons.classList.remove('opacity-0', 'pointer-events-none');
-            actionButtons.classList.add('opacity-100', 'pointer-events-auto');
-          }
-        }, 1000);
-      };
-      
-      console.log('✅ displayGameInfo completed successfully');
-        
-      } catch (error) {
-        console.error('💥 Error in displayGameInfo:', error);
-        throw error;
-      }
-    }
-    
-    // Function to refresh user-specific data when user signs in
-    async function refreshUserSpecificGameData() {
-      if (!currentGame || !currentGameId) return;
-      
-      // Refresh ratings and comments with user context
-      await loadStarRating(currentGameId);
-      await loadComments(currentGameId);
-    }
 
     // Function to track when user stops playing
     async function updateUserStatusToOnline() {
@@ -3598,72 +3394,20 @@
 
     // Re-initialize the main document loading logic
     document.addEventListener('DOMContentLoaded', async () => {
-      // Safety timeout to ensure preloader is hidden even if something goes wrong
-      const safetyTimeout = setTimeout(() => {
-        console.warn('⚠️ Safety timeout reached - hiding preloader');
-        hidePreloader();
-        document.getElementById('gameInfoHolder').innerHTML = `
-          <div class="text-center p-12 text-yellow-400">
-            <h2 class="text-2xl font-bold mb-4">Loading Timeout</h2>
-            <p class="mb-4">Game took too long to load. This might be a network issue.</p>
-            <button onclick="location.reload()" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
-              Try Again
-            </button>
-          </div>
-        `;
-        document.getElementById('gameInfoHolder').classList.remove('hidden');
-      }, 10000); // 10 second timeout
-      
-      try {
-        console.log('🚀 Starting game initialization...');
-        showPreloader();
-        document.getElementById('gameFrameContainer').classList.add('hidden');
-        document.getElementById('gameInfoHolder').classList.add('hidden');
-        // Hide login screen by default - no auth required for playing games
-        document.getElementById('loginScreen').classList.add('hidden');
-        
-        console.log('📁 Loading games data...');
-        await loadGamesData();
-        console.log('✅ Games data loaded successfully');
-        
-        console.log('🎮 Loading game on page...');
-        await loadGameOnPage();
-        console.log('✅ Game loaded on page successfully');
-        
-        // Clear the safety timeout since we succeeded
-        clearTimeout(safetyTimeout);
-        
-        hidePreloader();
-        document.getElementById('gameInfoHolder').classList.remove('hidden');
-        
-        // Setup event listeners for suggested game cards
-        setupSuggestedGameClicks();
-        
-        console.log('🎉 Game initialization completed successfully');
-        
-      } catch (error) {
-        console.error('💥 Game initialization failed:', error);
-        clearTimeout(safetyTimeout);
-        hidePreloader();
-        // Show error message to user
-        document.getElementById('gameInfoHolder').innerHTML = `
-          <div class="text-center p-12 text-red-400">
-            <h2 class="text-2xl font-bold mb-4">Failed to Load Game</h2>
-            <p class="mb-4">Error: ${error.message}</p>
-            <button onclick="location.reload()" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
-              Try Again
-            </button>
-          </div>
-        `;
-        document.getElementById('gameInfoHolder').classList.remove('hidden');
-      }
+      showPreloader();
+      document.getElementById('gameFrameContainer').classList.add('hidden');
+      document.getElementById('gameInfoHolder').classList.add('hidden');
+      document.getElementById('loginScreen').classList.remove('hidden');
       
       auth.onAuthStateChanged(async (user) => {
         renderUserSection(user);
         if (!user) {
           // Cleanup status manager if user logs out
           userStatusManager.cleanup();
-          // Don't show login screen or hide game - let user continue playing
+          hidePreloader();
+          document.getElementById('loginScreen').classList.remove('hidden');
+          document.getElementById('gameFrameContainer').classList.add('hidden');
+          document.getElementById('gameInfoHolder').classList.add('hidden');
           return;
         }
         
@@ -3673,11 +3417,81 @@
          // Update visual status indicators
          updateStatusDisplay(user);
         
+        await loadGamesData();
+        
         // Load background settings from Firebase
         await loadBackgroundFromFirebase(user.uid);
         
-        // Refresh user-specific data like ratings and comments
-        await refreshUserSpecificGameData();
+        currentGameId = getGameIdFromURL();
+        window.currentGameId = currentGameId;
+        currentGame = gamesData.find(g => g.id == currentGameId || String(g.id) == currentGameId);
+        
+        if (!currentGame) {
+          hidePreloader();
+          document.getElementById('gameInfoHolder').innerHTML = `<div class="text-center p-12 text-red-400">Game not found.</div>`;
+          document.getElementById('gameInfoHolder').classList.remove('hidden');
+          return;
+        }
+        
+        document.getElementById('loginScreen').classList.add('hidden');
+        document.getElementById('gameInfoHolder').classList.remove('hidden');
+        
+        // Validate and sanitize game data
+        const gameImage = validateUrl(currentGame.image) || '/default-game-image.png';
+        const gameTitle = sanitizeText(currentGame.title || 'Untitled Game', 200);
+        const gameDescription = sanitizeText(currentGame.description || 'No description available', 1000);
+        
+        document.getElementById('gameCoverImg').src = gameImage;
+        document.getElementById('gameTitleDisplay').textContent = gameTitle;
+        document.getElementById('gameFrameDesc').textContent = gameDescription;
+        document.getElementById('gameCategoryTag').textContent = currentGame.category || '';
+        
+        if (currentGame.featured) document.getElementById('gameFeaturedTag').classList.remove('hidden');
+        else document.getElementById('gameFeaturedTag').classList.add('hidden');
+        
+        await loadStarRating(currentGameId);
+        renderGameInfoBox(currentGame, "gameInfoTable");
+
+        // Initialize comment system early
+        initializeCommentSystem();
+
+        document.getElementById('bigPlayBtn').onclick = async () => {
+          showPreloader();
+          document.getElementById('gameInfoHolder').classList.add('hidden');
+          document.getElementById('gameFrameContainer').classList.remove('hidden');
+          
+          // Track play activity
+          await trackPlayActivity(user.uid, currentGameId, currentGame.title);
+          
+          // Update user status to "in game" for friends to see and track activity
+          if (window.trackGameStart) {
+            await window.trackGameStart(currentGameId);
+          } else {
+            // Use the new status manager
+            await userStatusManager.setInGame(currentGameId);
+            
+            // Track activity for activity feed
+            const game = gamesData.find(g => String(g.id) === String(currentGameId));
+            if (game) {
+              try {
+                await db.collection('activity').add({
+                  userId: user.uid,
+                  userName: user.displayName || 'Anonymous',
+                  userPhoto: user.photoURL || '/default-avatar.png',
+                  gameId: currentGameId,
+                  gameTitle: game.title,
+                  gameImage: game.image || '/default-game.png',
+                  action: 'played',
+                  timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                });
+              } catch (error) {
+                console.error('Error tracking activity:', error);
+              }
+            }
+          }
+          
+          await window.loadProxiedGameIframe();
+          document.getElementById('gameFrameEmbed').onload = hidePreloader;
           
           const frameTitleText = sanitizeText(currentGame.title || 'Untitled Game', 200);
           document.getElementById('gameTitleDisplayFrame').textContent = frameTitleText;
@@ -3797,20 +3611,6 @@
           clickedCard.style.pointerEvents = 'auto';
         }
       }
-    }
-    
-    // Add event listeners for suggested game cards
-    function setupSuggestedGameClicks() {
-      document.addEventListener('click', (e) => {
-        const gameCard = e.target.closest('.suggested-game-card');
-        if (gameCard) {
-          const gameId = gameCard.getAttribute('data-game-id');
-          const gameTitle = gameCard.getAttribute('data-game-title');
-          if (gameId) {
-            navigateToGame(gameId, gameTitle);
-          }
-        }
-      });
     }
 
     // Suggested Games Functions
@@ -3973,16 +3773,16 @@
         <div class="flex-shrink-0 w-full px-4">
           <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                          ${slideGames.map(game => `
-                               <div class="suggested-game-card bg-gradient-to-br from-white/10 to-white/5 border border-white/20 rounded-2xl hover:border-cyan-400/50 hover:shadow-lg hover:shadow-cyan-400/20 transition-all duration-300 overflow-hidden group cursor-pointer relative backdrop-blur-sm select-none" data-game-id="${game.id}" data-game-title="${game.title.replace(/"/g, '&quot;')}">
+                               <div class="suggested-game-card bg-gradient-to-br from-white/10 to-white/5 border border-white/20 rounded-2xl hover:border-cyan-400/50 hover:shadow-lg hover:shadow-cyan-400/20 transition-all duration-300 overflow-hidden group cursor-pointer relative backdrop-blur-sm select-none" onclick="navigateToGame('${game.id}', '${game.title.replace(/'/g, "\\'")}')">
                  <div class="relative aspect-[16/9] overflow-hidden rounded-2xl">
-                                        <img src="${game.image}" alt="${game.title.replace(/"/g, '&quot;').replace(/'/g, '&#39;')}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out" loading="lazy" onerror="this.src='/images/default-game.png';" onload="this.classList.add('loaded')">
+                                        <img src="${game.image}" alt="${game.title}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out" loading="lazy" onerror="this.src='/images/default-game.png';" onload="this.classList.add('loaded')">
                    ${game.featured ? '<div class="absolute top-3 right-3 bg-gradient-to-r from-amber-400 to-orange-500 text-black px-3 py-1 rounded-full text-xs font-bold shadow-lg pointer-events-none">Featured</div>' : ''}
                    
                    <!-- Game title overlay on hover -->
                    <div class="absolute inset-0 bg-gradient-to-t from-black/95 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-300 ease-in-out pointer-events-none">
                      <div class="absolute bottom-0 left-0 right-0 p-4">
                        <div class="transform translate-y-4 group-hover:translate-y-0 transition-transform duration-300 ease-out">
-                         <h4 class="font-bold text-white text-xl mb-2 drop-shadow-lg">${game.title.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</h4>
+                         <h4 class="font-bold text-white text-xl mb-2 drop-shadow-lg">${game.title}</h4>
                          <p class="text-cyan-200 text-sm mb-3 font-medium">${game.category}</p>
                          <div class="flex items-center text-white/80 text-sm">
                            <i class='bx bx-play mr-2 text-cyan-400'></i>
