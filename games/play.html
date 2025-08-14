@@ -483,6 +483,60 @@
     </div>
   </main>
 
+  <!-- Floating Chat Circle -->
+  <div id="chatFloatingBtn" class="fixed bottom-6 right-6 z-[9999] group cursor-pointer" onclick="toggleChat()">
+    <div class="relative">
+      <!-- Main Circle -->
+      <div class="w-16 h-16 rounded-full flex items-center justify-center transition-all duration-300 transform hover:scale-110 shadow-2xl border-2" 
+           style="background: linear-gradient(135deg, var(--theme-foam), var(--theme-iris)); border-color: rgba(156, 207, 216, 0.5);">
+        <i id="chatIcon" class="bx bx-message-dots text-2xl text-black transition-transform duration-300"></i>
+      </div>
+      
+      <!-- Pulse Animation -->
+      <div class="absolute inset-0 rounded-full animate-pulse opacity-75" 
+           style="background: linear-gradient(135deg, var(--theme-foam), var(--theme-iris));"></div>
+      
+      <!-- Notification Badge (if needed) -->
+      <div id="chatNotificationBadge" class="absolute -top-2 -right-2 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-bold hidden">
+        <span id="chatNotificationCount">0</span>
+      </div>
+      
+      <!-- Tooltip -->
+      <div class="absolute bottom-full right-0 mb-2 px-3 py-1 bg-black/80 text-white text-sm rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap pointer-events-none">
+        Open Chat
+        <div class="absolute top-full right-4 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-black/80"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Chat Modal/Popup -->
+  <div id="chatModal" class="fixed inset-0 z-[10000] bg-black/70 backdrop-blur-sm flex items-center justify-center hidden">
+    <div class="w-full max-w-4xl h-[80vh] mx-4 rounded-2xl overflow-hidden shadow-2xl" 
+         style="background: var(--theme-surface); border: 2px solid rgba(156, 207, 216, 0.3);">
+      
+      <!-- Chat Header -->
+      <div class="flex items-center justify-between p-4 border-b" style="border-color: rgba(156, 207, 216, 0.2); background: var(--theme-overlay);">
+        <div class="flex items-center gap-3">
+          <i class="bx bx-message-dots text-2xl" style="color: var(--theme-foam);"></i>
+          <h3 class="text-xl font-bold" style="color: var(--theme-foam);">CARBON Chat</h3>
+        </div>
+        <button onclick="closeChat()" class="w-8 h-8 rounded-full flex items-center justify-center transition-colors" 
+                style="background: rgba(156, 207, 216, 0.1); color: var(--theme-text);" 
+                onmouseover="this.style.background='rgba(235, 111, 146, 0.2)'" 
+                onmouseout="this.style.background='rgba(156, 207, 216, 0.1)'">
+          <i class="bx bx-x text-xl"></i>
+        </button>
+      </div>
+      
+      <!-- Chat Content (iframe) -->
+      <iframe id="chatFrame" 
+              src="../chat.html" 
+              class="w-full h-full border-0"
+              style="height: calc(100% - 73px);">
+      </iframe>
+    </div>
+  </div>
+
   <script>
     // NO PROXY SYSTEM - Direct JSON loading for /games directory
     
@@ -819,16 +873,20 @@
         gameUrl = gameUrl.replace('./games/', './');
       }
       
-      console.log('Loading game directly without proxy:', gameUrl);
-      console.log('Game:', currentGame.title);
-      
-      // Load directly into iframe - NO PROXY SYSTEM
-      document.getElementById("gameFrameEmbed").src = gameUrl;
-      
-      // Track game activity for profile integration
-      if (window.trackGameStart) {
+              console.log('Loading game directly without proxy:', gameUrl);
+        console.log('Game:', currentGame.title);
+        
+        // Load directly into iframe - NO PROXY SYSTEM
+        document.getElementById("gameFrameEmbed").src = gameUrl;
+        
+        // Track game activity for profile integration
+        console.log('Tracking game start for profile integration...');
         await window.trackGameStart(currentGameId);
-      }
+        
+        // Set up game end tracking when user leaves
+        window.addEventListener('beforeunload', async () => {
+          await window.trackGameEnd();
+        });
     }
 
     function renderGameInfoBox(game, tableId) {
@@ -1412,9 +1470,233 @@
       if (modal) modal.classList.add('hidden');
     }
 
+    // --- PROFILE INTEGRATION FUNCTIONS ---
+    // Status tracking and colors (matching profile.html)
+    const statusColors = {
+      online: 'bg-green-500',
+      idle: 'bg-yellow-500', 
+      dnd: 'bg-red-500',
+      offline: 'bg-gray-500',
+      ingame: 'bg-blue-500'
+    };
+
+    async function updateUserStatus(status, gameId = null) {
+      if (!auth.currentUser) return;
+      
+      try {
+        const updateData = {
+          status: status,
+          lastSeen: firebase.firestore.FieldValue.serverTimestamp()
+        };
+        
+        if (gameId) {
+          updateData.currentGame = gameId;
+          updateData.status = 'ingame';
+        } else if (!gameId && status !== 'ingame') {
+          updateData.currentGame = null;
+        }
+        
+        await db.collection('users').doc(auth.currentUser.uid).update(updateData);
+        
+        // Save status to localStorage for persistence across refreshes
+        localStorage.setItem('carbon-user-status', status);
+        localStorage.setItem('carbon-user-status-timestamp', Date.now().toString());
+        
+      } catch (error) {
+        console.error('Error updating status:', error);
+      }
+    }
+
+    // Track game activity for activity feed
+    async function trackGameActivity(gameId, action = 'played') {
+      if (!auth.currentUser || !gameId) return;
+      
+      try {
+        const game = gamesData.find(g => String(g.id) === String(gameId));
+        if (!game) return;
+        
+        const activityData = {
+          userId: auth.currentUser.uid,
+          userName: sanitizeText(auth.currentUser.displayName || 'Anonymous'),
+          userPhoto: auth.currentUser.photoURL || '/default-avatar.png',
+          gameId: gameId,
+          gameTitle: sanitizeText(game.title),
+          gameImage: game.image || '/default-game.png',
+          action: action,
+          timestamp: firebase.firestore.FieldValue.serverTimestamp()
+        };
+        
+        await db.collection('activity').add(activityData);
+        
+        // Update user's last played game
+        await db.collection('users').doc(auth.currentUser.uid).update({
+          lastPlayedGame: gameId,
+          lastPlayedTime: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        
+      } catch (error) {
+        console.error('Error tracking game activity:', error);
+      }
+    }
+
+    // Functions for profile.html integration
+    window.trackGameStart = async function(gameId) {
+      await updateUserStatus('ingame', gameId);
+      await trackGameActivity(gameId, 'started');
+    };
+
+    window.trackGameEnd = async function() {
+      await updateUserStatus('online');
+    };
+
+    // Restore user's saved status or set to online
+    async function restoreUserStatus() {
+      if (!auth.currentUser) return;
+      
+      try {
+        // Get saved status from localStorage
+        const savedStatus = localStorage.getItem('carbon-user-status');
+        const savedTimestamp = parseInt(localStorage.getItem('carbon-user-status-timestamp') || '0');
+        const currentTime = Date.now();
+        const statusAge = currentTime - savedTimestamp;
+        
+        // If status is less than 1 hour old, restore it. Otherwise default to online.
+        const validStatuses = ['online', 'idle', 'dnd'];
+        let statusToRestore = 'online';
+        
+        if (savedStatus && validStatuses.includes(savedStatus) && statusAge < 3600000) { // 1 hour = 3600000ms
+          statusToRestore = savedStatus;
+        }
+        
+        await updateUserStatus(statusToRestore);
+        
+        // Set user offline when page unloads - use multiple reliable methods
+        setupOfflineDetection();
+        
+        // Periodic heartbeat - maintain current status (not force online)
+        setInterval(async () => {
+          if (auth.currentUser && document.visibilityState === 'visible') {
+            const currentStatus = localStorage.getItem('carbon-user-status') || 'online';
+            await updateUserStatus(currentStatus);
+          }
+        }, 30000); // Update every 30 seconds
+        
+      } catch (error) {
+        console.error('Error restoring user status:', error);
+        // Fallback to online if there's an error
+        await updateUserStatus('online');
+      }
+    }
+
+    function setupOfflineDetection() {
+      if (!auth.currentUser) return;
+      
+      const goOffline = async () => {
+        if (auth.currentUser) {
+          await updateUserStatus('offline');
+        }
+      };
+      
+      // Listen for page unload
+      window.addEventListener('beforeunload', goOffline);
+      window.addEventListener('unload', goOffline);
+      
+      // Listen for visibility change (tab switch/minimize)
+      document.addEventListener('visibilitychange', async () => {
+        if (document.hidden) {
+          // User switched tab/minimized - wait before going offline
+          setTimeout(async () => {
+            if (document.hidden && auth.currentUser) {
+              await updateUserStatus('idle');
+            }
+          }, 60000); // 1 minute delay
+        } else {
+          // User came back - restore status
+          if (auth.currentUser) {
+            const savedStatus = localStorage.getItem('carbon-user-status') || 'online';
+            if (savedStatus !== 'offline') {
+              await updateUserStatus(savedStatus);
+            }
+          }
+        }
+      });
+    }
+
+    // --- CHAT FUNCTIONALITY ---
+    let chatIsOpen = false;
+
+    function toggleChat() {
+      if (chatIsOpen) {
+        closeChat();
+      } else {
+        openChat();
+      }
+    }
+
+    function openChat() {
+      const modal = document.getElementById('chatModal');
+      const icon = document.getElementById('chatIcon');
+      
+      if (modal) {
+        modal.classList.remove('hidden');
+        chatIsOpen = true;
+        
+        // Change icon to indicate it's open
+        if (icon) {
+          icon.classList.remove('bx-message-dots');
+          icon.classList.add('bx-x');
+        }
+        
+        // Focus the chat iframe
+        const iframe = document.getElementById('chatFrame');
+        if (iframe) {
+          iframe.focus();
+        }
+      }
+    }
+
+    function closeChat() {
+      const modal = document.getElementById('chatModal');
+      const icon = document.getElementById('chatIcon');
+      
+      if (modal) {
+        modal.classList.add('hidden');
+        chatIsOpen = false;
+        
+        // Restore original icon
+        if (icon) {
+          icon.classList.remove('bx-x');
+          icon.classList.add('bx-message-dots');
+        }
+      }
+    }
+
+    // Close chat when clicking outside the modal content
+    document.addEventListener('click', function(e) {
+      const modal = document.getElementById('chatModal');
+      const chatContent = modal?.querySelector('div');
+      
+      if (modal && !modal.classList.contains('hidden') && 
+          e.target === modal && !chatContent?.contains(e.target)) {
+        closeChat();
+      }
+    });
+
+    // Close chat with Escape key
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape' && chatIsOpen) {
+        closeChat();
+      }
+    });
+
     // Expose functions to global scope
     window.submitComment = submitComment;
     window.closeReplyModal = closeReplyModal;
+    window.updateUserStatus = updateUserStatus;
+    window.trackGameActivity = trackGameActivity;
+    window.toggleChat = toggleChat;
+    window.openChat = openChat;
+    window.closeChat = closeChat;
 
     // Initialize when DOM is loaded - MAIN ENTRY POINT
     document.addEventListener('DOMContentLoaded', function() {
@@ -1427,7 +1709,8 @@
           document.getElementById('loginScreen').style.display = 'none';
           await ensureUserDoc(user);
           renderUserSection(user);
-          console.log('User authenticated, initializing game...');
+          console.log('User authenticated, restoring status and initializing game...');
+          await restoreUserStatus();
           await initializeGame();
         } else {
           document.getElementById('loginScreen').style.display = 'flex';
