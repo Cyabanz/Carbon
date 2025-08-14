@@ -888,12 +888,16 @@
         // Load directly into iframe - NO PROXY SYSTEM
         gameFrame.src = gameUrl;
         
-        // Track game activity for profile integration
-        console.log('Tracking game start for profile integration...');
-        await window.trackGameStart(currentGameId);
-        
-        // Update play count for profile statistics
-        await updatePlayCount(currentGameId);
+        // Track game activity for profile integration (only for signed-in users)
+        if (auth.currentUser) {
+          console.log('Tracking game start for profile integration...');
+          await window.trackGameStart(currentGameId);
+          
+          // Update play count for profile statistics
+          await updatePlayCount(currentGameId);
+        } else {
+          console.log('Anonymous user playing - no profile tracking');
+        }
         
         // Set up game end tracking when user leaves
         window.addEventListener('beforeunload', async () => {
@@ -1475,7 +1479,7 @@
       // Like button
       document.getElementById('likeBtn').addEventListener('click', async function() {
         if (!auth.currentUser) {
-          alert('Please sign in to like games');
+          showSignInModal('like games');
           return;
         }
         
@@ -1506,7 +1510,7 @@
       // Favorite button
       document.getElementById('favBtn').addEventListener('click', async function() {
         if (!auth.currentUser) {
-          alert('Please sign in to favorite games');
+          showSignInModal('favorite games');
           return;
         }
         
@@ -1547,7 +1551,7 @@
       // Playlist button
       document.getElementById('playlistBtn').addEventListener('click', async function() {
         if (!auth.currentUser) {
-          alert('Please sign in to add to playlist');
+          showSignInModal('add games to your playlist');
           return;
         }
         
@@ -1587,8 +1591,10 @@
         console.log('Redirect button clicked for game:', currentGame.title);
         
         try {
-          // Track the redirect activity for profile integration
-          await window.trackGameStart(currentGameId);
+          // Track the redirect activity for profile integration (only for signed-in users)
+          if (auth.currentUser) {
+            await window.trackGameStart(currentGameId);
+          }
           
           // Get the game URL and convert it for direct access
           let gameUrl = currentGame.url;
@@ -1609,16 +1615,20 @@
           // Open in new tab
           window.open(gameUrl, '_blank');
           
-          // Track the redirect as a play action for profile
-          await trackGameActivity(currentGameId, 'redirected');
+          // Track the redirect as a play action for profile (only for signed-in users)
+          if (auth.currentUser) {
+            await trackGameActivity(currentGameId, 'redirected');
+            
+            // Update play count for profile integration
+            await updatePlayCount(currentGameId);
+          }
           
-          // Update play count for profile integration
-          await updatePlayCount(currentGameId);
-          
-          // Keep the user status as ingame for a bit then back to online
-          setTimeout(async () => {
-            await window.trackGameEnd();
-          }, 5000); // 5 seconds delay
+          // Keep the user status as ingame for a bit then back to online (only for signed-in users)
+          if (auth.currentUser) {
+            setTimeout(async () => {
+              await window.trackGameEnd();
+            }, 5000); // 5 seconds delay
+          }
           
         } catch (error) {
           console.error('Error handling redirect:', error);
@@ -1784,6 +1794,11 @@
 
     // Functions for profile.html integration
     window.trackGameStart = async function(gameId) {
+      if (!auth.currentUser) {
+        console.log('Anonymous user - skipping profile tracking');
+        return;
+      }
+      
       gameSessionStart = new Date();
       await updateUserStatus('ingame', gameId);
       await trackGameActivity(gameId, 'started');
@@ -1791,6 +1806,11 @@
     };
 
     window.trackGameEnd = async function() {
+      if (!auth.currentUser) {
+        console.log('Anonymous user - skipping profile tracking');
+        return;
+      }
+      
       if (gameSessionStart && currentGameId) {
         const sessionEnd = new Date();
         const sessionDuration = Math.round((sessionEnd - gameSessionStart) / 1000); // seconds
@@ -1921,6 +1941,11 @@
     let chatIsOpen = false;
 
     function toggleChat() {
+      if (!auth.currentUser) {
+        showSignInModal('access chat features');
+        return;
+      }
+      
       if (chatIsOpen) {
         closeChat();
       } else {
@@ -1984,6 +2009,202 @@
       }
     });
 
+    // UI state management for signed-in vs anonymous users
+    function updateUIForSignedInUser() {
+      console.log('Updating UI for signed-in user - all features enabled');
+      
+      // Show user info
+      document.getElementById('loginBtn').style.display = 'none';
+      
+      // Enable all interactive features
+      enableAdvancedFeatures();
+      
+      // Update action buttons to show full functionality
+      updateActionButtonsForSignedUser();
+      
+      // Show comments section with full functionality
+      updateCommentsForSignedUser();
+    }
+
+    function updateUIForAnonymousUser() {
+      console.log('Updating UI for anonymous user - basic play only');
+      
+      // Show sign-in prompt but don't block game play
+      showSignInPrompts();
+      
+      // Disable advanced features but keep game playable
+      disableAdvancedFeatures();
+      
+      // Update action buttons to show sign-in requirements
+      updateActionButtonsForAnonymous();
+      
+      // Show comments in read-only mode
+      updateCommentsForAnonymous();
+    }
+
+    function enableAdvancedFeatures() {
+      // Enable star rating interaction
+      const starContainers = document.querySelectorAll('#starsContainer, #starsContainerFrame');
+      starContainers.forEach(container => {
+        container.classList.remove('pointer-events-none', 'opacity-50');
+      });
+      
+      // Enable comment submission
+      const commentForm = document.getElementById('addCommentForm');
+      if (commentForm) {
+        commentForm.classList.remove('opacity-50', 'pointer-events-none');
+      }
+      
+      // Enable chat
+      const chatBtn = document.getElementById('chatFloatingBtn');
+      if (chatBtn) {
+        chatBtn.classList.remove('opacity-50', 'pointer-events-none');
+      }
+    }
+
+    function disableAdvancedFeatures() {
+      // Disable star rating interaction for anonymous users
+      const starContainers = document.querySelectorAll('#starsContainer, #starsContainerFrame');
+      starContainers.forEach(container => {
+        container.classList.add('pointer-events-none');
+        // Add sign-in hint
+        if (!container.querySelector('.signin-hint')) {
+          const hint = document.createElement('div');
+          hint.className = 'signin-hint text-xs text-gray-400 mt-1';
+          hint.textContent = 'Sign in to rate games';
+          container.parentElement.appendChild(hint);
+        }
+      });
+      
+      // Keep chat available but show sign-in requirement when clicked
+    }
+
+    function updateActionButtonsForSignedUser() {
+      // All action buttons work normally for signed-in users
+      const actionButtons = document.querySelectorAll('.game-action-btn');
+      actionButtons.forEach(btn => {
+        btn.classList.remove('opacity-50');
+        btn.title = btn.title.replace(' (Sign in required)', '');
+      });
+    }
+
+    function updateActionButtonsForAnonymous() {
+      // Show sign-in requirement for interactive buttons
+      const interactiveButtons = ['likeBtn', 'favBtn', 'playlistBtn'];
+      interactiveButtons.forEach(btnId => {
+        const btn = document.getElementById(btnId);
+        if (btn) {
+          btn.classList.add('opacity-75');
+          btn.title = btn.title + ' (Sign in required)';
+        }
+      });
+      
+      // Keep redirect button fully functional
+      const redirectBtn = document.getElementById('redirectBtn');
+      if (redirectBtn) {
+        redirectBtn.classList.remove('opacity-50');
+      }
+    }
+
+    function updateCommentsForSignedUser() {
+      // Comments work normally for signed-in users
+      const addCommentForm = document.getElementById('addCommentForm');
+      if (addCommentForm) {
+        addCommentForm.classList.remove('hidden');
+      }
+      
+      // Remove any sign-in prompts
+      const signinPrompts = document.querySelectorAll('.comments-signin-prompt');
+      signinPrompts.forEach(prompt => prompt.remove());
+    }
+
+    function updateCommentsForAnonymous() {
+      // Show read-only comments with sign-in prompt
+      const addCommentForm = document.getElementById('addCommentForm');
+      if (addCommentForm) {
+        addCommentForm.style.display = 'none';
+        
+        // Add sign-in prompt for commenting
+        if (!document.getElementById('commentsSigninPrompt')) {
+          const signinPrompt = document.createElement('div');
+          signinPrompt.id = 'commentsSigninPrompt';
+          signinPrompt.className = 'comments-signin-prompt bg-blue-900/20 border border-blue-500/30 rounded-lg p-4 mb-6';
+          signinPrompt.innerHTML = `
+            <div class="flex items-center gap-3">
+              <i class="bx bx-user-plus text-2xl text-blue-400"></i>
+              <div class="flex-1">
+                <h4 class="font-semibold text-blue-400 mb-1">Join the Conversation</h4>
+                <p class="text-gray-300 text-sm">Sign in to rate games, leave comments, and track your gaming activity!</p>
+              </div>
+              <button onclick="googleSignIn()" class="bg-blue-500 hover:bg-blue-600 px-4 py-2 rounded-lg font-semibold transition-colors">
+                Sign In
+              </button>
+            </div>
+          `;
+          addCommentForm.parentElement.insertBefore(signinPrompt, addCommentForm);
+        }
+      }
+    }
+
+    function showSignInPrompts() {
+      // Add a subtle sign-in banner at the top
+      if (!document.getElementById('topSigninBanner')) {
+        const banner = document.createElement('div');
+        banner.id = 'topSigninBanner';
+        banner.className = 'bg-gradient-to-r from-blue-600/20 to-purple-600/20 border-b border-blue-500/30 p-3';
+        banner.innerHTML = `
+          <div class="max-w-4xl mx-auto flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <i class="bx bx-info-circle text-blue-400"></i>
+              <span class="text-white text-sm">
+                <strong>Playing as Guest</strong> - Sign in to unlock ratings, comments, and progress tracking!
+              </span>
+            </div>
+            <button onclick="googleSignIn()" class="bg-blue-500 hover:bg-blue-600 px-4 py-2 rounded-lg text-sm font-semibold transition-colors">
+              Sign In
+            </button>
+          </div>
+        `;
+        document.body.insertBefore(banner, document.body.firstChild);
+      }
+    }
+
+    // Show sign-in modal for specific actions
+    function showSignInModal(action) {
+      const modal = document.createElement('div');
+      modal.className = 'fixed inset-0 z-[10001] bg-black/70 flex items-center justify-center';
+      modal.innerHTML = `
+        <div class="bg-gray-800 rounded-xl p-6 max-w-md mx-4 shadow-2xl border border-blue-500/30">
+          <div class="text-center">
+            <i class="bx bx-user-plus text-5xl text-blue-400 mb-4"></i>
+            <h3 class="text-xl font-bold text-white mb-2">Sign In Required</h3>
+            <p class="text-gray-300 mb-6">You need to sign in to ${action}. Don't worry, you can still play games as a guest!</p>
+            <div class="flex gap-3 justify-center">
+              <button onclick="googleSignIn(); this.closest('.fixed').remove();" 
+                      class="bg-blue-500 hover:bg-blue-600 px-6 py-3 rounded-lg font-semibold transition-colors text-white">
+                <i class="bx bx-user mr-2"></i>
+                Sign In with Google
+              </button>
+              <button onclick="this.closest('.fixed').remove();" 
+                      class="bg-gray-600 hover:bg-gray-700 px-6 py-3 rounded-lg font-semibold transition-colors text-white">
+                Continue as Guest
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(modal);
+      
+      // Close on escape key
+      const closeOnEscape = (e) => {
+        if (e.key === 'Escape') {
+          modal.remove();
+          document.removeEventListener('keydown', closeOnEscape);
+        }
+      };
+      document.addEventListener('keydown', closeOnEscape);
+    }
+
     // Expose functions to global scope
     window.submitComment = submitComment;
     window.closeReplyModal = closeReplyModal;
@@ -2010,9 +2231,13 @@
           console.log('User authenticated, restoring status and initializing game...');
           await restoreUserStatus();
           await initializeGame();
+          updateUIForSignedInUser();
         } else {
-          document.getElementById('loginScreen').style.display = 'flex';
-          document.getElementById('preloader').style.display = 'none';
+          // Allow anonymous game playing
+          document.getElementById('loginScreen').style.display = 'none';
+          console.log('No user signed in, allowing anonymous game play...');
+          await initializeGame();
+          updateUIForAnonymousUser();
         }
       });
     });
