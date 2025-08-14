@@ -1504,8 +1504,14 @@
       
       // Load star rating (will show average even without auth)
       try {
-        if (window.loadStarRating) {
-          await loadStarRating(currentGameId);
+        if (typeof loadStarRating === 'function') {
+          // Check if Firebase is available before loading ratings
+          if (typeof firebase !== 'undefined' && firebase.apps.length > 0) {
+            await loadStarRating(currentGameId);
+            console.log('✅ Star rating loaded');
+          } else {
+            console.warn('Firebase not initialized, skipping star rating');
+          }
         }
       } catch (error) {
         console.warn('Star rating failed to load:', error);
@@ -1513,8 +1519,9 @@
       
       // Render game info table
       try {
-        if (window.renderGameInfoBox) {
+        if (typeof renderGameInfoBox === 'function') {
           renderGameInfoBox(currentGame, "gameInfoTable");
+          console.log('✅ Game info box rendered');
         }
       } catch (error) {
         console.warn('Game info box failed to render:', error);
@@ -1522,8 +1529,9 @@
 
       // Initialize comment system 
       try {
-        if (window.initializeCommentSystem) {
+        if (typeof initializeCommentSystem === 'function') {
           initializeCommentSystem();
+          console.log('✅ Comment system initialized');
         }
       } catch (error) {
         console.warn('Comment system failed to initialize:', error);
@@ -1609,24 +1617,71 @@
         
         // Initialize frame features
         try {
-          if (window.renderStarRatingUI) renderStarRatingUI("Frame");
-          if (window.renderTagsAreaFrame) renderTagsAreaFrame(currentGame);
-          if (window.renderCategoryGamesCountFrame) renderCategoryGamesCountFrame(currentGame);
-          if (window.renderGameInfoBox) renderGameInfoBox(currentGame, "gameInfoTableFrame");
-          if (window.loadComments) await loadComments(currentGameId);
-          if (window.loadSuggestedGames) await loadSuggestedGames();
-          if (window.initializeSuggestedCarousel) initializeSuggestedCarousel();
-          if (window.initializeCommentSystem) initializeCommentSystem();
+          if (typeof renderStarRatingUI === 'function') {
+            renderStarRatingUI("Frame");
+            console.log('✅ Frame star rating initialized');
+          }
+          if (typeof renderTagsAreaFrame === 'function') {
+            renderTagsAreaFrame(currentGame);
+            console.log('✅ Frame tags initialized');
+          }
+          if (typeof renderCategoryGamesCountFrame === 'function') {
+            renderCategoryGamesCountFrame(currentGame);
+            console.log('✅ Frame category count initialized');
+          }
+          if (typeof renderGameInfoBox === 'function') {
+            renderGameInfoBox(currentGame, "gameInfoTableFrame");
+            console.log('✅ Frame game info box initialized');
+          }
+          if (typeof loadComments === 'function') {
+            if (typeof firebase !== 'undefined' && firebase.apps.length > 0) {
+              await loadComments(currentGameId);
+              console.log('✅ Frame comments loaded');
+            } else {
+              console.warn('Firebase not initialized, skipping comments');
+            }
+          }
+          if (typeof loadSuggestedGames === 'function') {
+            await loadSuggestedGames();
+            console.log('✅ Suggested games loaded');
+          }
+          if (typeof initializeSuggestedCarousel === 'function') {
+            initializeSuggestedCarousel();
+            console.log('✅ Suggested carousel initialized');
+          }
+          if (typeof initializeCommentSystem === 'function') {
+            initializeCommentSystem();
+            console.log('✅ Comment system initialized');
+          }
         } catch (error) {
           console.warn('Some frame features failed to initialize:', error);
         }
         
-        // Show game action buttons
+        // Show game action buttons and set up basic handlers
         setTimeout(() => {
           const actionButtons = document.getElementById('gameActionButtons');
           if (actionButtons) {
             actionButtons.classList.remove('opacity-0', 'pointer-events-none');
             actionButtons.classList.add('opacity-100', 'pointer-events-auto');
+            console.log('✅ Action buttons shown');
+          }
+          
+          // Set up share button (works without auth)
+          const shareBtn = document.getElementById('shareBtn');
+          if (shareBtn && !shareBtn.onclick) {
+            shareBtn.onclick = () => {
+              const url = `${window.location.origin}/play.html?id=${currentGameId}`;
+              if (navigator.clipboard) {
+                navigator.clipboard.writeText(url).then(() => {
+                  alert('Game link copied to clipboard!');
+                }).catch(() => {
+                  prompt('Copy this link:', url);
+                });
+              } else {
+                prompt('Copy this link:', url);
+              }
+            };
+            console.log('✅ Share button configured');
           }
         }, 1000);
         
@@ -1648,16 +1703,18 @@
       
       // Refresh ratings and comments with user context
       try {
-        if (window.loadStarRating) {
+        if (typeof loadStarRating === 'function') {
           await loadStarRating(currentGameId);
+          console.log('✅ Star rating refreshed for user');
         }
       } catch (error) {
         console.warn('Failed to refresh star rating:', error);
       }
       
       try {
-        if (window.loadComments) {
+        if (typeof loadComments === 'function') {
           await loadComments(currentGameId);
+          console.log('✅ Comments refreshed for user');
         }
       } catch (error) {
         console.warn('Failed to refresh comments:', error);
