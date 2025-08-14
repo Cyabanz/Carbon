@@ -1485,6 +1485,24 @@
       
       // Load basic game info without user-specific data
       await displayGameInfo();
+      
+      // Load additional features immediately (not just when playing)
+      try {
+        console.log('🔄 Loading game features...');
+        
+        if (typeof loadSuggestedGames === 'function') {
+          await loadSuggestedGames();
+          console.log('✅ Suggested games loaded');
+        }
+        
+        if (typeof initializeSuggestedCarousel === 'function') {
+          initializeSuggestedCarousel();
+          console.log('✅ Suggested carousel initialized');
+        }
+        
+      } catch (error) {
+        console.warn('Some features failed to load:', error);
+      }
     }
     
     // Function to display game info (works without authentication)
@@ -1565,30 +1583,41 @@
           return;
         }
         
+                // Method 1: Try direct loading first (most reliable)
         try {
-          // Method 1: Try proxy loading
-          if (window.loadProxiedGameIframe) {
-            console.log('🔄 Attempting proxy loading...');
-            await window.loadProxiedGameIframe();
-            console.log('✅ Proxy loading completed');
-          } else {
-            throw new Error('Proxy function not available');
-          }
-        } catch (proxyError) {
-          console.warn('⚠️ Proxy loading failed:', proxyError);
-          console.log('🔄 Falling back to direct loading...');
+          console.log('🔄 Attempting direct loading...');
+          console.log('🎮 Current game:', currentGame);
+          console.log('🎮 Game URL:', currentGame.url);
+          console.log('🎮 Iframe element:', iframe);
           
-          // Method 2: Direct loading fallback
+          // Test if this is a relative URL that needs fixing
+          let gameUrl = currentGame.url;
+          if (gameUrl.startsWith('./')) {
+            gameUrl = gameUrl.substring(2); // Remove './'
+            console.log('🔄 Fixed URL:', gameUrl);
+          }
+          
+          iframe.src = gameUrl;
+          console.log('✅ Direct loading set:', gameUrl);
+        } catch (directError) {
+          console.warn('⚠️ Direct loading failed:', directError);
+          
+          // Method 2: Try proxy loading as fallback
           try {
-            iframe.src = currentGame.url;
-            console.log('✅ Direct loading set:', currentGame.url);
-          } catch (directError) {
-            console.error('❌ Direct loading failed:', directError);
-            alert('Failed to load game: ' + directError.message);
+            if (window.loadProxiedGameIframe) {
+              console.log('🔄 Falling back to proxy loading...');
+              await window.loadProxiedGameIframe();
+              console.log('✅ Proxy loading completed');
+            } else {
+              throw new Error('Both direct and proxy loading failed');
+            }
+          } catch (proxyError) {
+            console.error('❌ All loading methods failed:', proxyError);
+            alert('Failed to load game. Please refresh and try again.');
             hidePreloader();
             return;
           }
-                 }
+        }
          
          // Set up iframe onload to hide preloader  
          iframe.onload = () => {
