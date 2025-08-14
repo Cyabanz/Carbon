@@ -1,0 +1,4613 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Play Game - CARBON</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <!-- XSS Protection Headers -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' https:; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://www.gstatic.com https://cdn.jsdelivr.net https://apis.google.com https://unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://unpkg.com https://cdn.jsdelivr.net; font-src 'self' https://fonts.gstatic.com https://unpkg.com; img-src 'self' data: https:; media-src 'self' blob: https:; connect-src 'self' https:; frame-src 'self' https:;">
+  <meta http-equiv="X-Content-Type-Options" content="nosniff">
+  <meta http-equiv="X-XSS-Protection" content="1; mode=block">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
+  <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+  <link href='https://cdn.jsdelivr.net/npm/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+  <script src="carbon-theme.js"></script>
+  <script type="module" src="https://cdn.jsdelivr.net/npm/emoji-picker-element@^1/index.js"></script>
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <script>
+    // FIREBASE INIT
+    const firebaseConfig = {
+      apiKey: "AIzaSyC4ilHYP1T-kdXbWPoHJHhD2aj0pNWmMec",
+      authDomain: "carbon-services.firebaseapp.com",
+      projectId: "carbon-services",
+      storageBucket: "carbon-services.firebasestorage.app",
+      messagingSenderId: "288385472070",
+      appId: "1:288385472070:web:c4be3ff186e248fc645c47",
+      measurementId: "G-Y2K1RQYE74"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+  </script>
+  <script>
+    function setConfig() {
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        inter: ["Inter", "sans-serif"],
+                    },
+                    colors: {
+                        base: "#191724",
+                        surface: "#1f1d2e",
+                        overlay: "#26233a",
+                        muted: "#6e6a86",
+                        subtle: "#908caa",
+                        text: "#e0def4",
+                        love: "#eb6f92",
+                        gold: "#f6c177",
+                        rose: "#ebbcba",
+                        pine: "#31748f",
+                        foam: "#9ccfd8",
+                        iris: "#c4a7e7",
+                        "highlight-low": "#21202e",
+                        "highlight-med": "#403d52",
+                        "highlight-high": "#524f67",
+                        // Rose Pine colors
+                        'rp-base': '#191724',
+                        'rp-surface': '#1f1d2e',
+                        'rp-overlay': '#26233a',
+                        'rp-muted': '#6e6a86',
+                        'rp-subtle': '#908caa',
+                        'rp-text': '#e0def4',
+                        'rp-love': '#eb6f92',
+                        'rp-gold': '#f6c177',
+                        'rp-rose': '#ebbcba',
+                        'rp-pine': '#31748f',
+                        'rp-foam': '#9ccfd8',
+                        'rp-iris': '#c4a7e7',
+                        'rp-highlight-low': '#21202e',
+                        'rp-highlight-med': '#403d52',
+                        'rp-highlight-high': '#524f67'
+                    },
+                },
+            },
+        };
+    }
+    setConfig();
+  </script>
+  <style>
+    @keyframes float {
+      0%, 100% { transform: translateY(0px) rotate(0deg); }
+      33% { transform: translateY(-20px) rotate(120deg); }
+      66% { transform: translateY(10px) rotate(240deg); }
+    }
+    @keyframes slideDown {
+      from { transform: translateY(-100%); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+    @keyframes fadeInUp {
+      from { transform: translateY(30px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.8; }
+    }
+    
+    :root {
+      /* Theme variables - Rose Pine (default) */
+      --theme-base: #191724;
+      --theme-surface: #1f1d2e;
+      --theme-overlay: #26233a;
+      --theme-muted: #6e6a86;
+      --theme-subtle: #908caa;
+      --theme-text: #e0def4;
+      --theme-love: #eb6f92;
+      --theme-gold: #f6c177;
+      --theme-rose: #ebbcba;
+      --theme-pine: #31748f;
+      --theme-foam: #9ccfd8;
+      --theme-iris: #c4a7e7;
+      --theme-highlight-low: #21202e;
+      --theme-highlight-med: #403d52;
+      --theme-highlight-high: #524f67;
+      --theme-gradient: linear-gradient(135deg, #191724 0%, #1f1d2e 50%, #26233a 100%);
+      --theme-solid: #191724;
+      --theme-pattern: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><circle cx="2" cy="2" r="2" fill="%239ccfd8"/><circle cx="10" cy="10" r="2" fill="%23c4a7e7"/><circle cx="18" cy="18" r="2" fill="%23eb6f92"/></svg>');
+    }
+
+    /* Theme color schemes */
+    [data-theme="dark"] {
+      --theme-base: #0f172a;
+      --theme-surface: #1e293b;
+      --theme-overlay: #334155;
+      --theme-muted: #64748b;
+      --theme-subtle: #94a3b8;
+      --theme-text: #f1f5f9;
+      --theme-love: #ef4444;
+      --theme-gold: #f59e0b;
+      --theme-rose: #f97316;
+      --theme-pine: #059669;
+      --theme-foam: #06b6d4;
+      --theme-iris: #8b5cf6;
+      --theme-highlight-low: #1e293b;
+      --theme-highlight-med: #475569;
+      --theme-highlight-high: #64748b;
+      --theme-gradient: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
+      --theme-solid: #0f172a;
+      --theme-pattern: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><circle cx="2" cy="2" r="2" fill="%2306b6d4"/><circle cx="10" cy="10" r="2" fill="%238b5cf6"/><circle cx="18" cy="18" r="2" fill="%23ef4444"/></svg>');
+    }
+
+    [data-theme="light"] {
+      --theme-base: #f8fafc;
+      --theme-surface: #e2e8f0;
+      --theme-overlay: #cbd5e1;
+      --theme-muted: #64748b;
+      --theme-subtle: #475569;
+      --theme-text: #0f172a;
+      --theme-love: #dc2626;
+      --theme-gold: #d97706;
+      --theme-rose: #ea580c;
+      --theme-pine: #047857;
+      --theme-foam: #0891b2;
+      --theme-iris: #7c3aed;
+      --theme-highlight-low: #f1f5f9;
+      --theme-highlight-med: #e2e8f0;
+      --theme-highlight-high: #cbd5e1;
+      --theme-gradient: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 50%, #cbd5e1 100%);
+      --theme-solid: #f8fafc;
+      --theme-pattern: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><circle cx="2" cy="2" r="2" fill="%230891b2"/><circle cx="10" cy="10" r="2" fill="%237c3aed"/><circle cx="18" cy="18" r="2" fill="%23dc2626"/></svg>');
+    }
+
+    [data-theme="catppuccin"] {
+      --theme-base: #1e1e2e;
+      --theme-surface: #313244;
+      --theme-overlay: #45475a;
+      --theme-muted: #6c7086;
+      --theme-subtle: #9399b2;
+      --theme-text: #cdd6f4;
+      --theme-love: #f38ba8;
+      --theme-gold: #f9e2af;
+      --theme-rose: #fab387;
+      --theme-pine: #a6e3a1;
+      --theme-foam: #89dceb;
+      --theme-iris: #cba6f7;
+      --theme-highlight-low: #181825;
+      --theme-highlight-med: #313244;
+      --theme-highlight-high: #45475a;
+      --theme-gradient: linear-gradient(135deg, #1e1e2e 0%, #313244 50%, #45475a 100%);
+      --theme-solid: #1e1e2e;
+      --theme-pattern: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><circle cx="2" cy="2" r="2" fill="%2389dceb"/><circle cx="10" cy="10" r="2" fill="%23cba6f7"/><circle cx="18" cy="18" r="2" fill="%23f38ba8"/></svg>');
+    }
+
+    [data-theme="nord"] {
+      --theme-base: #2e3440;
+      --theme-surface: #3b4252;
+      --theme-overlay: #434c5e;
+      --theme-muted: #4c566a;
+      --theme-subtle: #d8dee9;
+      --theme-text: #eceff4;
+      --theme-love: #bf616a;
+      --theme-gold: #ebcb8b;
+      --theme-rose: #d08770;
+      --theme-pine: #a3be8c;
+      --theme-foam: #88c0d0;
+      --theme-iris: #b48ead;
+      --theme-highlight-low: #2e3440;
+      --theme-highlight-med: #434c5e;
+      --theme-highlight-high: #4c566a;
+      --theme-gradient: linear-gradient(135deg, #2e3440 0%, #3b4252 50%, #434c5e 100%);
+      --theme-solid: #2e3440;
+      --theme-pattern: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><circle cx="2" cy="2" r="2" fill="%2388c0d0"/><circle cx="10" cy="10" r="2" fill="%23b48ead"/><circle cx="18" cy="18" r="2" fill="%23bf616a"/></svg>');
+    }
+
+    [data-theme="gruvbox"] {
+      --theme-base: #282828;
+      --theme-surface: #3c3836;
+      --theme-overlay: #504945;
+      --theme-muted: #665c54;
+      --theme-subtle: #a89984;
+      --theme-text: #ebdbb2;
+      --theme-love: #fb4934;
+      --theme-gold: #fabd2f;
+      --theme-rose: #fe8019;
+      --theme-pine: #b8bb26;
+      --theme-foam: #8ec07c;
+      --theme-iris: #d3869b;
+      --theme-highlight-low: #1d2021;
+      --theme-highlight-med: #3c3836;
+      --theme-highlight-high: #504945;
+      --theme-gradient: linear-gradient(135deg, #282828 0%, #3c3836 50%, #504945 100%);
+      --theme-solid: #282828;
+      --theme-pattern: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><circle cx="2" cy="2" r="2" fill="%238ec07c"/><circle cx="10" cy="10" r="2" fill="%23d3869b"/><circle cx="18" cy="18" r="2" fill="%23fb4934"/></svg>');
+    }
+
+    [data-theme="tokyo-night"] {
+      --theme-base: #1a1b26;
+      --theme-surface: #24283b;
+      --theme-overlay: #414868;
+      --theme-muted: #565f89;
+      --theme-subtle: #a9b1d6;
+      --theme-text: #c0caf5;
+      --theme-love: #f7768e;
+      --theme-gold: #e0af68;
+      --theme-rose: #ff9e64;
+      --theme-pine: #9ece6a;
+      --theme-foam: #7dcfff;
+      --theme-iris: #bb9af7;
+      --theme-highlight-low: #16161e;
+      --theme-highlight-med: #24283b;
+      --theme-highlight-high: #414868;
+      --theme-gradient: linear-gradient(135deg, #1a1b26 0%, #24283b 50%, #414868 100%);
+      --theme-solid: #1a1b26;
+      --theme-pattern: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><circle cx="2" cy="2" r="2" fill="%237dcfff"/><circle cx="10" cy="10" r="2" fill="%23bb9af7"/><circle cx="18" cy="18" r="2" fill="%23f7768e"/></svg>');
+    }
+
+    [data-theme="dracula"] {
+      --theme-base: #282a36;
+      --theme-surface: #44475a;
+      --theme-overlay: #6272a4;
+      --theme-muted: #6272a4;
+      --theme-subtle: #f8f8f2;
+      --theme-text: #f8f8f2;
+      --theme-love: #ff5555;
+      --theme-gold: #f1fa8c;
+      --theme-rose: #ffb86c;
+      --theme-pine: #50fa7b;
+      --theme-foam: #8be9fd;
+      --theme-iris: #bd93f9;
+      --theme-highlight-low: #21222c;
+      --theme-highlight-med: #44475a;
+      --theme-highlight-high: #6272a4;
+      --theme-gradient: linear-gradient(135deg, #282a36 0%, #44475a 50%, #6272a4 100%);
+      --theme-solid: #282a36;
+      --theme-pattern: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><circle cx="2" cy="2" r="2" fill="%238be9fd"/><circle cx="10" cy="10" r="2" fill="%23bd93f9"/><circle cx="18" cy="18" r="2" fill="%23ff5555"/></svg>');
+    }
+
+    [data-theme="cyberpunk"] {
+      --theme-base: #0a0a0a;
+      --theme-surface: #1a1a2e;
+      --theme-overlay: #16213e;
+      --theme-muted: #0f3460;
+      --theme-subtle: #e94560;
+      --theme-text: #00ffff;
+      --theme-love: #ff0066;
+      --theme-gold: #ffcc00;
+      --theme-rose: #ff6600;
+      --theme-pine: #00ff66;
+      --theme-foam: #00ffff;
+      --theme-iris: #9900ff;
+      --theme-highlight-low: #0f0f23;
+      --theme-highlight-med: #1a1a2e;
+      --theme-highlight-high: #16213e;
+      --theme-gradient: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, #16213e 100%);
+      --theme-solid: #0a0a0a;
+      --theme-pattern: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><circle cx="2" cy="2" r="2" fill="%2300ffff"/><circle cx="10" cy="10" r="2" fill="%239900ff"/><circle cx="18" cy="18" r="2" fill="%23ff0066"/></svg>');
+    }
+
+    [data-theme="matrix"] {
+      --theme-base: #000000;
+      --theme-surface: #001100;
+      --theme-overlay: #003300;
+      --theme-muted: #004400;
+      --theme-subtle: #00aa00;
+      --theme-text: #00ff00;
+      --theme-love: #ff0000;
+      --theme-gold: #ffff00;
+      --theme-rose: #ff6600;
+      --theme-pine: #00cc00;
+      --theme-foam: #00ffaa;
+      --theme-iris: #00ff88;
+      --theme-highlight-low: #001100;
+      --theme-highlight-med: #003300;
+      --theme-highlight-high: #004400;
+      --theme-gradient: linear-gradient(135deg, #000000 0%, #001100 50%, #003300 100%);
+      --theme-solid: #000000;
+      --theme-pattern: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><circle cx="2" cy="2" r="2" fill="%2300ffaa"/><circle cx="10" cy="10" r="2" fill="%2300ff88"/><circle cx="18" cy="18" r="2" fill="%2300ff00"/></svg>');
+    }
+
+    [data-theme="neon"] {
+      --theme-base: #0f0f23;
+      --theme-surface: #1a1a40;
+      --theme-overlay: #262659;
+      --theme-muted: #404073;
+      --theme-subtle: #8080ff;
+      --theme-text: #ffffff;
+      --theme-love: #ff007f;
+      --theme-gold: #ffaa00;
+      --theme-rose: #ff4080;
+      --theme-pine: #00ff80;
+      --theme-foam: #40e0ff;
+      --theme-iris: #8040ff;
+      --theme-highlight-low: #0a0a1f;
+      --theme-highlight-med: #1f1f3f;
+      --theme-highlight-high: #333366;
+      --theme-gradient: linear-gradient(135deg, #0f0f23 0%, #1a1a40 50%, #262659 100%);
+      --theme-solid: #0f0f23;
+      --theme-pattern: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><circle cx="2" cy="2" r="2" fill="%2340e0ff"/><circle cx="10" cy="10" r="2" fill="%238040ff"/><circle cx="18" cy="18" r="2" fill="%23ff007f"/></svg>');
+    }
+
+    /* Apply theme to body - let carbon-theme.js handle dynamic theme switching */
+    body {
+      transition: all 0.3s ease;
+    }
+
+    #backgroundCanvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: -1;
+      display: none;
+    }
+
+    .loader {
+      border: 8px solid var(--theme-overlay);
+      border-top: 8px solid var(--theme-foam);
+      border-radius: 50%;
+      width: 70px;
+      height: 70px;
+      animation: spin 1s linear infinite;
+      margin: auto;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg);}
+      100% { transform: rotate(360deg);}
+    }
+    .tag-btn.active {
+      background: rgba(156, 207, 216, 0.1);
+      color: var(--theme-foam) !important;
+      border-color: var(--theme-foam) !important;
+    }
+    /* Comment section styles */
+    .comment-item {
+      transition: all 0.3s ease;
+    }
+    .comment-item:hover {
+      background: rgba(156, 207, 216, 0.05);
+    }
+    .reply-item {
+      border-left: 2px solid var(--theme-foam);
+      margin-left: 1rem;
+      padding-left: 1rem;
+    }
+    .reaction-picker {
+      position: absolute;
+      z-index: 1000;
+      background: var(--theme-surface);
+      border: 1px solid var(--theme-foam);
+      border-radius: 8px;
+      padding: 8px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+    }
+    .reaction-button {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px 8px;
+      border-radius: 16px;
+      font-size: 12px;
+      background: rgba(156, 207, 216, 0.1);
+      color: var(--theme-foam);
+      border: 1px solid rgba(156, 207, 216, 0.3);
+      transition: all 0.2s ease;
+    }
+    .reaction-button:hover {
+      background: rgba(156, 207, 216, 0.2);
+      transform: scale(1.05);
+    }
+    .reaction-button.reacted {
+      background: rgba(156, 207, 216, 0.3);
+      color: var(--theme-foam);
+    }
+    .comment-stars {
+      color: var(--theme-gold);
+    }
+    .comment-textarea {
+      background: var(--theme-overlay);
+      border: 1px solid rgba(156, 207, 216, 0.3);
+      color: var(--theme-text);
+      border-radius: 8px;
+      padding: 12px;
+      resize: vertical;
+      min-height: 80px;
+    }
+    .comment-textarea:focus {
+      outline: none;
+      border-color: var(--theme-foam);
+      box-shadow: 0 0 0 2px rgba(156, 207, 216, 0.2);
+    }
+    emoji-picker {
+      --background: var(--theme-surface);
+      --border-color: var(--theme-foam);
+      --button-active-background: rgba(156, 207, 216, 0.2);
+      --button-hover-background: rgba(156, 207, 216, 0.1);
+      --indicator-color: var(--theme-foam);
+      --input-border-color: rgba(156, 207, 216, 0.3);
+      --input-font-color: var(--theme-text);
+      --input-background: var(--theme-overlay);
+      --outline-color: var(--theme-foam);
+    }
+    
+    /* New Game Frame Features */
+    .play-stats {
+      position: absolute;
+      top: 4px;
+      left: 4px;
+      background: rgba(0, 0, 0, 0.8);
+      color: var(--theme-foam);
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      z-index: 100;
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(156, 207, 216, 0.3);
+    }
+    
+    .pause-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.9);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 200;
+      backdrop-filter: blur(10px);
+    }
+    
+    .pause-overlay.hidden {
+      display: none;
+    }
+    
+    .pause-content {
+      text-align: center;
+      color: var(--theme-text);
+    }
+    
+    .pause-title {
+      font-size: 2.5rem;
+      font-weight: 900;
+      color: var(--theme-foam);
+      margin-bottom: 1rem;
+      text-shadow: 0 0 20px rgba(156, 207, 216, 0.5);
+    }
+    
+          .pause-buttons {
+        display: flex;
+        gap: 1rem;
+        margin-top: 2rem;
+      }
+      
+      .pause-btn {
+        padding: 12px 24px;
+        border-radius: 8px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        cursor: pointer;
+        border: none;
+        font-size: 1rem;
+      }
+
+      /* Game Frame Styles */
+      .frame-neon {
+        border: 4px solid #00ffff !important;
+        box-shadow: 0 0 20px #00ffff50, inset 0 0 20px #00ffff20 !important;
+        border-radius: 12px !important;
+        animation: neonPulse 2s infinite !important;
+      }
+
+      @keyframes neonPulse {
+        0%, 100% { box-shadow: 0 0 20px #00ffff50, inset 0 0 20px #00ffff20 !important; }
+        50% { box-shadow: 0 0 30px #00ffff80, inset 0 0 30px #00ffff30 !important; }
+      }
+
+      .frame-fire {
+        border: 4px solid #ff4500 !important;
+        box-shadow: 0 0 25px #ff450080, inset 0 0 25px #ff450030 !important;
+        border-radius: 12px !important;
+        position: relative !important;
+        animation: fireFlicker 1.5s infinite !important;
+      }
+
+      @keyframes fireFlicker {
+        0%, 100% { box-shadow: 0 0 25px #ff450080, inset 0 0 25px #ff450030 !important; }
+        25% { box-shadow: 0 0 35px #ff6500a0, inset 0 0 35px #ff650040 !important; }
+        75% { box-shadow: 0 0 20px #ff2500a0, inset 0 0 20px #ff250040 !important; }
+      }
+
+      .frame-galaxy {
+        border: 4px solid #9400d3 !important;
+        background: linear-gradient(45deg, #9400d3, #4b0082, #0000ff, #9400d3) !important;
+        background-size: 400% 400% !important;
+        box-shadow: 0 0 30px #9400d380, inset 0 0 30px #9400d320 !important;
+        border-radius: 12px !important;
+        animation: galaxyRotate 4s infinite !important;
+      }
+
+      @keyframes galaxyRotate {
+        0% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
+      }
+
+      .frame-diamond {
+        border: 4px solid #b9f2ff !important;
+        box-shadow: 0 0 25px #b9f2ff80, inset 0 0 25px #b9f2ff30 !important;
+        border-radius: 12px !important;
+        position: relative !important;
+        animation: diamondSparkle 3s infinite !important;
+      }
+
+      @keyframes diamondSparkle {
+        0%, 100% { box-shadow: 0 0 25px #b9f2ff80, inset 0 0 25px #b9f2ff30 !important; }
+        33% { box-shadow: 0 0 35px #ffffff80, inset 0 0 35px #ffffff30 !important; }
+        66% { box-shadow: 0 0 30px #b9f2ff80, inset 0 0 30px #b9f2ff30 !important; }
+      }
+
+      .frame-rainbow {
+        border: 4px solid !important;
+        border-image: linear-gradient(45deg, #ff0000, #ff8000, #ffff00, #00ff00, #0080ff, #8000ff) 1 !important;
+        box-shadow: 0 0 30px rgba(255, 255, 255, 0.5) !important;
+        border-radius: 12px !important;
+        animation: rainbowShift 2s infinite !important;
+      }
+
+      @keyframes rainbowShift {
+        0% { filter: hue-rotate(0deg); }
+        100% { filter: hue-rotate(360deg); }
+      }
+
+      .frame-shadow {
+        border: 4px solid #2d1b69 !important;
+        box-shadow: 0 0 30px #2d1b6980, inset 0 0 30px #2d1b6930, 0 0 50px #000000a0 !important;
+        border-radius: 12px !important;
+        position: relative !important;
+        animation: shadowPulse 3s infinite !important;
+      }
+
+      @keyframes shadowPulse {
+        0%, 100% { box-shadow: 0 0 30px #2d1b6980, inset 0 0 30px #2d1b6930, 0 0 50px #000000a0 !important; }
+        50% { box-shadow: 0 0 40px #2d1b69a0, inset 0 0 40px #2d1b6940, 0 0 70px #000000c0 !important; }
+      }
+
+      /* Profile Frame Styles */
+      .profile-frame-red {
+        border: 3px solid #ff4444 !important;
+        box-shadow: 0 0 15px #ff444450 !important;
+      }
+
+      .profile-frame-blue {
+        border: 3px solid #4444ff !important;
+        box-shadow: 0 0 15px #4444ff50 !important;
+      }
+
+      .profile-frame-orange {
+        border: 3px solid #ff8844 !important;
+        box-shadow: 0 0 15px #ff884450 !important;
+      }
+
+      .profile-frame-green {
+        border: 3px solid #44ff44 !important;
+        box-shadow: 0 0 15px #44ff4450 !important;
+      }
+
+      .profile-frame-purple {
+        border: 3px solid #8844ff !important;
+        box-shadow: 0 0 15px #8844ff50 !important;
+      }
+
+      .profile-frame-gold {
+        border: 3px solid #ffd700 !important;
+        box-shadow: 0 0 20px #ffd70080 !important;
+        animation: goldGlow 2s infinite;
+      }
+
+      @keyframes goldGlow {
+        0%, 100% { box-shadow: 0 0 20px #ffd70080 !important; }
+        50% { box-shadow: 0 0 30px #ffd700a0 !important; }
+      }
+
+      .profile-frame-silver {
+        border: 3px solid #c0c0c0 !important;
+        box-shadow: 0 0 15px #c0c0c080 !important;
+      }
+
+      .profile-frame-rainbow {
+        border: 3px solid !important;
+        border-image: linear-gradient(45deg, #ff0000, #ff8000, #ffff00, #00ff00, #0080ff, #8000ff) 1 !important;
+        box-shadow: 0 0 20px rgba(255, 255, 255, 0.5) !important;
+        animation: rainbowProfileShift 3s infinite !important;
+      }
+
+      @keyframes rainbowProfileShift {
+        0% { filter: hue-rotate(0deg); }
+        100% { filter: hue-rotate(360deg); }
+      }
+    }
+    
+    .pause-btn.primary {
+      background: linear-gradient(135deg, var(--theme-foam), var(--theme-iris));
+      color: var(--theme-base);
+    }
+    
+    .pause-btn.primary:hover {
+      transform: scale(1.05);
+      box-shadow: 0 8px 25px rgba(156, 207, 216, 0.4);
+    }
+    
+    .pause-btn.secondary {
+      background: rgba(255, 255, 255, 0.1);
+      color: var(--theme-text);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+    }
+    
+    .pause-btn.secondary:hover {
+      background: rgba(255, 255, 255, 0.2);
+    }
+    
+    .inactivity-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.7);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 150;
+      backdrop-filter: blur(5px);
+      transition: opacity 0.5s ease;
+    }
+    
+    .inactivity-overlay.hidden {
+      display: none;
+    }
+    
+    .inactivity-content {
+      text-align: center;
+      color: var(--theme-text);
+      animation: pulse 2s infinite;
+    }
+    
+    .inactivity-title {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--theme-foam);
+      margin-bottom: 0.5rem;
+    }
+    
+    .game-frame-blurred {
+      filter: blur(3px);
+      transition: filter 0.5s ease;
+    }
+    
+    .keyboard-shortcuts {
+      position: absolute;
+      bottom: 4px;
+      right: 4px;
+      background: rgba(0, 0, 0, 0.8);
+      color: var(--theme-foam);
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-size: 10px;
+      z-index: 100;
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(156, 207, 216, 0.3);
+      opacity: 0.7;
+      transition: opacity 0.3s ease;
+    }
+    
+    .keyboard-shortcuts:hover {
+      opacity: 1;
+    }
+    
+    .rate-limit-warning {
+      background: rgba(235, 111, 146, 0.1);
+      border: 1px solid rgba(235, 111, 146, 0.3);
+    }
+    
+    /* Enhanced suggested games carousel styles */
+    .suggested-game-card {
+      transform: scale(1);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      will-change: transform;
+    }
+    
+    .suggested-game-card:hover {
+      transform: scale(1.02);
+      z-index: 10;
+    }
+    
+    .suggested-game-card:active {
+      transform: scale(0.98);
+    }
+    
+    /* Smooth image loading */
+    .suggested-game-card img {
+      opacity: 0;
+      transition: opacity 0.5s ease;
+    }
+    
+    .suggested-game-card img.loaded {
+      opacity: 1;
+    }
+    
+    /* Carousel smooth scrolling */
+    #suggestedGamesList {
+      scroll-behavior: smooth;
+    }
+    
+    /* Enhanced carousel navigation */
+    .carousel-nav-btn {
+      transform: translateY(-50%);
+      background: rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(156, 207, 216, 0.3);
+      color: rgba(156, 207, 216, 0.9);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    }
+    
+    .carousel-nav-btn:hover {
+      background: rgba(0, 0, 0, 0.8);
+      border-color: rgba(156, 207, 216, 0.6);
+      color: rgba(156, 207, 216, 1);
+      transform: translateY(-50%) scale(1.05);
+      box-shadow: 0 6px 25px rgba(156, 207, 216, 0.2);
+    }
+    
+    .carousel-nav-btn:disabled {
+      opacity: 0.3;
+      cursor: not-allowed;
+      transform: translateY(-50%) scale(0.95);
+    }
+    
+    .rate-limit-warning {
+      color: var(--theme-love);
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      margin-top: 8px;
+    }
+    
+    /* Enhanced game action buttons - visible in fullscreen */
+    .game-action-btn {
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    .game-action-btn:hover {
+      transform: scale(1.1);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+    }
+    
+    .game-action-btn:active {
+      transform: scale(0.95);
+    }
+    
+    /* Keep buttons visible in fullscreen mode */
+    iframe:fullscreen ~ #gameActionButtons,
+    video:fullscreen ~ #gameActionButtons,
+    :fullscreen #gameActionButtons {
+      position: fixed !important;
+      top: 20px !important;
+      right: 20px !important;
+      z-index: 2147483647 !important;
+    }
+    
+    /* Webkit fullscreen support */
+    iframe:-webkit-full-screen ~ #gameActionButtons,
+    video:-webkit-full-screen ~ #gameActionButtons,
+    :-webkit-full-screen #gameActionButtons {
+      position: fixed !important;
+      top: 20px !important;
+      right: 20px !important;
+      z-index: 2147483647 !important;
+    }
+    
+    /* Mozilla fullscreen support */
+    iframe:-moz-full-screen ~ #gameActionButtons,
+    video:-moz-full-screen ~ #gameActionButtons,
+    :-moz-full-screen #gameActionButtons {
+      position: fixed !important;
+      top: 20px !important;
+      right: 20px !important;
+      z-index: 2147483647 !important;
+    }
+    
+    /* Button active states */
+    .game-action-btn.liked {
+      background: rgba(34, 197, 94, 0.8) !important;
+      border-color: rgba(34, 197, 94, 0.8) !important;
+      color: white !important;
+    }
+    
+    .game-action-btn.favorited {
+      background: rgba(236, 72, 153, 0.8) !important;
+      border-color: rgba(236, 72, 153, 0.8) !important;
+      color: white !important;
+    }
+    
+    .game-action-btn.in-playlist {
+      background: rgba(234, 179, 8, 0.8) !important;
+      border-color: rgba(234, 179, 8, 0.8) !important;
+      color: white !important;
+    }
+    
+    /* Ensure boxicons load properly */
+    @import url('https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css');
+    
+         /* Fallback icon styles if boxicons don't load */
+     .bx:before {
+       font-family: 'boxicons' !important;
+       font-style: normal !important;
+       font-weight: normal !important;
+       font-variant: normal !important;
+       text-transform: none !important;
+       line-height: 1 !important;
+       -webkit-font-smoothing: antialiased !important;
+       -moz-osx-font-smoothing: grayscale !important;
+     }
+     
+     /* Fullscreen mode specific styles */
+     .fullscreen-mode {
+       animation: fadeInScale 0.3s ease-out;
+     }
+     
+     .fullscreen-mode .game-action-btn {
+       background: rgba(0, 0, 0, 0.8) !important;
+       border-width: 2px !important;
+       backdrop-filter: blur(15px) !important;
+       -webkit-backdrop-filter: blur(15px) !important;
+     }
+     
+     @keyframes fadeInScale {
+       0% {
+         opacity: 0;
+         transform: scale(0.8);
+       }
+       100% {
+         opacity: 1;
+         transform: scale(1);
+       }
+     }
+     
+     /* Enhanced button hover states for fullscreen */
+     .fullscreen-mode .game-action-btn:hover {
+       transform: scale(1.15) !important;
+       box-shadow: 0 8px 25px rgba(0, 0, 0, 0.6) !important;
+     }
+    
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.6; }
+    }
+    
+    @keyframes bounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-10px); }
+    }
+  </style>
+</head>
+<body class="bg-rp-base min-h-screen text-rp-text overflow-x-hidden relative font-[Inter] antialiased">
+
+  <!-- Floating background elements -->
+  <div class="pointer-events-none absolute rounded-full opacity-5 blur-3xl w-[300px] h-[300px] top-[10%] left-[10%] bg-gradient-to-br from-rp-foam to-rp-iris animate-[float_20s_infinite_ease-in-out]"></div>
+  <div class="pointer-events-none absolute rounded-full opacity-5 blur-3xl w-[250px] h-[250px] top-[60%] right-[10%] bg-gradient-to-br from-rp-iris to-rp-love animate-[float_20s_infinite_ease-in-out] delay-[7s]"></div>
+  <div class="pointer-events-none absolute rounded-full opacity-5 blur-3xl w-[200px] h-[200px] bottom-[20%] left-[20%] bg-gradient-to-br from-rp-foam to-rp-rose animate-[float_20s_infinite_ease-in-out] delay-[14s]"></div>
+
+  <!-- Particles Canvas -->
+  <canvas id="particles-canvas" class="fixed inset-0 pointer-events-none hidden"></canvas>
+
+  <!-- Preloader -->
+  <div id="preloader" class="fixed z-[9999] inset-0 flex flex-col justify-center items-center bg-rp-base">
+    <div class="loader"></div>
+  </div>
+
+  <!-- Navbar -->
+  <nav class="flex items-center justify-between px-8 py-4 bg-rp-surface/80 border-b border-rp-overlay backdrop-blur-md fixed top-0 left-0 right-0 z-50">
+    <div class="flex items-center gap-4">
+      <a href="index.html" class="text-2xl font-extrabold text-rp-foam tracking-tighter">CARBON</a>
+      <a href="games.html" class="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-cyan-400/20 text-white rounded-lg transition-all duration-300 border border-white/20 hover:border-cyan-400/40">
+        <i class='bx bx-arrow-back text-lg'></i>
+        <span class="font-medium">Back to Games</span>
+      </a>
+    </div>
+    <div class="flex items-center gap-4">
+      <div id="userSection"></div>
+    </div>
+  </nav>
+
+  <!-- LOGIN SCREEN -->
+  <div id="loginScreen" class="flex flex-col items-center justify-center h-screen w-full bg-rp-base fixed left-0 top-0 z-50">
+    <div class="bg-rp-surface rounded-2xl shadow-2xl p-12 border border-rp-overlay flex flex-col items-center">
+      <div class="text-3xl font-bold text-rp-foam mb-6">Sign In to Play</div>
+      <button onclick="googleSignIn()" class="flex items-center gap-3 bg-rp-foam hover:bg-rp-foam/90 text-rp-base font-bold px-6 py-3 rounded-lg text-lg transition">
+        <i class='bx bxl-google text-2xl'></i> Sign in with Google
+      </button>
+      <div id="loginError" class="text-rp-love mt-6 hidden"></div>
+    </div>
+  </div>
+
+  <main class="pt-28 max-w-4xl mx-auto px-4">
+    <div id="gameInfoHolder" class="rounded-2xl shadow-2xl bg-rp-surface border border-rp-overlay overflow-hidden mt-2">
+      <!-- Game "cover" with play button -->
+      <div class="relative aspect-video bg-black flex items-center justify-center">
+        <img id="gameCoverImg" src="" class="w-full h-full object-cover pointer-events-none select-none rounded-t-2xl" alt="Game Cover" />
+        <button id="bigPlayBtn" class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10 bg-gradient-to-br from-rp-foam to-rp-iris text-rp-base font-extrabold rounded-lg px-6 py-3 shadow-lg text-lg hover:scale-105 transition-all flex items-center gap-3 group min-w-[120px]">
+          <i class='bx bx-play-circle text-2xl drop-shadow-lg group-hover:scale-110 transition-transform'></i>
+          <span class="block text-base font-bold">Play</span>
+        </button>
+        <div class="absolute bottom-4 left-4 flex gap-3">
+          <span id="gameCategoryTag" class="bg-rp-foam/30 text-rp-foam px-3 py-1 rounded text-xs font-semibold"></span>
+          <span id="gameFeaturedTag" class="bg-rp-iris/30 text-rp-iris px-3 py-1 rounded text-xs font-semibold hidden">Featured</span>
+        </div>
+      </div>
+      <div class="flex flex-col md:flex-row p-6 gap-6 items-start bg-rp-overlay">
+        <div class="flex-1">
+          <div id="gameTitleDisplay" class="text-2xl md:text-3xl font-extrabold text-rp-foam mb-3"></div>
+          <div id="starRatingSection" class="my-4">
+            <div id="starsContainer" class="flex gap-1 text-3xl"></div>
+            <div class="text-sm mt-1 flex flex-wrap items-center gap-2 text-rp-subtle">
+              <span id="starRatingSummary"></span>
+              <span id="starRatingCount"></span>
+              <span id="starRatingError" class="text-rp-love"></span>
+            </div>
+            <div id="ratingPercentContainer" class="flex items-center mt-2 gap-2">
+              <span id="ratingPercentText" class="text-rp-iris font-semibold"></span>
+              <div class="w-40 h-2 bg-rp-muted rounded overflow-hidden">
+                <div id="ratingPercentBar" class="h-2 bg-rp-iris rounded transition-all duration-300" style="width:0%"></div>
+              </div>
+            </div>
+          </div>
+          <p id="gameFrameDesc" class="text-rp-text/80 mb-2 text-base leading-relaxed"></p>
+          <!-- Game info (dev/release/etc) with tailwind -->
+          <div id="gameInfoBox" class="mt-6 w-full">
+            <div class="bg-rp-surface border border-rp-overlay rounded-2xl px-6 py-5 text-rp-text">
+              <table class="w-full text-left">
+                <tbody id="gameInfoTable"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+        <div class="flex flex-col gap-2 w-full md:w-auto">
+          <button id="fullscreenBtn" class="bg-gradient-to-r from-rp-foam to-rp-iris text-rp-base font-bold px-6 py-2 rounded-lg hover:scale-105 transition-transform">Fullscreen</button>
+          <a href="profile.html" class="bg-rp-text/10 text-rp-text px-6 py-2 rounded-lg hover:bg-rp-foam/20 transition text-center">View Profile</a>
+        </div>
+      </div>
+    </div>
+    <!-- Real iframe, shown after play -->
+    <div id="gameFrameContainer" class="rounded-2xl shadow-2xl overflow-hidden mt-8 hidden" style="background: var(--theme-surface); border: 1px solid rgba(156, 207, 216, 0.3);">
+      <div class="relative aspect-video bg-black">
+        <iframe id="gameFrameEmbed" src="" class="w-full h-full" frameborder="0" allowfullscreen></iframe>
+        
+        <!-- Play Stats Display -->
+        <div id="playStats" class="play-stats">
+          <div class="flex flex-col gap-1">
+            <div class="flex items-center gap-2">
+              <i class='bx bx-play-circle text-sm'></i>
+              <span id="playCount">0 plays</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <i class='bx bx-time text-sm'></i>
+              <span id="playTimer">00:00</span>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Keyboard Shortcuts Display -->
+        <div id="keyboardShortcuts" class="keyboard-shortcuts">
+          <div class="text-xs">
+            <div><strong>P</strong> Play/Pause</div>
+            <div><strong>R</strong> Restart</div>
+            <div><strong>F</strong> Fullscreen</div>
+            <div><strong>M</strong> Mute</div>
+          </div>
+        </div>
+        
+        <!-- Pause Overlay -->
+        <div id="pauseOverlay" class="pause-overlay hidden">
+          <div class="pause-content">
+            <div class="pause-title">⏸️ PAUSED</div>
+            <p class="mb-2" style="color: var(--theme-subtle);">Game is currently paused</p>
+            <p class="text-sm" style="color: var(--theme-muted);">Press P or Spacebar to resume</p>
+            <div class="pause-buttons">
+              <button id="resumeBtn" class="pause-btn primary">
+                <i class='bx bx-play mr-2'></i>
+                Resume Game
+              </button>
+              <button id="restartBtn" class="pause-btn secondary">
+                <i class='bx bx-refresh mr-2'></i>
+                Restart
+              </button>
+              <button id="exitGameBtn" class="pause-btn secondary">
+                <i class='bx bx-exit mr-2'></i>
+                Exit Game
+              </button>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Inactivity Overlay -->
+        <div id="inactivityOverlay" class="inactivity-overlay hidden">
+          <div class="inactivity-content">
+            <div class="inactivity-title">🌫️ Inactive</div>
+            <p style="color: var(--theme-subtle);">Click or press any key to continue</p>
+            <div class="mt-4 text-xs" style="color: var(--theme-muted);">
+              <i class='bx bx-mouse text-lg animate-bounce'></i>
+            </div>
+          </div>
+        </div>
+        
+        <div id="gameActionButtons" class="absolute top-4 right-4 flex gap-3 z-[9999] transition-all duration-300 opacity-0 pointer-events-none">
+          <button id="likeBtn" class="w-12 h-12 bg-black/60 backdrop-blur-md hover:bg-cyan-500/90 text-white rounded-full flex items-center justify-center transition-all duration-300 border-2 border-white/20 hover:border-cyan-400/60 shadow-lg hover:shadow-cyan-400/30 hover:scale-110 game-action-btn" title="Like">
+            <i class='bx bx-like text-xl'></i>
+          </button>
+          <button id="favBtn" class="w-12 h-12 bg-black/60 backdrop-blur-md hover:bg-pink-500/90 text-white rounded-full flex items-center justify-center transition-all duration-300 border-2 border-white/20 hover:border-pink-400/60 shadow-lg hover:shadow-pink-400/30 hover:scale-110 game-action-btn" title="Favorite">
+            <i class='bx bx-heart text-xl'></i>
+          </button>
+          <button id="dislikeBtn" class="w-12 h-12 bg-black/60 backdrop-blur-md hover:bg-red-500/90 text-white rounded-full flex items-center justify-center transition-all duration-300 border-2 border-white/20 hover:border-red-400/60 shadow-lg hover:shadow-red-400/30 hover:scale-110 game-action-btn" title="Dislike">
+            <i class='bx bx-dislike text-xl'></i>
+          </button>
+          <button id="proxyToggleBtn" class="w-12 h-12 bg-black/60 backdrop-blur-md rounded-full flex items-center justify-center transition-all duration-300 border-2 border-cyan-400/60 hover:border-cyan-400 shadow-lg hover:shadow-cyan-400/30 hover:scale-110 game-action-btn" title="Toggle Proxy">
+            <i id="proxyToggleIcon" class="bx bx-cloud text-xl text-cyan-400"></i>
+          </button>
+          <button id="shareBtn" class="w-12 h-12 bg-black/60 backdrop-blur-md hover:bg-indigo-500/90 text-white rounded-full flex items-center justify-center transition-all duration-300 border-2 border-white/20 hover:border-indigo-400/60 shadow-lg hover:shadow-indigo-400/30 hover:scale-110 game-action-btn" title="Share">
+            <i class='bx bx-share-alt text-xl'></i>
+          </button>
+          <button id="playlistBtn" class="w-12 h-12 bg-black/60 backdrop-blur-md hover:bg-yellow-400/90 text-white rounded-full flex items-center justify-center transition-all duration-300 border-2 border-white/20 hover:border-yellow-400/60 shadow-lg hover:shadow-yellow-400/30 hover:scale-110 game-action-btn" title="Add to Playlist">
+            <i class='bx bx-list-plus text-xl'></i>
+          </button>
+        </div>
+      </div>
+      <div class="flex flex-col md:flex-row p-6 gap-6 items-start" style="background: var(--theme-overlay);">
+        <div class="flex-1">
+          <div id="gameTitleDisplayFrame" class="text-2xl md:text-3xl font-extrabold mb-3" style="color: var(--theme-foam);"></div>
+          <div id="starRatingSectionFrame" class="max-w-xl my-4">
+            <div id="starsContainerFrame" class="flex gap-1 text-3xl"></div>
+            <div class="text-sm mt-1 flex flex-wrap items-center gap-2" style="color: var(--theme-subtle);">
+              <span id="starRatingSummaryFrame"></span>
+              <span id="starRatingCountFrame"></span>
+              <span id="starRatingErrorFrame" style="color: var(--theme-love);"></span>
+            </div>
+            <div id="ratingPercentContainerFrame" class="flex items-center mt-2 gap-2">
+              <span id="ratingPercentTextFrame" class="font-semibold" style="color: var(--theme-iris);"></span>
+              <div class="w-40 h-2 bg-slate-700 rounded overflow-hidden">
+                <div id="ratingPercentBarFrame" class="h-2 bg-indigo-400 rounded transition-all duration-300" style="width:0%"></div>
+              </div>
+            </div>
+            <!-- Tag area -->
+            <div id="tagsAreaFrame" class="mt-5 flex flex-wrap gap-2"></div>
+            <!-- Category count -->
+            <div id="categoryGamesCountFrame" class="mt-4 text-base font-semibold" style="color: var(--theme-foam);"></div>
+          </div>
+        </div>
+        <div class="flex flex-col gap-2 w-full md:w-auto">
+          <button id="fullscreenBtnBottom" class="bg-gradient-to-r from-cyan-400 to-indigo-500 text-black font-bold px-6 py-2 rounded-lg hover:scale-105 transition-transform">Fullscreen</button>
+          <a href="profile.html" class="bg-white/10 text-white px-6 py-2 rounded-lg hover:bg-cyan-400/20 transition text-center">View Profile</a>
+        </div>
+      </div>
+      <!-- Game info in frame panel -->
+      <div id="gameInfoBoxFrame" class="mt-6 w-full">
+        <div class="rounded-2xl px-6 py-5 mx-6 mb-8" style="background: var(--theme-surface); border: 1px solid rgba(156, 207, 216, 0.3); color: var(--theme-text);">
+          <table class="w-full text-left">
+            <tbody id="gameInfoTableFrame"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Comments Section -->
+      <div id="commentsSection" class="mt-8 mx-6 mb-8">
+        <div class="rounded-2xl px-6 py-6" style="background: var(--theme-surface); border: 1px solid rgba(156, 207, 216, 0.3); color: var(--theme-text);">
+          <!-- Comments Header -->
+          <div class="flex items-center justify-between mb-6">
+            <h3 class="text-2xl font-bold flex items-center gap-2" style="color: var(--theme-foam);">
+              <i class='bx bx-message-square-dots text-3xl'></i>
+              Reviews & Comments
+              <span id="commentsCount" class="text-lg font-normal" style="color: var(--theme-foam);">
+                (0)
+              </span>
+            </h3>
+            
+            <!-- Filter Dropdown -->
+            <div class="relative">
+              <select id="commentFilter" class="px-4 py-2 rounded-lg text-sm focus:outline-none" style="background: var(--theme-overlay); border: 1px solid rgba(156, 207, 216, 0.3); color: var(--theme-text);" onfocus="this.style.borderColor = 'var(--theme-foam)';">
+                <option value="all">All Comments</option>
+                <option value="5">⭐⭐⭐⭐⭐ (5 stars)</option>
+                <option value="4">⭐⭐⭐⭐ (4 stars)</option>
+                <option value="3">⭐⭐⭐ (3 stars)</option>
+                <option value="2">⭐⭐ (2 stars)</option>
+                <option value="1">⭐ (1 star)</option>
+                <option value="no-rating">No Rating</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Add Comment Form -->
+          <div id="addCommentForm" class="mb-6 p-4 rounded-lg" style="background: var(--theme-overlay); border: 1px solid rgba(156, 207, 216, 0.2);">
+            <h4 class="text-lg font-semibold mb-3" style="color: var(--theme-foam);">Write a Review</h4>
+            
+            <!-- Star Rating Input -->
+            <div class="mb-4">
+              <label class="block text-sm font-medium mb-2" style="color: var(--theme-foam);">Your Rating (Optional)</label>
+              <div id="commentStarInput" class="flex gap-1 text-2xl mb-2">
+                <!-- Stars will be rendered here -->
+              </div>
+              <p class="text-xs" style="color: var(--theme-muted);">Click stars to rate this game</p>
+            </div>
+
+            <!-- Comment Text -->
+            <div class="mb-4">
+              <label class="block text-sm font-medium mb-2" style="color: var(--theme-foam);">Your Comment</label>
+              <textarea 
+                id="commentText" 
+                placeholder="Share your thoughts about this game..."
+                class="comment-textarea w-full"
+                maxlength="1000"
+              ></textarea>
+              <div class="flex justify-between text-xs mt-1" style="color: var(--theme-muted);">
+                <span>Be respectful and constructive</span>
+                <span id="commentCharCount">0/1000</span>
+              </div>
+            </div>
+
+            <!-- Submit Button -->
+            <div class="flex gap-3">
+              <button 
+                id="submitComment" 
+                class="bg-gradient-to-r from-cyan-400 to-indigo-500 text-black font-bold px-6 py-2 rounded-lg hover:scale-105 transition-transform disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled
+              >
+                <i class='bx bx-send mr-2'></i>
+                Post Review
+              </button>
+              <button 
+                id="cancelComment" 
+                class="bg-white/10 text-white px-6 py-2 rounded-lg hover:bg-red-500/20 transition"
+              >
+                Cancel
+              </button>
+            </div>
+            
+            <!-- Rate Limit Warning -->
+            <div id="rateLimitWarning" class="rate-limit-warning hidden">
+              <i class='bx bx-error-circle mr-2'></i>
+              <span id="rateLimitText">Please wait before posting another comment</span>
+            </div>
+          </div>
+
+          <!-- Comments List -->
+          <div id="commentsList" class="space-y-4">
+            <!-- Comments will be rendered here -->
+            <div id="commentsLoader" class="text-center py-8 hidden">
+              <div class="inline-block w-6 h-6 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin"></div>
+              <p class="mt-2" style="color: var(--theme-foam);">Loading comments...</p>
+            </div>
+            <div id="noComments" class="text-center py-8" style="color: var(--theme-muted);">
+              <i class='bx bx-message-square text-4xl mb-2 block'></i>
+              <p>No comments yet. Be the first to share your thoughts!</p>
+            </div>
+          </div>
+
+          <!-- Load More Button -->
+          <div id="loadMoreComments" class="text-center mt-6 hidden">
+            <button class="bg-white/10 px-6 py-2 rounded-lg transition" style="color: var(--theme-foam);" onmouseover="this.style.background='rgba(156, 207, 216, 0.2)'" onmouseout="this.style.background='rgba(255, 255, 255, 0.1)'">
+              Load More Comments
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Suggested Games Section -->
+      <div id="suggestedGamesSection" class="mt-8 mx-6 mb-8">
+        <div class="rounded-2xl px-6 py-6" style="background: var(--theme-surface); border: 1px solid rgba(156, 207, 216, 0.3); color: var(--theme-text);">
+          <h3 class="text-2xl font-bold mb-6 flex items-center gap-2" style="color: var(--theme-foam);">
+            <i class='bx bx-joystick text-3xl'></i>
+            You Might Also Like
+          </h3>
+          <div class="relative">
+            <div class="overflow-hidden rounded-2xl">
+              <div id="suggestedGamesList" class="flex transition-transform duration-500 ease-in-out">
+                <!-- Suggested games will be rendered here -->
+                <div class="flex-shrink-0 w-full text-center py-8" style="color: var(--theme-muted);">
+                  <i class='bx bx-loader-alt text-4xl mb-2 block animate-spin'></i>
+                  <p>Loading suggested games...</p>
+                </div>
+              </div>
+            </div>
+            <button id="suggestedPrevBtn" class="carousel-nav-btn absolute left-2 top-1/2 p-3 rounded-full opacity-0 pointer-events-none z-10">
+              <i class='bx bx-chevron-left text-2xl'></i>
+            </button>
+            <button id="suggestedNextBtn" class="carousel-nav-btn absolute right-2 top-1/2 p-3 rounded-full opacity-0 pointer-events-none z-10">
+              <i class='bx bx-chevron-right text-2xl'></i>
+            </button>
+          </div>
+          <!-- Carousel indicators -->
+          <div id="suggestedCarouselDots" class="flex justify-center mt-6 gap-2">
+            <!-- Dots will be rendered here -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Reply Modal -->
+      <div id="replyModal" class="hidden fixed inset-0 z-[10001] bg-black/70 flex items-center justify-center">
+        <div class="rounded-xl p-6 max-w-lg w-full mx-4 shadow-2xl relative" style="background: var(--theme-overlay); border: 1px solid rgba(156, 207, 216, 0.2);">
+          <button onclick="closeReplyModal()" class="absolute top-3 right-4 text-white/70 text-xl" style="transition: color 0.3s;" onmouseover="this.style.color='var(--theme-love)'" onmouseout="this.style.color='rgba(255, 255, 255, 0.7)'">
+            <i class='bx bx-x'></i>
+          </button>
+          <h3 class="text-xl font-bold mb-4" style="color: var(--theme-foam);">Reply to Comment</h3>
+          
+          <div id="replyToComment" class="mb-4 p-3 rounded-lg" style="background: var(--theme-surface); border: 1px solid rgba(156, 207, 216, 0.2);">
+            <!-- Original comment will be shown here -->
+          </div>
+          
+          <textarea 
+            id="replyText" 
+            placeholder="Write your reply..."
+            class="comment-textarea w-full mb-4"
+            maxlength="500"
+          ></textarea>
+          <div class="text-xs mb-4 text-right" style="color: var(--theme-muted);">
+            <span id="replyCharCount">0/500</span>
+          </div>
+          
+          <div class="flex gap-3">
+            <button 
+              id="submitReply" 
+              class="bg-gradient-to-r from-cyan-400 to-indigo-500 text-black font-bold px-4 py-2 rounded-lg hover:scale-105 transition-transform disabled:opacity-50"
+              disabled
+            >
+              Post Reply
+            </button>
+            <button 
+              onclick="closeReplyModal()" 
+              class="bg-white/10 text-white px-4 py-2 rounded-lg hover:bg-red-500/20 transition"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Reaction Picker (will be positioned dynamically) -->
+      <div id="reactionPicker" class="hidden reaction-picker">
+        <emoji-picker></emoji-picker>
+      </div>
+
+      <div id="tagGamesListModal" class="hidden fixed inset-0 z-[10000] bg-black/70 flex items-center justify-center">
+        <div class="rounded-xl p-8 max-w-lg w-full shadow-2xl relative" style="background: var(--theme-overlay); border: 1px solid rgba(156, 207, 216, 0.2);">
+          <button onclick="closeTagGamesModal()" class="absolute top-3 right-4 text-white/70 text-xl" style="transition: color 0.3s;" onmouseover="this.style.color='var(--theme-love)'" onmouseout="this.style.color='rgba(255, 255, 255, 0.7)'"><i class='bx bx-x'></i></button>
+          <h2 class="text-2xl font-bold mb-4" style="color: var(--theme-foam);" id="tagGamesListTitle"></h2>
+          <div id="tagGamesListBody" class="space-y-2"></div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+   <script type="module">
+    import {
+      makeURL,
+      getProxied,
+      setProxy,
+      getProxy,
+      setTransport,
+      setWisp,
+    } from "/lethal.mjs";
+    let proxyOption = localStorage.getItem("proxy-backend") || "uv";
+    async function ensureProxyReady() {
+      if (!getProxy() || getProxy() !== proxyOption) await setProxy(proxyOption);
+      let wisp = localStorage.getItem("wisp-server") || "wss://anura.pro/";
+      let transport = localStorage.getItem("proxy-transport");
+      if (wisp) await setWisp(wisp);
+      if (transport) await setTransport(transport);
+      else if (navigator.userAgent.indexOf("Firefox") > 0) await setTransport("libcurl");
+      else await setTransport("epoxy");
+    }
+    function updateProxyToggleUI(proxy) {
+      const proxyToggleBtn = document.getElementById("proxyToggleBtn");
+      const proxyToggleIcon = document.getElementById("proxyToggleIcon");
+      if (!proxyToggleBtn || !proxyToggleIcon) return;
+      
+      if (proxy === "scram") {
+        proxyToggleBtn.classList.remove("border-cyan-400/60", "hover:border-cyan-400");
+        proxyToggleBtn.classList.add("border-yellow-400/60", "hover:border-yellow-400");
+        proxyToggleIcon.className = "bx bx-network-chart text-xl text-yellow-400";
+        proxyToggleBtn.title = "Scramjet Proxy";
+      } else {
+        proxyToggleBtn.classList.remove("border-yellow-400/60", "hover:border-yellow-400");
+        proxyToggleBtn.classList.add("border-cyan-400/60", "hover:border-cyan-400");
+        proxyToggleIcon.className = "bx bx-cloud text-xl text-cyan-400";
+        proxyToggleBtn.title = "UV Proxy";
+      }
+    }
+    document.getElementById("proxyToggleBtn").addEventListener("click", async () => {
+      proxyOption = (getProxy() === "scram") ? "uv" : "scram";
+      localStorage.setItem("proxy-backend", proxyOption);
+      await ensureProxyReady();
+      updateProxyToggleUI(proxyOption);
+      if (!document.getElementById("gameFrameContainer").classList.contains("hidden")) {
+        loadProxiedGameIframe();
+      }
+    });
+    updateProxyToggleUI(proxyOption);
+
+    async function loadProxiedGameIframe() {
+      await ensureProxyReady();
+      let gamesData = window.gamesData || [];
+      let currentGameId = window.currentGameId;
+      let currentGame = gamesData.find(g => String(g.id) === String(currentGameId));
+      if (!currentGame) return;
+      const proxied = await getProxied(currentGame.url);
+      document.getElementById("gameFrameEmbed").src = proxied;
+    }
+    window.loadProxiedGameIframe = loadProxiedGameIframe;
+    window.ensureProxyReady = ensureProxyReady;
+    window.updateProxyToggleUI = updateProxyToggleUI;
+  </script>
+
+           <script>
+    
+    function googleSignIn() {
+      const provider = new firebase.auth.GoogleAuthProvider();
+      auth.signInWithPopup(provider)
+        .catch((error) => {
+          document.getElementById('loginError').innerText = error.message;
+          document.getElementById('loginError').classList.remove('hidden');
+        });
+    }
+    
+    function signOutUser() {
+      auth.signOut().then(() => location.reload());
+    }
+
+    async function ensureUserDoc(user) {
+      const userRef = db.collection('users').doc(user.uid);
+      const doc = await userRef.get();
+      if (!doc.exists) {
+        await userRef.set({
+          displayName: user.displayName || "",
+          photoURL: user.photoURL || "",
+          email: user.email || "",
+          username: "",
+          likedGames: [],
+          favoriteGames: [],
+          history: [],
+        });
+      } else {
+        let needsUpdate = false;
+        const data = doc.data();
+        const updateFields = {};
+        if (!data.displayName && user.displayName) {
+          updateFields.displayName = user.displayName;
+          needsUpdate = true;
+        }
+        if (!data.photoURL && user.photoURL) {
+          updateFields.photoURL = user.photoURL;
+          needsUpdate = true;
+        }
+        if (needsUpdate) await userRef.update(updateFields);
+      }
+    }
+
+    let gamesData = [];
+    let currentGameId = null;
+    let currentGame = null;
+    let categoryCounts = {};
+    let tagCounts = {};
+
+    async function loadGamesData() {
+      try {
+        const res = await fetch('games.json');
+        gamesData = await res.json();
+        window.gamesData = gamesData;
+        
+        // Build category and tag counts for tag modal
+        categoryCounts = {};
+        tagCounts = {};
+        gamesData.forEach(game => {
+          if (game.category) categoryCounts[game.category] = (categoryCounts[game.category] || 0) + 1;
+          if (game.tags && Array.isArray(game.tags)) {
+            game.tags.forEach(t => tagCounts[t] = (tagCounts[t] || 0) + 1);
+          }
+        });
+        window.categoryCounts = categoryCounts;
+        window.tagCounts = tagCounts;
+      } catch (error) {
+        console.error('Error loading games data:', error);
+        throw error;
+      }
+    }
+
+    function getGameIdFromURL() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const id = urlParams.get('id');
+      return validateGameId(id);
+    }
+    function setButtonActive(btn, isActive, activeClass='bg-cyan-500/80') {
+      // Remove old active classes
+      btn.classList.remove('liked', 'favorited', 'in-playlist');
+      
+      if (isActive) {
+        // Add new active class based on button type
+        if (btn.id === 'likeBtn') {
+          btn.classList.add('liked');
+        } else if (btn.id === 'favBtn') {
+          btn.classList.add('favorited');
+        } else if (btn.id === 'playlistBtn') {
+          btn.classList.add('in-playlist');
+        } else {
+          btn.classList.add(activeClass);
+        }
+      }
+    }
+    function       renderUserSection(user) {
+        const section = document.getElementById('userSection');
+        if (!user) {
+          section.innerHTML = '';
+        } else {
+          const photoURL = validateUrl(user.photoURL) || '/default-avatar.png';
+          const displayName = escapeHtml(user.displayName) || 'User';
+          const titleAttr = escapeHtmlAttribute(user.displayName) || 'User';
+          
+          section.innerHTML = `
+            <img src="${escapeHtmlAttribute(photoURL)}" class="carbon-profile-avatar w-8 h-8 rounded-full inline mr-2" title="${titleAttr}">
+            <span class="mr-3">${displayName}</span>
+            <button onclick="signOutUser()" class="bg-white/10 px-3 py-1 rounded hover:bg-pink-600 text-white">Sign Out</button>
+          `;
+        }
+      }
+    function showPreloader() {
+      document.getElementById('preloader').style.display = '';
+    }
+    function hidePreloader() {
+      document.getElementById('preloader').style.display = 'none';
+    }
+    function requestFullScreen(element) {
+      if (element.requestFullscreen) element.requestFullscreen();
+      else if (element.webkitRequestFullscreen) element.webkitRequestFullscreen();
+      else if (element.msRequestFullscreen) element.msRequestFullscreen();
+      else if (element.mozRequestFullScreen) element.mozRequestFullScreen();
+    }
+
+    // Enhanced fullscreen handling for game action buttons
+    function handleFullscreenChange() {
+      const gameActionButtons = document.getElementById('gameActionButtons');
+      const gameFrame = document.getElementById('gameFrameEmbed');
+      
+      if (!gameActionButtons) return;
+      
+      const isFullscreen = document.fullscreenElement || 
+                          document.webkitFullscreenElement || 
+                          document.mozFullScreenElement || 
+                          document.msFullscreenElement;
+      
+      if (isFullscreen) {
+        // In fullscreen mode - ensure buttons are visible and properly positioned
+        gameActionButtons.style.position = 'fixed';
+        gameActionButtons.style.top = '20px';
+        gameActionButtons.style.right = '20px';
+        gameActionButtons.style.zIndex = '2147483647';
+        gameActionButtons.style.pointerEvents = 'auto';
+        
+        // Add fullscreen class for additional styling
+        gameActionButtons.classList.add('fullscreen-mode');
+        
+        // Make sure buttons are visible over the iframe
+        if (gameFrame) {
+          gameFrame.style.pointerEvents = 'auto';
+        }
+      } else {
+        // Not in fullscreen - reset to normal positioning
+        gameActionButtons.style.position = 'absolute';
+        gameActionButtons.style.top = '16px';
+        gameActionButtons.style.right = '16px';
+        gameActionButtons.style.zIndex = '9999';
+        
+        // Remove fullscreen class
+        gameActionButtons.classList.remove('fullscreen-mode');
+      }
+    }
+
+    // Listen for fullscreen changes
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+    document.addEventListener('mozfullscreenchange', handleFullscreenChange);
+    document.addEventListener('MSFullscreenChange', handleFullscreenChange);
+
+    // --- STAR RATING SYSTEM ---
+    let starRatingData = {
+      average: 0,
+      count: 0,
+      yourRating: 0,
+      loading: false,
+      error: "",
+      percent: 0
+    };
+
+    function renderStarRatingUI(target = "") {
+      const pre = target ? target : "";
+      const container = document.getElementById('starsContainer' + pre);
+      if (!container) return;
+      container.innerHTML = '';
+      let fill = starRatingData.yourRating ? starRatingData.yourRating : Math.round(starRatingData.average);
+      for (let i = 1; i <= 5; i++) {
+        const star = document.createElement('span');
+        star.textContent = '★';
+        star.className = 'transition-colors duration-150 select-none ' +
+          (i <= fill ? 'star-filled' : 'star-empty') +
+          (auth.currentUser ? ' cursor-pointer star-hover' : ' cursor-not-allowed');
+        star.style.color = i <= fill ? 'var(--theme-gold)' : 'var(--theme-muted)';
+        if (auth.currentUser) {
+                      star.addEventListener('mouseenter', () => {
+              for (let j = 0; j < 5; j++) {
+                container.children[j].style.color = j < i ? 'var(--theme-gold)' : 'var(--theme-muted)';
+              }
+            });
+            star.addEventListener('mouseleave', () => {
+              for (let j = 0; j < 5; j++) {
+                container.children[j].style.color = j < fill ? 'var(--theme-gold)' : 'var(--theme-muted)';
+              }
+            });
+          star.addEventListener('click', async () => {
+            await submitStarRating(i);
+          });
+        }
+        container.appendChild(star);
+      }
+      document.getElementById('starRatingSummary' + pre).textContent =
+        starRatingData.count ? `${starRatingData.average.toFixed(2)} / 5` : "Not rated";
+      document.getElementById('starRatingCount' + pre).textContent =
+        starRatingData.count === 1 ? "1 rating" : (starRatingData.count ? `${starRatingData.count} ratings` : "");
+      document.getElementById('starRatingError' + pre).textContent = starRatingData.error || '';
+      renderRatingPercentUI(target);
+    }
+
+    async function loadStarRating(gameId) {
+      starRatingData.loading = true;
+      starRatingData.error = "";
+      starRatingData.average = 0;
+      starRatingData.count = 0;
+      starRatingData.yourRating = 0;
+      starRatingData.percent = 0;
+      try {
+        const ratingsRef = db.collection("games").doc(gameId).collection("ratings");
+        const snap = await ratingsRef.get();
+        let total = 0, count = 0, your = 0, user = auth.currentUser;
+        let highCount = 0;
+        snap.forEach(doc => {
+          const d = doc.data();
+          if (typeof d.rating === "number" && d.rating >= 1 && d.rating <= 5) {
+            total += d.rating;
+            count++;
+            if (d.rating >= 4) highCount++;
+            if (user && doc.id === user.uid) your = d.rating;
+          }
+        });
+        starRatingData.average = count ? total / count : 0;
+        starRatingData.count = count;
+        starRatingData.yourRating = your;
+        starRatingData.percent = count ? Math.round((highCount / count) * 100) : 0;
+      } catch (e) {
+        starRatingData.error = "Failed to load ratings.";
+      }
+      starRatingData.loading = false;
+      renderStarRatingUI();
+      renderStarRatingUI("Frame");
+    }
+
+    async function submitStarRating(stars) {
+      if (!auth.currentUser) {
+        starRatingData.error = "Sign in first!";
+        renderStarRatingUI();
+        renderStarRatingUI("Frame");
+        return;
+      }
+      if (!currentGameId) {
+        starRatingData.error = "Game not loaded!";
+        renderStarRatingUI();
+        renderStarRatingUI("Frame");
+        return;
+      }
+      if (stars < 1 || stars > 5) {
+        starRatingData.error = "Invalid rating value!";
+        renderStarRatingUI();
+        renderStarRatingUI("Frame");
+        return;
+      }
+      starRatingData.loading = true;
+      starRatingData.error = "";
+      renderStarRatingUI();
+      renderStarRatingUI("Frame");
+      try {
+        const ref = db.collection("games").doc(currentGameId).collection("ratings").doc(auth.currentUser.uid);
+        await ref.set({
+          rating: stars,
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        starRatingData.yourRating = stars;
+        await loadStarRating(currentGameId);
+      } catch (e) {
+        starRatingData.error = "Failed to rate, try again.";
+        renderStarRatingUI();
+        renderStarRatingUI("Frame");
+      }
+      starRatingData.loading = false;
+      renderStarRatingUI();
+      renderStarRatingUI("Frame");
+    }
+
+    function renderRatingPercentUI(target = "") {
+      const pre = target ? target : "";
+      const txt = document.getElementById('ratingPercentText' + pre);
+      const bar = document.getElementById('ratingPercentBar' + pre);
+      if (!txt || !bar) return;
+      if (starRatingData.count === 0) {
+        txt.textContent = "Not enough ratings yet";
+        bar.style.width = "0%";
+      } else {
+        txt.textContent = `${starRatingData.percent}% of raters gave 4 or 5 stars`;
+        bar.style.width = `${starRatingData.percent}%`;
+      }
+    }
+
+    // --- Tag Modal Logic ---
+    function openTagGamesModal(tag) {
+      const modal = document.getElementById('tagGamesListModal');
+      const title = document.getElementById('tagGamesListTitle');
+      const body = document.getElementById('tagGamesListBody');
+      
+      // Sanitize tag name
+      const sanitizedTag = escapeHtml(tag);
+      
+      // List all games with this tag
+      const games = gamesData.filter(g => g.tags && g.tags.includes(tag));
+      
+      title.innerHTML = `${sanitizedTag.charAt(0).toUpperCase() + sanitizedTag.slice(1)} <span class="text-base" style="color: var(--theme-muted);">(${games.length} game${games.length!==1?'s':''})</span>`;
+      
+      if (games.length) {
+        body.innerHTML = games.map(g => {
+          const gameId = validateGameId(g.id) || '#';
+          const gameTitle = escapeHtml(g.title) || 'Untitled Game';
+          return `
+            <a href="play.html?id=${escapeHtmlAttribute(gameId)}" class="block px-4 py-2 bg-white/5 rounded-md hover:bg-cyan-500/20 text-white/90 font-semibold transition">
+              ${gameTitle}
+            </a>
+          `;
+        }).join('');
+      } else {
+        body.innerHTML = `<div class="text-white/60">No games in this category.</div>`;
+      }
+      
+      modal.classList.remove("hidden");
+    }
+    function closeTagGamesModal() {
+      document.getElementById('tagGamesListModal').classList.add('hidden');
+    }
+
+    // --- Category count info below rating in the iframe panel
+    function renderCategoryGamesCountFrame(currentGame) {
+      const el = document.getElementById('categoryGamesCountFrame');
+      if (!el || !currentGame || !currentGame.category || !window.categoryCounts) {
+        if (el) el.textContent = "";
+        return;
+      }
+      const cat = currentGame.category;
+      const count = window.categoryCounts[cat] || 0;
+      el.textContent = `${cat.charAt(0).toUpperCase() + cat.slice(1)} (${count}) games`;
+    }
+
+    function renderTagsAreaFrame(currentGame) {
+      const el = document.getElementById('tagsAreaFrame');
+      if (!el) return;
+      if (!currentGame || !currentGame.tags || !currentGame.tags.length) {
+        el.innerHTML = "";
+        return;
+      }
+      
+      el.innerHTML = currentGame.tags.map(tag => {
+        const sanitizedTag = escapeHtml(tag);
+        const tagForClick = escapeHtmlAttribute(tag);
+        const tagCount = parseInt(window.tagCounts[tag]) || 1;
+        
+        return `
+          <button type="button"
+            class="tag-btn inline-block px-3 py-1 text-xs rounded-full border transition font-semibold" 
+            style="background: linear-gradient(to right, rgba(156, 207, 216, 0.2), rgba(196, 167, 231, 0.2)); color: var(--theme-foam); border-color: rgba(156, 207, 216, 0.3);"
+            onmouseover="this.style.background='rgba(156, 207, 216, 0.1)'"
+            onmouseout="this.style.background='linear-gradient(to right, rgba(156, 207, 216, 0.2), rgba(196, 167, 231, 0.2))'"
+            onclick="openTagGamesModal('${tagForClick}')"
+            >
+            ${sanitizedTag.charAt(0).toUpperCase() + sanitizedTag.slice(1)} <span style="color: var(--theme-muted);">(${tagCount})</span>
+          </button>
+        `;
+      }).join('');
+    }
+
+    
+    function renderGameInfoBox(game, tableId) {
+      const el = document.getElementById(tableId);
+      if (!el) return;
+      
+      const developer = escapeHtml(game.developer) || "Unknown";
+      const release = escapeHtml(game.release) || "Unknown";
+      const technology = escapeHtml(game.technology) || "Unknown";
+      const controls = escapeHtml(game.controls) || "See in-game";
+      
+      let platformsHtml = "Unknown";
+      if (Array.isArray(game.platforms)) {
+        platformsHtml = game.platforms.map(p => 
+          `<span class="px-2 py-[2px] rounded-full text-xs font-semibold" style="background: var(--theme-overlay); color: var(--theme-foam);">${escapeHtml(p)}</span>`
+        ).join('');
+      } else if (game.platforms) {
+        platformsHtml = escapeHtml(game.platforms);
+      }
+      
+      el.innerHTML = `
+        <tr>
+          <th class="pr-4 py-1 text-cyan-400 font-semibold align-top">Developer</th>
+          <td class="py-1">${developer}</td>
+        </tr>
+        <tr>
+          <th class="pr-4 py-1 text-cyan-400 font-semibold align-top">Release</th>
+          <td class="py-1">${release}</td>
+        </tr>
+        <tr>
+          <th class="pr-4 py-1 text-cyan-400 font-semibold align-top">Technology</th>
+          <td class="py-1">${technology}</td>
+        </tr>
+        <tr>
+          <th class="pr-4 py-1 text-cyan-400 font-semibold align-top">Platforms</th>
+          <td class="flex flex-wrap gap-2 py-1">
+            ${platformsHtml}
+          </td>
+        </tr>
+        <tr>
+          <th class="pr-4 py-1 text-cyan-400 font-semibold align-top">Controls</th>
+          <td class="py-1">${controls}</td>
+        </tr>
+      `;
+    }
+
+    // --- COMMENT SYSTEM ---
+    let commentsData = {
+      comments: [],
+      loading: false,
+      currentFilter: 'all',
+      currentCommentRating: 0,
+      currentReplyingTo: null,
+      lastVisible: null,
+      commentsPerPage: 10
+    };
+
+    // Initialize comment star rating input
+    function initCommentStarInput() {
+      const container = document.getElementById('commentStarInput');
+      if (!container) return;
+      
+      container.innerHTML = '';
+      for (let i = 1; i <= 5; i++) {
+        const star = document.createElement('span');
+        star.textContent = '★';
+        star.className = 'cursor-pointer transition-colors duration-150 select-none ' + 
+          (i <= commentsData.currentCommentRating ? 'text-yellow-400' : 'text-slate-600');
+        
+        star.addEventListener('mouseenter', () => {
+          for (let j = 0; j < 5; j++) {
+            container.children[j].classList.toggle('text-yellow-400', j < i);
+            container.children[j].classList.toggle('text-slate-600', j >= i);
+          }
+        });
+        
+        star.addEventListener('mouseleave', () => {
+          for (let j = 0; j < 5; j++) {
+            container.children[j].classList.toggle('text-yellow-400', j < commentsData.currentCommentRating);
+            container.children[j].classList.toggle('text-slate-600', j >= commentsData.currentCommentRating);
+          }
+        });
+        
+        star.addEventListener('click', () => {
+          commentsData.currentCommentRating = commentsData.currentCommentRating === i ? 0 : i;
+          updateCommentStarInput();
+        });
+        
+        container.appendChild(star);
+      }
+    }
+
+    function updateCommentStarInput() {
+      const container = document.getElementById('commentStarInput');
+      if (!container) return;
+      
+      for (let j = 0; j < 5; j++) {
+        container.children[j].classList.toggle('text-yellow-400', j < commentsData.currentCommentRating);
+        container.children[j].classList.toggle('text-slate-600', j >= commentsData.currentCommentRating);
+      }
+    }
+
+    // Load comments from Firebase
+    async function loadComments(gameId, loadMore = false) {
+      if (!gameId) return;
+      
+      commentsData.loading = true;
+      updateCommentsUI();
+      
+      try {
+        let commentsQuery = db.collection("games").doc(gameId).collection("comments")
+          .orderBy("createdAt", "desc")
+          .limit(commentsData.commentsPerPage);
+        
+        if (loadMore && commentsData.lastVisible) {
+          commentsQuery = db.collection("games").doc(gameId).collection("comments")
+            .orderBy("createdAt", "desc")
+            .startAfter(commentsData.lastVisible)
+            .limit(commentsData.commentsPerPage);
+        }
+        
+        const snapshot = await commentsQuery.get();
+        
+        if (loadMore) {
+          snapshot.forEach(doc => {
+            commentsData.comments.push({ id: doc.id, ...doc.data() });
+          });
+        } else {
+          commentsData.comments = [];
+          snapshot.forEach(doc => {
+            commentsData.comments.push({ id: doc.id, ...doc.data() });
+          });
+        }
+        
+        commentsData.lastVisible = snapshot.docs[snapshot.docs.length - 1] || null;
+        
+        // Load replies for each comment
+        for (let comment of commentsData.comments) {
+          if (!comment.replies) {
+            const repliesQuery = db.collection("games").doc(gameId).collection("comments").doc(comment.id).collection("replies")
+              .orderBy("createdAt", "asc");
+            const repliesSnapshot = await repliesQuery.get();
+            
+            comment.replies = [];
+            repliesSnapshot.forEach(replyDoc => {
+              comment.replies.push({ id: replyDoc.id, ...replyDoc.data() });
+            });
+          }
+        }
+        
+      } catch (error) {
+        console.error("Error loading comments:", error);
+      }
+      
+      commentsData.loading = false;
+      updateCommentsUI();
+    }
+
+    // Submit new comment
+    async function submitComment() {
+      const user = auth.currentUser;
+      const text = document.getElementById('commentText').value.trim();
+      
+      if (!user) {
+        alert('Please sign in to comment');
+        return;
+      }
+      
+      if (!text) {
+        alert('Please enter a comment');
+        return;
+      }
+      
+      if (!currentGameId) {
+        alert('Game not loaded');
+        return;
+      }
+      
+      // Validate and sanitize input
+      const sanitizedText = sanitizeText(text, 1000);
+      if (!sanitizedText) {
+        alert('Invalid comment text');
+        return;
+      }
+      
+      const validatedGameId = validateGameId(currentGameId);
+      if (!validatedGameId) {
+        alert('Invalid game ID');
+        return;
+      }
+      
+      try {
+        const commentData = {
+          text: sanitizedText,
+          rating: commentsData.currentCommentRating || null,
+          authorId: user.uid,
+          authorName: user.displayName || 'Anonymous',
+          authorPhoto: user.photoURL || '/default-avatar.png',
+          createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+          reactions: {},
+          reactionCounts: {}
+        };
+        
+        const docRef = await db.collection("games").doc(validatedGameId).collection("comments").add(commentData);
+        
+        // Reset form
+        document.getElementById('commentText').value = '';
+        commentsData.currentCommentRating = 0;
+        updateCommentStarInput();
+        updateSubmitButtonState();
+        
+        // Reload comments
+        await loadComments(validatedGameId);
+        
+      } catch (error) {
+        console.error("Error submitting comment:", error);
+        alert('Failed to submit comment. Please try again.');
+      }
+    }
+
+    // Submit reply
+    async function submitReply() {
+      const user = auth.currentUser;
+      const text = document.getElementById('replyText').value.trim();
+      
+      if (!user || !text || !commentsData.currentReplyingTo) {
+        return;
+      }
+      
+      // Validate and sanitize input
+      const sanitizedText = sanitizeText(text, 500);
+      if (!sanitizedText) {
+        alert('Invalid reply text');
+        return;
+      }
+      
+      const validatedGameId = validateGameId(currentGameId);
+      if (!validatedGameId) {
+        alert('Invalid game ID');
+        return;
+      }
+      
+      try {
+        const replyData = {
+          text: sanitizedText,
+          authorId: user.uid,
+          authorName: user.displayName || 'Anonymous',
+          authorPhoto: user.photoURL || '/default-avatar.png',
+          createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+          reactions: {},
+          reactionCounts: {}
+        };
+        
+        const repliesRef = db.collection('games').doc(validatedGameId).collection('comments').doc(commentsData.currentReplyingTo).collection('replies');
+        await repliesRef.add(replyData);
+        
+        closeReplyModal();
+        await loadComments(validatedGameId);
+        
+      } catch (error) {
+        console.error("Error submitting reply:", error);
+        alert('Failed to submit reply. Please try again.');
+      }
+    }
+
+    // Add or remove reaction
+    async function toggleReaction(commentId, emoji, isReply = false, replyId = null) {
+      const user = auth.currentUser;
+      if (!user || !currentGameId) {
+        console.log('User not authenticated or game not loaded');
+        return;
+      }
+      
+      try {
+        let docRef;
+        if (isReply) {
+                  docRef = db.collection('games').doc(currentGameId).collection('comments').doc(commentId).collection('replies').doc(replyId);
+      } else {
+        docRef = db.collection('games').doc(currentGameId).collection('comments').doc(commentId);
+        }
+        
+        const docSnap = await docRef.get();
+        
+        if (!docSnap.exists) {
+          console.error('Document does not exist');
+          return;
+        }
+        
+        const data = docSnap.data();
+        const reactions = data.reactions || {};
+        const reactionCounts = data.reactionCounts || {};
+        
+        // Toggle user's reaction
+        if (reactions[user.uid] === emoji) {
+          // Remove reaction
+          delete reactions[user.uid];
+          reactionCounts[emoji] = Math.max(0, (reactionCounts[emoji] || 1) - 1);
+          if (reactionCounts[emoji] === 0) {
+            delete reactionCounts[emoji];
+          }
+        } else {
+          // Add/change reaction
+          const oldEmoji = reactions[user.uid];
+          if (oldEmoji) {
+            reactionCounts[oldEmoji] = Math.max(0, (reactionCounts[oldEmoji] || 1) - 1);
+            if (reactionCounts[oldEmoji] === 0) {
+              delete reactionCounts[oldEmoji];
+            }
+          }
+          reactions[user.uid] = emoji;
+          reactionCounts[emoji] = (reactionCounts[emoji] || 0) + 1;
+        }
+        
+        await docRef.update({ reactions, reactionCounts });
+        await loadComments(currentGameId);
+        
+      } catch (error) {
+        console.error("Error toggling reaction:", error);
+        alert('Failed to add reaction. Please try again.');
+      }
+    }
+
+    // Modal functions
+    function openReplyModal(commentId) {
+      const comment = commentsData.comments.find(c => c.id === commentId);
+      if (!comment) return;
+      
+      commentsData.currentReplyingTo = commentId;
+      const modal = document.getElementById('replyModal');
+      const replyTo = document.getElementById('replyToComment');
+      
+      const stars = comment.rating ? 
+        '★'.repeat(comment.rating) + '☆'.repeat(5 - comment.rating) : '';
+      
+      replyTo.innerHTML = `
+        <div class="flex items-start gap-3">
+          <img src="${comment.authorPhoto || '/default-avatar.png'}" 
+               class="w-8 h-8 rounded-full flex-shrink-0" 
+               alt="${comment.authorName}">
+          <div>
+            <div class="flex items-center gap-2 mb-1">
+              <span class="font-medium text-sm" style="color: var(--theme-foam);">${comment.authorName}</span>
+              ${comment.rating ? `<span class="comment-stars text-xs">${stars}</span>` : ''}
+            </div>
+            <p class="text-white/80 text-sm">${escapeHtml(comment.text.slice(0, 100))}${comment.text.length > 100 ? '...' : ''}</p>
+          </div>
+        </div>
+      `;
+      
+      modal.classList.remove('hidden');
+      document.getElementById('replyText').focus();
+    }
+
+    function closeReplyModal() {
+      document.getElementById('replyModal').classList.add('hidden');
+      document.getElementById('replyText').value = '';
+      commentsData.currentReplyingTo = null;
+      updateReplyButtonState();
+    }
+
+    // Reaction picker
+    function showReactionPicker(commentId, event, isReply = false, replyId = null) {
+      event.stopPropagation();
+      const picker = document.getElementById('reactionPicker');
+      const emojiPicker = picker.querySelector('emoji-picker');
+      
+      // Position picker near the clicked button
+      const rect = event.target.closest('button').getBoundingClientRect();
+      picker.style.position = 'fixed';
+      picker.style.left = rect.left + 'px';
+      picker.style.top = (rect.bottom + 10) + 'px';
+      picker.style.zIndex = '10002';
+      
+      picker.classList.remove('hidden');
+      
+      // Remove any existing listeners
+      const oldPicker = picker.querySelector('emoji-picker');
+      if (oldPicker) {
+        oldPicker.remove();
+      }
+      
+      // Create new emoji picker
+      const newEmojiPicker = document.createElement('emoji-picker');
+      picker.appendChild(newEmojiPicker);
+      
+      // Handle emoji selection
+      const handleEmojiClick = (e) => {
+        toggleReaction(commentId, e.detail.unicode, isReply, replyId);
+        hideReactionPicker();
+      };
+      
+      newEmojiPicker.addEventListener('emoji-click', handleEmojiClick, { once: true });
+    }
+
+    function hideReactionPicker() {
+      const picker = document.getElementById('reactionPicker');
+      if (picker) {
+        picker.classList.add('hidden');
+      }
+    }
+
+    // XSS Protection Utilities
+    function escapeHtml(text) {
+      if (!text) return '';
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    function escapeHtmlAttribute(text) {
+      if (!text) return '';
+      return text.replace(/[&<>"']/g, function(match) {
+        switch (match) {
+          case '&': return '&amp;';
+          case '<': return '&lt;';
+          case '>': return '&gt;';
+          case '"': return '&quot;';
+          case "'": return '&#39;';
+          default: return match;
+        }
+      });
+    }
+
+    function validateUrl(url) {
+      if (!url) return '';
+      // Only allow http, https, and data URLs
+      const allowedProtocols = ['http:', 'https:', 'data:'];
+      try {
+        const urlObj = new URL(url);
+        return allowedProtocols.includes(urlObj.protocol) ? url : '';
+      } catch (e) {
+        return '';
+      }
+    }
+
+    function validateGameId(id) {
+      if (!id) return null;
+      // Only allow alphanumeric characters and basic punctuation
+      return /^[a-zA-Z0-9_-]+$/.test(id) ? id : null;
+    }
+
+    function sanitizeText(text, maxLength = 10000) {
+      if (!text) return '';
+      // Remove null bytes and limit length
+      return text.replace(/\0/g, '').substring(0, maxLength);
+    }
+
+    // Update comments UI
+    function updateCommentsUI() {
+      const commentsLoader = document.getElementById('commentsLoader');
+      const noComments = document.getElementById('noComments');
+      const commentsList = document.getElementById('commentsList');
+      const commentsCount = document.getElementById('commentsCount');
+      
+      if (commentsData.loading) {
+        if (commentsLoader) commentsLoader.classList.remove('hidden');
+        if (noComments) noComments.classList.add('hidden');
+        return;
+      }
+      
+      if (commentsLoader) commentsLoader.classList.add('hidden');
+      
+      if (commentsData.comments.length === 0) {
+        if (noComments) noComments.classList.remove('hidden');
+        if (commentsList) commentsList.innerHTML = '';
+      } else {
+        if (noComments) noComments.classList.add('hidden');
+        renderComments();
+      }
+      
+      if (commentsCount) {
+        commentsCount.textContent = `(${commentsData.comments.length})`;
+      }
+    }
+
+    function renderComments() {
+      const commentsList = document.getElementById('commentsList');
+      if (!commentsList) return;
+      
+      const filteredComments = commentsData.comments.filter(comment => {
+        if (commentsData.currentFilter === 'all') return true;
+        if (commentsData.currentFilter === 'no-rating') return !comment.rating;
+        return comment.rating && comment.rating.toString() === commentsData.currentFilter;
+      });
+      
+      commentsList.innerHTML = filteredComments.map(comment => {
+        const stars = comment.rating ? '★'.repeat(comment.rating) + '☆'.repeat(5 - comment.rating) : '';
+        return `
+          <div class="comment-item bg-white/5 rounded-lg p-4 border border-white/10">
+            <div class="flex items-start gap-3">
+              <img src="${comment.authorPhoto || '/default-avatar.png'}" class="w-8 h-8 rounded-full flex-shrink-0" alt="${comment.authorName}">
+              <div class="flex-1">
+                <div class="flex items-center gap-2 mb-2">
+                  <span class="font-medium text-sm" style="color: var(--theme-foam);">${comment.authorName}</span>
+                  ${comment.rating ? `<span class="comment-stars text-xs">${stars}</span>` : ''}
+                  <span class="text-xs" style="color: var(--theme-muted);">${formatDate(comment.createdAt)}</span>
+                </div>
+                <p class="text-white/80 text-sm mb-3">${escapeHtml(comment.text)}</p>
+                <div class="flex items-center gap-2">
+                  <button onclick="openReplyModal('${comment.id}')" class="text-xs px-3 py-1 rounded-full border border-white/20 hover:border-cyan-400/50 transition">
+                    Reply
+                  </button>
+                  <button onclick="showReactionPicker('${comment.id}', event)" class="text-xs px-3 py-1 rounded-full border border-white/20 hover:border-cyan-400/50 transition">
+                    React
+                  </button>
+                </div>
+              </div>
+            </div>
+            ${comment.replies && comment.replies.length > 0 ? `
+              <div class="ml-11 mt-4 space-y-3">
+                ${comment.replies.map(reply => `
+                  <div class="reply-item bg-white/5 rounded-lg p-3">
+                    <div class="flex items-start gap-3">
+                      <img src="${reply.authorPhoto || '/default-avatar.png'}" class="w-6 h-6 rounded-full flex-shrink-0" alt="${reply.authorName}">
+                      <div class="flex-1">
+                        <div class="flex items-center gap-2 mb-1">
+                          <span class="font-medium text-xs" style="color: var(--theme-foam);">${reply.authorName}</span>
+                          <span class="text-xs" style="color: var(--theme-muted);">${formatDate(reply.createdAt)}</span>
+                        </div>
+                        <p class="text-white/80 text-xs">${escapeHtml(reply.text)}</p>
+                      </div>
+                    </div>
+                  </div>
+                `).join('')}
+              </div>
+            ` : ''}
+          </div>
+        `;
+      }).join('');
+    }
+
+    function formatDate(timestamp) {
+      if (!timestamp) return 'Just now';
+      let date;
+      if (timestamp && timestamp.toDate) {
+        date = timestamp.toDate();
+      } else if (timestamp && timestamp.seconds) {
+        date = new Date(timestamp.seconds * 1000);
+      } else {
+        return 'Just now';
+      }
+      
+      const now = new Date();
+      const diff = now - date;
+      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+      const hours = Math.floor(diff / (1000 * 60 * 60));
+      const minutes = Math.floor(diff / (1000 * 60));
+      
+      if (days > 0) return `${days}d ago`;
+      if (hours > 0) return `${hours}h ago`;
+      if (minutes > 0) return `${minutes}m ago`;
+      return 'Just now';
+    }
+
+    function updateSubmitButtonState() {
+      const submitBtn = document.getElementById('submitComment');
+      const commentText = document.getElementById('commentText');
+      
+      if (submitBtn && commentText) {
+        const hasText = commentText.value.trim().length > 0;
+        submitBtn.disabled = !hasText;
+      }
+    }
+
+    function updateReplyButtonState() {
+      const submitBtn = document.getElementById('submitReply');
+      const replyText = document.getElementById('replyText');
+      
+      if (submitBtn && replyText) {
+        const hasText = replyText.value.trim().length > 0;
+        submitBtn.disabled = !hasText;
+      }
+    }
+
+    // Expose all functions to global scope immediately
+    window.openReplyModal = openReplyModal;
+    window.closeReplyModal = closeReplyModal;
+    window.showReactionPicker = showReactionPicker;
+    window.toggleReaction = toggleReaction;
+    window.submitComment = submitComment;
+    window.submitReply = submitReply;
+    window.loadComments = loadComments;
+    window.updateSubmitButtonState = updateSubmitButtonState;
+    window.updateReplyButtonState = updateReplyButtonState;
+
+    // --- NEW GAME FRAME FEATURES ---
+    
+    // Game state management
+    let gameState = {
+      playCount: 0,
+      sessionStartTime: null,
+      sessionDuration: 0,
+      isPaused: false,
+      isInactive: false,
+      lastActivity: Date.now(),
+      userCommentTimes: [], // Track comment timestamps for rate limiting
+      keyboardShortcutsEnabled: true,
+      activityTimer: null,
+      playTimer: null
+    };
+
+    // Play Count & Timer System
+    async function initializePlayTracking(gameId, userId) {
+      if (!gameId || !userId) return;
+      
+      try {
+        // Get current play count from Firebase
+        const gameStatsRef = db.collection('games').doc(gameId).collection('stats').doc('general');
+        const userStatsRef = db.collection('users').doc(userId);
+        
+        const [gameStatsDoc, userStatsDoc] = await Promise.all([
+          gameStatsRef.get(),
+          userStatsRef.get()
+        ]);
+        
+        const gameStats = gameStatsDoc.exists ? gameStatsDoc.data() : {};
+        const userStats = userStatsDoc.exists ? userStatsDoc.data() : {};
+        
+        // Update play count
+        const newPlayCount = (gameStats.totalPlays || 0) + 1;
+        gameState.playCount = newPlayCount;
+        
+        // Update Firebase
+        await Promise.all([
+          gameStatsRef.set({ totalPlays: newPlayCount }, { merge: true }),
+          userStatsRef.set({ 
+            [`gameStats.${gameId}.plays`]: firebase.firestore.FieldValue.increment(1),
+            [`gameStats.${gameId}.lastPlayed`]: firebase.firestore.FieldValue.serverTimestamp()
+          }, { merge: true })
+        ]);
+        
+        // Start session tracking
+        gameState.sessionStartTime = Date.now();
+        startPlayTimer();
+        updatePlayStatsDisplay();
+        
+      } catch (error) {
+        console.error("Error initializing play tracking:", error);
+        // Fallback to local tracking
+        gameState.playCount = parseInt(localStorage.getItem(`playCount_${gameId}`) || '0') + 1;
+        localStorage.setItem(`playCount_${gameId}`, gameState.playCount.toString());
+        gameState.sessionStartTime = Date.now();
+        startPlayTimer();
+        updatePlayStatsDisplay();
+      }
+    }
+
+    function startPlayTimer() {
+      if (gameState.playTimer) clearInterval(gameState.playTimer);
+      
+      gameState.playTimer = setInterval(() => {
+        if (!gameState.isPaused && gameState.sessionStartTime) {
+          gameState.sessionDuration = Date.now() - gameState.sessionStartTime;
+          updatePlayStatsDisplay();
+        }
+      }, 1000);
+    }
+
+    function updatePlayStatsDisplay() {
+      const playCountEl = document.getElementById('playCount');
+      const playTimerEl = document.getElementById('playTimer');
+      
+      if (playCountEl) {
+        playCountEl.textContent = `${gameState.playCount} play${gameState.playCount !== 1 ? 's' : ''}`;
+      }
+      
+      if (playTimerEl) {
+        const minutes = Math.floor(gameState.sessionDuration / 60000);
+        const seconds = Math.floor((gameState.sessionDuration % 60000) / 1000);
+        playTimerEl.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+      }
+    }
+
+    // Comment Rate Limiting System
+    function checkCommentRateLimit(userId) {
+      const now = Date.now();
+      const tenMinutesAgo = now - (10 * 60 * 1000); // 10 minutes in milliseconds
+      
+      // Get user's comment times from local storage for this session
+      const userCommentKey = `commentTimes_${userId}_${currentGameId}`;
+      const storedTimes = JSON.parse(localStorage.getItem(userCommentKey) || '[]');
+      
+      // Filter to only recent comments (within 10 minutes)
+      const recentComments = storedTimes.filter(time => time > tenMinutesAgo);
+      
+      // Update stored times
+      localStorage.setItem(userCommentKey, JSON.stringify(recentComments));
+      
+      return {
+        canComment: recentComments.length < 2,
+        commentsInPeriod: recentComments.length,
+        timeUntilNext: recentComments.length >= 2 ? Math.ceil((recentComments[0] + (10 * 60 * 1000) - now) / 1000) : 0
+      };
+    }
+
+    function recordCommentTime(userId) {
+      const userCommentKey = `commentTimes_${userId}_${currentGameId}`;
+      const storedTimes = JSON.parse(localStorage.getItem(userCommentKey) || '[]');
+      storedTimes.push(Date.now());
+      localStorage.setItem(userCommentKey, JSON.stringify(storedTimes));
+    }
+
+    function showRateLimitWarning(timeUntilNext) {
+      const warningEl = document.getElementById('rateLimitWarning');
+      const textEl = document.getElementById('rateLimitText');
+      
+      if (warningEl && textEl) {
+        const minutes = Math.floor(timeUntilNext / 60);
+        const seconds = timeUntilNext % 60;
+        
+        if (minutes > 0) {
+          textEl.textContent = `Rate limit exceeded. Please wait ${minutes}m ${seconds}s before posting another comment.`;
+        } else {
+          textEl.textContent = `Rate limit exceeded. Please wait ${seconds}s before posting another comment.`;
+        }
+        
+        warningEl.classList.remove('hidden');
+        
+        // Auto-hide after the wait time
+        setTimeout(() => {
+          warningEl.classList.add('hidden');
+        }, timeUntilNext * 1000);
+      }
+    }
+
+    // Enhanced submit comment with rate limiting
+    async function submitCommentWithRateLimit() {
+      const user = auth.currentUser;
+      if (!user) {
+        alert('Please sign in to comment');
+        return;
+      }
+      
+      // Check rate limit
+      const rateLimitCheck = checkCommentRateLimit(user.uid);
+      if (!rateLimitCheck.canComment) {
+        showRateLimitWarning(rateLimitCheck.timeUntilNext);
+        return;
+      }
+      
+      // Proceed with normal comment submission
+      await submitComment();
+      
+      // Record this comment time
+      recordCommentTime(user.uid);
+    }
+
+    // Keyboard Shortcuts System
+    function initializeKeyboardShortcuts() {
+      document.addEventListener('keydown', handleKeyboardShortcut);
+      document.addEventListener('keyup', handleKeyboardShortcut);
+    }
+
+    function handleKeyboardShortcut(event) {
+      if (!gameState.keyboardShortcutsEnabled) return;
+      if (event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA') return;
+      
+      // Reset inactivity on any key press
+      resetInactivityTimer();
+      
+      if (event.type === 'keydown') {
+        switch (event.key.toLowerCase()) {
+          case 'p':
+          case ' ': // Spacebar
+            event.preventDefault();
+            togglePause();
+            break;
+          case 'r':
+            event.preventDefault();
+            restartGame();
+            break;
+          case 'f':
+            event.preventDefault();
+            toggleFullscreen();
+            break;
+          case 'm':
+            event.preventDefault();
+            toggleMute();
+            break;
+          case 'escape':
+            if (gameState.isPaused) {
+              event.preventDefault();
+              resumeGame();
+            }
+            break;
+        }
+      }
+    }
+
+    // Pause/Resume System
+    function togglePause() {
+      if (gameState.isPaused) {
+        resumeGame();
+      } else {
+        pauseGame();
+      }
+    }
+
+    function pauseGame() {
+      gameState.isPaused = true;
+      const pauseOverlay = document.getElementById('pauseOverlay');
+      if (pauseOverlay) {
+        pauseOverlay.classList.remove('hidden');
+      }
+      
+      // Pause the timer
+      if (gameState.playTimer) {
+        clearInterval(gameState.playTimer);
+      }
+    }
+
+    function resumeGame() {
+      gameState.isPaused = false;
+      const pauseOverlay = document.getElementById('pauseOverlay');
+      if (pauseOverlay) {
+        pauseOverlay.classList.add('hidden');
+      }
+      
+      // Resume the timer
+      startPlayTimer();
+      resetInactivityTimer();
+    }
+
+    function restartGame() {
+      const iframe = document.getElementById('gameFrameEmbed');
+      if (iframe && iframe.src) {
+        iframe.src = iframe.src; // Reload the iframe
+        resumeGame();
+        
+        // Reset timer but keep play count
+        gameState.sessionStartTime = Date.now();
+        gameState.sessionDuration = 0;
+        updatePlayStatsDisplay();
+      }
+    }
+
+    function exitGame() {
+      // Save session duration before exiting
+      if (gameState.sessionDuration > 0 && currentGameId && auth.currentUser) {
+        saveSessionDuration(auth.currentUser.uid, currentGameId, gameState.sessionDuration);
+      }
+      
+      // Go back to game info screen
+      document.getElementById('gameFrameContainer').classList.add('hidden');
+      document.getElementById('gameInfoHolder').classList.remove('hidden');
+      
+      // Clean up timers
+      if (gameState.playTimer) clearInterval(gameState.playTimer);
+      if (gameState.activityTimer) clearInterval(gameState.activityTimer);
+      
+      gameState.isPaused = false;
+      gameState.isInactive = false;
+    }
+
+    function toggleFullscreen() {
+      const iframe = document.getElementById('gameFrameEmbed');
+      if (iframe) {
+        requestFullScreen(iframe);
+      }
+    }
+
+    function toggleMute() {
+      // This would need to communicate with the iframe content
+      // For now, we'll just show a notification
+      showTemporaryNotification('🔇 Mute toggle (depends on game support)');
+    }
+
+    /*
+     * Enhanced User Status Management System
+     * 
+     * This system fixes several issues with user status persistence:
+     * 1. Status now persists on page refresh and is restored properly
+     * 2. Users are marked offline after 2 minutes of inactivity (was only showing overlay before)
+     * 3. Page visibility changes are tracked - users go offline when they tab away for 30+ seconds
+     * 4. Proper status restoration when page loads - always starts as "online"
+     * 5. Activity detection brings users back from offline status
+     * 
+     * Status types: 'online', 'ingame', 'offline'
+     * Storage: Uses both localStorage and Firebase for persistence
+     */
+         let userStatusManager = {
+       lastActivity: Date.now(),
+       isUserActive: true,
+       statusTimer: null,
+       offlineTimer: null,
+       visibilityTimer: null,
+       heartbeatInterval: null,
+      
+      // Status types
+      STATUS_TYPES: {
+        ONLINE: 'online',
+        INGAME: 'ingame', 
+        OFFLINE: 'offline'
+      },
+      
+             // Initialize status management
+       init() {
+         this.initializeUserDocument();
+         this.checkPendingOfflineStatus();
+         this.restoreUserStatus();
+         this.setupActivityTracking();
+         this.setupVisibilityTracking();
+         this.setupHeartbeat();
+         this.resetActivityTimer();
+       },
+       
+       // Check for pending offline status from previous session
+       async checkPendingOfflineStatus() {
+         const currentUser = auth.currentUser;
+         if (!currentUser) return;
+         
+         const pendingOffline = localStorage.getItem('carbon-offline-pending');
+         if (pendingOffline === 'true') {
+           console.log('Play page: Found pending offline status, applying now');
+           try {
+             await db.collection('users').doc(currentUser.uid).update({
+               status: 'offline',
+               lastSeen: firebase.firestore.FieldValue.serverTimestamp()
+             });
+             localStorage.removeItem('carbon-offline-pending');
+             console.log('Play page: Successfully applied pending offline status');
+           } catch (error) {
+             console.error('Play page: Failed to apply pending offline status:', error);
+           }
+         }
+       },
+       
+       // Ensure user document has all required fields for profile
+       async initializeUserDocument() {
+         const currentUser = auth.currentUser;
+         if (!currentUser) return;
+         
+         try {
+           const userRef = db.collection('users').doc(currentUser.uid);
+           const userDoc = await userRef.get();
+           
+           if (!userDoc.exists) {
+             // Create new user document with all required fields
+             await userRef.set({
+               uid: currentUser.uid,
+               email: currentUser.email || '',
+               displayName: currentUser.displayName || '',
+               photoURL: currentUser.photoURL || '',
+               username: '',
+               bio: '',
+               status: 'online',
+               currentGame: null,
+               lastPlayedGame: null,
+               lastPlayedTime: null,
+               lastSeen: firebase.firestore.FieldValue.serverTimestamp(),
+               likedGames: [],
+               favoriteGames: [],
+               playlist: [],
+               history: [],
+               friends: [],
+               friendRequests: [],
+               createdAt: firebase.firestore.FieldValue.serverTimestamp()
+             });
+             console.log('User document initialized with all required fields');
+           } else {
+             // Ensure existing document has required fields
+             const userData = userDoc.data();
+             const updates = {};
+             
+             if (!userData.hasOwnProperty('lastPlayedGame')) updates.lastPlayedGame = null;
+             if (!userData.hasOwnProperty('lastPlayedTime')) updates.lastPlayedTime = null;
+             if (!userData.hasOwnProperty('currentGame')) updates.currentGame = null;
+             if (!userData.hasOwnProperty('status')) updates.status = 'online';
+             if (!userData.hasOwnProperty('history')) updates.history = [];
+             
+             if (Object.keys(updates).length > 0) {
+               await userRef.update(updates);
+               console.log('User document updated with missing fields:', updates);
+             }
+           }
+         } catch (error) {
+           console.error('Error initializing user document:', error);
+         }
+       },
+      
+             // Restore user status from localStorage and set appropriate status
+       async restoreUserStatus() {
+         const currentUser = auth.currentUser;
+         if (!currentUser) return;
+         
+         try {
+           // Check if we're on a game page (has gameId parameter)
+           const urlParams = new URLSearchParams(window.location.search);
+           const gameId = urlParams.get('id');
+           
+           if (gameId) {
+             // If on a game page, set status to in-game
+             await this.updateUserStatus(this.STATUS_TYPES.INGAME, gameId);
+             localStorage.setItem('carbon-user-status', this.STATUS_TYPES.INGAME);
+             console.log(`User status restored as in-game for game: ${gameId}`);
+           } else {
+             // If not on a game page, set to online
+             await this.updateUserStatus(this.STATUS_TYPES.ONLINE);
+             localStorage.setItem('carbon-user-status', this.STATUS_TYPES.ONLINE);
+             console.log('User status restored as online');
+           }
+           
+           localStorage.setItem('carbon-last-activity', Date.now().toString());
+         } catch (error) {
+           console.error('Error restoring user status:', error);
+         }
+       },
+      
+      // Setup activity tracking
+      setupActivityTracking() {
+        const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click', 'keydown'];
+        
+        events.forEach(event => {
+          document.addEventListener(event, () => this.onUserActivity(), true);
+        });
+      },
+      
+             // Setup page visibility tracking
+       setupVisibilityTracking() {
+         document.addEventListener('visibilitychange', () => {
+           if (document.hidden) {
+             this.onPageHidden();
+           } else {
+             this.onPageVisible();
+           }
+         });
+         
+         window.addEventListener('focus', () => this.onPageVisible());
+         window.addEventListener('blur', () => this.onPageHidden());
+       },
+       
+       // Setup heartbeat system to detect inactive users
+       setupHeartbeat() {
+         // Send heartbeat every 15 seconds
+         this.heartbeatInterval = setInterval(() => {
+           if (!document.hidden && auth.currentUser) {
+             this.sendHeartbeat();
+           }
+         }, 15000);
+       },
+       
+       // Send heartbeat to show user is still active
+       async sendHeartbeat() {
+         const currentUser = auth.currentUser;
+         if (!currentUser) return;
+         
+         try {
+           await db.collection('users').doc(currentUser.uid).update({
+             lastSeen: firebase.firestore.FieldValue.serverTimestamp(),
+             heartbeat: Date.now()
+           });
+           localStorage.setItem('carbon-last-heartbeat', Date.now().toString());
+         } catch (error) {
+           console.error('Heartbeat failed:', error);
+         }
+       },
+      
+      // Handle user activity
+      onUserActivity() {
+        this.lastActivity = Date.now();
+        this.isUserActive = true;
+        localStorage.setItem('carbon-last-activity', this.lastActivity.toString());
+        
+        // If user was offline, bring them back online
+        const currentStatus = localStorage.getItem('carbon-user-status');
+        if (currentStatus === this.STATUS_TYPES.OFFLINE) {
+          this.updateUserStatus(this.STATUS_TYPES.ONLINE);
+        }
+        
+        // Hide inactivity overlay if showing
+        if (gameState.isInactive) {
+          hideInactivityOverlay();
+        }
+        
+        this.resetActivityTimer();
+      },
+      
+      // Handle page becoming hidden
+      onPageHidden() {
+        // Set a timer to mark user as offline after 30 seconds of being away
+        this.visibilityTimer = setTimeout(async () => {
+          await this.updateUserStatus(this.STATUS_TYPES.OFFLINE);
+        }, 30000);
+      },
+      
+      // Handle page becoming visible
+      onPageVisible() {
+        // Clear the offline timer
+        if (this.visibilityTimer) {
+          clearTimeout(this.visibilityTimer);
+          this.visibilityTimer = null;
+        }
+        
+        // Mark user as active and update status
+        this.onUserActivity();
+      },
+      
+      // Reset activity timer
+      resetActivityTimer() {
+        // Clear existing timers
+        if (this.statusTimer) clearTimeout(this.statusTimer);
+        if (this.offlineTimer) clearTimeout(this.offlineTimer);
+        
+        // Set timer for 20 seconds to show inactivity overlay
+        this.statusTimer = setTimeout(() => {
+          if (!document.hidden) {
+            showInactivityOverlay();
+          }
+        }, 20000);
+        
+        // Set timer for 2 minutes (120 seconds) to mark user as offline
+        this.offlineTimer = setTimeout(async () => {
+          if (!document.hidden) { // Only if page is still visible
+            this.isUserActive = false;
+            await this.updateUserStatus(this.STATUS_TYPES.OFFLINE);
+          }
+        }, 120000);
+      },
+      
+      // Update user status in Firebase and localStorage
+      async updateUserStatus(status, gameId = null) {
+        const currentUser = auth.currentUser;
+        if (!currentUser) return;
+        
+        try {
+          const updateData = {
+            status: status,
+            lastSeen: firebase.firestore.FieldValue.serverTimestamp()
+          };
+          
+          if (status === this.STATUS_TYPES.INGAME && gameId) {
+            updateData.currentGame = gameId;
+          } else if (status === this.STATUS_TYPES.ONLINE || status === this.STATUS_TYPES.OFFLINE) {
+            updateData.currentGame = null;
+          }
+          
+          await db.collection('users').doc(currentUser.uid).update(updateData);
+          localStorage.setItem('carbon-user-status', status);
+          
+          console.log(`User status updated to: ${status}`);
+        } catch (error) {
+          console.error('Error updating user status:', error);
+        }
+      },
+      
+             // Set user status to in-game
+       async setInGame(gameId) {
+         await this.updateUserStatus(this.STATUS_TYPES.INGAME, gameId);
+         
+         // Also update last played game for profile display
+         try {
+           const currentUser = auth.currentUser;
+           if (currentUser && gameId) {
+             await db.collection('users').doc(currentUser.uid).update({
+               lastPlayedGame: gameId,
+               lastPlayedTime: firebase.firestore.FieldValue.serverTimestamp()
+             });
+             console.log(`Last played game updated to: ${gameId}`);
+           }
+         } catch (error) {
+           console.error('Error updating last played game:', error);
+           // Try merge approach if document doesn't exist
+           try {
+             const currentUser = auth.currentUser;
+             if (currentUser && gameId) {
+               await db.collection('users').doc(currentUser.uid).set({
+                 lastPlayedGame: gameId,
+                 lastPlayedTime: firebase.firestore.FieldValue.serverTimestamp()
+               }, { merge: true });
+             }
+           } catch (mergeError) {
+             console.error('Error with merge approach:', mergeError);
+           }
+         }
+         
+         this.resetActivityTimer();
+       },
+      
+      // Set user status to online
+      async setOnline() {
+        await this.updateUserStatus(this.STATUS_TYPES.ONLINE);
+        this.resetActivityTimer();
+      },
+      
+      // Set user status to offline
+      async setOffline() {
+        await this.updateUserStatus(this.STATUS_TYPES.OFFLINE);
+      },
+      
+             // Cleanup timers
+       cleanup() {
+         if (this.statusTimer) clearTimeout(this.statusTimer);
+         if (this.offlineTimer) clearTimeout(this.offlineTimer);
+         if (this.visibilityTimer) clearTimeout(this.visibilityTimer);
+         if (this.heartbeatInterval) clearInterval(this.heartbeatInterval);
+       }
+    };
+
+    // Update visual status display
+    async function updateStatusDisplay(user) {
+      if (!user) return;
+      
+      try {
+        const userRef = db.collection('users').doc(user.uid);
+        const userDoc = await userRef.get();
+        
+        if (userDoc.exists) {
+          const userData = userDoc.data();
+          const status = userData.status || 'online';
+          const currentGame = userData.currentGame;
+          
+          console.log(`Current user status: ${status}, current game: ${currentGame}`);
+          
+          // Check if we're on a game page
+          const urlParams = new URLSearchParams(window.location.search);
+          const gameId = urlParams.get('id');
+          
+          // If we're on a game page and status shows we're in that game, everything is correct
+          if (gameId && status === 'ingame' && currentGame === gameId) {
+            console.log('✅ Status display is correct for current game');
+          } else if (gameId && status !== 'ingame') {
+            // We're on a game page but status doesn't reflect it - fix it
+            console.log('🔄 Fixing status for current game page');
+            await userStatusManager.setInGame(gameId);
+          }
+        }
+      } catch (error) {
+        console.error('Error updating status display:', error);
+      }
+    }
+
+    // Legacy inactivity functions (kept for compatibility)
+    function initializeInactivityDetection() {
+      userStatusManager.init();
+    }
+
+    function resetInactivityTimer() {
+      userStatusManager.onUserActivity();
+    }
+
+    function showInactivityOverlay() {
+      if (gameState.isPaused) return; // Don't show if already paused
+      
+      gameState.isInactive = true;
+      const overlay = document.getElementById('inactivityOverlay');
+      const iframe = document.getElementById('gameFrameEmbed');
+      
+      if (overlay) {
+        overlay.classList.remove('hidden');
+      }
+      
+      if (iframe) {
+        iframe.classList.add('game-frame-blurred');
+      }
+    }
+
+    function hideInactivityOverlay() {
+      gameState.isInactive = false;
+      const overlay = document.getElementById('inactivityOverlay');
+      const iframe = document.getElementById('gameFrameEmbed');
+      
+      if (overlay) {
+        overlay.classList.add('hidden');
+      }
+      
+      if (iframe) {
+        iframe.classList.remove('game-frame-blurred');
+      }
+    }
+
+    // Utility Functions
+    function showTemporaryNotification(message) {
+      // Create a temporary notification
+      const notification = document.createElement('div');
+      notification.className = 'fixed top-4 right-4 bg-cyan-500 text-black px-4 py-2 rounded-lg font-semibold z-[1000] opacity-0 transition-opacity duration-300';
+      notification.textContent = sanitizeText(message, 200);
+      document.body.appendChild(notification);
+      
+      // Show notification
+      setTimeout(() => notification.classList.replace('opacity-0', 'opacity-100'), 100);
+      
+      // Hide and remove notification
+      setTimeout(() => {
+        notification.classList.replace('opacity-100', 'opacity-0');
+        setTimeout(() => {
+          if (notification.parentNode) {
+            document.body.removeChild(notification);
+          }
+        }, 300);
+      }, 2000);
+    }
+
+    // Initialize all game frame features
+    function initializeGameFrameFeatures(gameId, userId) {
+      // Initialize play tracking
+      initializePlayTracking(gameId, userId);
+      
+      // Set up keyboard shortcuts
+      initializeKeyboardShortcuts();
+      
+      // Set up inactivity detection
+      initializeInactivityDetection();
+      
+      // Set up pause overlay button events
+      const resumeBtn = document.getElementById('resumeBtn');
+      const restartBtn = document.getElementById('restartBtn');
+      const exitGameBtn = document.getElementById('exitGameBtn');
+      
+      if (resumeBtn) resumeBtn.addEventListener('click', resumeGame);
+      if (restartBtn) restartBtn.addEventListener('click', restartGame);
+      if (exitGameBtn) exitGameBtn.addEventListener('click', exitGame);
+      
+      // Set up inactivity overlay click to resume
+      const inactivityOverlay = document.getElementById('inactivityOverlay');
+      if (inactivityOverlay) {
+        inactivityOverlay.addEventListener('click', resetInactivityTimer);
+      }
+    }
+
+    // Cleanup function
+    function cleanupGameFrameFeatures() {
+      if (gameState.playTimer) clearInterval(gameState.playTimer);
+      if (gameState.activityTimer) clearTimeout(gameState.activityTimer);
+      userStatusManager.cleanup();
+      document.removeEventListener('keydown', handleKeyboardShortcut);
+      document.removeEventListener('keyup', handleKeyboardShortcut);
+    }
+
+    // Expose new functions to global scope
+    window.togglePause = togglePause;
+    window.resumeGame = resumeGame;
+    window.restartGame = restartGame;
+    window.exitGame = exitGame;
+    window.initializeGameFrameFeatures = initializeGameFrameFeatures;
+    window.cleanupGameFrameFeatures = cleanupGameFrameFeatures;
+    window.submitCommentWithRateLimit = submitCommentWithRateLimit;
+
+    // Render comments
+    function renderComments() {
+      const container = document.getElementById('commentsList');
+      const noComments = document.getElementById('noComments');
+      const loader = document.getElementById('commentsLoader');
+      const loadMore = document.getElementById('loadMoreComments');
+      
+      if (commentsData.loading) {
+        if (loader) loader.classList.remove('hidden');
+        if (noComments) noComments.classList.add('hidden');
+        return;
+      }
+      
+      if (loader) loader.classList.add('hidden');
+      
+      const filteredComments = filterComments(commentsData.comments);
+      
+      if (filteredComments.length === 0) {
+        if (noComments) noComments.classList.remove('hidden');
+        if (container) container.innerHTML = '';
+        if (loadMore) loadMore.classList.add('hidden');
+        return;
+      }
+      
+      if (noComments) noComments.classList.add('hidden');
+      
+      if (container) {
+        container.innerHTML = filteredComments.map(comment => renderComment(comment)).join('');
+      }
+      
+      // Show load more if there might be more comments
+      if (loadMore) {
+        if (commentsData.lastVisible && filteredComments.length >= commentsData.commentsPerPage) {
+          loadMore.classList.remove('hidden');
+        } else {
+          loadMore.classList.add('hidden');
+        }
+      }
+      
+      updateCommentsCount();
+    }
+
+    function renderComment(comment) {
+      const user = auth.currentUser;
+      const reactions = Object.entries(comment.reactionCounts || {})
+        .map(([emoji, count]) => {
+          const userReacted = user && comment.reactions && comment.reactions[user.uid] === emoji;
+          const sanitizedEmoji = escapeHtml(emoji);
+          const safeCount = parseInt(count) || 0;
+          const commentIdForClick = escapeHtmlAttribute(comment.id);
+          const emojiForClick = escapeHtmlAttribute(emoji);
+          
+          return `
+            <button 
+              onclick="toggleReaction('${commentIdForClick}', '${emojiForClick}')"
+              class="reaction-button ${userReacted ? 'reacted' : ''}"
+            >
+              ${sanitizedEmoji} ${safeCount}
+            </button>
+          `;
+        }).join('');
+      
+      const replies = (comment.replies || [])
+        .map(reply => renderReply(reply, comment.id))
+        .join('');
+      
+      const stars = comment.rating ? 
+        '★'.repeat(comment.rating) + '☆'.repeat(5 - comment.rating) : '';
+      
+      const authorPhoto = validateUrl(comment.authorPhoto) || '/default-avatar.png';
+      const authorName = escapeHtml(comment.authorName) || 'Anonymous';
+      const authorNameAttr = escapeHtmlAttribute(comment.authorName) || 'Anonymous';
+      const commentIdForClick = escapeHtmlAttribute(comment.id);
+      
+      return `
+        <div class="comment-item p-4 rounded-lg" style="background: var(--theme-overlay); border: 1px solid rgba(156, 207, 216, 0.2);">
+          <div class="flex items-start gap-3">
+            <img src="${escapeHtmlAttribute(authorPhoto)}" 
+                 class="w-10 h-10 rounded-full flex-shrink-0" 
+                 alt="${authorNameAttr}">
+            <div class="flex-1">
+              <div class="flex items-center gap-2 mb-2">
+                <span class="font-semibold text-cyan-300">${authorName}</span>
+                ${comment.rating ? `<span class="comment-stars text-sm">${stars}</span>` : ''}
+                <span class="text-xs text-cyan-200/60">
+                  ${comment.createdAt ? new Date(comment.createdAt.toDate()).toLocaleDateString() : 'Just now'}
+                </span>
+              </div>
+              
+              <p class="text-white/90 mb-3 leading-relaxed">${escapeHtml(comment.text)}</p>
+              
+              <div class="flex items-center gap-3 flex-wrap">
+                <div class="flex gap-1">
+                  ${reactions}
+                </div>
+                
+                <button 
+                  onclick="showReactionPicker('${commentIdForClick}', event)"
+                  class="text-cyan-400 hover:text-cyan-300 text-sm flex items-center gap-1"
+                  title="Add reaction"
+                >
+                  <i class='bx bx-smile'></i>
+                  React
+                </button>
+                
+                <button 
+                  onclick="openReplyModal('${commentIdForClick}')"
+                  class="text-cyan-400 hover:text-cyan-300 text-sm flex items-center gap-1"
+                  title="Reply to comment"
+                >
+                  <i class='bx bx-reply'></i>
+                  Reply
+                </button>
+              </div>
+              
+              ${replies ? `
+                <div class="mt-4 space-y-3">
+                  ${replies}
+                </div>
+              ` : ''}
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderReply(reply, commentId) {
+      const user = window.auth.currentUser;
+      const reactions = Object.entries(reply.reactionCounts || {})
+        .map(([emoji, count]) => {
+          const userReacted = user && reply.reactions && reply.reactions[user.uid] === emoji;
+          const sanitizedEmoji = escapeHtml(emoji);
+          const safeCount = parseInt(count) || 0;
+          const commentIdForClick = escapeHtmlAttribute(commentId);
+          const emojiForClick = escapeHtmlAttribute(emoji);
+          const replyIdForClick = escapeHtmlAttribute(reply.id);
+          
+          return `
+            <button 
+              onclick="toggleReaction('${commentIdForClick}', '${emojiForClick}', true, '${replyIdForClick}')"
+              class="reaction-button ${userReacted ? 'reacted' : ''}"
+            >
+              ${sanitizedEmoji} ${safeCount}
+            </button>
+          `;
+        }).join('');
+      
+      const authorPhoto = validateUrl(reply.authorPhoto) || '/default-avatar.png';
+      const authorName = escapeHtml(reply.authorName) || 'Anonymous';
+      const authorNameAttr = escapeHtmlAttribute(reply.authorName) || 'Anonymous';
+      const commentIdForClick = escapeHtmlAttribute(commentId);
+      const replyIdForClick = escapeHtmlAttribute(reply.id);
+      
+      return `
+        <div class="reply-item p-3 rounded-lg" style="background: var(--theme-surface);">
+          <div class="flex items-start gap-3">
+            <img src="${escapeHtmlAttribute(authorPhoto)}" 
+                 class="w-8 h-8 rounded-full flex-shrink-0" 
+                 alt="${authorNameAttr}">
+            <div class="flex-1">
+              <div class="flex items-center gap-2 mb-2">
+                <span class="font-medium text-cyan-300 text-sm">${authorName}</span>
+                <span class="text-xs text-cyan-200/60">
+                  ${reply.createdAt ? new Date(reply.createdAt.toDate()).toLocaleDateString() : 'Just now'}
+                </span>
+              </div>
+              
+              <p class="text-white/90 text-sm mb-2 leading-relaxed">${escapeHtml(reply.text)}</p>
+              
+              <div class="flex items-center gap-3">
+                <div class="flex gap-1">
+                  ${reactions}
+                </div>
+                
+                <button 
+                  onclick="showReactionPicker('${commentIdForClick}', event, true, '${replyIdForClick}')"
+                  class="text-cyan-400 hover:text-cyan-300 text-xs flex items-center gap-1"
+                  title="Add reaction"
+                >
+                  <i class='bx bx-smile'></i>
+                  React
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function filterComments(comments) {
+      if (commentsData.currentFilter === 'all') {
+        return comments;
+      }
+      
+      if (commentsData.currentFilter === 'no-rating') {
+        return comments.filter(c => !c.rating);
+      }
+      
+      const rating = parseInt(commentsData.currentFilter);
+      return comments.filter(c => c.rating === rating);
+    }
+
+    function updateCommentsUI() {
+      renderComments();
+    }
+
+    function updateCommentsCount() {
+      const count = filterComments(commentsData.comments).length;
+      const countEl = document.getElementById('commentsCount');
+      if (countEl) {
+        countEl.textContent = `(${count})`;
+      }
+    }
+
+    function updateSubmitButtonState() {
+      const text = document.getElementById('commentText');
+      const button = document.getElementById('submitComment');
+      if (text && button) {
+        button.disabled = !text.value.trim();
+      }
+    }
+
+    function updateReplyButtonState() {
+      const text = document.getElementById('replyText');
+      const button = document.getElementById('submitReply');
+      if (text && button) {
+        button.disabled = !text.value.trim();
+      }
+    }
+
+    // Expose modal controls for tag modal
+    window.openTagGamesModal = openTagGamesModal;
+    window.closeTagGamesModal = closeTagGamesModal;
+    window.googleSignIn = googleSignIn;
+    window.signOut = signOutUser;
+
+    // Function to track when user stops playing
+    async function updateUserStatusToOnline() {
+      const currentUser = auth.currentUser;
+      if (!currentUser) return;
+      
+      if (window.trackGameEnd) {
+        await window.trackGameEnd();
+      } else {
+        // Use the new status manager
+        await userStatusManager.setOnline();
+      }
+    }
+
+    // Enhanced offline detection for play.html
+    function setupPlayPageOfflineDetection() {
+      if (!auth.currentUser) return;
+      
+      const setOfflineViaBeacon = () => {
+        if (auth.currentUser) {
+          console.log('Play page: Setting user offline via beacon');
+          
+          // Use synchronous localStorage update
+          localStorage.setItem('carbon-user-status', 'offline');
+          localStorage.setItem('carbon-user-status-timestamp', Date.now().toString());
+          localStorage.setItem('carbon-offline-pending', 'true');
+          
+          // Try immediate update with timeout
+          const updatePromise = userStatusManager.setOffline();
+          const timeoutPromise = new Promise((resolve) => {
+            setTimeout(() => resolve('timeout'), 800);
+          });
+          
+          Promise.race([updatePromise, timeoutPromise]).then((result) => {
+            if (result === 'timeout') {
+              console.log('Play page offline update timed out');
+            }
+          });
+        }
+      };
+      
+      // Multiple unload detection methods
+      window.addEventListener('beforeunload', (e) => {
+        setOfflineViaBeacon();
+        userStatusManager.cleanup();
+      });
+      
+      window.addEventListener('pagehide', (e) => {
+        setOfflineViaBeacon();
+        userStatusManager.cleanup();
+      });
+      
+      window.addEventListener('unload', (e) => {
+        setOfflineViaBeacon();
+        userStatusManager.cleanup();
+      });
+      
+      // Page visibility detection
+      document.addEventListener('visibilitychange', () => {
+        if (document.hidden) {
+          setTimeout(() => {
+            if (document.hidden) {
+              setOfflineViaBeacon();
+            }
+          }, 30000); // 30 seconds
+        }
+      });
+      
+      // Window focus/blur detection
+      window.addEventListener('blur', () => {
+        setTimeout(() => {
+          if (document.hidden || !document.hasFocus()) {
+            setOfflineViaBeacon();
+          }
+        }, 60000); // 1 minute
+      });
+    }
+    
+    // Set up offline detection when auth state changes
+    auth.onAuthStateChanged((user) => {
+      if (user) {
+        setupPlayPageOfflineDetection();
+      }
+    });
+
+    // Re-initialize the main document loading logic
+    document.addEventListener('DOMContentLoaded', async () => {
+      showPreloader();
+      document.getElementById('gameFrameContainer').classList.add('hidden');
+      document.getElementById('gameInfoHolder').classList.add('hidden');
+      document.getElementById('loginScreen').classList.remove('hidden');
+      
+      auth.onAuthStateChanged(async (user) => {
+        renderUserSection(user);
+        if (!user) {
+          // Cleanup status manager if user logs out
+          userStatusManager.cleanup();
+          hidePreloader();
+          document.getElementById('loginScreen').classList.remove('hidden');
+          document.getElementById('gameFrameContainer').classList.add('hidden');
+          document.getElementById('gameInfoHolder').classList.add('hidden');
+          return;
+        }
+        
+                 // Initialize status manager for logged in user
+         await userStatusManager.init();
+         
+         // Update visual status indicators
+         updateStatusDisplay(user);
+        
+        await loadGamesData();
+        
+        // Load background settings from Firebase
+        await loadBackgroundFromFirebase(user.uid);
+        
+        currentGameId = getGameIdFromURL();
+        window.currentGameId = currentGameId;
+        currentGame = gamesData.find(g => g.id == currentGameId || String(g.id) == currentGameId);
+        
+        if (!currentGame) {
+          hidePreloader();
+          document.getElementById('gameInfoHolder').innerHTML = `<div class="text-center p-12 text-red-400">Game not found.</div>`;
+          document.getElementById('gameInfoHolder').classList.remove('hidden');
+          return;
+        }
+        
+        document.getElementById('loginScreen').classList.add('hidden');
+        document.getElementById('gameInfoHolder').classList.remove('hidden');
+        
+        // Validate and sanitize game data
+        const gameImage = validateUrl(currentGame.image) || '/default-game-image.png';
+        const gameTitle = sanitizeText(currentGame.title || 'Untitled Game', 200);
+        const gameDescription = sanitizeText(currentGame.description || 'No description available', 1000);
+        
+        document.getElementById('gameCoverImg').src = gameImage;
+        document.getElementById('gameTitleDisplay').textContent = gameTitle;
+        document.getElementById('gameFrameDesc').textContent = gameDescription;
+        document.getElementById('gameCategoryTag').textContent = currentGame.category || '';
+        
+        if (currentGame.featured) document.getElementById('gameFeaturedTag').classList.remove('hidden');
+        else document.getElementById('gameFeaturedTag').classList.add('hidden');
+        
+        await loadStarRating(currentGameId);
+        renderGameInfoBox(currentGame, "gameInfoTable");
+
+        // Initialize comment system early
+        initializeCommentSystem();
+
+        document.getElementById('bigPlayBtn').onclick = async () => {
+          showPreloader();
+          document.getElementById('gameInfoHolder').classList.add('hidden');
+          document.getElementById('gameFrameContainer').classList.remove('hidden');
+          
+          // Track play activity
+          await trackPlayActivity(user.uid, currentGameId, currentGame.title);
+          
+          // Update user status to "in game" for friends to see and track activity
+          if (window.trackGameStart) {
+            await window.trackGameStart(currentGameId);
+          } else {
+            // Use the new status manager
+            await userStatusManager.setInGame(currentGameId);
+            
+            // Track activity for activity feed
+            const game = gamesData.find(g => String(g.id) === String(currentGameId));
+            if (game) {
+              try {
+                await db.collection('activity').add({
+                  userId: user.uid,
+                  userName: user.displayName || 'Anonymous',
+                  userPhoto: user.photoURL || '/default-avatar.png',
+                  gameId: currentGameId,
+                  gameTitle: game.title,
+                  gameImage: game.image || '/default-game.png',
+                  action: 'played',
+                  timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                });
+              } catch (error) {
+                console.error('Error tracking activity:', error);
+              }
+            }
+          }
+          
+          await window.loadProxiedGameIframe();
+          document.getElementById('gameFrameEmbed').onload = hidePreloader;
+          
+          const frameTitleText = sanitizeText(currentGame.title || 'Untitled Game', 200);
+          document.getElementById('gameTitleDisplayFrame').textContent = frameTitleText;
+          renderStarRatingUI("Frame");
+          renderTagsAreaFrame(currentGame);
+          renderCategoryGamesCountFrame(currentGame);
+          renderGameInfoBox(currentGame, "gameInfoTableFrame");
+          
+          // Load comments when game starts
+          await loadComments(currentGameId);
+          
+          // Load suggested games (always load fresh)
+          await loadSuggestedGames();
+          
+          // Initialize suggested games carousel
+          initializeSuggestedCarousel();
+          
+          // Initialize comment system event listeners
+          initializeCommentSystem();
+          
+          // Initialize new game frame features
+          initializeGameFrameFeatures(currentGameId, user.uid);
+          
+          // Show game action buttons after everything loads
+          const gameActionButtons = document.getElementById('gameActionButtons');
+          if (gameActionButtons) {
+            gameActionButtons.classList.remove('opacity-0', 'pointer-events-none');
+            gameActionButtons.classList.add('opacity-100', 'pointer-events-auto');
+          }
+          
+          let lists = await getUserGameLists(user.uid);
+          setButtonActive(document.getElementById('likeBtn'), lists.likedGames?.includes(currentGameId));
+          setButtonActive(document.getElementById('favBtn'), lists.favoriteGames?.includes(currentGameId), 'bg-pink-600/80');
+          setButtonActive(document.getElementById('playlistBtn'), lists.playlist?.includes(currentGameId), 'bg-yellow-400/80');
+          
+          document.getElementById('likeBtn').onclick = async () => {
+            const isLiked = lists.likedGames?.includes(currentGameId);
+            await updateUserArray(user.uid, 'likedGames', currentGameId, !isLiked);
+            lists = await getUserGameLists(user.uid);
+            setButtonActive(document.getElementById('likeBtn'), lists.likedGames?.includes(currentGameId));
+          };
+          
+          document.getElementById('favBtn').onclick = async () => {
+            const isFav = lists.favoriteGames?.includes(currentGameId);
+            await updateUserArray(user.uid, 'favoriteGames', currentGameId, !isFav);
+            lists = await getUserGameLists(user.uid);
+            setButtonActive(document.getElementById('favBtn'), lists.favoriteGames?.includes(currentGameId), 'bg-pink-600/80');
+          };
+          
+          document.getElementById('dislikeBtn').onclick = async () => {
+            const isLiked = lists.likedGames?.includes(currentGameId);
+            if (isLiked) {
+              await updateUserArray(user.uid, 'likedGames', currentGameId, false);
+            }
+            alert('Game disliked!');
+            lists = await getUserGameLists(user.uid);
+            setButtonActive(document.getElementById('likeBtn'), lists.likedGames?.includes(currentGameId));
+          };
+          
+          document.getElementById('shareBtn').onclick = () => {
+            const url = `${window.location.origin}/play.html?id=${currentGameId}`;
+            navigator.clipboard.writeText(url);
+            alert('Game link copied!');
+          };
+          
+          document.getElementById('playlistBtn').onclick = async () => {
+            const inPlaylist = lists.playlist?.includes(currentGameId);
+            await updateUserArray(user.uid, 'playlist', currentGameId, !inPlaylist);
+            lists = await getUserGameLists(user.uid);
+            setButtonActive(document.getElementById('playlistBtn'), lists.playlist?.includes(currentGameId), 'bg-yellow-400/80');
+          };
+          
+          document.getElementById('fullscreenBtn').onclick = (e) => {
+            e.preventDefault();
+            const iframe = document.getElementById('gameFrameEmbed');
+            requestFullScreen(iframe);
+          };
+          
+          document.getElementById('fullscreenBtnBottom').onclick = (e) => {
+            e.preventDefault();
+            const iframe = document.getElementById('gameFrameEmbed');
+            requestFullScreen(iframe);
+          };
+        };
+        
+        hidePreloader();
+      });
+    });
+
+    // Game navigation function for suggested games
+    function navigateToGame(gameId, gameTitle) {
+      try {
+        console.log(`Navigating to game: ${gameTitle} (${gameId})`);
+        
+        // Add loading indication
+        const clickedCard = event.target.closest('.group');
+        if (clickedCard) {
+          clickedCard.style.opacity = '0.7';
+          clickedCard.style.pointerEvents = 'none';
+        }
+        
+        // Clear any cached data to ensure fresh load
+        if (window.gamesData) {
+          window.gamesData = null;
+        }
+        
+        // Navigate to the game with cache buster
+        const url = new URL(`play.html?id=${encodeURIComponent(gameId)}`, window.location.origin);
+        url.searchParams.set('_t', Date.now()); // Cache buster
+        window.location.href = url.toString();
+      } catch (error) {
+        console.error('Navigation error:', error);
+        // Reset card state on error
+        const clickedCard = event.target.closest('.group');
+        if (clickedCard) {
+          clickedCard.style.opacity = '1';
+          clickedCard.style.pointerEvents = 'auto';
+        }
+      }
+    }
+
+    // Suggested Games Functions
+    async function loadSuggestedGames() {
+      const container = document.getElementById('suggestedGamesList');
+      if (!container) return;
+
+      try {
+        // Get current game ID from URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const currentGameId = urlParams.get('id');
+        console.log(`Loading suggested games for game ID: ${currentGameId}`);
+        
+        // Show loading state
+        container.innerHTML = `
+          <div class="flex-shrink-0 w-full text-center py-8" style="color: var(--theme-muted);">
+            <i class='bx bx-loader-alt text-4xl mb-2 block animate-spin'></i>
+            <p>Loading suggested games...</p>
+          </div>
+        `;
+
+        // Firebase should be ready since it's initialized at page load
+        if (!db) {
+          console.error('Firebase database not available');
+          throw new Error('Firebase not available');
+        }
+
+        // Use existing games data that was loaded from games.json
+        let allGames = [];
+        
+        if (window.gamesData && window.gamesData.length > 0) {
+          allGames = window.gamesData;
+          console.log(`Using games data: ${allGames.length} games`);
+        } else {
+          // Fallback: try to load games.json directly
+          try {
+            const res = await fetch('games.json');
+            allGames = await res.json();
+            console.log(`Loaded ${allGames.length} games from games.json`);
+          } catch (error) {
+            console.error('Failed to load games.json:', error);
+            throw new Error('No games data available');
+          }
+        }
+
+        if (allGames.length === 0) {
+          console.warn('No games found');
+          renderSuggestedGames([]);
+          return;
+        }
+
+        // Get current game info
+        let currentGame = null;
+        
+        if (currentGameId) {
+          currentGame = allGames.find(game => game.id === currentGameId);
+        }
+
+        // Filter out current game
+        const availableGames = allGames.filter(game => game.id !== currentGameId);
+        
+        if (availableGames.length === 0) {
+          console.warn('No available games after filtering');
+          renderSuggestedGames([]);
+          return;
+        }
+
+        // Smart recommendation algorithm
+        let suggested = [];
+        
+        // 1. Same category games (if current game exists)
+        if (currentGame && currentGame.category) {
+          const sameCategory = availableGames.filter(game => 
+            game.category === currentGame.category
+          );
+          suggested.push(...sameCategory.slice(0, 4));
+          console.log(`Added ${sameCategory.slice(0, 4).length} same category games`);
+        }
+        
+        // 2. Featured games
+        const featured = availableGames.filter(game => 
+          game.featured && !suggested.some(s => s.id === game.id)
+        );
+        if (suggested.length < 9) {
+          const additionalFeatured = featured.slice(0, 9 - suggested.length);
+          suggested.push(...additionalFeatured);
+          console.log(`Added ${additionalFeatured.length} featured games`);
+        }
+        
+        // 3. Random games to fill remaining slots
+        if (suggested.length < 9) {
+          const random = availableGames.filter(game => 
+            !suggested.some(s => s.id === game.id)
+          ).sort(() => 0.5 - Math.random());
+          
+          const additionalRandom = random.slice(0, 9 - suggested.length);
+          suggested.push(...additionalRandom);
+          console.log(`Added ${additionalRandom.length} random games`);
+        }
+
+        // Ensure we have at least some games to suggest
+        if (suggested.length === 0) {
+          // If no suggestions found, add some random games
+          const randomGames = availableGames.sort(() => 0.5 - Math.random()).slice(0, 6);
+          suggested = randomGames;
+          console.log(`No targeted suggestions found, using ${suggested.length} random games`);
+        }
+
+        // Limit to 9 games max (3 slides of 3 games each)
+        suggested = suggested.slice(0, 9);
+        
+        console.log(`Rendering ${suggested.length} suggested games for game ID: ${currentGameId}`);
+        renderSuggestedGames(suggested);
+        
+      } catch (error) {
+        console.error('Error loading suggested games:', error);
+        
+        // Show error state with retry button
+        container.innerHTML = `
+          <div class="flex-shrink-0 w-full text-center py-8" style="color: var(--theme-muted);">
+            <i class='bx bx-error text-4xl mb-2 block text-red-400'></i>
+            <p>Failed to load suggested games</p>
+            <button onclick="loadSuggestedGames()" class="mt-3 px-4 py-2 bg-cyan-400/20 text-cyan-400 rounded-lg hover:bg-cyan-400/30 transition-colors border border-cyan-400/30">
+              <i class='bx bx-refresh mr-2'></i>Try Again
+            </button>
+          </div>
+        `;
+      }
+    }
+
+    let suggestedCurrentSlide = 0;
+    let suggestedGamesData = [];
+    let suggestedAutoplayInterval = null;
+
+    function renderSuggestedGames(games) {
+      const container = document.getElementById('suggestedGamesList');
+      if (!container) return;
+
+      suggestedGamesData = games;
+      suggestedCurrentSlide = 0;
+
+      if (games.length === 0) {
+        container.innerHTML = `
+          <div class="flex-shrink-0 w-full text-center py-8" style="color: var(--theme-muted);">
+            <i class='bx bx-game text-4xl mb-2 block'></i>
+            <p>No suggested games available</p>
+          </div>
+        `;
+        updateSuggestedCarouselButtons();
+        return;
+      }
+
+      // Group games into slides of 3
+      const slidesData = [];
+      for (let i = 0; i < games.length; i += 3) {
+        slidesData.push(games.slice(i, i + 3));
+      }
+
+      container.innerHTML = slidesData.map((slideGames, slideIndex) => `
+        <div class="flex-shrink-0 w-full px-4">
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                         ${slideGames.map(game => `
+                               <div class="suggested-game-card bg-gradient-to-br from-white/10 to-white/5 border border-white/20 rounded-2xl hover:border-cyan-400/50 hover:shadow-lg hover:shadow-cyan-400/20 transition-all duration-300 overflow-hidden group cursor-pointer relative backdrop-blur-sm select-none" onclick="navigateToGame('${game.id}', '${game.title.replace(/'/g, "\\'")}')">
+                 <div class="relative aspect-[16/9] overflow-hidden rounded-2xl">
+                                        <img src="${game.image}" alt="${game.title}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out" loading="lazy" onerror="this.src='/images/default-game.png';" onload="this.classList.add('loaded')">
+                   ${game.featured ? '<div class="absolute top-3 right-3 bg-gradient-to-r from-amber-400 to-orange-500 text-black px-3 py-1 rounded-full text-xs font-bold shadow-lg pointer-events-none">Featured</div>' : ''}
+                   
+                   <!-- Game title overlay on hover -->
+                   <div class="absolute inset-0 bg-gradient-to-t from-black/95 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-300 ease-in-out pointer-events-none">
+                     <div class="absolute bottom-0 left-0 right-0 p-4">
+                       <div class="transform translate-y-4 group-hover:translate-y-0 transition-transform duration-300 ease-out">
+                         <h4 class="font-bold text-white text-xl mb-2 drop-shadow-lg">${game.title}</h4>
+                         <p class="text-cyan-200 text-sm mb-3 font-medium">${game.category}</p>
+                         <div class="flex items-center text-white/80 text-sm">
+                           <i class='bx bx-play mr-2 text-cyan-400'></i>
+                           <span class="font-medium">Click to play</span>
+                         </div>
+                       </div>
+                     </div>
+                   </div>
+                   
+                   <!-- Subtle glow effect on hover -->
+                   <div class="absolute inset-0 rounded-2xl ring-2 ring-cyan-400/0 group-hover:ring-cyan-400/30 transition-all duration-300 pointer-events-none"></div>
+                 </div>
+               </div>
+             `).join('')}
+          </div>
+        </div>
+      `).join('');
+
+      updateSuggestedCarousel();
+      updateSuggestedCarouselButtons();
+      renderCarouselDots();
+      startSuggestedAutoplay();
+    }
+
+    function updateSuggestedCarousel() {
+      const container = document.getElementById('suggestedGamesList');
+      if (!container) return;
+      
+      container.style.transform = `translateX(-${suggestedCurrentSlide * 100}%)`;
+      updateCarouselDots();
+    }
+
+    function renderCarouselDots() {
+      const dotsContainer = document.getElementById('suggestedCarouselDots');
+      if (!dotsContainer) return;
+
+      const totalSlides = Math.ceil(suggestedGamesData.length / 3);
+      
+      if (totalSlides <= 1) {
+        dotsContainer.innerHTML = '';
+        return;
+      }
+
+      const dots = Array.from({ length: totalSlides }, (_, index) => `
+        <button 
+          class="w-3 h-3 rounded-full transition-all duration-300 border-2 border-cyan-400/50 hover:border-cyan-400/80 ${
+            index === suggestedCurrentSlide 
+              ? 'bg-cyan-400 shadow-lg shadow-cyan-400/30' 
+              : 'bg-transparent hover:bg-cyan-400/30'
+          }" 
+          onclick="goToSuggestedSlide(${index})"
+          aria-label="Go to slide ${index + 1}"
+        ></button>
+      `).join('');
+
+      dotsContainer.innerHTML = dots;
+    }
+
+    function updateCarouselDots() {
+      const dots = document.querySelectorAll('#suggestedCarouselDots button');
+      dots.forEach((dot, index) => {
+        if (index === suggestedCurrentSlide) {
+          dot.className = dot.className.replace('bg-transparent hover:bg-cyan-400/30', 'bg-cyan-400 shadow-lg shadow-cyan-400/30');
+        } else {
+          dot.className = dot.className.replace('bg-cyan-400 shadow-lg shadow-cyan-400/30', 'bg-transparent hover:bg-cyan-400/30');
+        }
+      });
+    }
+
+    function goToSuggestedSlide(slideIndex) {
+      suggestedCurrentSlide = slideIndex;
+      updateSuggestedCarousel();
+      updateSuggestedCarouselButtons();
+      pauseSuggestedAutoplay();
+    }
+
+    function updateSuggestedCarouselButtons() {
+      const prevBtn = document.getElementById('suggestedPrevBtn');
+      const nextBtn = document.getElementById('suggestedNextBtn');
+      
+      if (!prevBtn || !nextBtn) return;
+
+      const totalSlides = Math.ceil(suggestedGamesData.length / 3);
+      
+      if (totalSlides <= 1) {
+        prevBtn.classList.add('opacity-0', 'pointer-events-none');
+        nextBtn.classList.add('opacity-0', 'pointer-events-none');
+      } else {
+        prevBtn.classList.remove('opacity-0', 'pointer-events-none');
+        nextBtn.classList.remove('opacity-0', 'pointer-events-none');
+        
+        // Disable/enable buttons based on current slide
+        if (suggestedCurrentSlide === 0) {
+          prevBtn.classList.add('opacity-50', 'pointer-events-none');
+        } else {
+          prevBtn.classList.remove('opacity-50', 'pointer-events-none');
+        }
+        
+        if (suggestedCurrentSlide >= totalSlides - 1) {
+          nextBtn.classList.add('opacity-50', 'pointer-events-none');
+        } else {
+          nextBtn.classList.remove('opacity-50', 'pointer-events-none');
+        }
+      }
+    }
+
+    function nextSuggestedSlide() {
+      const totalSlides = Math.ceil(suggestedGamesData.length / 3);
+      if (suggestedCurrentSlide < totalSlides - 1) {
+        suggestedCurrentSlide++;
+        updateSuggestedCarousel();
+        updateSuggestedCarouselButtons();
+      }
+    }
+
+    function prevSuggestedSlide() {
+      if (suggestedCurrentSlide > 0) {
+        suggestedCurrentSlide--;
+        updateSuggestedCarousel();
+        updateSuggestedCarouselButtons();
+      }
+    }
+
+    function startSuggestedAutoplay() {
+      stopSuggestedAutoplay();
+      const totalSlides = Math.ceil(suggestedGamesData.length / 3);
+      if (totalSlides > 1) {
+        suggestedAutoplayInterval = setInterval(() => {
+          if (suggestedCurrentSlide >= totalSlides - 1) {
+            suggestedCurrentSlide = 0;
+          } else {
+            suggestedCurrentSlide++;
+          }
+          updateSuggestedCarousel();
+          updateSuggestedCarouselButtons();
+        }, 5000); // Auto-advance every 5 seconds
+      }
+    }
+
+    function stopSuggestedAutoplay() {
+      if (suggestedAutoplayInterval) {
+        clearInterval(suggestedAutoplayInterval);
+        suggestedAutoplayInterval = null;
+      }
+    }
+
+    function pauseSuggestedAutoplay() {
+      stopSuggestedAutoplay();
+      // Restart autoplay after 10 seconds of inactivity
+      setTimeout(() => {
+        startSuggestedAutoplay();
+      }, 10000);
+    }
+
+    // Initialize suggested games carousel
+    function initializeSuggestedCarousel() {
+      const prevBtn = document.getElementById('suggestedPrevBtn');
+      const nextBtn = document.getElementById('suggestedNextBtn');
+      const carousel = document.getElementById('suggestedGamesList');
+      
+      if (prevBtn) {
+        prevBtn.addEventListener('click', () => {
+          prevSuggestedSlide();
+          pauseSuggestedAutoplay();
+        });
+      }
+      if (nextBtn) {
+        nextBtn.addEventListener('click', () => {
+          nextSuggestedSlide();
+          pauseSuggestedAutoplay();
+        });
+      }
+
+      // Pause autoplay on hover
+      if (carousel) {
+        carousel.addEventListener('mouseenter', stopSuggestedAutoplay);
+        carousel.addEventListener('mouseleave', startSuggestedAutoplay);
+      }
+
+      // Keyboard navigation
+      document.addEventListener('keydown', (e) => {
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+        
+        if (e.key === 'ArrowLeft') {
+          prevSuggestedSlide();
+          pauseSuggestedAutoplay();
+        } else if (e.key === 'ArrowRight') {
+          nextSuggestedSlide();
+          pauseSuggestedAutoplay();
+        }
+      });
+    }
+
+    // User functions - Fixed for Firebase v10.7.1 modular SDK
+    async function updateUserArray(uid, field, gameId, add = true) {
+      try {
+        const userRef = db.collection('users').doc(uid);
+        if (add) {
+          await userRef.update({
+            [field]: firebase.firestore.FieldValue.arrayUnion(gameId)
+          });
+        } else {
+          await userRef.update({
+            [field]: firebase.firestore.FieldValue.arrayRemove(gameId)
+          });
+        }
+      } catch (error) {
+        // If document doesn't exist, create it
+        if (error.code === 'not-found') {
+          await userRef.set({
+            [field]: add ? [gameId] : []
+          }, { merge: true });
+        } else {
+          console.error('Error updating user array:', error);
+        }
+      }
+    }
+    
+    async function getUserGameLists(uid) {
+      try {
+        const userRef = db.collection('users').doc(uid);
+        const userDoc = await userRef.get();
+        return userDoc.exists ? userDoc.data() : { likedGames: [], favoriteGames: [], playlist: [], history: [] };
+      } catch (error) {
+        console.error('Error getting user game lists:', error);
+        return { likedGames: [], favoriteGames: [], playlist: [], history: [] };
+      }
+    }
+    
+    async function updateGameHistory(uid, gameId) {
+      try {
+        console.log(`🎮 Updating game history for user ${uid}, game ${gameId}`);
+        const userRef = db.collection('users').doc(uid);
+        
+        // Get current user data
+        const userDoc = await userRef.get();
+        
+        if (userDoc.exists) {
+          const userData = userDoc.data();
+          let currentHistory = userData.history || [];
+          
+          console.log('📜 Current history before update:', currentHistory);
+          
+          // Remove the game if it already exists in history (to avoid duplicates)
+          currentHistory = currentHistory.filter(id => String(id) !== String(gameId));
+          
+          // Add the game to the front of the history
+          currentHistory.unshift(gameId);
+          
+          // Limit history to last 50 games to prevent unlimited growth
+          if (currentHistory.length > 50) {
+            currentHistory = currentHistory.slice(0, 50);
+          }
+          
+          console.log('📜 New history after update:', currentHistory);
+          
+          // Update the history
+          await userRef.update({
+            history: currentHistory
+          });
+          
+          console.log('✅ Game history updated successfully');
+        } else {
+          // Create new user document with this game in history
+          console.log('👤 Creating new user document');
+          await userRef.set({
+            history: [gameId],
+            displayName: "",
+            photoURL: "",
+            email: "",
+            username: "",
+            likedGames: [],
+            favoriteGames: [],
+            playlist: []
+          });
+          console.log('✅ New user document created with game in history');
+        }
+        
+      } catch (error) {
+        console.error('❌ Error updating game history:', error);
+        
+        // Try fallback approach
+        try {
+          console.log('🔄 Trying fallback approach...');
+          const userRef = db.collection('users').doc(uid);
+          await userRef.set({
+            history: [gameId]
+          }, { merge: true });
+          console.log('✅ Fallback approach succeeded');
+        } catch (fallbackError) {
+          console.error('❌ Fallback approach also failed:', fallbackError);
+        }
+      }
+    }
+
+    async function trackPlayActivity(uid, gameId, gameTitle) {
+      try {
+        console.log(`Tracking play activity for user ${uid}, game ${gameId}`);
+        
+        // Update user document with last played game info (for profile display)
+        const userRef = db.collection('users').doc(uid);
+        await userRef.update({
+          lastPlayedGame: gameId,
+          lastPlayedTime: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        console.log('✅ Last played game updated in user profile');
+        
+        // Add to history
+        await updateGameHistory(uid, gameId);
+        
+        // Initialize game statistics tracking for this session
+        await initializeGameSession(uid, gameId);
+        
+        // Track detailed activity
+        const activityRef = db.collection('user-activity').doc(uid);
+        const activity = {
+          action: 'play',
+          timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+          data: {
+            gameId: gameId,
+            gameTitle: gameTitle || 'Unknown Game',
+            source: 'play-page',
+            url: window.location.href
+          }
+        };
+        
+        // Create or update the activity document
+        try {
+          await activityRef.update({
+            activities: firebase.firestore.FieldValue.arrayUnion(activity),
+            lastActivity: firebase.firestore.FieldValue.serverTimestamp()
+          });
+        } catch (error) {
+          // If document doesn't exist, create it
+          if (error.code === 'not-found') {
+            await activityRef.set({
+              activities: [activity],
+              lastActivity: firebase.firestore.FieldValue.serverTimestamp()
+            });
+          } else {
+            throw error;
+          }
+        }
+        
+        console.log('✅ Play activity tracked successfully');
+      } catch (error) {
+        console.error('❌ Error tracking play activity:', error);
+        
+        // Fallback: Still try to update critical fields
+        try {
+          const userRef = db.collection('users').doc(uid);
+          await userRef.set({
+            lastPlayedGame: gameId,
+            lastPlayedTime: firebase.firestore.FieldValue.serverTimestamp()
+          }, { merge: true });
+          
+          await updateGameHistory(uid, gameId);
+          await initializeGameSession(uid, gameId);
+          console.log('✅ Critical updates completed as fallback');
+        } catch (fallbackError) {
+          console.error('❌ Fallback approach also failed:', fallbackError);
+        }
+      }
+    }
+
+    // Initialize game session tracking when game starts
+    async function initializeGameSession(uid, gameId) {
+      if (!uid || !gameId) return;
+      
+      try {
+        console.log(`🎮 Initializing game session for user ${uid}, game ${gameId}`);
+        
+        const userRef = db.collection('users').doc(uid);
+        
+        // Get current stats
+        const userDoc = await userRef.get();
+        const userData = userDoc.exists ? userDoc.data() : {};
+        const gameStats = userData.gameStats || {};
+        const currentGameStats = gameStats[gameId] || { totalPlayTime: 0, sessionsPlayed: 0 };
+        
+        // Increment session count (this counts as "games played")
+        const newSessionsPlayed = (currentGameStats.sessionsPlayed || 0) + 1;
+        
+        await userRef.set({
+          gameStats: {
+            ...gameStats,
+            [gameId]: {
+              ...currentGameStats,
+              sessionsPlayed: newSessionsPlayed,
+              lastPlayed: firebase.firestore.FieldValue.serverTimestamp()
+            }
+          }
+        }, { merge: true });
+        
+        console.log(`✅ Game session initialized. Sessions played: ${newSessionsPlayed}`);
+        
+      } catch (error) {
+        console.error('❌ Error initializing game session:', error);
+      }
+    }
+
+    // Save session duration when game ends
+    async function saveSessionDuration(uid, gameId, duration) {
+      if (!uid || !gameId || duration < 1000) return; // Don't save sessions under 1 second
+      
+      try {
+        console.log(`💾 Saving session duration: ${duration}ms for game ${gameId}`);
+        
+        // Update user's game statistics
+        const userRef = db.collection('users').doc(uid);
+        
+        // Get current stats
+        const userDoc = await userRef.get();
+        const userData = userDoc.exists ? userDoc.data() : {};
+        const gameStats = userData.gameStats || {};
+        const currentGameStats = gameStats[gameId] || { totalPlayTime: 0, sessionsPlayed: 1 };
+        
+        // Update total play time (sessions are already incremented in initializeGameSession)
+        const newTotalPlayTime = (currentGameStats.totalPlayTime || 0) + duration;
+        const sessionsPlayed = currentGameStats.sessionsPlayed || 1;
+        
+        await userRef.set({
+          gameStats: {
+            ...gameStats,
+            [gameId]: {
+              ...currentGameStats,
+              totalPlayTime: newTotalPlayTime,
+              lastPlayed: firebase.firestore.FieldValue.serverTimestamp(),
+              averageSessionTime: Math.round(newTotalPlayTime / sessionsPlayed)
+            }
+          }
+        }, { merge: true });
+        
+        console.log(`✅ Session duration saved: ${formatDuration(duration)} (Total: ${formatDuration(newTotalPlayTime)}, Sessions: ${sessionsPlayed})`);
+        
+      } catch (error) {
+        console.error('❌ Error saving session duration:', error);
+      }
+    }
+
+    // Format duration in milliseconds to readable string
+    function formatDuration(ms) {
+      const hours = Math.floor(ms / 3600000);
+      const minutes = Math.floor((ms % 3600000) / 60000);
+      const seconds = Math.floor((ms % 60000) / 1000);
+      
+      if (hours > 0) {
+        return `${hours}h ${minutes}m ${seconds}s`;
+      } else if (minutes > 0) {
+        return `${minutes}m ${seconds}s`;
+      } else {
+        return `${seconds}s`;
+      }
+    }
+
+    // Initialize comment form event listeners after DOM is ready
+    function setupCommentEventListeners() {
+      // Comment form events
+      const commentText = document.getElementById('commentText');
+      const commentCharCount = document.getElementById('commentCharCount');
+      const submitCommentBtn = document.getElementById('submitComment');
+      const cancelComment = document.getElementById('cancelComment');
+      const commentFilter = document.getElementById('commentFilter');
+      
+      if (commentText) {
+        commentText.addEventListener('input', () => {
+          const length = commentText.value.length;
+          if (commentCharCount) commentCharCount.textContent = `${length}/1000`;
+          updateSubmitButtonState();
+        });
+      }
+      
+      if (submitCommentBtn) {
+        submitCommentBtn.addEventListener('click', submitCommentWithRateLimit);
+      }
+      
+      if (cancelComment) {
+        cancelComment.addEventListener('click', () => {
+          if (commentText) commentText.value = '';
+          commentsData.currentCommentRating = 0;
+          updateCommentStarInput();
+          updateSubmitButtonState();
+        });
+      }
+      
+      if (commentFilter) {
+        commentFilter.addEventListener('change', (e) => {
+          commentsData.currentFilter = e.target.value;
+          updateCommentsUI();
+        });
+      }
+      
+      // Reply form events
+      const replyText = document.getElementById('replyText');
+      const replyCharCount = document.getElementById('replyCharCount');
+      const submitReplyBtn = document.getElementById('submitReply');
+      
+      if (replyText) {
+        replyText.addEventListener('input', () => {
+          const length = replyText.value.length;
+          if (replyCharCount) replyCharCount.textContent = `${length}/500`;
+          updateReplyButtonState();
+        });
+      }
+      
+      if (submitReplyBtn) {
+        submitReplyBtn.addEventListener('click', submitReply);
+      }
+      
+      // Load more comments
+      const loadMoreBtn = document.querySelector('#loadMoreComments button');
+      if (loadMoreBtn) {
+        loadMoreBtn.addEventListener('click', () => {
+          loadComments(currentGameId, true);
+        });
+      }
+      
+      // Hide reaction picker when clicking outside
+      document.addEventListener('click', (e) => {
+        const picker = document.getElementById('reactionPicker');
+        if (picker && !picker.contains(e.target) && !picker.classList.contains('hidden')) {
+          hideReactionPicker();
+        }
+      });
+      
+      // Initialize comment star input
+      initCommentStarInput();
+    }
+
+          // Setup event listeners when the game loads
+      function initializeCommentSystem() {
+        // Set up form event listeners with a slight delay to ensure DOM elements exist
+        setTimeout(setupCommentEventListeners, 100);
+      }
+
+      // Game frame features initialization - removed duplicate, using the complete version above
+
+      function cleanupGameFrameFeatures() {
+        // Save session duration before cleanup
+        if (gameState.sessionDuration > 0 && currentGameId && auth.currentUser) {
+          saveSessionDuration(auth.currentUser.uid, currentGameId, gameState.sessionDuration);
+        }
+        
+        // Clear any timers
+        if (gameState.playTimer) {
+          clearInterval(gameState.playTimer);
+          gameState.playTimer = null;
+        }
+        if (gameState.activityTimer) {
+          clearInterval(gameState.activityTimer);
+          gameState.activityTimer = null;
+        }
+        if (suggestedAutoplayInterval) {
+          clearInterval(suggestedAutoplayInterval);
+          suggestedAutoplayInterval = null;
+        }
+        
+        console.log('Game frame features cleaned up');
+      }
+
+      // Expose functions to global scope for HTML onclick handlers
+      window.googleSignIn = googleSignIn;
+      window.signOut = signOutUser;
+      window.navigateToGame = navigateToGame;
+      window.loadSuggestedGames = loadSuggestedGames;
+      window.goToSuggestedSlide = goToSuggestedSlide;
+      window.initializeGameFrameFeatures = initializeGameFrameFeatures;
+      window.cleanupGameFrameFeatures = cleanupGameFrameFeatures;
+
+      // Additional safety net - reload suggested games on page ready
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => {
+          setTimeout(() => {
+            if (document.getElementById('suggestedGamesList')) {
+              loadSuggestedGames();
+            }
+          }, 2000);
+        });
+      } else {
+        // Document already loaded
+        setTimeout(() => {
+          if (document.getElementById('suggestedGamesList')) {
+            loadSuggestedGames();
+          }
+        }, 2000);
+      }
+
+    // Background System - Apply settings from settings.html
+    let currentBackground = 'gradient';
+    const validBackgrounds = ['gradient', 'solid', 'pattern', 'particles', 'custom'];
+
+    function initializeBackgroundSystem() {
+      // Load saved background preference
+      const savedBg = localStorage.getItem('carbon-background-global') || 'gradient';
+      if (validBackgrounds.includes(savedBg)) {
+        currentBackground = savedBg;
+        applyBackground();
+      }
+
+      // Listen for background changes from settings page
+      window.addEventListener('storage', (event) => {
+        if (event.key === 'carbon-background-global' && event.newValue) {
+          currentBackground = event.newValue;
+          applyBackground();
+        }
+      });
+
+      // Listen for theme broadcast messages
+      window.addEventListener('message', (event) => {
+        if (event.data && event.data.type === 'carbon-settings-updated') {
+          if (event.data.settings.background) {
+            currentBackground = event.data.settings.background;
+            applyBackground();
+          }
+        }
+      });
+    }
+
+    function applyBackground() {
+      const body = document.body;
+      const particlesCanvas = document.getElementById('particles-canvas');
+      const baseColor = getComputedStyle(document.documentElement).getPropertyValue('--theme-base').trim();
+      
+      // Hide particles canvas by default
+      if (particlesCanvas) particlesCanvas.classList.add('hidden');
+      
+      // Reset body background
+      body.style.background = '';
+      
+      const customBg = localStorage.getItem('carbon-custom-bg-global');
+      
+      if (currentBackground === 'custom' && customBg) {
+        body.style.background = `url(${customBg}) center/cover fixed`;
+      } else {
+        switch (currentBackground) {
+          case 'solid':
+            body.style.background = baseColor;
+            break;
+          case 'pattern':
+            body.style.background = `${baseColor} url('data:image/svg+xml,<svg width="20" height="20" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><circle cx="10" cy="10" r="2" fill="%23ffffff" fill-opacity="0.2"/></svg>') repeat`;
+            break;
+          case 'particles':
+            body.style.background = baseColor;
+            if (particlesCanvas) {
+              particlesCanvas.classList.remove('hidden');
+              initParticles();
+            }
+            break;
+          case 'gradient':
+          default:
+            body.style.background = 'var(--theme-gradient)';
+            body.style.backgroundAttachment = 'fixed';
+            break;
+        }
+      }
+    }
+
+    function initParticles() {
+      const canvas = document.getElementById('particles-canvas');
+      if (!canvas) return;
+      
+      const ctx = canvas.getContext('2d');
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      
+      const particlesArray = [];
+      const particleCount = 50;
+      
+      class Particle {
+        constructor() {
+          this.x = Math.random() * canvas.width;
+          this.y = Math.random() * canvas.height;
+          this.vx = (Math.random() - 0.5) * 2;
+          this.vy = (Math.random() - 0.5) * 2;
+          this.radius = Math.random() * 3 + 1;
+          this.opacity = Math.random() * 0.5 + 0.2;
+        }
+        
+        update() {
+          this.x += this.vx;
+          this.y += this.vy;
+          
+          if (this.x < 0 || this.x > canvas.width) this.vx *= -1;
+          if (this.y < 0 || this.y > canvas.height) this.vy *= -1;
+        }
+        
+        draw() {
+          ctx.beginPath();
+          ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(156, 207, 216, ${this.opacity})`;
+          ctx.fill();
+        }
+      }
+      
+      function createParticles() {
+        particlesArray.length = 0;
+        for (let i = 0; i < particleCount; i++) {
+          particlesArray.push(new Particle());
+        }
+      }
+      
+      function animate() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        particlesArray.forEach(particle => {
+          particle.update();
+          particle.draw();
+        });
+        
+        if (!canvas.classList.contains('hidden')) {
+          requestAnimationFrame(animate);
+        }
+      }
+      
+      createParticles();
+      animate();
+      
+      window.addEventListener('resize', () => {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        createParticles();
+      });
+    }
+
+    async function loadBackgroundFromFirebase(uid) {
+      try {
+        const userRef = db.collection('users').doc(uid);
+        const userDoc = await userRef.get();
+        if (userDoc.exists) {
+          const userData = userDoc.data();
+          const settings = userData.settings || {};
+          
+          if (settings.background && validBackgrounds.includes(settings.background)) {
+            currentBackground = settings.background;
+            localStorage.setItem('carbon-background-global', currentBackground);
+          }
+          
+          if (settings.customBackground) {
+            localStorage.setItem('carbon-custom-bg-global', settings.customBackground);
+          }
+          
+          applyBackground();
+        }
+      } catch (error) {
+        console.error('Error loading background from Firebase:', error);
+      }
+    }
+
+    // Initialize background system when DOM is loaded
+    document.addEventListener('DOMContentLoaded', () => {
+      setTimeout(initializeBackgroundSystem, 100);
+    });
+
+    // Simple theme initialization - let carbon-theme.js handle everything automatically
+    // The CarbonTheme system will automatically load and apply saved themes
+
+    // Listen for frame updates from parent window
+    window.addEventListener('message', (event) => {
+      if (event.data && event.data.type === 'carbon-frame-update') {
+        const gameFrameContainer = document.getElementById('gameFrameContainer');
+        if (gameFrameContainer) {
+          // Remove all existing frame classes
+          gameFrameContainer.classList.remove('frame-neon', 'frame-fire', 'frame-galaxy', 'frame-diamond', 'frame-rainbow', 'frame-shadow');
+          
+          // Apply new frame class if not default
+          if (event.data.frameId && event.data.frameId !== 'default') {
+            gameFrameContainer.classList.add(`frame-${event.data.frameId}`);
+          }
+          
+          console.log('Frame updated:', event.data.frameId);
+        }
+      }
+    });
+
+    // Apply active frame on page load
+    setTimeout(() => {
+      const savedFrame = localStorage.getItem('carbon-selected-frame');
+      if (savedFrame && savedFrame !== 'default') {
+        const gameFrameContainer = document.getElementById('gameFrameContainer');
+        if (gameFrameContainer) {
+          gameFrameContainer.classList.add(`frame-${savedFrame}`);
+        }
+      }
+    }, 1000);
+
+    // Profile Frame Update System
+    function applyProfileFrame() {
+      const selectedFrame = localStorage.getItem('carbon-selected-profile-frame');
+      const profileElements = document.querySelectorAll('.carbon-profile-avatar, .user-avatar, .profile-avatar, [data-profile-avatar]');
+      
+      profileElements.forEach(element => {
+        // Remove all existing profile frame classes
+        ['red', 'blue', 'orange', 'green', 'purple', 'gold', 'silver', 'rainbow'].forEach(color => {
+          element.classList.remove(`profile-frame-${color}`);
+        });
+        
+        // Apply active frame class
+        if (selectedFrame && selectedFrame !== 'default') {
+          element.classList.add(`profile-frame-${selectedFrame}`);
+        }
+      });
+    }
+
+    // Listen for profile frame updates from parent window
+    window.addEventListener('message', (event) => {
+      if (event.data && event.data.type === 'carbon-profile-frame-update') {
+        localStorage.setItem('carbon-selected-profile-frame', event.data.frameId);
+        applyProfileFrame();
+      }
+    });
+
+    // Apply active profile frame on page load
+    setTimeout(() => {
+      applyProfileFrame();
+    }, 1000);
+    
+  </script>
+
+
+
+  <!-- Add cleanup on page unload -->
+  <script>
+    window.addEventListener('beforeunload', () => {
+      cleanupGameFrameFeatures();
+    });
+  </script>
+</body>
+</html>
+          
