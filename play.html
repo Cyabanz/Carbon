@@ -1583,41 +1583,20 @@
           return;
         }
         
-                // Method 1: Try direct loading first (most reliable)
-        try {
-          console.log('🔄 Attempting direct loading...');
-          console.log('🎮 Current game:', currentGame);
-          console.log('🎮 Game URL:', currentGame.url);
-          console.log('🎮 Iframe element:', iframe);
-          
-          // Test if this is a relative URL that needs fixing
-          let gameUrl = currentGame.url;
-          if (gameUrl.startsWith('./')) {
-            gameUrl = gameUrl.substring(2); // Remove './'
-            console.log('🔄 Fixed URL:', gameUrl);
-          }
-          
-          iframe.src = gameUrl;
-          console.log('✅ Direct loading set:', gameUrl);
-        } catch (directError) {
-          console.warn('⚠️ Direct loading failed:', directError);
-          
-          // Method 2: Try proxy loading as fallback
-          try {
-            if (window.loadProxiedGameIframe) {
-              console.log('🔄 Falling back to proxy loading...');
-              await window.loadProxiedGameIframe();
-              console.log('✅ Proxy loading completed');
-            } else {
-              throw new Error('Both direct and proxy loading failed');
-            }
-          } catch (proxyError) {
-            console.error('❌ All loading methods failed:', proxyError);
-            alert('Failed to load game. Please refresh and try again.');
-            hidePreloader();
-            return;
-          }
+                // Simple local game loading (no proxy needed for same-origin games)
+        console.log('🎮 Loading local game:', currentGame.title);
+        console.log('🎮 Original URL:', currentGame.url);
+        
+        // Convert relative path to absolute path for local hosting
+        let gameUrl = currentGame.url;
+        if (gameUrl.startsWith('./')) {
+          gameUrl = gameUrl.replace('./', '/');
+          console.log('🔄 Converted to absolute path:', gameUrl);
         }
+        
+        // Set iframe source directly - no proxy needed for local games
+        iframe.src = gameUrl;
+        console.log('✅ Game loaded in iframe:', gameUrl);
          
          // Set up iframe onload to hide preloader  
          iframe.onload = () => {
@@ -1644,47 +1623,29 @@
           frameTitleElement.textContent = frameTitleText;
         }
         
-        // Initialize frame features
-        try {
-          if (typeof renderStarRatingUI === 'function') {
-            renderStarRatingUI("Frame");
-            console.log('✅ Frame star rating initialized');
-          }
-          if (typeof renderTagsAreaFrame === 'function') {
-            renderTagsAreaFrame(currentGame);
-            console.log('✅ Frame tags initialized');
-          }
-          if (typeof renderCategoryGamesCountFrame === 'function') {
-            renderCategoryGamesCountFrame(currentGame);
-            console.log('✅ Frame category count initialized');
-          }
-          if (typeof renderGameInfoBox === 'function') {
-            renderGameInfoBox(currentGame, "gameInfoTableFrame");
-            console.log('✅ Frame game info box initialized');
-          }
-          if (typeof loadComments === 'function') {
-            if (typeof firebase !== 'undefined' && firebase.apps.length > 0) {
-              await loadComments(currentGameId);
-              console.log('✅ Frame comments loaded');
-            } else {
-              console.warn('Firebase not initialized, skipping comments');
-            }
-          }
-          if (typeof loadSuggestedGames === 'function') {
-            await loadSuggestedGames();
-            console.log('✅ Suggested games loaded');
-          }
-          if (typeof initializeSuggestedCarousel === 'function') {
-            initializeSuggestedCarousel();
-            console.log('✅ Suggested carousel initialized');
-          }
-          if (typeof initializeCommentSystem === 'function') {
-            initializeCommentSystem();
-            console.log('✅ Comment system initialized');
-          }
-        } catch (error) {
-          console.warn('Some frame features failed to initialize:', error);
+        // Initialize minimal frame features (focus on getting iframe working first)
+        console.log('🔄 Setting up game frame...');
+        
+        // Set up frame title
+        const frameTitleElement = document.getElementById('gameTitleDisplayFrame');
+        if (frameTitleElement) {
+          frameTitleElement.textContent = currentGame.title;
+          console.log('✅ Frame title set');
         }
+        
+        // Initialize other features async (don't block iframe loading)
+        setTimeout(async () => {
+          try {
+            if (typeof renderStarRatingUI === 'function') {
+              renderStarRatingUI("Frame");
+            }
+            if (typeof renderGameInfoBox === 'function') {
+              renderGameInfoBox(currentGame, "gameInfoTableFrame");
+            }
+          } catch (error) {
+            console.warn('Frame features error:', error);
+          }
+        }, 100);
         
         // Show game action buttons and set up basic handlers
         setTimeout(() => {
