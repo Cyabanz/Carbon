@@ -1,1 +1,698 @@
 <!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Play Game - CARBON</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <!-- XSS Protection Headers -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' https:; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://www.gstatic.com https://cdn.jsdelivr.net https://apis.google.com https://unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://unpkg.com https://cdn.jsdelivr.net; font-src 'self' https://fonts.gstatic.com https://unpkg.com; img-src 'self' data: https:; media-src 'self' blob: https:; connect-src 'self' https:; frame-src 'self' https:;">
+  <meta http-equiv="X-Content-Type-Options" content="nosniff">
+  <meta http-equiv="X-XSS-Protection" content="1; mode=block">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
+  <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+  <link href='https://cdn.jsdelivr.net/npm/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+  <script src="../carbon-theme.js"></script>
+  <script type="module" src="https://cdn.jsdelivr.net/npm/emoji-picker-element@^1/index.js"></script>
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <script>
+    // FIREBASE INIT
+    const firebaseConfig = {
+      apiKey: "AIzaSyC4ilHYP1T-kdXbWPoHJHhD2aj0pNWmMec",
+      authDomain: "carbon-services.firebaseapp.com",
+      projectId: "carbon-services",
+      storageBucket: "carbon-services.firebasestorage.app",
+      messagingSenderId: "288385472070",
+      appId: "1:288385472070:web:c4be3ff186e248fc645c47",
+      measurementId: "G-Y2K1RQYE74"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+  </script>
+  <script>
+    function setConfig() {
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        inter: ["Inter", "sans-serif"],
+                    },
+                    colors: {
+                        'rp-base': '#191724',
+                        'rp-surface': '#1f1d2e',
+                        'rp-overlay': '#26233a',
+                        'rp-muted': '#6e6a86',
+                        'rp-subtle': '#908caa',
+                        'rp-text': '#e0def4',
+                        'rp-love': '#eb6f92',
+                        'rp-gold': '#f6c177',
+                        'rp-rose': '#ebbcba',
+                        'rp-pine': '#31748f',
+                        'rp-foam': '#9ccfd8',
+                        'rp-iris': '#c4a7e7',
+                        'rp-highlight-low': '#21202e',
+                        'rp-highlight-med': '#403d52',
+                        'rp-highlight-high': '#524f67'
+                    },
+                },
+            },
+        };
+    }
+    setConfig();
+  </script>
+  <style>
+    :root {
+      /* Theme variables - Rose Pine (default) */
+      --theme-base: #191724;
+      --theme-surface: #1f1d2e;
+      --theme-overlay: #26233a;
+      --theme-muted: #6e6a86;
+      --theme-subtle: #908caa;
+      --theme-text: #e0def4;
+      --theme-love: #eb6f92;
+      --theme-gold: #f6c177;
+      --theme-rose: #ebbcba;
+      --theme-pine: #31748f;
+      --theme-foam: #9ccfd8;
+      --theme-iris: #c4a7e7;
+      --theme-highlight-low: #21202e;
+      --theme-highlight-med: #403d52;
+      --theme-highlight-high: #524f67;
+      --theme-gradient: linear-gradient(135deg, #191724 0%, #1f1d2e 50%, #26233a 100%);
+      --theme-solid: #191724;
+    }
+
+    body {
+      transition: all 0.3s ease;
+    }
+
+    .loader {
+      border: 8px solid var(--theme-overlay);
+      border-top: 8px solid var(--theme-foam);
+      border-radius: 50%;
+      width: 70px;
+      height: 70px;
+      animation: spin 1s linear infinite;
+      margin: auto;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg);}
+      100% { transform: rotate(360deg);}
+    }
+
+    /* Game action button states */
+    .game-action-btn.liked {
+      background: rgba(34, 197, 94, 0.8) !important;
+      border-color: rgba(34, 197, 94, 0.8) !important;
+      color: white !important;
+    }
+
+    .game-action-btn.favorited {
+      background: rgba(236, 72, 153, 0.8) !important;
+      border-color: rgba(236, 72, 153, 0.8) !important;
+      color: white !important;
+    }
+
+    .game-action-btn {
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    .game-action-btn:hover {
+      transform: scale(1.1);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+    }
+
+    .carbon-profile-avatar {
+      transition: all 0.2s ease;
+    }
+
+    .carbon-profile-avatar:hover {
+      transform: scale(1.05);
+    }
+
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(30px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+  </style>
+</head>
+
+<body class="bg-rp-base min-h-screen text-rp-text overflow-x-hidden relative font-[Inter] antialiased">
+
+  <!-- Floating background elements -->
+  <div class="pointer-events-none absolute rounded-full opacity-5 blur-3xl w-[300px] h-[300px] top-[10%] left-[10%] bg-gradient-to-br from-rp-foam to-rp-iris animate-[float_20s_infinite_ease-in-out]"></div>
+  <div class="pointer-events-none absolute rounded-full opacity-5 blur-3xl w-[250px] h-[250px] top-[60%] right-[10%] bg-gradient-to-br from-rp-iris to-rp-love animate-[float_20s_infinite_ease-in-out] delay-[7s]"></div>
+
+  <!-- Preloader -->
+  <div id="preloader" class="fixed z-[9999] inset-0 flex flex-col justify-center items-center bg-rp-base">
+    <div class="loader"></div>
+  </div>
+
+  <!-- Navbar -->
+  <nav class="flex items-center justify-between px-8 py-4 bg-rp-surface/80 border-b border-rp-overlay backdrop-blur-md fixed top-0 left-0 right-0 z-50">
+    <div class="flex items-center gap-4">
+      <a href="../index.html" class="text-2xl font-extrabold text-rp-foam tracking-tighter">CARBON</a>
+      <a href="../games.html" class="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-cyan-400/20 text-white rounded-lg transition-all duration-300 border border-white/20 hover:border-cyan-400/40">
+        <i class='bx bx-arrow-back text-lg'></i>
+        <span class="font-medium">Back to Games</span>
+      </a>
+    </div>
+    <div class="flex items-center gap-4">
+      <div id="userSection"></div>
+    </div>
+  </nav>
+
+  <!-- LOGIN SCREEN -->
+  <div id="loginScreen" class="flex flex-col items-center justify-center h-screen w-full bg-rp-base fixed left-0 top-0 z-50">
+    <div class="bg-rp-surface rounded-2xl shadow-2xl p-12 border border-rp-overlay flex flex-col items-center">
+      <div class="text-3xl font-bold text-rp-foam mb-6">Sign In to Play</div>
+      <button onclick="googleSignIn()" class="flex items-center gap-3 bg-rp-foam hover:bg-rp-foam/90 text-rp-base font-bold px-6 py-3 rounded-lg text-lg transition">
+        <i class='bx bxl-google text-2xl'></i> Sign in with Google
+      </button>
+      <div id="loginError" class="text-rp-love mt-6 hidden"></div>
+    </div>
+  </div>
+
+  <main class="pt-28 max-w-4xl mx-auto px-4">
+    <div id="gameInfoHolder" class="rounded-2xl shadow-2xl bg-rp-surface border border-rp-overlay overflow-hidden mt-2">
+      <!-- Game "cover" with play button -->
+      <div class="relative aspect-video bg-black flex items-center justify-center">
+        <img id="gameCoverImg" src="" class="w-full h-full object-cover pointer-events-none select-none rounded-t-2xl" alt="Game Cover" />
+        <button id="bigPlayBtn" class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10 bg-gradient-to-br from-rp-foam to-rp-iris text-rp-base font-extrabold rounded-lg px-6 py-3 shadow-lg text-lg hover:scale-105 transition-all flex items-center gap-3 group min-w-[120px]">
+          <i class='bx bx-play-circle text-2xl drop-shadow-lg group-hover:scale-110 transition-transform'></i>
+          <span class="block text-base font-bold">Play</span>
+        </button>
+        <div class="absolute bottom-4 left-4 flex gap-3">
+          <span id="gameCategoryTag" class="bg-rp-foam/30 text-rp-foam px-3 py-1 rounded text-xs font-semibold"></span>
+          <span id="gameFeaturedTag" class="bg-rp-iris/30 text-rp-iris px-3 py-1 rounded text-xs font-semibold hidden">Featured</span>
+        </div>
+      </div>
+      <div class="flex flex-col md:flex-row p-6 gap-6 items-start bg-rp-overlay">
+        <div class="flex-1">
+          <div id="gameTitleDisplay" class="text-2xl md:text-3xl font-extrabold text-rp-foam mb-3"></div>
+          <p id="gameFrameDesc" class="text-rp-text/80 mb-2 text-base leading-relaxed"></p>
+          <!-- Game info -->
+          <div id="gameInfoBox" class="mt-6 w-full">
+            <div class="bg-rp-surface border border-rp-overlay rounded-2xl px-6 py-5 text-rp-text">
+              <table class="w-full text-left">
+                <tbody id="gameInfoTable"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+        <div class="flex flex-col gap-2 w-full md:w-auto">
+          <button id="fullscreenBtn" class="bg-gradient-to-r from-rp-foam to-rp-iris text-rp-base font-bold px-6 py-2 rounded-lg hover:scale-105 transition-transform">Fullscreen</button>
+          <a href="../profile.html" class="bg-rp-text/10 text-rp-text px-6 py-2 rounded-lg hover:bg-rp-foam/20 transition text-center">View Profile</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Real iframe, shown after play -->
+    <div id="gameFrameContainer" class="rounded-2xl shadow-2xl overflow-hidden mt-8 hidden" style="background: var(--theme-surface); border: 1px solid rgba(156, 207, 216, 0.3);">
+      <div class="relative aspect-video bg-black">
+        <iframe id="gameFrameEmbed" src="" class="w-full h-full" frameborder="0" allowfullscreen></iframe>
+        
+        <div id="gameActionButtons" class="absolute top-4 right-4 flex gap-3 z-[9999] transition-all duration-300 opacity-100 pointer-events-auto">
+          <button id="likeBtn" class="w-12 h-12 bg-black/60 backdrop-blur-md hover:bg-cyan-500/90 text-white rounded-full flex items-center justify-center transition-all duration-300 border-2 border-white/20 hover:border-cyan-400/60 shadow-lg hover:shadow-cyan-400/30 hover:scale-110 game-action-btn" title="Like">
+            <i class='bx bx-like text-xl'></i>
+          </button>
+          <button id="favBtn" class="w-12 h-12 bg-black/60 backdrop-blur-md hover:bg-pink-500/90 text-white rounded-full flex items-center justify-center transition-all duration-300 border-2 border-white/20 hover:border-pink-400/60 shadow-lg hover:shadow-pink-400/30 hover:scale-110 game-action-btn" title="Favorite">
+            <i class='bx bx-heart text-xl'></i>
+          </button>
+          <button id="dislikeBtn" class="w-12 h-12 bg-black/60 backdrop-blur-md hover:bg-red-500/90 text-white rounded-full flex items-center justify-center transition-all duration-300 border-2 border-white/20 hover:border-red-400/60 shadow-lg hover:shadow-red-400/30 hover:scale-110 game-action-btn" title="Dislike">
+            <i class='bx bx-dislike text-xl'></i>
+          </button>
+          <button id="shareBtn" class="w-12 h-12 bg-black/60 backdrop-blur-md hover:bg-indigo-500/90 text-white rounded-full flex items-center justify-center transition-all duration-300 border-2 border-white/20 hover:border-indigo-400/60 shadow-lg hover:shadow-indigo-400/30 hover:scale-110 game-action-btn" title="Share">
+            <i class='bx bx-share-alt text-xl'></i>
+          </button>
+          <button id="playlistBtn" class="w-12 h-12 bg-black/60 backdrop-blur-md hover:bg-yellow-400/90 text-white rounded-full flex items-center justify-center transition-all duration-300 border-2 border-white/20 hover:border-yellow-400/60 shadow-lg hover:shadow-yellow-400/30 hover:scale-110 game-action-btn" title="Add to Playlist">
+            <i class='bx bx-list-plus text-xl'></i>
+          </button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    // NO PROXY SYSTEM - Direct JSON loading for /games directory
+    
+    function googleSignIn() {
+      const provider = new firebase.auth.GoogleAuthProvider();
+      auth.signInWithPopup(provider)
+        .catch((error) => {
+          document.getElementById('loginError').innerText = error.message;
+          document.getElementById('loginError').classList.remove('hidden');
+        });
+    }
+    
+    function signOutUser() {
+      auth.signOut().then(() => location.reload());
+    }
+
+    async function ensureUserDoc(user) {
+      const userRef = db.collection('users').doc(user.uid);
+      const doc = await userRef.get();
+      if (!doc.exists) {
+        await userRef.set({
+          displayName: user.displayName || "",
+          photoURL: user.photoURL || "",
+          email: user.email || "",
+          username: "",
+          likedGames: [],
+          favoriteGames: [],
+          history: [],
+        });
+      } else {
+        let needsUpdate = false;
+        const data = doc.data();
+        const updateFields = {};
+        if (!data.displayName && user.displayName) {
+          updateFields.displayName = user.displayName;
+          needsUpdate = true;
+        }
+        if (!data.photoURL && user.photoURL) {
+          updateFields.photoURL = user.photoURL;
+          needsUpdate = true;
+        }
+        if (needsUpdate) await userRef.update(updateFields);
+      }
+    }
+
+    let gamesData = [];
+    let currentGameId = null;
+    let currentGame = null;
+
+    // Load games data from parent directory JSON - NO PROXY SYSTEM
+    async function loadGamesData() {
+      try {
+        const res = await fetch('../games.json');
+        gamesData = await res.json();
+        window.gamesData = gamesData;
+        console.log('Loaded', gamesData.length, 'games from JSON');
+      } catch (error) {
+        console.error('Error loading games data:', error);
+        throw error;
+      }
+    }
+
+    function getGameIdFromURL() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const id = urlParams.get('id');
+      return validateGameId(id);
+    }
+
+    function validateGameId(id) {
+      if (!id) return null;
+      return /^[a-zA-Z0-9_-]+$/.test(id) ? id : null;
+    }
+
+    function renderUserSection(user) {
+      const section = document.getElementById('userSection');
+      if (!user) {
+        section.innerHTML = '';
+      } else {
+        const photoURL = validateUrl(user.photoURL) || '/default-avatar.png';
+        const displayName = escapeHtml(user.displayName) || 'User';
+        const titleAttr = escapeHtmlAttribute(user.displayName) || 'User';
+        
+        section.innerHTML = `
+          <img src="${escapeHtmlAttribute(photoURL)}" class="carbon-profile-avatar w-8 h-8 rounded-full inline mr-2" title="${titleAttr}">
+          <span class="mr-3">${displayName}</span>
+          <button onclick="signOutUser()" class="bg-white/10 px-3 py-1 rounded hover:bg-pink-600 text-white">Sign Out</button>
+        `;
+      }
+    }
+
+    function requestFullScreen(element) {
+      if (element.requestFullscreen) element.requestFullscreen();
+      else if (element.webkitRequestFullscreen) element.webkitRequestFullscreen();
+      else if (element.msRequestFullscreen) element.msRequestFullscreen();
+      else if (element.mozRequestFullScreen) element.mozRequestFullScreen();
+    }
+
+    // XSS Protection functions
+    function escapeHtml(text) {
+      if (!text) return '';
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    function escapeHtmlAttribute(text) {
+      if (!text) return '';
+      return text.replace(/[&<>"']/g, function(match) {
+        switch (match) {
+          case '&': return '&amp;';
+          case '<': return '&lt;';
+          case '>': return '&gt;';
+          case '"': return '&quot;';
+          case "'": return '&#39;';
+          default: return match;
+        }
+      });
+    }
+
+    function validateUrl(url) {
+      if (!url) return '';
+      const allowedProtocols = ['http:', 'https:', 'data:'];
+      try {
+        const urlObj = new URL(url);
+        return allowedProtocols.includes(urlObj.protocol) ? url : '';
+      } catch (e) {
+        return '';
+      }
+    }
+
+    // DIRECT GAME LOADING WITHOUT PROXY - Key difference from main play.html
+    async function loadDirectGameIframe() {
+      if (!currentGame) return;
+      
+      // For games in /games directory, construct direct path
+      let gameUrl = currentGame.url;
+      
+      // Convert the JSON URL path to relative path for /games directory
+      // Original: "./games/amaze/index.html" 
+      // Convert to: "./amaze/index.html" (relative to current /games/ directory)
+      if (gameUrl.startsWith('./games/')) {
+        gameUrl = gameUrl.replace('./games/', './');
+      }
+      
+      console.log('Loading game directly without proxy:', gameUrl);
+      console.log('Game:', currentGame.title);
+      
+      // Load directly into iframe - NO PROXY SYSTEM
+      document.getElementById("gameFrameEmbed").src = gameUrl;
+      
+      // Track game activity for profile integration
+      if (window.trackGameStart) {
+        await window.trackGameStart(currentGameId);
+      }
+    }
+
+    function renderGameInfoBox(game, tableId) {
+      const el = document.getElementById(tableId);
+      if (!el) return;
+      
+      const developer = escapeHtml(game.developer) || "Unknown";
+      const release = escapeHtml(game.release) || "Unknown";
+      const technology = escapeHtml(game.technology) || "Unknown";
+      const controls = escapeHtml(game.controls) || "See in-game";
+      
+      let platformsHtml = "Unknown";
+      if (Array.isArray(game.platforms)) {
+        platformsHtml = game.platforms.map(p => 
+          `<span class="px-2 py-[2px] rounded-full text-xs font-semibold" style="background: var(--theme-overlay); color: var(--theme-foam);">${escapeHtml(p)}</span>`
+        ).join('');
+      } else if (game.platforms) {
+        platformsHtml = escapeHtml(game.platforms);
+      }
+      
+      el.innerHTML = `
+        <tr>
+          <th class="pr-4 py-1 text-cyan-400 font-semibold align-top">Developer</th>
+          <td class="py-1">${developer}</td>
+        </tr>
+        <tr>
+          <th class="pr-4 py-1 text-cyan-400 font-semibold align-top">Release</th>
+          <td class="py-1">${release}</td>
+        </tr>
+        <tr>
+          <th class="pr-4 py-1 text-cyan-400 font-semibold align-top">Technology</th>
+          <td class="py-1">${technology}</td>
+        </tr>
+        <tr>
+          <th class="pr-4 py-1 text-cyan-400 font-semibold align-top">Platforms</th>
+          <td class="flex flex-wrap gap-2 py-1">
+            ${platformsHtml}
+          </td>
+        </tr>
+        <tr>
+          <th class="pr-4 py-1 text-cyan-400 font-semibold align-top">Controls</th>
+          <td class="py-1">${controls}</td>
+        </tr>
+      `;
+    }
+
+    // Game initialization for direct JSON loading
+    async function initializeGame() {
+      const gameId = getGameIdFromURL();
+      if (!gameId) {
+        alert('No game ID provided');
+        window.location.href = '../games.html';
+        return;
+      }
+
+      try {
+        console.log('Initializing game with ID:', gameId);
+        await loadGamesData();
+        
+        currentGameId = gameId;
+        currentGame = gamesData.find(g => String(g.id) === String(gameId));
+        
+        if (!currentGame) {
+          alert('Game not found in JSON data');
+          window.location.href = '../games.html';
+          return;
+        }
+
+        console.log('Found game:', currentGame.title);
+
+        // Update UI with game info
+        document.getElementById('gameTitleDisplay').textContent = currentGame.title;
+        document.getElementById('gameFrameDesc').textContent = currentGame.description;
+        document.getElementById('gameCoverImg').src = currentGame.image;
+        
+        // Set category tag
+        if (currentGame.category) {
+          document.getElementById('gameCategoryTag').textContent = currentGame.category.charAt(0).toUpperCase() + currentGame.category.slice(1);
+        }
+        
+        // Set featured tag
+        if (currentGame.featured) {
+          document.getElementById('gameFeaturedTag').classList.remove('hidden');
+        }
+
+        // Render game info box
+        renderGameInfoBox(currentGame, 'gameInfoTable');
+
+        // Set up play button
+        document.getElementById('bigPlayBtn').addEventListener('click', function() {
+          console.log('Play button clicked, loading game...');
+          document.getElementById('gameInfoHolder').style.display = 'none';
+          document.getElementById('gameFrameContainer').classList.remove('hidden');
+          loadDirectGameIframe();
+        });
+
+        // Set up fullscreen button
+        document.getElementById('fullscreenBtn').addEventListener('click', function() {
+          const gameFrame = document.getElementById('gameFrameEmbed');
+          requestFullScreen(gameFrame);
+        });
+
+        // Set up game action buttons
+        setupGameActionButtons();
+
+        // Hide preloader
+        document.getElementById('preloader').style.display = 'none';
+
+      } catch (error) {
+        console.error('Error initializing game:', error);
+        alert('Error loading game: ' + error.message);
+        window.location.href = '../games.html';
+      }
+    }
+
+    function setupGameActionButtons() {
+      // Like button
+      document.getElementById('likeBtn').addEventListener('click', async function() {
+        if (!auth.currentUser) {
+          alert('Please sign in to like games');
+          return;
+        }
+        
+        try {
+          const userRef = db.collection('users').doc(auth.currentUser.uid);
+          const doc = await userRef.get();
+          const userData = doc.data() || {};
+          const likedGames = userData.likedGames || [];
+          
+          if (likedGames.includes(currentGameId)) {
+            // Remove like
+            await userRef.update({
+              likedGames: firebase.firestore.FieldValue.arrayRemove(currentGameId)
+            });
+            this.classList.remove('liked');
+          } else {
+            // Add like
+            await userRef.update({
+              likedGames: firebase.firestore.FieldValue.arrayUnion(currentGameId)
+            });
+            this.classList.add('liked');
+          }
+        } catch (error) {
+          console.error('Error toggling like:', error);
+        }
+      });
+
+      // Favorite button
+      document.getElementById('favBtn').addEventListener('click', async function() {
+        if (!auth.currentUser) {
+          alert('Please sign in to favorite games');
+          return;
+        }
+        
+        try {
+          const userRef = db.collection('users').doc(auth.currentUser.uid);
+          const doc = await userRef.get();
+          const userData = doc.data() || {};
+          const favoriteGames = userData.favoriteGames || [];
+          
+          if (favoriteGames.includes(currentGameId)) {
+            // Remove favorite
+            await userRef.update({
+              favoriteGames: firebase.firestore.FieldValue.arrayRemove(currentGameId)
+            });
+            this.classList.remove('favorited');
+          } else {
+            // Add favorite
+            await userRef.update({
+              favoriteGames: firebase.firestore.FieldValue.arrayUnion(currentGameId)
+            });
+            this.classList.add('favorited');
+          }
+        } catch (error) {
+          console.error('Error toggling favorite:', error);
+        }
+      });
+
+      // Share button
+      document.getElementById('shareBtn').addEventListener('click', function() {
+        const gameUrl = window.location.href;
+        navigator.clipboard.writeText(gameUrl).then(() => {
+          alert('Game link copied to clipboard!');
+        }).catch(() => {
+          alert('Failed to copy link');
+        });
+      });
+
+      // Playlist button
+      document.getElementById('playlistBtn').addEventListener('click', async function() {
+        if (!auth.currentUser) {
+          alert('Please sign in to add to playlist');
+          return;
+        }
+        
+        try {
+          const userRef = db.collection('users').doc(auth.currentUser.uid);
+          const doc = await userRef.get();
+          const userData = doc.data() || {};
+          const playlist = userData.playlist || [];
+          
+          if (playlist.includes(currentGameId)) {
+            // Remove from playlist
+            await userRef.update({
+              playlist: firebase.firestore.FieldValue.arrayRemove(currentGameId)
+            });
+            this.classList.remove('in-playlist');
+            alert('Removed from playlist');
+          } else {
+            // Add to playlist
+            await userRef.update({
+              playlist: firebase.firestore.FieldValue.arrayUnion(currentGameId)
+            });
+            this.classList.add('in-playlist');
+            alert('Added to playlist');
+          }
+        } catch (error) {
+          console.error('Error toggling playlist:', error);
+        }
+      });
+    }
+
+    // Initialize when DOM is loaded - MAIN ENTRY POINT
+    document.addEventListener('DOMContentLoaded', function() {
+      console.log('DOM loaded, setting up auth state listener...');
+      
+      auth.onAuthStateChanged(async (user) => {
+        console.log('Auth state changed:', user ? 'Logged in' : 'Not logged in');
+        
+        if (user) {
+          document.getElementById('loginScreen').style.display = 'none';
+          await ensureUserDoc(user);
+          renderUserSection(user);
+          console.log('User authenticated, initializing game...');
+          await initializeGame();
+        } else {
+          document.getElementById('loginScreen').style.display = 'flex';
+          document.getElementById('preloader').style.display = 'none';
+        }
+      });
+    });
+
+    // Profile integration functions for compatibility
+    window.trackGameStart = async function(gameId) {
+      console.log('Tracking game start:', gameId);
+      if (auth.currentUser) {
+        try {
+          await db.collection('users').doc(auth.currentUser.uid).update({
+            [`gameStats.${gameId}.plays`]: firebase.firestore.FieldValue.increment(1),
+            [`gameStats.${gameId}.lastPlayed`]: firebase.firestore.FieldValue.serverTimestamp(),
+            lastPlayedGame: gameId,
+            lastPlayedTime: firebase.firestore.FieldValue.serverTimestamp()
+          });
+        } catch (error) {
+          console.error('Error tracking game start:', error);
+        }
+      }
+    };
+
+    window.trackGameEnd = async function() {
+      console.log('Tracking game end');
+      // Can be used for session tracking
+    };
+
+    // Function to hide preloader
+    function hidePreloader() {
+      document.getElementById('preloader').style.display = 'none';
+    }
+
+    // Set button active state
+    function setButtonActive(btn, isActive, activeClass='liked') {
+      btn.classList.remove('liked', 'favorited', 'in-playlist');
+      if (isActive) {
+        if (btn.id === 'likeBtn') {
+          btn.classList.add('liked');
+        } else if (btn.id === 'favBtn') {
+          btn.classList.add('favorited');
+        } else if (btn.id === 'playlistBtn') {
+          btn.classList.add('in-playlist');
+        } else {
+          btn.classList.add(activeClass);
+        }
+      }
+    }
+
+    console.log('CARBON Games - Direct JSON Loading System Initialized');
+    console.log('This version loads all 67 games directly from JSON without proxies');
+    
+  </script>
+
+</body>
+</html>
