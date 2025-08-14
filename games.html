@@ -271,8 +271,8 @@
         </div>
       </div>
 
-      <!-- Upload to Firebase Button (Admin) -->
-      <div class="text-center mb-6">
+      <!-- Upload to Firebase Button (Admin) - Hidden for now -->
+      <div class="text-center mb-6" style="display: none;">
         <button
           onclick="uploadGamesToFirebase()"
           class="px-6 py-3 bg-rp-love/20 hover:bg-rp-love/30 border border-rp-love/50 hover:border-rp-love text-rp-love rounded-xl transition-all duration-300 font-medium"
@@ -447,50 +447,27 @@
 
     async function fetchGames() {
       try {
-        console.log('🔥 Loading games from Firebase...');
-        const snapshot = await db.collection('games').get();
+        console.log('🎮 Loading games from games.json...');
+        const res = await fetch('games.json');
+        const jsonData = await res.json();
         
-        if (snapshot.empty) {
-          console.log('⚠️ No games found in Firebase, falling back to games.json');
-          // Show upload button when Firebase is empty
-          document.getElementById('uploadButton').style.display = 'inline-block';
-          
-          // Fallback to JSON file if Firebase is empty
-          const res = await fetch('games.json');
-          const jsonData = await res.json();
-          return jsonData.games || jsonData; // Handle both formats
-        }
+        // games.json is already a flat array of games
+        const games = Array.isArray(jsonData) ? jsonData : (jsonData.games || []);
         
-        const games = [];
-        snapshot.forEach(doc => {
-          const gameData = doc.data();
-          games.push({
-            id: doc.id,
-            ...gameData
-          });
-        });
+        console.log(`✅ Loaded ${games.length} games from games.json`);
+        console.log(`📋 First game: ${games[0]?.title || 'Unknown'}`);
         
-        console.log(`✅ Loaded ${games.length} games from Firebase`);
         return games;
         
       } catch (error) {
-        console.error('Error loading games from Firebase, trying JSON fallback:', error);
-        
-        // Fallback to JSON file
-        try {
-          const res = await fetch('games.json');
-          const jsonData = await res.json();
-          return jsonData.games || jsonData;
-        } catch (jsonError) {
-          console.error('Error loading games from JSON too:', jsonError);
-          throw jsonError;
-        }
+        console.error('❌ Error loading games from games.json:', error);
+        throw error;
       }
     }
 
     async function initializeGames() {
       try {
-        document.getElementById('gamesGrid').innerHTML = `<div class="col-span-full text-center text-white/60 py-10">Loading games from Firebase...</div>`;
+        document.getElementById('gamesGrid').innerHTML = `<div class="col-span-full text-center text-white/60 py-10">Loading games...</div>`;
         gamesData = await fetchGames();
         filteredGames = [...gamesData];
         let catSet = new Set();
@@ -510,7 +487,7 @@
         renderCategoriesCarousel();
         setupAutocomplete();
       } catch (error) {
-        document.getElementById('gamesGrid').innerHTML = `<div class="col-span-full text-center text-red-400 py-10">Failed to load games from Firebase. Please try refreshing the page.</div>`;
+        document.getElementById('gamesGrid').innerHTML = `<div class="col-span-full text-center text-red-400 py-10">Failed to load games. Please try refreshing the page.</div>`;
       }
     }
 
