@@ -1532,26 +1532,73 @@
       // Set up play button (works without auth)
       document.getElementById('bigPlayBtn').onclick = async () => {
         showPreloader();
-        document.getElementById('gameInfoHolder').classList.add('hidden');
-        document.getElementById('gameFrameContainer').classList.remove('hidden');
         
-        // Load the game iframe
-        await window.loadProxiedGameIframe();
+        // Hide game info and show game container
+        const gameInfoHolder = document.getElementById('gameInfoHolder');
+        const gameFrameContainer = document.getElementById('gameFrameContainer');
         
-        // Set up iframe onload to hide preloader
+        console.log('🔄 Hiding game info...');
+        gameInfoHolder.classList.add('hidden');
+        
+        console.log('🔄 Showing game container...');
+        gameFrameContainer.classList.remove('hidden');
+        
+        console.log('✅ Container visibility changed');
+        
+        // Load the game iframe - try multiple methods to ensure it works
+        console.log('🎮 Starting game load for:', currentGame.title);
+        console.log('🎮 Game URL:', currentGame.url);
+        
         const iframe = document.getElementById('gameFrameEmbed');
-        if (iframe) {
-          iframe.onload = () => {
-            hidePreloader();
-          };
-          
-          // Fallback timeout to hide preloader
-          setTimeout(() => {
-            hidePreloader();
-          }, 5000);
-        } else {
+        if (!iframe) {
+          console.error('❌ Iframe element not found!');
+          alert('Error: Game iframe not found');
           hidePreloader();
+          return;
         }
+        
+        try {
+          // Method 1: Try proxy loading
+          if (window.loadProxiedGameIframe) {
+            console.log('🔄 Attempting proxy loading...');
+            await window.loadProxiedGameIframe();
+            console.log('✅ Proxy loading completed');
+          } else {
+            throw new Error('Proxy function not available');
+          }
+        } catch (proxyError) {
+          console.warn('⚠️ Proxy loading failed:', proxyError);
+          console.log('🔄 Falling back to direct loading...');
+          
+          // Method 2: Direct loading fallback
+          try {
+            iframe.src = currentGame.url;
+            console.log('✅ Direct loading set:', currentGame.url);
+          } catch (directError) {
+            console.error('❌ Direct loading failed:', directError);
+            alert('Failed to load game: ' + directError.message);
+            hidePreloader();
+            return;
+          }
+                 }
+         
+         // Set up iframe onload to hide preloader  
+         iframe.onload = () => {
+           console.log('✅ Iframe loaded successfully');
+           hidePreloader();
+         };
+         
+         iframe.onerror = () => {
+           console.error('❌ Iframe failed to load');
+           alert('Game failed to load. Please try again.');
+           hidePreloader();
+         };
+         
+         // Fallback timeout to hide preloader
+         setTimeout(() => {
+           console.log('⏰ Timeout reached, hiding preloader');
+           hidePreloader();
+         }, 8000);
         
         // Set up frame title and game info
         const frameTitleText = sanitizeText(currentGame.title || 'Untitled Game', 200);
