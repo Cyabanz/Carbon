@@ -1062,9 +1062,7 @@
           <button id="dislikeBtn" class="w-12 h-12 bg-black/60 backdrop-blur-md hover:bg-red-500/90 text-white rounded-full flex items-center justify-center transition-all duration-300 border-2 border-white/20 hover:border-red-400/60 shadow-lg hover:shadow-red-400/30 hover:scale-110 game-action-btn" title="Dislike">
             <i class='bx bx-dislike text-xl'></i>
           </button>
-          <button id="proxyToggleBtn" class="w-12 h-12 bg-black/60 backdrop-blur-md rounded-full flex items-center justify-center transition-all duration-300 border-2 border-cyan-400/60 hover:border-cyan-400 shadow-lg hover:shadow-cyan-400/30 hover:scale-110 game-action-btn" title="Toggle Proxy">
-            <i id="proxyToggleIcon" class="bx bx-cloud text-xl text-cyan-400"></i>
-          </button>
+
           <button id="shareBtn" class="w-12 h-12 bg-black/60 backdrop-blur-md hover:bg-indigo-500/90 text-white rounded-full flex items-center justify-center transition-all duration-300 border-2 border-white/20 hover:border-indigo-400/60 shadow-lg hover:shadow-indigo-400/30 hover:scale-110 game-action-btn" title="Share">
             <i class='bx bx-share-alt text-xl'></i>
           </button>
@@ -1297,131 +1295,23 @@
     </div>
   </main>
 
-   <script type="module">
-    // Define proxy variables
-    let makeURL, getProxied, setProxy, getProxy, setTransport, setWisp;
-    let proxyOption = localStorage.getItem("proxy-backend") || "disabled";
-    let proxyEnabled = false; // Always start with proxy disabled
-    
-    // Force proxy disabled by default
-    localStorage.setItem("proxy-enabled", "false");
-    localStorage.setItem("proxy-backend", "disabled");
-    
-    // Try to load proxy system, but don't fail if it doesn't work
-    try {
-      const lethalModule = await import("/lethal.mjs");
-      makeURL = lethalModule.makeURL;
-      getProxied = lethalModule.getProxied;
-      setProxy = lethalModule.setProxy;
-      getProxy = lethalModule.getProxy;
-      setTransport = lethalModule.setTransport;
-      setWisp = lethalModule.setWisp;
-      console.log('✅ Proxy system loaded');
-    } catch (error) {
-      console.warn('⚠️ Proxy system failed to load, using direct mode:', error.message);
-      // Define stub functions to prevent errors
-      makeURL = (url) => url;
-      getProxied = (url) => url;
-      setProxy = () => {};
-      getProxy = () => 'disabled';
-      setTransport = () => {};
-      setWisp = () => {};
-      // Force proxy disabled since it's not working
-      proxyEnabled = false;
-    }
-    
-    async function ensureProxyReady() {
-      if (!proxyEnabled) return; // Skip proxy setup if disabled
-      
-      if (!getProxy() || getProxy() !== proxyOption) await setProxy(proxyOption);
-      let wisp = localStorage.getItem("wisp-server") || "wss://anura.pro/";
-      let transport = localStorage.getItem("proxy-transport");
-      if (wisp) await setWisp(wisp);
-      if (transport) await setTransport(transport);
-      else if (navigator.userAgent.indexOf("Firefox") > 0) await setTransport("libcurl");
-      else await setTransport("epoxy");
-    }
-    function updateProxyToggleUI(proxy) {
-      const proxyToggleBtn = document.getElementById("proxyToggleBtn");
-      const proxyToggleIcon = document.getElementById("proxyToggleIcon");
-      if (!proxyToggleBtn || !proxyToggleIcon) return;
-      
-      if (!proxyEnabled) {
-        // Proxy disabled state
-        proxyToggleBtn.classList.remove("border-cyan-400/60", "hover:border-cyan-400", "border-yellow-400/60", "hover:border-yellow-400");
-        proxyToggleBtn.classList.add("border-red-400/60", "hover:border-red-400");
-        proxyToggleIcon.className = "bx bx-shield-x text-xl text-red-400";
-        proxyToggleBtn.title = "Proxy Disabled (Direct Connection)";
-      } else if (proxy === "scram") {
-        proxyToggleBtn.classList.remove("border-cyan-400/60", "hover:border-cyan-400", "border-red-400/60", "hover:border-red-400");
-        proxyToggleBtn.classList.add("border-yellow-400/60", "hover:border-yellow-400");
-        proxyToggleIcon.className = "bx bx-network-chart text-xl text-yellow-400";
-        proxyToggleBtn.title = "Scramjet Proxy Enabled";
-      } else {
-        proxyToggleBtn.classList.remove("border-yellow-400/60", "hover:border-yellow-400", "border-red-400/60", "hover:border-red-400");
-        proxyToggleBtn.classList.add("border-cyan-400/60", "hover:border-cyan-400");
-        proxyToggleIcon.className = "bx bx-cloud text-xl text-cyan-400";
-        proxyToggleBtn.title = "UV Proxy Enabled";
-      }
-    }
-    document.getElementById("proxyToggleBtn").addEventListener("click", async () => {
-      if (!proxyEnabled) {
-        // Enable proxy with UV as default
-        proxyEnabled = true;
-        proxyOption = "uv";
-        localStorage.setItem("proxy-enabled", "true");
-        localStorage.setItem("proxy-backend", proxyOption);
-      } else if (proxyOption === "uv") {
-        // Switch to Scramjet
-        proxyOption = "scram";
-        localStorage.setItem("proxy-backend", proxyOption);
-      } else {
-        // Disable proxy entirely
-        proxyEnabled = false;
-        localStorage.setItem("proxy-enabled", "false");
-      }
-      
-      await ensureProxyReady();
-      updateProxyToggleUI(proxyOption);
-      
-      if (!document.getElementById("gameFrameContainer").classList.contains("hidden")) {
-        if (proxyEnabled) {
-          loadProxiedGameIframe();
-        } else {
-          loadDirectGameIframe();
-        }
-      }
-    });
-    updateProxyToggleUI(proxyOption);
-
-    async function loadProxiedGameIframe() {
-      if (!proxyEnabled) {
-        loadDirectGameIframe();
-        return;
-      }
-      
-      await ensureProxyReady();
-      let gamesData = window.gamesData || [];
-      let currentGameId = window.currentGameId;
-      let currentGame = gamesData.find(g => String(g.id) === String(currentGameId));
-      if (!currentGame) return;
-      const proxied = await getProxied(currentGame.url);
-      document.getElementById("gameFrameEmbed").src = proxied;
-    }
-    
-    function loadDirectGameIframe() {
+   <script>
+    // Simple direct game loading - no proxies
+    function loadGameIframe() {
       let gamesData = window.gamesData || [];
       let currentGameId = window.currentGameId;
       let currentGame = gamesData.find(g => String(g.id) === String(currentGameId));
       if (!currentGame) return;
       
-      // Load game directly without proxy
+      console.log('🎮 Loading game directly:', currentGame.title);
+      // Load game directly
       document.getElementById("gameFrameEmbed").src = currentGame.url;
     }
-    window.loadProxiedGameIframe = loadProxiedGameIframe;
-    window.loadDirectGameIframe = loadDirectGameIframe;
-    window.ensureProxyReady = ensureProxyReady;
-    window.updateProxyToggleUI = updateProxyToggleUI;
+    
+    // Export functions to global scope
+    window.loadGameIframe = loadGameIframe;
+    window.loadDirectGameIframe = loadGameIframe; // Alias for compatibility
+    window.loadProxiedGameIframe = loadGameIframe; // Alias for compatibility
   </script>
 
            <script>
@@ -3592,12 +3482,8 @@
           }
         }
         
-        // Load the game (works with or without auth)
-        if (proxyEnabled) {
-          loadProxiedGameIframe();
-        } else {
-          loadDirectGameIframe();
-        }
+        // Load the game directly
+        loadGameIframe();
         
         hidePreloader();
         
