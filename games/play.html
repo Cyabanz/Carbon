@@ -207,6 +207,20 @@
       <div class="flex flex-col md:flex-row p-6 gap-6 items-start bg-rp-overlay">
         <div class="flex-1">
           <div id="gameTitleDisplay" class="text-2xl md:text-3xl font-extrabold text-rp-foam mb-3"></div>
+          <div id="starRatingSection" class="my-4">
+            <div id="starsContainer" class="flex gap-1 text-3xl"></div>
+            <div class="text-sm mt-1 flex flex-wrap items-center gap-2 text-rp-subtle">
+              <span id="starRatingSummary"></span>
+              <span id="starRatingCount"></span>
+              <span id="starRatingError" class="text-rp-love"></span>
+            </div>
+            <div id="ratingPercentContainer" class="flex items-center mt-2 gap-2">
+              <span id="ratingPercentText" class="text-rp-iris font-semibold"></span>
+              <div class="w-40 h-2 bg-rp-muted rounded overflow-hidden">
+                <div id="ratingPercentBar" class="h-2 bg-rp-iris rounded transition-all duration-300" style="width:0%"></div>
+              </div>
+            </div>
+          </div>
           <p id="gameFrameDesc" class="text-rp-text/80 mb-2 text-base leading-relaxed"></p>
           <!-- Game info -->
           <div id="gameInfoBox" class="mt-6 w-full">
@@ -247,11 +261,422 @@
           </button>
         </div>
       </div>
+      
+      <!-- Game frame additional content -->
+      <div class="flex flex-col md:flex-row p-6 gap-6 items-start" style="background: var(--theme-overlay);">
+        <div class="flex-1">
+          <div id="gameTitleDisplayFrame" class="text-2xl md:text-3xl font-extrabold mb-3" style="color: var(--theme-foam);"></div>
+          <div id="starRatingSectionFrame" class="max-w-xl my-4">
+            <div id="starsContainerFrame" class="flex gap-1 text-3xl"></div>
+            <div class="text-sm mt-1 flex flex-wrap items-center gap-2" style="color: var(--theme-subtle);">
+              <span id="starRatingSummaryFrame"></span>
+              <span id="starRatingCountFrame"></span>
+              <span id="starRatingErrorFrame" style="color: var(--theme-love);"></span>
+            </div>
+            <div id="ratingPercentContainerFrame" class="flex items-center mt-2 gap-2">
+              <span id="ratingPercentTextFrame" class="font-semibold" style="color: var(--theme-iris);"></span>
+              <div class="w-40 h-2 bg-slate-700 rounded overflow-hidden">
+                <div id="ratingPercentBarFrame" class="h-2 bg-indigo-400 rounded transition-all duration-300" style="width:0%"></div>
+              </div>
+            </div>
+            <!-- Tag area -->
+            <div id="tagsAreaFrame" class="mt-5 flex flex-wrap gap-2"></div>
+            <!-- Category count -->
+            <div id="categoryGamesCountFrame" class="mt-4 text-base font-semibold" style="color: var(--theme-foam);"></div>
+          </div>
+        </div>
+        <div class="flex flex-col gap-2 w-full md:w-auto">
+          <button id="fullscreenBtnBottom" class="bg-gradient-to-r from-cyan-400 to-indigo-500 text-black font-bold px-6 py-2 rounded-lg hover:scale-105 transition-transform">Fullscreen</button>
+          <a href="../profile.html" class="bg-white/10 text-white px-6 py-2 rounded-lg hover:bg-cyan-400/20 transition text-center">View Profile</a>
+        </div>
+      </div>
+      
+      <!-- Game info in frame panel -->
+      <div id="gameInfoBoxFrame" class="mt-6 w-full">
+        <div class="rounded-2xl px-6 py-5 mx-6 mb-8" style="background: var(--theme-surface); border: 1px solid rgba(156, 207, 216, 0.3); color: var(--theme-text);">
+          <table class="w-full text-left">
+            <tbody id="gameInfoTableFrame"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Comments Section -->
+      <div id="commentsSection" class="mt-8 mx-6 mb-8">
+        <div class="rounded-2xl px-6 py-6" style="background: var(--theme-surface); border: 1px solid rgba(156, 207, 216, 0.3); color: var(--theme-text);">
+          <!-- Comments Header -->
+          <div class="flex items-center justify-between mb-6">
+            <h3 class="text-2xl font-bold flex items-center gap-2" style="color: var(--theme-foam);">
+              <i class='bx bx-message-square-dots text-3xl'></i>
+              Reviews & Comments
+              <span id="commentsCount" class="text-lg font-normal" style="color: var(--theme-foam);">
+                (0)
+              </span>
+            </h3>
+            
+            <!-- Filter Dropdown -->
+            <div class="relative">
+              <select id="commentFilter" class="px-4 py-2 rounded-lg text-sm focus:outline-none" style="background: var(--theme-overlay); border: 1px solid rgba(156, 207, 216, 0.3); color: var(--theme-text);">
+                <option value="all">All Comments</option>
+                <option value="5">⭐⭐⭐⭐⭐ (5 stars)</option>
+                <option value="4">⭐⭐⭐⭐ (4 stars)</option>
+                <option value="3">⭐⭐⭐ (3 stars)</option>
+                <option value="2">⭐⭐ (2 stars)</option>
+                <option value="1">⭐ (1 star)</option>
+                <option value="no-rating">No Rating</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Add Comment Form -->
+          <div id="addCommentForm" class="mb-6 p-4 rounded-lg" style="background: var(--theme-overlay); border: 1px solid rgba(156, 207, 216, 0.2);">
+            <h4 class="text-lg font-semibold mb-3" style="color: var(--theme-foam);">Write a Review</h4>
+            
+            <!-- Star Rating Input -->
+            <div class="mb-4">
+              <label class="block text-sm font-medium mb-2" style="color: var(--theme-foam);">Your Rating (Optional)</label>
+              <div id="commentStarInput" class="flex gap-1 text-2xl mb-2">
+                <!-- Stars will be rendered here -->
+              </div>
+              <p class="text-xs" style="color: var(--theme-muted);">Click stars to rate this game</p>
+            </div>
+
+            <!-- Comment Text -->
+            <div class="mb-4">
+              <label class="block text-sm font-medium mb-2" style="color: var(--theme-foam);">Your Comment</label>
+              <textarea 
+                id="commentText" 
+                placeholder="Share your thoughts about this game..."
+                class="comment-textarea w-full"
+                maxlength="1000"
+                style="background: var(--theme-overlay); border: 1px solid rgba(156, 207, 216, 0.3); color: var(--theme-text); border-radius: 8px; padding: 12px; resize: vertical; min-height: 80px;"
+              ></textarea>
+              <div class="flex justify-between text-xs mt-1" style="color: var(--theme-muted);">
+                <span>Be respectful and constructive</span>
+                <span id="commentCharCount">0/1000</span>
+              </div>
+            </div>
+
+            <!-- Submit Button -->
+            <div class="flex gap-3">
+              <button 
+                id="submitComment" 
+                class="bg-gradient-to-r from-cyan-400 to-indigo-500 text-black font-bold px-6 py-2 rounded-lg hover:scale-105 transition-transform disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled
+              >
+                <i class='bx bx-send mr-2'></i>
+                Post Review
+              </button>
+              <button 
+                id="cancelComment" 
+                class="bg-white/10 text-white px-6 py-2 rounded-lg hover:bg-red-500/20 transition"
+              >
+                Cancel
+              </button>
+            </div>
+            
+            <!-- Rate Limit Warning -->
+            <div id="rateLimitWarning" class="rate-limit-warning hidden bg-red-500/20 border border-red-500/30 text-red-400 rounded-lg p-3 mt-3">
+              <i class='bx bx-error-circle mr-2'></i>
+              <span id="rateLimitText">Please wait before posting another comment</span>
+            </div>
+          </div>
+
+          <!-- Comments List -->
+          <div id="commentsList" class="space-y-4">
+            <!-- Comments will be rendered here -->
+            <div id="commentsLoader" class="text-center py-8 hidden">
+              <div class="inline-block w-6 h-6 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin"></div>
+              <p class="mt-2" style="color: var(--theme-foam);">Loading comments...</p>
+            </div>
+            <div id="noComments" class="text-center py-8" style="color: var(--theme-muted);">
+              <i class='bx bx-message-square text-4xl mb-2 block'></i>
+              <p>No comments yet. Be the first to share your thoughts!</p>
+            </div>
+          </div>
+
+          <!-- Load More Button -->
+          <div id="loadMoreComments" class="text-center mt-6 hidden">
+            <button class="bg-white/10 px-6 py-2 rounded-lg transition" style="color: var(--theme-foam);">
+              Load More Comments
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Suggested Games Section -->
+      <div id="suggestedGamesSection" class="mt-8 mx-6 mb-8">
+        <div class="rounded-2xl px-6 py-6" style="background: var(--theme-surface); border: 1px solid rgba(156, 207, 216, 0.3); color: var(--theme-text);">
+          <h3 class="text-2xl font-bold mb-6 flex items-center gap-2" style="color: var(--theme-foam);">
+            <i class='bx bx-joystick text-3xl'></i>
+            You Might Also Like
+          </h3>
+          <div class="relative">
+            <div class="overflow-hidden rounded-2xl">
+              <div id="suggestedGamesList" class="flex transition-transform duration-500 ease-in-out">
+                <!-- Suggested games will be rendered here -->
+                <div class="flex-shrink-0 w-full text-center py-8" style="color: var(--theme-muted);">
+                  <i class='bx bx-loader-alt text-4xl mb-2 block animate-spin'></i>
+                  <p>Loading suggested games...</p>
+                </div>
+              </div>
+            </div>
+            <button id="suggestedPrevBtn" class="carousel-nav-btn absolute left-2 top-1/2 p-3 rounded-full opacity-0 pointer-events-none z-10 transform -translate-y-1/2 bg-black/60 backdrop-blur-md border border-cyan-400/30 text-cyan-400">
+              <i class='bx bx-chevron-left text-2xl'></i>
+            </button>
+            <button id="suggestedNextBtn" class="carousel-nav-btn absolute right-2 top-1/2 p-3 rounded-full opacity-0 pointer-events-none z-10 transform -translate-y-1/2 bg-black/60 backdrop-blur-md border border-cyan-400/30 text-cyan-400">
+              <i class='bx bx-chevron-right text-2xl'></i>
+            </button>
+          </div>
+          <!-- Carousel indicators -->
+          <div id="suggestedCarouselDots" class="flex justify-center mt-6 gap-2">
+            <!-- Dots will be rendered here -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Modals -->
+      <!-- Reply Modal -->
+      <div id="replyModal" class="hidden fixed inset-0 z-[10001] bg-black/70 flex items-center justify-center">
+        <div class="rounded-xl p-6 max-w-lg w-full mx-4 shadow-2xl relative" style="background: var(--theme-overlay); border: 1px solid rgba(156, 207, 216, 0.2);">
+          <button onclick="closeReplyModal()" class="absolute top-3 right-4 text-white/70 text-xl">
+            <i class='bx bx-x'></i>
+          </button>
+          <h3 class="text-xl font-bold mb-4" style="color: var(--theme-foam);">Reply to Comment</h3>
+          
+          <div id="replyToComment" class="mb-4 p-3 rounded-lg" style="background: var(--theme-surface); border: 1px solid rgba(156, 207, 216, 0.2);">
+            <!-- Original comment will be shown here -->
+          </div>
+          
+          <textarea 
+            id="replyText" 
+            placeholder="Write your reply..."
+            class="w-full mb-4 px-3 py-2 rounded-lg" 
+            style="background: var(--theme-overlay); border: 1px solid rgba(156, 207, 216, 0.3); color: var(--theme-text);"
+            maxlength="500"
+          ></textarea>
+          <div class="text-xs mb-4 text-right" style="color: var(--theme-muted);">
+            <span id="replyCharCount">0/500</span>
+          </div>
+          
+          <div class="flex gap-3">
+            <button 
+              id="submitReply" 
+              class="bg-gradient-to-r from-cyan-400 to-indigo-500 text-black font-bold px-4 py-2 rounded-lg hover:scale-105 transition-transform disabled:opacity-50"
+              disabled
+            >
+              Post Reply
+            </button>
+            <button 
+              onclick="closeReplyModal()" 
+              class="bg-white/10 text-white px-4 py-2 rounded-lg hover:bg-red-500/20 transition"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Reaction Picker -->
+      <div id="reactionPicker" class="hidden absolute z-[10002] bg-black/80 backdrop-blur-md border border-cyan-400/30 rounded-lg p-4">
+        <emoji-picker></emoji-picker>
+      </div>
     </div>
   </main>
 
   <script>
     // NO PROXY SYSTEM - Direct JSON loading for /games directory
+    
+    // --- STAR RATING SYSTEM ---
+    let starRatingData = {
+      average: 0,
+      count: 0,
+      yourRating: 0,
+      loading: false,
+      error: "",
+      percent: 0
+    };
+
+    function renderStarRatingUI(target = "") {
+      const pre = target ? target : "";
+      const container = document.getElementById('starsContainer' + pre);
+      if (!container) return;
+      container.innerHTML = '';
+      let fill = starRatingData.yourRating ? starRatingData.yourRating : Math.round(starRatingData.average);
+      for (let i = 1; i <= 5; i++) {
+        const star = document.createElement('span');
+        star.textContent = '★';
+        star.className = 'transition-colors duration-150 select-none ' +
+          (i <= fill ? 'star-filled' : 'star-empty') +
+          (auth.currentUser ? ' cursor-pointer star-hover' : ' cursor-not-allowed');
+        star.style.color = i <= fill ? 'var(--theme-gold)' : 'var(--theme-muted)';
+        if (auth.currentUser) {
+          star.addEventListener('mouseenter', () => {
+            for (let j = 0; j < 5; j++) {
+              container.children[j].style.color = j < i ? 'var(--theme-gold)' : 'var(--theme-muted)';
+            }
+          });
+          star.addEventListener('mouseleave', () => {
+            for (let j = 0; j < 5; j++) {
+              container.children[j].style.color = j < fill ? 'var(--theme-gold)' : 'var(--theme-muted)';
+            }
+          });
+          star.addEventListener('click', async () => {
+            await submitStarRating(i);
+          });
+        }
+        container.appendChild(star);
+      }
+      document.getElementById('starRatingSummary' + pre).textContent =
+        starRatingData.count ? `${starRatingData.average.toFixed(2)} / 5` : "Not rated";
+      document.getElementById('starRatingCount' + pre).textContent =
+        starRatingData.count === 1 ? "1 rating" : (starRatingData.count ? `${starRatingData.count} ratings` : "");
+      document.getElementById('starRatingError' + pre).textContent = starRatingData.error || '';
+      renderRatingPercentUI(target);
+    }
+
+    async function loadStarRating(gameId) {
+      starRatingData.loading = true;
+      starRatingData.error = "";
+      starRatingData.average = 0;
+      starRatingData.count = 0;
+      starRatingData.yourRating = 0;
+      starRatingData.percent = 0;
+      try {
+        const ratingsRef = db.collection("games").doc(gameId).collection("ratings");
+        const snap = await ratingsRef.get();
+        let total = 0, count = 0, your = 0, user = auth.currentUser;
+        let highCount = 0;
+        snap.forEach(doc => {
+          const d = doc.data();
+          if (typeof d.rating === "number" && d.rating >= 1 && d.rating <= 5) {
+            total += d.rating;
+            count++;
+            if (d.rating >= 4) highCount++;
+            if (user && doc.id === user.uid) your = d.rating;
+          }
+        });
+        starRatingData.average = count ? total / count : 0;
+        starRatingData.count = count;
+        starRatingData.yourRating = your;
+        starRatingData.percent = count ? Math.round((highCount / count) * 100) : 0;
+      } catch (e) {
+        starRatingData.error = "Failed to load ratings.";
+      }
+      starRatingData.loading = false;
+      renderStarRatingUI();
+      renderStarRatingUI("Frame");
+    }
+
+    async function submitStarRating(stars) {
+      if (!auth.currentUser) {
+        starRatingData.error = "Sign in first!";
+        renderStarRatingUI();
+        renderStarRatingUI("Frame");
+        return;
+      }
+      if (!currentGameId) {
+        starRatingData.error = "Game not loaded!";
+        renderStarRatingUI();
+        renderStarRatingUI("Frame");
+        return;
+      }
+      if (stars < 1 || stars > 5) {
+        starRatingData.error = "Invalid rating value!";
+        renderStarRatingUI();
+        renderStarRatingUI("Frame");
+        return;
+      }
+      starRatingData.loading = true;
+      starRatingData.error = "";
+      renderStarRatingUI();
+      renderStarRatingUI("Frame");
+      try {
+        const ref = db.collection("games").doc(currentGameId).collection("ratings").doc(auth.currentUser.uid);
+        await ref.set({
+          rating: stars,
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        starRatingData.yourRating = stars;
+        await loadStarRating(currentGameId);
+      } catch (e) {
+        starRatingData.error = "Failed to rate, try again.";
+        renderStarRatingUI();
+        renderStarRatingUI("Frame");
+      }
+      starRatingData.loading = false;
+      renderStarRatingUI();
+      renderStarRatingUI("Frame");
+    }
+
+    function renderRatingPercentUI(target = "") {
+      const pre = target ? target : "";
+      const txt = document.getElementById('ratingPercentText' + pre);
+      const bar = document.getElementById('ratingPercentBar' + pre);
+      if (!txt || !bar) return;
+      if (starRatingData.count === 0) {
+        txt.textContent = "Not enough ratings yet";
+        bar.style.width = "0%";
+      } else {
+        txt.textContent = `${starRatingData.percent}% of raters gave 4 or 5 stars`;
+        bar.style.width = `${starRatingData.percent}%`;
+      }
+    }
+
+    // --- COMMENT SYSTEM ---
+    let commentsData = {
+      comments: [],
+      loading: false,
+      currentFilter: 'all',
+      currentCommentRating: 0,
+      currentReplyingTo: null,
+      lastVisible: null,
+      commentsPerPage: 10
+    };
+
+    // Initialize comment star rating input
+    function initCommentStarInput() {
+      const container = document.getElementById('commentStarInput');
+      if (!container) return;
+      
+      container.innerHTML = '';
+      for (let i = 1; i <= 5; i++) {
+        const star = document.createElement('span');
+        star.textContent = '★';
+        star.className = 'cursor-pointer transition-colors duration-150 select-none ' + 
+          (i <= commentsData.currentCommentRating ? 'text-yellow-400' : 'text-slate-600');
+        
+        star.addEventListener('mouseenter', () => {
+          for (let j = 0; j < 5; j++) {
+            container.children[j].classList.toggle('text-yellow-400', j < i);
+            container.children[j].classList.toggle('text-slate-600', j >= i);
+          }
+        });
+        
+        star.addEventListener('mouseleave', () => {
+          for (let j = 0; j < 5; j++) {
+            container.children[j].classList.toggle('text-yellow-400', j < commentsData.currentCommentRating);
+            container.children[j].classList.toggle('text-slate-600', j >= commentsData.currentCommentRating);
+          }
+        });
+        
+        star.addEventListener('click', () => {
+          commentsData.currentCommentRating = commentsData.currentCommentRating === i ? 0 : i;
+          updateCommentStarInput();
+        });
+        
+        container.appendChild(star);
+      }
+    }
+
+    function updateCommentStarInput() {
+      const container = document.getElementById('commentStarInput');
+      if (!container) return;
+      
+      for (let j = 0; j < 5; j++) {
+        container.children[j].classList.toggle('text-yellow-400', j < commentsData.currentCommentRating);
+        container.children[j].classList.toggle('text-slate-600', j >= commentsData.currentCommentRating);
+      }
+    }
     
     function googleSignIn() {
       const provider = new firebase.auth.GoogleAuthProvider();
@@ -450,6 +875,300 @@
       `;
     }
 
+    // Load comments from Firebase
+    async function loadComments(gameId, loadMore = false) {
+      if (!gameId) return;
+      
+      commentsData.loading = true;
+      updateCommentsUI();
+      
+      try {
+        let commentsQuery = db.collection("games").doc(gameId).collection("comments")
+          .orderBy("createdAt", "desc")
+          .limit(commentsData.commentsPerPage);
+        
+        if (loadMore && commentsData.lastVisible) {
+          commentsQuery = db.collection("games").doc(gameId).collection("comments")
+            .orderBy("createdAt", "desc")
+            .startAfter(commentsData.lastVisible)
+            .limit(commentsData.commentsPerPage);
+        }
+        
+        const snapshot = await commentsQuery.get();
+        
+        if (loadMore) {
+          snapshot.forEach(doc => {
+            commentsData.comments.push({ id: doc.id, ...doc.data() });
+          });
+        } else {
+          commentsData.comments = [];
+          snapshot.forEach(doc => {
+            commentsData.comments.push({ id: doc.id, ...doc.data() });
+          });
+        }
+        
+        commentsData.lastVisible = snapshot.docs[snapshot.docs.length - 1] || null;
+        
+        // Load replies for each comment
+        for (let comment of commentsData.comments) {
+          if (!comment.replies) {
+            const repliesQuery = db.collection("games").doc(gameId).collection("comments").doc(comment.id).collection("replies")
+              .orderBy("createdAt", "asc");
+            const repliesSnapshot = await repliesQuery.get();
+            
+            comment.replies = [];
+            repliesSnapshot.forEach(replyDoc => {
+              comment.replies.push({ id: replyDoc.id, ...replyDoc.data() });
+            });
+          }
+        }
+        
+      } catch (error) {
+        console.error("Error loading comments:", error);
+      }
+      
+      commentsData.loading = false;
+      updateCommentsUI();
+    }
+
+    // Submit new comment
+    async function submitComment() {
+      const user = auth.currentUser;
+      const text = document.getElementById('commentText').value.trim();
+      
+      if (!user) {
+        alert('Please sign in to comment');
+        return;
+      }
+      
+      if (!text) {
+        alert('Please enter a comment');
+        return;
+      }
+      
+      if (!currentGameId) {
+        alert('Game not loaded');
+        return;
+      }
+      
+      const sanitizedText = sanitizeText(text, 1000);
+      if (!sanitizedText) {
+        alert('Invalid comment text');
+        return;
+      }
+      
+      const validatedGameId = validateGameId(currentGameId);
+      if (!validatedGameId) {
+        alert('Invalid game ID');
+        return;
+      }
+      
+      try {
+        const commentData = {
+          text: sanitizedText,
+          rating: commentsData.currentCommentRating || null,
+          authorId: user.uid,
+          authorName: user.displayName || 'Anonymous',
+          authorPhoto: user.photoURL || '/default-avatar.png',
+          createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+          reactions: {},
+          reactionCounts: {}
+        };
+        
+        const docRef = await db.collection("games").doc(validatedGameId).collection("comments").add(commentData);
+        
+        // Reset form
+        document.getElementById('commentText').value = '';
+        commentsData.currentCommentRating = 0;
+        updateCommentStarInput();
+        updateSubmitButtonState();
+        
+        // Reload comments
+        await loadComments(validatedGameId);
+        
+      } catch (error) {
+        console.error("Error submitting comment:", error);
+        alert('Failed to submit comment. Please try again.');
+      }
+    }
+
+    function updateCommentsUI() {
+      const commentsLoader = document.getElementById('commentsLoader');
+      const noComments = document.getElementById('noComments');
+      const commentsList = document.getElementById('commentsList');
+      const commentsCount = document.getElementById('commentsCount');
+      
+      if (commentsData.loading) {
+        if (commentsLoader) commentsLoader.classList.remove('hidden');
+        if (noComments) noComments.classList.add('hidden');
+        return;
+      }
+      
+      if (commentsLoader) commentsLoader.classList.add('hidden');
+      
+      if (commentsData.comments.length === 0) {
+        if (noComments) noComments.classList.remove('hidden');
+        if (commentsList) commentsList.innerHTML = '';
+      } else {
+        if (noComments) noComments.classList.add('hidden');
+        renderComments();
+      }
+      
+      if (commentsCount) {
+        commentsCount.textContent = `(${commentsData.comments.length})`;
+      }
+    }
+
+    function renderComments() {
+      const commentsList = document.getElementById('commentsList');
+      if (!commentsList) return;
+      
+      const filteredComments = commentsData.comments.filter(comment => {
+        if (commentsData.currentFilter === 'all') return true;
+        if (commentsData.currentFilter === 'no-rating') return !comment.rating;
+        return comment.rating && comment.rating.toString() === commentsData.currentFilter;
+      });
+      
+      commentsList.innerHTML = filteredComments.map(comment => {
+        const stars = comment.rating ? '★'.repeat(comment.rating) + '☆'.repeat(5 - comment.rating) : '';
+        return `
+          <div class="comment-item bg-white/5 rounded-lg p-4 border border-white/10">
+            <div class="flex items-start gap-3">
+              <img src="${comment.authorPhoto || '/default-avatar.png'}" class="w-8 h-8 rounded-full flex-shrink-0" alt="${comment.authorName}">
+              <div class="flex-1">
+                <div class="flex items-center gap-2 mb-2">
+                  <span class="font-medium text-sm" style="color: var(--theme-foam);">${comment.authorName}</span>
+                  ${comment.rating ? `<span class="comment-stars text-xs" style="color: var(--theme-gold);">${stars}</span>` : ''}
+                  <span class="text-xs" style="color: var(--theme-muted);">${formatDate(comment.createdAt)}</span>
+                </div>
+                <p class="text-white/80 text-sm mb-3">${escapeHtml(comment.text)}</p>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function formatDate(timestamp) {
+      if (!timestamp) return 'Just now';
+      let date;
+      if (timestamp && timestamp.toDate) {
+        date = timestamp.toDate();
+      } else if (timestamp && timestamp.seconds) {
+        date = new Date(timestamp.seconds * 1000);
+      } else {
+        return 'Just now';
+      }
+      
+      const now = new Date();
+      const diff = now - date;
+      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+      const hours = Math.floor(diff / (1000 * 60 * 60));
+      const minutes = Math.floor(diff / (1000 * 60));
+      
+      if (days > 0) return `${days}d ago`;
+      if (hours > 0) return `${hours}h ago`;
+      if (minutes > 0) return `${minutes}m ago`;
+      return 'Just now';
+    }
+
+    function updateSubmitButtonState() {
+      const submitBtn = document.getElementById('submitComment');
+      const commentText = document.getElementById('commentText');
+      
+      if (submitBtn && commentText) {
+        const hasText = commentText.value.trim().length > 0;
+        submitBtn.disabled = !hasText;
+      }
+    }
+
+    function sanitizeText(text, maxLength = 10000) {
+      if (!text) return '';
+      return text.replace(/\0/g, '').substring(0, maxLength);
+    }
+
+    // Suggested games functionality
+    async function loadSuggestedGames() {
+      if (!gamesData || !currentGame) return;
+      
+      try {
+        // Get games from same category or similar tags
+        let suggested = gamesData.filter(game => 
+          game.id !== currentGame.id && 
+          (game.category === currentGame.category || 
+           (game.tags && currentGame.tags && 
+            game.tags.some(tag => currentGame.tags.includes(tag))))
+        );
+        
+        // If not enough, get random games
+        if (suggested.length < 6) {
+          const randomGames = gamesData
+            .filter(game => game.id !== currentGame.id && !suggested.includes(game))
+            .sort(() => Math.random() - 0.5)
+            .slice(0, 6 - suggested.length);
+          suggested = [...suggested, ...randomGames];
+        }
+        
+        // Limit to 6 games
+        suggested = suggested.slice(0, 6);
+        
+        renderSuggestedGames(suggested);
+        
+      } catch (error) {
+        console.error('Error loading suggested games:', error);
+      }
+    }
+
+    function renderSuggestedGames(games) {
+      const container = document.getElementById('suggestedGamesList');
+      if (!container || !games.length) return;
+      
+      container.innerHTML = games.map(game => `
+        <div class="flex-shrink-0 w-48 mr-4 cursor-pointer suggested-game-card" onclick="window.location.href='play.html?id=${game.id}'">
+          <div class="bg-white/10 rounded-lg overflow-hidden hover:bg-white/20 transition-all duration-300">
+            <img src="${game.image}" alt="${game.title}" class="w-full h-32 object-cover">
+            <div class="p-3">
+              <h4 class="font-semibold text-sm mb-1" style="color: var(--theme-text);">${game.title}</h4>
+              <p class="text-xs" style="color: var(--theme-muted);">${game.category}</p>
+            </div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // Tag and category functions
+    function renderTagsAreaFrame(currentGame) {
+      const el = document.getElementById('tagsAreaFrame');
+      if (!el) return;
+      if (!currentGame || !currentGame.tags || !currentGame.tags.length) {
+        el.innerHTML = "";
+        return;
+      }
+      
+      el.innerHTML = currentGame.tags.map(tag => {
+        const sanitizedTag = escapeHtml(tag);
+        return `
+          <button type="button"
+            class="tag-btn inline-block px-3 py-1 text-xs rounded-full border transition font-semibold" 
+            style="background: linear-gradient(to right, rgba(156, 207, 216, 0.2), rgba(196, 167, 231, 0.2)); color: var(--theme-foam); border-color: rgba(156, 207, 216, 0.3);"
+            >
+            ${sanitizedTag.charAt(0).toUpperCase() + sanitizedTag.slice(1)}
+          </button>
+        `;
+      }).join('');
+    }
+
+    function renderCategoryGamesCountFrame(currentGame) {
+      const el = document.getElementById('categoryGamesCountFrame');
+      if (!el || !currentGame || !currentGame.category) {
+        if (el) el.textContent = "";
+        return;
+      }
+      const cat = currentGame.category;
+      const count = gamesData.filter(g => g.category === cat).length;
+      el.textContent = `${cat.charAt(0).toUpperCase() + cat.slice(1)} (${count}) games`;
+    }
+
     // Game initialization for direct JSON loading
     async function initializeGame() {
       const gameId = getGameIdFromURL();
@@ -492,6 +1211,12 @@
         // Render game info box
         renderGameInfoBox(currentGame, 'gameInfoTable');
 
+        // Update frame sections too
+        document.getElementById('gameTitleDisplayFrame').textContent = currentGame.title;
+        renderGameInfoBox(currentGame, 'gameInfoTableFrame');
+        renderTagsAreaFrame(currentGame);
+        renderCategoryGamesCountFrame(currentGame);
+
         // Set up play button
         document.getElementById('bigPlayBtn').addEventListener('click', function() {
           console.log('Play button clicked, loading game...');
@@ -508,6 +1233,19 @@
 
         // Set up game action buttons
         setupGameActionButtons();
+
+        // Set up comment event listeners
+        setupCommentEventListeners();
+
+        // Load star rating
+        await loadStarRating(currentGameId);
+
+        // Initialize comments
+        initCommentStarInput();
+        await loadComments(currentGameId);
+        
+        // Set up suggested games
+        await loadSuggestedGames();
 
         // Hide preloader
         document.getElementById('preloader').style.display = 'none';
@@ -625,6 +1363,58 @@
         }
       });
     }
+
+    function setupCommentEventListeners() {
+      // Comment text character count
+      const commentText = document.getElementById('commentText');
+      const commentCharCount = document.getElementById('commentCharCount');
+      
+      if (commentText && commentCharCount) {
+        commentText.addEventListener('input', function() {
+          const length = this.value.length;
+          commentCharCount.textContent = `${length}/1000`;
+          updateSubmitButtonState();
+        });
+      }
+
+      // Submit comment button
+      const submitComment = document.getElementById('submitComment');
+      if (submitComment) {
+        submitComment.addEventListener('click', async function() {
+          await window.submitComment();
+        });
+      }
+
+      // Comment filter
+      const commentFilter = document.getElementById('commentFilter');
+      if (commentFilter) {
+        commentFilter.addEventListener('change', function() {
+          commentsData.currentFilter = this.value;
+          renderComments();
+        });
+      }
+
+      // Cancel comment button
+      const cancelComment = document.getElementById('cancelComment');
+      if (cancelComment) {
+        cancelComment.addEventListener('click', function() {
+          document.getElementById('commentText').value = '';
+          commentsData.currentCommentRating = 0;
+          updateCommentStarInput();
+          updateSubmitButtonState();
+        });
+      }
+    }
+
+    // Modal functions (stubs for compatibility)
+    function closeReplyModal() {
+      const modal = document.getElementById('replyModal');
+      if (modal) modal.classList.add('hidden');
+    }
+
+    // Expose functions to global scope
+    window.submitComment = submitComment;
+    window.closeReplyModal = closeReplyModal;
 
     // Initialize when DOM is loaded - MAIN ENTRY POINT
     document.addEventListener('DOMContentLoaded', function() {
