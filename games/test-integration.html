@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Test Integration - CARBON Games</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+</head>
+<body class="bg-gray-900 text-white p-8">
+    <div class="max-w-4xl mx-auto">
+        <h1 class="text-3xl font-bold mb-8 text-center">
+            <i class="bx bx-test-tube"></i>
+            Integration Test - CARBON Games
+        </h1>
+        
+        <div class="grid md:grid-cols-2 gap-6">
+            <!-- Features Checklist -->
+            <div class="bg-gray-800 rounded-lg p-6">
+                <h2 class="text-xl font-semibold mb-4 text-green-400">
+                    <i class="bx bx-check-circle"></i>
+                    Features Added to games/play.html
+                </h2>
+                <ul class="space-y-3">
+                    <li class="flex items-center gap-2">
+                        <i class="bx bx-check text-green-400"></i>
+                        <span>Star Rating System with Firebase</span>
+                    </li>
+                    <li class="flex items-center gap-2">
+                        <i class="bx bx-check text-green-400"></i>
+                        <span>Comments & Reviews System</span>
+                    </li>
+                    <li class="flex items-center gap-2">
+                        <i class="bx bx-check text-green-400"></i>
+                        <span>Suggested Games Carousel</span>
+                    </li>
+                    <li class="flex items-center gap-2">
+                        <i class="bx bx-check text-green-400"></i>
+                        <span>Profile Integration (trackGameStart/End)</span>
+                    </li>
+                    <li class="flex items-center gap-2">
+                        <i class="bx bx-check text-green-400"></i>
+                        <span>User Status Tracking (online/ingame/idle)</span>
+                    </li>
+                    <li class="flex items-center gap-2">
+                        <i class="bx bx-check text-green-400"></i>
+                        <span>Activity Tracking for Profile Feed</span>
+                    </li>
+                    <li class="flex items-center gap-2">
+                        <i class="bx bx-check text-green-400"></i>
+                        <span>Floating Chat Circle</span>
+                    </li>
+                    <li class="flex items-center gap-2">
+                        <i class="bx bx-check text-green-400"></i>
+                        <span>Direct JSON Loading (No Proxies)</span>
+                    </li>
+                </ul>
+            </div>
+            
+            <!-- Test Links -->
+            <div class="bg-gray-800 rounded-lg p-6">
+                <h2 class="text-xl font-semibold mb-4 text-blue-400">
+                    <i class="bx bx-link"></i>
+                    Test Links
+                </h2>
+                <div class="space-y-4">
+                    <a href="play.html?id=1" 
+                       class="block bg-blue-600 hover:bg-blue-700 px-4 py-3 rounded-lg transition-colors text-center">
+                        <i class="bx bx-play"></i>
+                        Test Game #1 (3D Bowling)
+                    </a>
+                    <a href="play.html?id=15" 
+                       class="block bg-blue-600 hover:bg-blue-700 px-4 py-3 rounded-lg transition-colors text-center">
+                        <i class="bx bx-play"></i>
+                        Test Game #15 (Amaze)
+                    </a>
+                    <a href="../profile.html" 
+                       class="block bg-green-600 hover:bg-green-700 px-4 py-3 rounded-lg transition-colors text-center">
+                        <i class="bx bx-user"></i>
+                        View Profile (Check Activity)
+                    </a>
+                    <a href="../chat.html" 
+                       class="block bg-purple-600 hover:bg-purple-700 px-4 py-3 rounded-lg transition-colors text-center">
+                        <i class="bx bx-message"></i>
+                        Open Chat
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Integration Test Instructions -->
+        <div class="mt-8 bg-gray-800 rounded-lg p-6">
+            <h2 class="text-xl font-semibold mb-4 text-yellow-400">
+                <i class="bx bx-info-circle"></i>
+                Integration Test Steps
+            </h2>
+            <ol class="list-decimal list-inside space-y-2 text-gray-300">
+                <li>Sign in with Google on any page</li>
+                <li>Play a game using games/play.html?id=X</li>
+                <li>Check that the floating chat circle appears</li>
+                <li>Rate the game and leave a comment</li>
+                <li>Check the suggested games section</li>
+                <li>Visit profile.html to see game activity</li>
+                <li>Verify user status changes (online → ingame → online)</li>
+                <li>Test the chat functionality by clicking the circle</li>
+            </ol>
+        </div>
+        
+        <!-- Technical Details -->
+        <div class="mt-8 bg-gray-800 rounded-lg p-6">
+            <h2 class="text-xl font-semibold mb-4 text-cyan-400">
+                <i class="bx bx-code"></i>
+                Technical Implementation
+            </h2>
+            <div class="text-sm text-gray-300 space-y-2">
+                <p><strong>File Structure:</strong></p>
+                <ul class="list-disc list-inside ml-4 space-y-1">
+                    <li>/workspace/play.html (Original with proxies)</li>
+                    <li>/workspace/games/play.html (New, direct loading)</li>
+                    <li>/workspace/profile.html (Unchanged, works with both)</li>
+                    <li>/workspace/chat.html (Opens in floating modal)</li>
+                </ul>
+                
+                <p class="pt-4"><strong>Key Functions Added:</strong></p>
+                <ul class="list-disc list-inside ml-4 space-y-1">
+                    <li>updateUserStatus() - Tracks online/idle/ingame status</li>
+                    <li>trackGameActivity() - Logs game sessions to profile</li>
+                    <li>trackGameStart/End() - Called when games are played</li>
+                    <li>toggleChat() - Opens/closes chat modal</li>
+                </ul>
+                
+                <p class="pt-4"><strong>Firebase Collections Used:</strong></p>
+                <ul class="list-disc list-inside ml-4 space-y-1">
+                    <li>users/ - User profiles and status</li>
+                    <li>games/{id}/ratings/ - Star ratings</li>
+                    <li>games/{id}/comments/ - User reviews</li>
+                    <li>activity/ - Game activity feed</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
