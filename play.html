@@ -1503,11 +1503,31 @@
       else document.getElementById('gameFeaturedTag').classList.add('hidden');
       
       // Load star rating (will show average even without auth)
-      await loadStarRating(currentGameId);
-      renderGameInfoBox(currentGame, "gameInfoTable");
+      try {
+        if (window.loadStarRating) {
+          await loadStarRating(currentGameId);
+        }
+      } catch (error) {
+        console.warn('Star rating failed to load:', error);
+      }
+      
+      // Render game info table
+      try {
+        if (window.renderGameInfoBox) {
+          renderGameInfoBox(currentGame, "gameInfoTable");
+        }
+      } catch (error) {
+        console.warn('Game info box failed to render:', error);
+      }
 
       // Initialize comment system 
-      initializeCommentSystem();
+      try {
+        if (window.initializeCommentSystem) {
+          initializeCommentSystem();
+        }
+      } catch (error) {
+        console.warn('Comment system failed to initialize:', error);
+      }
 
       // Set up play button (works without auth)
       document.getElementById('bigPlayBtn').onclick = async () => {
@@ -1515,42 +1535,44 @@
         document.getElementById('gameInfoHolder').classList.add('hidden');
         document.getElementById('gameFrameContainer').classList.remove('hidden');
         
-        // Track play activity only if user is authenticated
-        const user = auth.currentUser;
-        if (user) {
-          await trackPlayActivity(user.uid, currentGameId, currentGame.title);
-          
-          // Update user status to "in game" for friends to see and track activity
-          if (window.trackGameStart) {
-            await window.trackGameStart(currentGameId);
-          } else {
-            // Use the new status manager
-            await userStatusManager.setInGame(currentGameId);
-            
-            // Track activity for activity feed
-            const game = gamesData.find(g => String(g.id) === String(currentGameId));
-            if (game) {
-              try {
-                await db.collection('activity').add({
-                  userId: user.uid,
-                  userName: user.displayName || 'Anonymous',
-                  userPhoto: user.photoURL || '/default-avatar.png',
-                  gameId: currentGameId,
-                  gameTitle: game.title,
-                  type: 'started_playing',
-                  timestamp: firebase.firestore.FieldValue.serverTimestamp()
-                });
-              } catch (error) {
-                console.error('Error tracking activity:', error);
-              }
-            }
-          }
-        }
-        
-        // Load the game (works with or without auth)
+        // Load the game iframe
         await window.loadProxiedGameIframe();
         
-        hidePreloader();
+        // Set up iframe onload to hide preloader
+        const iframe = document.getElementById('gameFrameEmbed');
+        if (iframe) {
+          iframe.onload = () => {
+            hidePreloader();
+          };
+          
+          // Fallback timeout to hide preloader
+          setTimeout(() => {
+            hidePreloader();
+          }, 5000);
+        } else {
+          hidePreloader();
+        }
+        
+        // Set up frame title and game info
+        const frameTitleText = sanitizeText(currentGame.title || 'Untitled Game', 200);
+        const frameTitleElement = document.getElementById('gameTitleDisplayFrame');
+        if (frameTitleElement) {
+          frameTitleElement.textContent = frameTitleText;
+        }
+        
+        // Initialize frame features
+        try {
+          if (window.renderStarRatingUI) renderStarRatingUI("Frame");
+          if (window.renderTagsAreaFrame) renderTagsAreaFrame(currentGame);
+          if (window.renderCategoryGamesCountFrame) renderCategoryGamesCountFrame(currentGame);
+          if (window.renderGameInfoBox) renderGameInfoBox(currentGame, "gameInfoTableFrame");
+          if (window.loadComments) await loadComments(currentGameId);
+          if (window.loadSuggestedGames) await loadSuggestedGames();
+          if (window.initializeSuggestedCarousel) initializeSuggestedCarousel();
+          if (window.initializeCommentSystem) initializeCommentSystem();
+        } catch (error) {
+          console.warn('Some frame features failed to initialize:', error);
+        }
         
         // Show game action buttons
         setTimeout(() => {
@@ -1560,6 +1582,16 @@
             actionButtons.classList.add('opacity-100', 'pointer-events-auto');
           }
         }, 1000);
+        
+        // Track play activity if user is authenticated
+        try {
+          const user = auth.currentUser;
+          if (user && window.trackPlayActivity) {
+            await trackPlayActivity(user.uid, currentGameId, currentGame.title);
+          }
+        } catch (error) {
+          console.warn('Play activity tracking failed:', error);
+        }
       };
     }
     
@@ -1568,8 +1600,21 @@
       if (!currentGame || !currentGameId) return;
       
       // Refresh ratings and comments with user context
-      await loadStarRating();
-      await loadComments();
+      try {
+        if (window.loadStarRating) {
+          await loadStarRating(currentGameId);
+        }
+      } catch (error) {
+        console.warn('Failed to refresh star rating:', error);
+      }
+      
+      try {
+        if (window.loadComments) {
+          await loadComments(currentGameId);
+        }
+      } catch (error) {
+        console.warn('Failed to refresh comments:', error);
+      }
     }
 
     function getGameIdFromURL() {
