@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Test Direct Game Loading</title>
+</head>
+<body>
+    <h1>Test Game Loading from JSON</h1>
+    <script>
+        async function testGameLoading() {
+            try {
+                // Load games.json from parent directory
+                const res = await fetch('../games.json');
+                const gamesData = await res.json();
+                
+                console.log('✅ Successfully loaded', gamesData.length, 'games from JSON');
+                
+                // Test first few games
+                const testGames = gamesData.slice(0, 5);
+                
+                for (const game of testGames) {
+                    let gameUrl = game.url;
+                    if (gameUrl.startsWith('./games/')) {
+                        gameUrl = gameUrl.replace('./games/', './');
+                    }
+                    console.log(`Game ${game.id}: ${game.title} -> ${gameUrl}`);
+                }
+                
+                document.body.innerHTML += `
+                    <p>✅ Successfully loaded ${gamesData.length} games!</p>
+                    <p>All games can be accessed via: /games/play.html?id=[GAME_ID]</p>
+                    <h3>Sample Games:</h3>
+                    <ul>
+                        ${testGames.map(g => `<li><a href="play.html?id=${g.id}">${g.title}</a></li>`).join('')}
+                    </ul>
+                `;
+                
+            } catch (error) {
+                console.error('❌ Error:', error);
+                document.body.innerHTML += `<p>❌ Error: ${error.message}</p>`;
+            }
+        }
+        
+        testGameLoading();
+    </script>
+</body>
+</html>
