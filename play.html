@@ -1435,11 +1435,50 @@
     async function loadGameOnPage() {
       currentGameId = getGameIdFromURL();
       window.currentGameId = currentGameId;
-      currentGame = gamesData.find(g => g.id == currentGameId || String(g.id) == currentGameId);
+      
+      // Try multiple ways to find the game:
+      // 1. By numeric ID (e.g., "1", "2", "3")
+      // 2. By slug from URL path (e.g., "3d-bowling", "amaze")
+      currentGame = gamesData.find(g => {
+        // Match by numeric ID
+        if (g.id == currentGameId || String(g.id) == currentGameId) {
+          return true;
+        }
+        
+        // Match by slug extracted from URL path
+        if (g.url) {
+          const slug = g.url.replace('./games/', '').replace('/index.html', '');
+          if (slug === currentGameId) {
+            return true;
+          }
+        }
+        
+        // Match by title converted to slug
+        if (g.title) {
+          const titleSlug = g.title.toLowerCase()
+            .replace(/\s+/g, '-')
+            .replace(/[^a-z0-9-]/g, '')
+            .replace(/--+/g, '-')
+            .replace(/^-|-$/g, '');
+          if (titleSlug === currentGameId) {
+            return true;
+          }
+        }
+        
+        return false;
+      });
       
       if (!currentGame) {
         hidePreloader();
-        document.getElementById('gameInfoHolder').innerHTML = `<div class="text-center p-12 text-red-400">Game not found.</div>`;
+        const debugInfo = `
+          <div class="text-center p-12 text-red-400">
+            <h3 class="text-xl font-bold mb-4">Game not found</h3>
+            <p class="mb-2">Looking for ID: "${currentGameId}"</p>
+            <p class="text-sm text-gray-400">Available games: ${gamesData.length} total</p>
+            <p class="text-sm text-gray-400">First few IDs: ${gamesData.slice(0, 5).map(g => g.id).join(', ')}</p>
+          </div>
+        `;
+        document.getElementById('gameInfoHolder').innerHTML = debugInfo;
         document.getElementById('gameInfoHolder').classList.remove('hidden');
         return;
       }
@@ -2274,8 +2313,8 @@
 
     function validateGameId(id) {
       if (!id) return null;
-      // Only allow alphanumeric characters and basic punctuation
-      return /^[a-zA-Z0-9_-]+$/.test(id) ? id : null;
+      // Allow alphanumeric characters, hyphens, underscores, and periods
+      return /^[a-zA-Z0-9._-]+$/.test(id) ? id : null;
     }
 
     function sanitizeText(text, maxLength = 10000) {
