@@ -1409,10 +1409,26 @@
     let tagCounts = {};
 
     async function loadGamesData() {
+      console.log('🔄 Starting loadGamesData function');
       try {
+        console.log('🔄 Fetching games.json...');
         const res = await fetch('games.json');
+        
+        if (!res.ok) {
+          throw new Error(\`HTTP \${res.status}: \${res.statusText}\`);
+        }
+        
+        console.log('✅ games.json fetched, parsing JSON...');
         gamesData = await res.json();
         window.gamesData = gamesData;
+        
+        if (!Array.isArray(gamesData)) {
+          throw new Error('Games data is not an array');
+        }
+        
+        console.log(\`✅ Games loaded: \${gamesData.length} total\`);
+        console.log(\`📋 First game: \${gamesData[0]?.title || 'Unknown'}\`);
+        console.log(\`📋 Sample IDs: \${gamesData.slice(0, 5).map(g => g.id).join(', ')}\`);
         
         // Build category and tag counts for tag modal
         categoryCounts = {};
@@ -1425,9 +1441,12 @@
         });
         window.categoryCounts = categoryCounts;
         window.tagCounts = tagCounts;
+        console.log('✅ Category and tag counts built');
+        
       } catch (error) {
-        console.error('Error loading games data:', error);
-        throw error;
+        console.error('❌ Error loading games data:', error);
+        console.error('❌ Fetch error details:', error.message);
+        throw error; // Re-throw to be caught by DOMContentLoaded handler
       }
     }
 
@@ -2459,6 +2478,43 @@
       } catch (e) {
         return '';
       }
+    }
+    
+    function sanitizeText(text, maxLength = 10000) {
+      if (!text) return '';
+      // Remove any potentially harmful content and limit length
+      return String(text)
+        .replace(/[<>\"'&]/g, function(match) {
+          const escapeMap = {
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#x27;',
+            '&': '&amp;'
+          };
+          return escapeMap[match];
+        })
+        .substring(0, maxLength);
+    }
+    
+    function escapeHtml(text) {
+      if (!text) return '';
+      return String(text)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#x27;');
+    }
+    
+    function escapeHtmlAttribute(text) {
+      if (!text) return '';
+      return String(text)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#x27;');
     }
 
     function validateGameId(id) {
@@ -3685,17 +3741,47 @@
 
     // Re-initialize the main document loading logic
     document.addEventListener('DOMContentLoaded', async () => {
-      showPreloader();
-      document.getElementById('gameFrameContainer').classList.add('hidden');
-      document.getElementById('gameInfoHolder').classList.add('hidden');
-      // Hide login screen by default - no auth required for playing games
-      document.getElementById('loginScreen').classList.add('hidden');
+      console.log('🚀 DOMContentLoaded fired - Starting page initialization');
       
-      // Load game data immediately without waiting for auth
-      await loadGamesData();
-      await loadGameOnPage();
-      hidePreloader();
-      document.getElementById('gameInfoHolder').classList.remove('hidden');
+      try {
+        showPreloader();
+        console.log('✅ Preloader shown');
+        
+        // Hide elements initially
+        document.getElementById('gameFrameContainer').classList.add('hidden');
+        document.getElementById('gameInfoHolder').classList.add('hidden');
+        document.getElementById('loginScreen').classList.add('hidden');
+        console.log('✅ Initial elements hidden');
+        
+        // Load game data immediately without waiting for auth
+        console.log('🔄 Loading games data...');
+        await loadGamesData();
+        console.log('✅ Games data loaded successfully');
+        
+        console.log('🔄 Loading game on page...');
+        await loadGameOnPage();
+        console.log('✅ Game loaded on page successfully');
+        
+        hidePreloader();
+        console.log('✅ Preloader hidden');
+        
+        document.getElementById('gameInfoHolder').classList.remove('hidden');
+        console.log('✅ Game info holder shown');
+        console.log('🎯 Page initialization complete!');
+        
+      } catch (error) {
+        console.error('❌ CRITICAL ERROR during page initialization:', error);
+        hidePreloader();
+        const errorDiv = document.getElementById('gameInfoHolder');
+        if (errorDiv) {
+          errorDiv.innerHTML = \`<div style="text-align: center; color: red; padding: 20px;">
+            <h3>Page Load Error</h3>
+            <p>\${error.message}</p>
+            <p>Check console for details.</p>
+          </div>\`;
+          errorDiv.classList.remove('hidden');
+        }
+      }
       
       auth.onAuthStateChanged(async (user) => {
         if (typeof renderUserSection === 'function') {
