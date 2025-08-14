@@ -259,6 +259,9 @@
           <button id="playlistBtn" class="w-12 h-12 bg-black/60 backdrop-blur-md hover:bg-yellow-400/90 text-white rounded-full flex items-center justify-center transition-all duration-300 border-2 border-white/20 hover:border-yellow-400/60 shadow-lg hover:shadow-yellow-400/30 hover:scale-110 game-action-btn" title="Add to Playlist">
             <i class='bx bx-list-plus text-xl'></i>
           </button>
+          <button id="redirectBtn" class="w-12 h-12 bg-black/60 backdrop-blur-md hover:bg-orange-500/90 text-white rounded-full flex items-center justify-center transition-all duration-300 border-2 border-white/20 hover:border-orange-400/60 shadow-lg hover:shadow-orange-400/30 hover:scale-110 game-action-btn" title="Open Game in New Tab">
+            <i class='bx bx-box text-xl'></i>
+          </button>
         </div>
       </div>
       
@@ -883,6 +886,9 @@
         console.log('Tracking game start for profile integration...');
         await window.trackGameStart(currentGameId);
         
+        // Update play count for profile statistics
+        await updatePlayCount(currentGameId);
+        
         // Set up game end tracking when user leaves
         window.addEventListener('beforeunload', async () => {
           await window.trackGameEnd();
@@ -1420,6 +1426,54 @@
           console.error('Error toggling playlist:', error);
         }
       });
+
+      // Redirect button - Open game in new tab and track activity
+      document.getElementById('redirectBtn').addEventListener('click', async function() {
+        if (!currentGame) {
+          console.error('No current game to redirect to');
+          return;
+        }
+
+        console.log('Redirect button clicked for game:', currentGame.title);
+        
+        try {
+          // Track the redirect activity for profile integration
+          await window.trackGameStart(currentGameId);
+          
+          // Get the game URL and convert it for direct access
+          let gameUrl = currentGame.url;
+          
+          // Convert the JSON URL path to direct path
+          // Original: "./games/amaze/index.html" 
+          // Convert to: "./amaze/" (remove index.html and games prefix)
+          if (gameUrl.startsWith('./games/')) {
+            gameUrl = gameUrl.replace('./games/', './');
+            // Remove index.html to get directory
+            if (gameUrl.endsWith('/index.html')) {
+              gameUrl = gameUrl.replace('/index.html', '/');
+            }
+          }
+          
+          console.log('Redirecting to game directory:', gameUrl);
+          
+          // Open in new tab
+          window.open(gameUrl, '_blank');
+          
+          // Track the redirect as a play action for profile
+          await trackGameActivity(currentGameId, 'redirected');
+          
+          // Update play count for profile integration
+          await updatePlayCount(currentGameId);
+          
+          // Keep the user status as ingame for a bit then back to online
+          setTimeout(async () => {
+            await window.trackGameEnd();
+          }, 5000); // 5 seconds delay
+          
+        } catch (error) {
+          console.error('Error handling redirect:', error);
+        }
+      });
     }
 
     function setupCommentEventListeners() {
@@ -1539,15 +1593,106 @@
       }
     }
 
+    // Update play count for profile integration
+    async function updatePlayCount(gameId) {
+      if (!auth.currentUser || !gameId) return;
+      
+      try {
+        const userRef = db.collection('users').doc(auth.currentUser.uid);
+        const gameStatsRef = userRef.collection('gameStats').doc(gameId);
+        
+        // Get current stats
+        const statsDoc = await gameStatsRef.get();
+        const currentStats = statsDoc.exists ? statsDoc.data() : {};
+        
+        // Update play count and total time
+        const updateData = {
+          gameId: gameId,
+          playCount: (currentStats.playCount || 0) + 1,
+          totalPlayTime: (currentStats.totalPlayTime || 0),
+          lastPlayed: firebase.firestore.FieldValue.serverTimestamp(),
+          firstPlayed: currentStats.firstPlayed || firebase.firestore.FieldValue.serverTimestamp()
+        };
+        
+        await gameStatsRef.set(updateData, { merge: true });
+        
+        // Also update user's total stats
+        await userRef.update({
+          totalGamesPlayed: firebase.firestore.FieldValue.increment(1),
+          lastActivity: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        
+        console.log('Play count updated for game:', gameId);
+        
+      } catch (error) {
+        console.error('Error updating play count:', error);
+      }
+    }
+
+    // Session tracking for play time
+    let gameSessionStart = null;
+
     // Functions for profile.html integration
     window.trackGameStart = async function(gameId) {
+      gameSessionStart = new Date();
       await updateUserStatus('ingame', gameId);
       await trackGameActivity(gameId, 'started');
+      console.log('Game session started for:', gameId);
     };
 
     window.trackGameEnd = async function() {
+      if (gameSessionStart && currentGameId) {
+        const sessionEnd = new Date();
+        const sessionDuration = Math.round((sessionEnd - gameSessionStart) / 1000); // seconds
+        
+        // Update session duration in game stats
+        await updateSessionDuration(currentGameId, sessionDuration);
+        
+        // Track the end activity
+        await trackGameActivity(currentGameId, 'ended');
+        
+        console.log('Game session ended. Duration:', sessionDuration, 'seconds');
+      }
+      
+      gameSessionStart = null;
       await updateUserStatus('online');
     };
+
+    // Update session duration for detailed profile stats
+    async function updateSessionDuration(gameId, duration) {
+      if (!auth.currentUser || !gameId || !duration) return;
+      
+      try {
+        const userRef = db.collection('users').doc(auth.currentUser.uid);
+        const gameStatsRef = userRef.collection('gameStats').doc(gameId);
+        
+        // Get current stats
+        const statsDoc = await gameStatsRef.get();
+        const currentStats = statsDoc.exists ? statsDoc.data() : {};
+        
+        // Update total play time
+        const newTotalTime = (currentStats.totalPlayTime || 0) + duration;
+        const sessions = (currentStats.sessions || 0) + 1;
+        
+        await gameStatsRef.update({
+          totalPlayTime: newTotalTime,
+          sessions: sessions,
+          averageSessionTime: Math.round(newTotalTime / sessions),
+          lastSessionDuration: duration,
+          lastPlayed: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        
+        // Update user's total play time
+        await userRef.update({
+          totalPlayTime: firebase.firestore.FieldValue.increment(duration)
+        });
+        
+        console.log(`Session duration updated: ${duration}s for game ${gameId}`);
+        
+      } catch (error) {
+        console.error('Error updating session duration:', error);
+      }
+    }
 
     // Restore user's saved status or set to online
     async function restoreUserStatus() {
@@ -1694,6 +1839,8 @@
     window.closeReplyModal = closeReplyModal;
     window.updateUserStatus = updateUserStatus;
     window.trackGameActivity = trackGameActivity;
+    window.updatePlayCount = updatePlayCount;
+    window.updateSessionDuration = updateSessionDuration;
     window.toggleChat = toggleChat;
     window.openChat = openChat;
     window.closeChat = closeChat;
