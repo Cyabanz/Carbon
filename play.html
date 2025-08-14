@@ -1433,8 +1433,17 @@
 
     // Function to load game on page without requiring authentication
     async function loadGameOnPage() {
+      console.log('🔄 loadGameOnPage called');
       currentGameId = getGameIdFromURL();
       window.currentGameId = currentGameId;
+      console.log('🎮 Current game ID:', currentGameId);
+      
+      // If no game ID in URL, use the first game as default for testing
+      if (!currentGameId) {
+        console.log('⚠️ No game ID in URL, using first game for testing');
+        currentGameId = '1';
+        window.currentGameId = currentGameId;
+      }
       
       // Try multiple ways to find the game:
       // 1. By numeric ID (e.g., "1", "2", "3")
@@ -1467,6 +1476,8 @@
         
         return false;
       });
+      
+      console.log('🎮 Game search result:', currentGame ? currentGame.title : 'NOT FOUND');
       
       if (!currentGame) {
         hidePreloader();
@@ -3687,25 +3698,42 @@
       document.getElementById('gameInfoHolder').classList.remove('hidden');
       
       auth.onAuthStateChanged(async (user) => {
-        renderUserSection(user);
+        if (typeof renderUserSection === 'function') {
+          renderUserSection(user);
+        }
         if (!user) {
-          // Cleanup status manager if user logs out
-          userStatusManager.cleanup();
-          // Don't show login screen or hide game - let user continue playing
+          // User logged out - don't show login screen or hide game
+          console.log('User logged out but game continues');
           return;
         }
         
-                 // Initialize status manager for logged in user
-         await userStatusManager.init();
+        // User logged in - initialize user-specific features
+        console.log('User logged in:', user.displayName || user.email);
          
          // Update visual status indicators
-         updateStatusDisplay(user);
+         try {
+           if (typeof updateStatusDisplay === 'function') {
+             updateStatusDisplay(user);
+           }
+         } catch (error) {
+           console.warn('Failed to update status display:', error);
+         }
         
         // Load background settings from Firebase
-        await loadBackgroundFromFirebase(user.uid);
+        try {
+          if (typeof loadBackgroundFromFirebase === 'function') {
+            await loadBackgroundFromFirebase(user.uid);
+          }
+        } catch (error) {
+          console.warn('Failed to load background from Firebase:', error);
+        }
         
         // Refresh user-specific data when user signs in
-        await refreshUserSpecificGameData();
+        try {
+          await refreshUserSpecificGameData();
+        } catch (error) {
+          console.warn('Failed to refresh user-specific data:', error);
+        }
 
         // Set up user-specific button handlers and preferences when authenticated
         if (currentGame && currentGameId) {
