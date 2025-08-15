@@ -736,6 +736,14 @@
                       <i class="bx bx-server text-gold"></i>
                       <span>Carbon VM</span>
                     </button>
+                    <button
+                      id="carbon-shared-session-btn"
+                      class="w-full flex items-center gap-3 px-3 py-2 text-text hover:bg-highlight-med transition-colors text-sm"
+                    >
+                      <i class="bx bx-share-alt text-pine"></i>
+                      <span>Shared Sessions</span>
+                      <span class="ml-auto text-xs bg-pine/20 text-pine px-2 py-0.5 rounded-full">NEW</span>
+                    </button>
 
                     <!-- Settings -->
                     <div class="px-3 py-1 text-xs font-medium text-muted uppercase tracking-wide border-b border-highlight-med mb-2 mt-3">
@@ -1279,6 +1287,8 @@
           title = "AI Assistant";
         } else if (url === "carbon://vm") {
           title = "Virtual Machine";
+        } else if (url === "carbon://shared-session") {
+          title = "Shared Sessions";
         } else if (url === "carbon://multi") {
           title = "Multi Player";
         } else if (url) {
@@ -1709,6 +1719,9 @@
                 iframe.dataset.loadedUrl = url;
               } else if (url === "carbon://vm") {
                 iframe.src = "/vm.html";
+                iframe.dataset.loadedUrl = url;
+              } else if (url === "carbon://shared-session") {
+                iframe.src = "/shared-session.html";
                 iframe.dataset.loadedUrl = url;
               } else if (url === "carbon://multi") {
                 iframe.src = "/multi.html";
@@ -2899,6 +2912,17 @@
         const tab = getActiveTab();
         if (tab) {
           updateTabHistory(tab, "carbon://vm");
+          updateAddressBar(tab);
+          renderTabs();
+          renderTabContent(tab);
+        }
+        dropdown.classList.add("hidden");
+      };
+      
+      document.getElementById("carbon-shared-session-btn").onclick = function () {
+        const tab = getActiveTab();
+        if (tab) {
+          updateTabHistory(tab, "carbon://shared-session");
           updateAddressBar(tab);
           renderTabs();
           renderTabContent(tab);
